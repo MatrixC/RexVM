@@ -1,0 +1,7 @@
+.xmake/
+.idea/
+.vscode/
+build/
+cmake-build-debug/
+CMakeLists.txt
+.DS_Store
