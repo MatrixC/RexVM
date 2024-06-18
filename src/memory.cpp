@@ -112,14 +112,14 @@ namespace RexVM {
         }
         tracedOop.insert(oop);
 
-        const auto oopTpye = oop->type;
-        switch (oopTpye) {
+        const auto oopType = oop->type;
+        switch (oopType) {
             case OopTypeEnum::InstanceOop:
-                traceInstanceOop(static_cast<InstanceOop *>(oop), tracedOop);
+                traceInstanceOopChild(static_cast<InstanceOop *>(oop), tracedOop);
             break;
 
             case OopTypeEnum::ObjArrayOop:
-                traceObjArrayOop(static_cast<ObjArrayOop *>(oop), tracedOop);
+                traceObjArrayOopChild(static_cast<ObjArrayOop *>(oop), tracedOop);
             break;
 
             case OopTypeEnum::TypeArrayOop:
@@ -128,7 +128,7 @@ namespace RexVM {
         
     }
 
-    void traceInstanceOop(InstanceOop * const oop, std::unordered_set<Oop *> &tracedOop) {
+    void traceInstanceOopChild(InstanceOop * const oop, std::unordered_set<Oop *> &tracedOop) {
         const auto klass = static_cast<InstanceClass *>(oop->klass);
         for (const auto &field : klass->fields) {
             const auto fieldType = field->getFieldSlotType();
@@ -141,7 +141,7 @@ namespace RexVM {
         }
     }
 
-    void traceObjArrayOop(ObjArrayOop * const oop, std::unordered_set<Oop *> &tracedOop) {
+    void traceObjArrayOopChild(ObjArrayOop * const oop, std::unordered_set<Oop *> &tracedOop) {
         const auto arrayLength = oop->dataLength;
         if (arrayLength > 0) {
             for (size_t i = 0; i < arrayLength; ++i) {
@@ -217,7 +217,7 @@ namespace RexVM {
         oopManager->allocatedOop = tracedOop;
     }
 
-    std::unordered_set<Oop *> getGcRoot(VM &vm) {
+    std::unordered_set<Oop *> getGCRoot(VM &vm) {
         std::unordered_set<Oop *> gcRoots;
 
         //From ClassLoader
@@ -270,9 +270,9 @@ namespace RexVM {
 
     void gc2(VM &vm) {
         const auto &oopManager = vm.oopManager;
-        const auto &allocatedOop = oopManager->allocatedOop;
+        auto &allocatedOop = oopManager->allocatedOop;
 
-        const auto &gcRoots = getGcRoot(vm);
+        const auto &gcRoots = getGCRoot(vm);
         const auto &tracedOop = startTrace(gcRoots);
 
         println("allocated {}, gcRoots {}, traced {}", allocatedOop.size(), gcRoots.size(), tracedOop.size());
@@ -285,6 +285,7 @@ namespace RexVM {
         println("notTracedOop {}", notTracedOop.size());
         for (const auto &oop : notTracedOop) {
             delete oop;
+            allocatedOop.erase(oop);
         }
 
         // for (const auto &oop : allocatedOop) {

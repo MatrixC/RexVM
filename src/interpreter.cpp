@@ -2,7 +2,7 @@
 #include <cmath>
 #include "utils/byte_reader.hpp"
 #include "opcode.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "frame.hpp"
 #include "class.hpp"
 #include "oop.hpp"

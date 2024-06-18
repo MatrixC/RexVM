@@ -3,7 +3,7 @@
 #include <utility>
 #include "constant_pool.hpp"
 #include "class_member.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "class_file.hpp"
 #include "class_loader.hpp"
 #include "oop.hpp"

@@ -1,6 +1,9 @@
 #include "string_utils.hpp"
-#include <unicode/unistr.h>
+#include "format.hpp"
 #include <ranges>
+#include <string>
+#include <codecvt>
+#include <locale>
 
 namespace RexVM {
     std::vector<cview> split_string(cview str, char delimiter) {
@@ -30,16 +33,6 @@ namespace RexVM {
         return str[str.length() - 1] == suffix;
     }
 
-    ustring convert16(const cstring &str) {
-        return icu::UnicodeString::fromUTF8(str);
-    }
-
-    ustring convert16(const char *str, size_t length) {
-        return icu::UnicodeString::fromUTF8(icu::StringPiece(str, length));
-    }
-
-    ustring convert16(cchar_16 *ptr, size_t length);
-
     cstring concat_view(cview str1, cview str2) {
         cstring result(str1);
         result += str2;
@@ -47,10 +40,14 @@ namespace RexVM {
     }
 
     cstring u16charsToString(const cchar_16 *str, size_t length) {
-        cstring utf8Value;
-        icu::UnicodeString unicodeString(str, length);
-        unicodeString.toUTF8String(utf8Value);
-        return utf8Value;
+        std::u16string u16String(str, length);
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+        return convert.to_bytes(u16String);
+    }
+
+    ustring stringToUString(const cstring &str) {
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+        return convert.from_bytes(str);
     }
 
     cstring replace(cstring src, cstring search, cstring replace) {

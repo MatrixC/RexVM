@@ -6,7 +6,7 @@
 #define CLASS_FILE_PRINT_HPP
 
 #include "utils/format.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "attribute_info.hpp"
 #include "class_file.hpp"
 

@@ -3,7 +3,7 @@
 //
 #include "utils/format.hpp"
 #include "attribute_info.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "class_file.hpp"
 
 namespace RexVM {

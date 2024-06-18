@@ -1,6 +1,6 @@
 #include "vm.hpp"
 #include "utils/class_path.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "attribute_info.hpp"
 #include "class_loader.hpp"
 #include "constant_pool.hpp"
@@ -98,8 +98,8 @@ namespace RexVM {
   
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
-        vm.bootstrapClassLoader.reset(nullptr);
-        gc2(vm);
+        //gc2(vm);
+        //vm.bootstrapClassLoader.reset(nullptr);
     }
 
 }

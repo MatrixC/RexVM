@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
-#include <unicode/unistr.h>
 
 namespace RexVM {
 
@@ -25,7 +24,7 @@ namespace RexVM {
     using cchar_16 = char16_t;
     using cstring = std::string;
     using cview = std::string_view;
-    using ustring = icu::UnicodeString;
+    using ustring = std::u16string;
 
     struct Oop;
 

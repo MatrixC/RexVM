@@ -2,7 +2,7 @@
 #include "basic_type.hpp"
 #include "utils/class_path.hpp"
 #include "utils/class_utils.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "class_file.hpp"
 #include "class.hpp"
 #include "vm.hpp"

@@ -1,12 +1,9 @@
 #include "constant_pool.hpp"
-#include "class.hpp"
-#include "constantInfo.hpp"
 #include "class_loader.hpp"
 #include "oop.hpp"
 #include "utils/string_utils.hpp"
 #include "vm.hpp"
 #include "memory.hpp"
-#include <unicode/unistr.h>
 
 namespace RexVM {
 
@@ -22,14 +19,15 @@ namespace RexVM {
             return iter->second;
         }
 
+        const auto u16Str = stringToUString(str);
+        const auto u16Buffer = u16Str.c_str();
+        const auto u16Length = u16Str.length();
+
         const auto &oopManager = vm.oopManager;
 
-        const auto utf16Str = icu::UnicodeString::fromUTF8(str);
-        const auto utf16BPtr = utf16Str.getBuffer();
-
-        const auto charArrayOop = oopManager->newCharArrayOop(utf16Str.length());
-        for (size_t i = 0; i < utf16Str.length(); ++i) {
-            charArrayOop->data[i] = utf16BPtr[i];
+        const auto charArrayOop = oopManager->newCharArrayOop(u16Length);
+        for (size_t i = 0; i < u16Length; ++i) {
+            charArrayOop->data[i] = u16Buffer[i];
         }
 
         auto stringClass = classLoader.getInstanceClass("java/lang/String");

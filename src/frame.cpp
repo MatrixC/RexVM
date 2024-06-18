@@ -1,5 +1,5 @@
 #include "frame.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "class_member.hpp"
 #include "class.hpp"
 #include "oop.hpp"

@@ -6,7 +6,7 @@
 #include "class_member.hpp"
 #include "oop.hpp"
 #include "runtime.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "constant_pool.hpp"
 #include "vm.hpp"
 #include "opcode.hpp"

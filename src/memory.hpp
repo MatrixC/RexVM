@@ -27,8 +27,8 @@ namespace RexVM {
     };
 
     void traceOop(Oop * const root, std::unordered_set<Oop *> &tracedOop);
-    void traceInstanceOop(InstanceOop * const oop, std::unordered_set<Oop *> &tracedOop);
-    void traceObjArrayOop(ObjArrayOop * const oop, std::unordered_set<Oop *> &tracedOop);
+    void traceInstanceOopChild(InstanceOop * const oop, std::unordered_set<Oop *> &tracedOop);
+    void traceObjArrayOopChild(ObjArrayOop * const oop, std::unordered_set<Oop *> &tracedOop);
 
     void gc(VM &vm);
     void gc2(VM &vm);

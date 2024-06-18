@@ -1,5 +1,5 @@
 #include "attribute_info.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 
 namespace RexVM {
 

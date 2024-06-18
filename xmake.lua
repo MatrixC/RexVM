@@ -1,7 +1,7 @@
 add_rules("mode.debug", "mode.release")
-add_requires("fmt", "miniz", "icu4c")
+add_requires("fmt", "miniz")
 
-set_languages("c99", "cxx20")
+set_languages("c99", "cxx23")
 set_optimize("none")
 
 
@@ -14,8 +14,8 @@ target("RexVM")
         "src/utils/*.cpp",
         "src/native/*.cpp"
     )
-    add_packages("fmt", "miniz", "icu4c")
+    add_packages("fmt", "miniz")
     set_warnings("all", "error")
 
-    set_policy("build.sanitizer.address", true)
+    -- set_policy("build.sanitizer.address", true)
     -- set_policy("build.sanitizer.undefined", true)
