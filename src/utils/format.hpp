@@ -5,6 +5,7 @@
 #ifndef FORMAT_HPP
 #define FORMAT_HPP
 
+#define FMT_HEADER_ONLY
 #include <fmt/core.h>
 
 namespace RexVM {

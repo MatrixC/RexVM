@@ -4,6 +4,7 @@
 #include <bit>
 #include <type_traits>
 #include <fstream>
+#include <memory>
 #include "format.hpp"
 #include "../config.hpp"
 

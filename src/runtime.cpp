@@ -150,7 +150,7 @@ namespace RexVM {
         }
         //println("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass->name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
 
-        if (!nativeMethod) {
+        if (!nativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
                 frame.currentByteCode = frame.reader.readU1();
