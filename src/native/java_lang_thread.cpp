@@ -1,5 +1,5 @@
 #include "java_lang_thread.hpp"
-#include "../runtime.hpp"
+#include "../thread.hpp"
 
 namespace RexVM::Native {
 

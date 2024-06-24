@@ -5,7 +5,7 @@
 #include "class_loader.hpp"
 #include "constant_pool.hpp"
 #include "class.hpp"
-#include "runtime.hpp"
+#include "thread.hpp"
 #include "frame.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
@@ -15,7 +15,7 @@
 #include "class_file.hpp"
 #include "class_file_print.hpp"
 #include "utils/descriptor_parser.hpp"
-#include "memory.hpp"
+#include "execute.hpp"
 #include <ranges>
 
 
@@ -44,17 +44,13 @@ namespace RexVM {
         stringPool = std::make_unique<StringPool>(*this, *bootstrapClassLoader);
     }
 
-    void VM::initExecutor() {
-        executor = std::make_unique<Executor>(*this);
-    }
-
-    void VM::initJavaSystemClass() const {
+    void VM::initJavaSystemClass() {
         const auto systemClass = bootstrapClassLoader->getInstanceClass("java/lang/System");
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
-        executor->runStaticMethodOnNewThread(*initMethod, {});
+        runStaticMethodOnNewThread(*this, *initMethod, {});
     }
 
-    void VM::runMainMethod() const {
+    void VM::runMainMethod() {
         const auto userParams = params.userParams;
 
         if (userParams.empty()) {
@@ -80,7 +76,7 @@ namespace RexVM {
             }
         }
 
-        executor->runStaticMethodOnNewThread(*mainMethod, std::vector{ Slot(stringArray) });
+        runStaticMethodOnNewThread(*this, *mainMethod, std::vector{ Slot(stringArray) });
     }
 
 
@@ -90,7 +86,6 @@ namespace RexVM {
         initOopManager();
         initBootstrapClassLoader();
         initStringPool();
-        initExecutor();
         initJavaSystemClass();
         runMainMethod();
     }

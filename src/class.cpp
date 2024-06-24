@@ -8,7 +8,7 @@
 #include "class_loader.hpp"
 #include "oop.hpp"
 #include "vm.hpp"
-#include "runtime.hpp"
+#include "thread.hpp"
 #include "frame.hpp"
 #include "exception.hpp"
 #include "utils/format.hpp"

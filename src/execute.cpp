@@ -1,102 +1,15 @@
+#include "execute.hpp"
 #include "config.hpp"
-#include "utils/binary.hpp"
+#include "utils/format.hpp"
 #include "utils/class_utils.hpp"
-#include "class_loader.hpp"
-#include "class.hpp"
-#include "class_member.hpp"
-#include "oop.hpp"
-#include "runtime.hpp"
-#include "constant_info.hpp"
-#include "constant_pool.hpp"
 #include "vm.hpp"
 #include "opcode.hpp"
 #include "frame.hpp"
 #include "memory.hpp"
 #include "interpreter.hpp"
+#include "thread.hpp"
 
 namespace RexVM {
-
-    Thread::Thread(VM &vm, Executor &executor) : 
-        vm(vm), 
-        executor(executor) 
-    {
-        const auto &oopManager = vm.oopManager;
-        vmThread = oopManager->newThreadOop(this);
-    }
-
-    Thread::~Thread() {
-    }
-
-    std::vector<Oop *> Thread::getThreadGCRoots() const {
-        std::vector<Oop *> result;
-        for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
-            const auto localObjects = cur->getLocalObjects();
-            const auto stackObjects = cur->operandStackContext.getObjects();
-            if (localObjects.size() > 0) {
-                result.insert(result.end(), localObjects.begin(), localObjects.end());
-            }
-            if (stackObjects.size() > 0) {
-                result.insert(result.end(), stackObjects.begin(), stackObjects.end());
-            }
-        }
-        return result;
-    }
-
-    ThreadOop * Thread::getThreadMirror() const {
-        return vmThread;
-    }
-
-    Executor::Executor(VM &vm) : vm(vm) {
-    }
-
-    void Executor::createFrameAndRunMethod(Thread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
-        Frame nextFrame(thread.vm, thread, thread.executor, method_, previous);
-        const auto slotSize = method_.paramSlotSize;
-        if (slotSize != params.size()) {
-            panic("error params length " + method_.name);
-        }
-        for (auto i = 0; i < params.size(); ++i) {
-            const auto slotType = method_.getParamSlotType(i);
-            nextFrame.setLocal(i, params.at(i), slotType);
-        }
-        const auto backupFrame = thread.currentFrame;
-        thread.currentFrame = &nextFrame;
-        const auto methodName = method_.klass.name + "#" + method_.name;
-        executeFrame(nextFrame, methodName);
-        thread.currentFrame = backupFrame;
-    }
-
-    void Executor::runStaticMethodOnNewThread(Method &method_, std::vector<Slot> params) {
-        auto thread = std::make_unique<Thread>(vm, *this);
-        createFrameAndRunMethod(*thread, method_, params, nullptr);
-    }
-
-    void passReturnValue(Frame &frame) {
-        const auto previous = frame.previous;
-        if (previous == nullptr) {
-            panic("previous is nullptr");
-        }
-        const auto returnValue = frame.returnValue;
-        switch (frame.returnType) {
-            case SlotTypeEnum::I4:
-            case SlotTypeEnum::F4:
-            case SlotTypeEnum::REF:
-                previous->push(returnValue);
-                break;
-                            
-            case SlotTypeEnum::I8:
-                previous->pushI8(returnValue.i8Val);
-                break;
-
-            case SlotTypeEnum::F8:
-                previous->pushF8(returnValue.f8Val);
-                break;
-
-            default:
-                panic("unknown slot Type");
-                break;
-        }
-    }
 
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
@@ -141,7 +54,34 @@ namespace RexVM {
         return false;
     }
 
-    void Executor::executeFrame(Frame &frame, cstring methodName) {
+    void passReturnValue(Frame &frame) {
+        const auto previous = frame.previous;
+        if (previous == nullptr) {
+            panic("previous is nullptr");
+        }
+        const auto returnValue = frame.returnValue;
+        switch (frame.returnType) {
+            case SlotTypeEnum::I4:
+            case SlotTypeEnum::F4:
+            case SlotTypeEnum::REF:
+                previous->push(returnValue);
+                break;
+                            
+            case SlotTypeEnum::I8:
+                previous->pushI8(returnValue.i8Val);
+                break;
+
+            case SlotTypeEnum::F8:
+                previous->pushF8(returnValue.f8Val);
+                break;
+
+            default:
+                panic("unknown slot Type");
+                break;
+        }
+    }
+
+    void executeFrame(Frame &frame, cstring methodName) {
         auto &method = frame.method;
         const auto nativeMethod = method.isNative();
 
@@ -189,6 +129,33 @@ namespace RexVM {
         }
 
         //TODO pop Frame
+    }
+
+    void createFrameAndRunMethod(Thread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
+        Frame nextFrame(thread.vm, thread, method_, previous);
+        const auto slotSize = method_.paramSlotSize;
+        if (slotSize != params.size()) {
+            panic("error params length " + method_.name);
+        }
+        for (auto i = 0; i < params.size(); ++i) {
+            const auto slotType = method_.getParamSlotType(i);
+            nextFrame.setLocal(i, params.at(i), slotType);
+        }
+        const auto backupFrame = thread.currentFrame;
+        thread.currentFrame = &nextFrame;
+        const auto methodName = method_.klass.name + "#" + method_.name;
+        executeFrame(nextFrame, methodName);
+        thread.currentFrame = backupFrame;
+    }
+
+    void runStaticMethodOnNewThread(VM &vm, Method &method_, std::vector<Slot> params) {
+        auto thread = std::make_unique<Thread>(vm);
+        //thread->systemThread = std::thread(createFrameAndRunMethod, *thread, method_, params, nullptr);
+        // thread->systemThread = std::thread([&thread, &method_, &params]() {
+        //     createFrameAndRunMethod(*thread, method_, params, nullptr);
+        // });
+
+        createFrameAndRunMethod(*thread, method_, params, nullptr);
     }
 
 

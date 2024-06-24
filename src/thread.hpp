@@ -15,7 +15,6 @@
 namespace RexVM {
 
     struct VM;
-    struct Executor;
     struct ClassLoader;
     struct Frame;
     struct Method;
@@ -24,7 +23,6 @@ namespace RexVM {
 
     struct Thread {
         VM &vm;
-        Executor &executor;
         std::thread systemThread;
         // std::unique_ptr<ThreadOop> vmThread;
         // std::unique_ptr<InstanceOop> vmThreadGroup;
@@ -33,7 +31,7 @@ namespace RexVM {
         Frame *currentFrame{nullptr};
         std::vector<std::unique_ptr<Frame>> frames;
 
-        explicit Thread(VM &vm, Executor &executor);
+        explicit Thread(VM &vm);
         ~Thread();
 
         [[nodiscard]] ThreadOop *getThreadMirror() const;
@@ -41,22 +39,6 @@ namespace RexVM {
         [[nodiscard]] std::vector<Oop *> getThreadGCRoots() const;
         
     };
-
-    struct Executor {
-        VM &vm;
-        std::vector<std::unique_ptr<Thread>> threads;
-
-        explicit Executor(VM &vm);
-
-        static void createFrameAndRunMethod(Thread &thread, Method &method_, std::vector<Slot> params, Frame *previous);
-        static void executeFrame(Frame &frame, cstring methodName);
-
-
-        void runStaticMethodOnNewThread(Method &method_, std::vector<Slot> params);
-
-    };
-
-
 
 }
 

@@ -12,7 +12,6 @@ namespace RexVM {
 
     struct VM;
     struct Thread;
-    struct Executor;
     struct ClassLoader;
     struct ConstantInfo;
     struct InstanceClass;
@@ -31,7 +30,6 @@ namespace RexVM {
 
         VM &vm;
         Thread &thread;
-        Executor &executor;
         Method &method;
         InstanceClass &klass;
         ByteReader reader{};
@@ -49,7 +47,7 @@ namespace RexVM {
         u4 throwPc{0};
         ref throwValue{nullptr};
 
-        explicit Frame(VM &vm, Thread &thread, Executor &executor, Method &method, Frame *previous);
+        explicit Frame(VM &vm, Thread &thread, Method &method, Frame *previous);
         ~Frame();
 
         void runMethod(Method &runMethod_);

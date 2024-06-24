@@ -1,6 +1,6 @@
 #include "memory.hpp"
 #include "vm.hpp"
-#include "runtime.hpp"
+#include "thread.hpp"
 #include "class_loader.hpp"
 #include "utils/format.hpp"
 #include "vm.hpp"
@@ -193,7 +193,7 @@ namespace RexVM {
         println("finish static and mirror {}", tracedOop.size());
 
         //Thread gc roots
-        const auto &threads = vm.executor->threads;
+        const auto &threads = vm.threads;
         for (const auto &thread : threads) {
             const auto threadGCRoots = thread->getThreadGCRoots();
             if (threadGCRoots.size() > 0) {
@@ -248,7 +248,7 @@ namespace RexVM {
         }
 
         //From Thread
-        const auto &threads = vm.executor->threads;
+        const auto &threads = vm.threads;
         for (const auto &thread : threads) {
             const auto &threadGCRoots = thread->getThreadGCRoots();
             if (threadGCRoots.size() > 0) {

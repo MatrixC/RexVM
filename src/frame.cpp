@@ -3,14 +3,15 @@
 #include "class_member.hpp"
 #include "class.hpp"
 #include "oop.hpp"
-#include "runtime.hpp"
+#include "thread.hpp"
 #include "vm.hpp"
+#include "execute.hpp"
 #include <algorithm>
 
 
 namespace RexVM {
 
-    Frame::Frame(VM &vm, Thread &thread, Executor &executor, Method &method, Frame *previous) :
+    Frame::Frame(VM &vm, Thread &thread, Method &method, Frame *previous) :
         localVariableTableSize(method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals),
         localVariableTable(std::make_unique<Slot[]>(localVariableTableSize)),
         localVariableTableType(std::make_unique<SlotTypeEnum[]>(localVariableTableSize)),
@@ -22,7 +23,6 @@ namespace RexVM {
         operandStackContext(method.maxLocals == 0 ? 10 /*TODO*/ : method.maxStack, -1),
         vm(vm),
         thread(thread),
-        executor(executor),
         method(method),
         klass(method.klass),
         previous(previous),
@@ -55,7 +55,7 @@ namespace RexVM {
     }
 
     void Frame::runMethod(Method &runMethod_, std::vector<Slot> params) {
-        Executor::createFrameAndRunMethod(thread, runMethod_, params, this);
+        createFrameAndRunMethod(thread, runMethod_, params, this);
     }
 
     void Frame::cleanOperandStack() {
