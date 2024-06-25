@@ -20,7 +20,7 @@ namespace RexVM::Native {
         const auto self = static_cast<InstanceOop *>(frame.getThis());
         const auto threadClass = static_cast<InstanceClass *>(self->klass);
         auto method = threadClass->getMethod("run", "()V", false);
-        runStaticMethodOnNewThread(frame.vm, *method, {});
+        //runStaticMethodOnNewThread(frame.vm, *method, {});
         println("start 0: {}, {}", threadClass->name, method->name);
         (void) method;
     }

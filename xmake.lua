@@ -16,10 +16,7 @@ target("RexVM")
         "src/utils/*.cpp",
         "src/native/*.cpp",
 
-        "src/third_party/miniz/miniz.c",
-        "src/third_party/miniz/miniz_zip.c",
-        "src/third_party/miniz/miniz_tinfl.c",
-        "src/third_party/miniz/miniz_tdef.c"
+        "src/third_party/miniz/miniz.c"
     )
     set_warnings("all", "error")
 
