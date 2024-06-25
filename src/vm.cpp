@@ -1,22 +1,14 @@
 #include "vm.hpp"
 #include "utils/class_path.hpp"
-#include "constant_info.hpp"
 #include "attribute_info.hpp"
 #include "class_loader.hpp"
 #include "constant_pool.hpp"
-#include "class.hpp"
 #include "thread.hpp"
-#include "frame.hpp"
-#include "oop.hpp"
 #include "memory.hpp"
-#include "native/native_manager.hpp"
-
-#include "utils/format.hpp"
-#include "class_file.hpp"
-#include "class_file_print.hpp"
-#include "utils/descriptor_parser.hpp"
 #include "execute.hpp"
 #include <ranges>
+#include <chrono>
+#include <thread>
 
 
 namespace RexVM {
@@ -75,13 +67,13 @@ namespace RexVM {
         const auto stringArray = oopManager->newObjArrayOop(stringArrayClass, mainMethodParmSize);
 
         if (userParams.size() > 1) {
-            for (auto i = 1; i < userParams.size(); ++i) {
+            for (size_t i = 1; i < userParams.size(); ++i) {
                 stringArray->data[i - 1] = stringPool->getInternString(userParams.at(i));
             }
         }
 
         runStaticMethodOnMainThread(*this, *mainMethod, std::vector{ Slot(stringArray) });
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
 
 

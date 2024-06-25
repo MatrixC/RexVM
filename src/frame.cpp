@@ -273,7 +273,7 @@ namespace RexVM {
 
     std::vector<Oop *> Frame::getLocalObjects() const {
         std::vector<Oop *> result;
-        for (auto i = 0; i < localVariableTableSize; ++i) {
+        for (size_t i = 0; i < localVariableTableSize; ++i) {
             const auto value = localVariableTable[i];
             if (localVariableTableType[i] == SlotTypeEnum::REF && value.refVal != nullptr) {
                  result.push_back(static_cast<Oop *>(value.refVal));

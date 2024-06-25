@@ -129,7 +129,7 @@ namespace RexVM {
                 return std::make_unique<SkipAttribute>(is);
 
             default:
-                panic(format("parseAttribute error attributeNameIndex {}", attributeNameIndex));
+                panic(cformat("parseAttribute error attributeNameIndex {}", attributeNameIndex));
                 break;
         }
         return nullptr;
@@ -183,7 +183,7 @@ namespace RexVM {
                 break;
 
             default:
-                panic(format("createVerificationTypeInfo error {}", tag));
+                panic(cformat("createVerificationTypeInfo error {}", tag));
                 break;
         }
         push(tag);
@@ -224,8 +224,10 @@ namespace RexVM {
                 return std::make_unique<UninitializedVariableInfo>(is);
 
             default:
-                panic(fmt::format("createVerificationTypeInfo error {}", verificationTag));
+                panic(cformat("createVerificationTypeInfo error {}", verificationTag));
                 break;
         }
+
+        return nullptr;
     }
 }

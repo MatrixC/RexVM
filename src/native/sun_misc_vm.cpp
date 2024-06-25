@@ -125,7 +125,7 @@ namespace RexVM::Native {
         constructorParams.emplace_back(instance);
         if (paramArray != nullptr) {
             constructorParams.reserve(paramArray->dataLength);
-            for (auto i = 0; i < paramArray->dataLength; ++i) {
+            for (size_t i = 0; i < paramArray->dataLength; ++i) {
                 constructorParams.emplace_back(paramArray->data[i]);
             }
         }

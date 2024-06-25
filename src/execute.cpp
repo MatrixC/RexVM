@@ -40,10 +40,10 @@ namespace RexVM {
                 const auto message = static_cast<Oop *>(throwInstance->getFieldValue("detailMessage", "Ljava/lang/String;").refVal);
                 if (message != nullptr) {
                     const auto messageStr = getStringNativeValue(message);
-                    println("exception message {}", messageStr);
+                    cprintln("exception message {}", messageStr);
                 }
                 
-                println("throw exception top frame");
+                cprintln("throw exception top frame");
                 std::exit(0);
             } else {
                 previousFrame->throwException(frame.throwValue);
@@ -140,7 +140,7 @@ namespace RexVM {
         if (slotSize != params.size()) {
             panic("error params length " + method_.name);
         }
-        for (auto i = 0; i < params.size(); ++i) {
+        for (size_t i = 0; i < params.size(); ++i) {
             const auto slotType = method_.getParamSlotType(i);
             nextFrame.setLocal(i, params.at(i), slotType);
         }

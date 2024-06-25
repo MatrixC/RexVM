@@ -98,7 +98,7 @@ namespace RexVM::Native {
         }
 
         const auto retArrayOop = oopManager->newObjArrayOop(retArrayType, fieldInstances.size());
-        for (auto i = 0; i < fieldInstances.size(); ++i) {
+        for (size_t i = 0; i < fieldInstances.size(); ++i) {
             retArrayOop->data[i] = fieldInstances.at(i);
         }
 
@@ -119,7 +119,7 @@ namespace RexVM::Native {
         const auto instanceMirrorClass = dynamic_cast<InstanceClass *>(mirrorClass);
         const auto &methods = instanceMirrorClass->methods;
         std::vector<InstanceOop *> constructorInstances;
-        for (auto i = 0; i < methods.size(); ++i) {
+        for (size_t i = 0; i < methods.size(); ++i) {
             const auto &method = methods.at(i);
             if (method->name != "<init>") {
                 continue;
@@ -131,7 +131,7 @@ namespace RexVM::Native {
 
             const auto paramClasses = method->getParamClasses();
             const auto paramClassesArray = oopManager->newObjArrayOop(classArrayClass, paramClasses.size());
-            for (auto j = 0; j < paramClasses.size(); ++j) {
+            for (size_t j = 0; j < paramClasses.size(); ++j) {
                 paramClassesArray->data[j] = paramClasses.at(j);
             }
 
@@ -142,7 +142,7 @@ namespace RexVM::Native {
             mirrorConstructorInstance->setFieldValue("parameterTypes", "[Ljava/lang/Class;", Slot(paramClassesArray));
             ////mirrorConstructorInstance->setFieldValue("exceptionTypes", "Ljava/lang/Class;", Slot(mirrorClass));
             mirrorConstructorInstance->setFieldValue("modifiers", "I", Slot(method->getModifier()));
-            mirrorConstructorInstance->setFieldValue("slot", "I", Slot(i));
+            mirrorConstructorInstance->setFieldValue("slot", "I", Slot(static_cast<i4>(i)));
             mirrorConstructorInstance->setFieldValue("signature", "Ljava/lang/String;",
                                                      Slot(frame.vm.stringPool->getInternString(method->signature)));
             if (method->runtimeVisibleAnnotation != nullptr) {
@@ -167,7 +167,7 @@ namespace RexVM::Native {
         }
 
         const auto retArrayOop = oopManager->newObjArrayOop(retArrayType, constructorInstances.size());
-        for (auto j = 0; j < constructorInstances.size(); ++j) {
+        for (size_t j = 0; j < constructorInstances.size(); ++j) {
             retArrayOop->data[j] = constructorInstances.at(j);
         }
 

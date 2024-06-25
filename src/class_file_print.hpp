@@ -25,15 +25,15 @@ namespace RexVM {
         for (auto i = 0; i < cf.constantPoolCount; ++i) {
             const auto &constantPtr = cf.constantPool.at(i);
             if (constantPtr != nullptr) {
-                println("{:>2} = {}", i, constantPtr->toString());
+                cprintln("{:>2} = {}", i, constantPtr->toString());
             }
         }
     }
 
     inline void printMethods(ClassFile &cf) {
-        println("method count {}", cf.methodCount);
+        cprintln("method count {}", cf.methodCount);
         for (const auto &methodInfo: cf.methods) {
-            println("{}, {}, {}, {}", methodInfo->accessFlags, methodInfo->nameIndex, methodInfo->descriptorIndex,
+            cprintln("{}, {}, {}, {}", methodInfo->accessFlags, methodInfo->nameIndex, methodInfo->descriptorIndex,
                     methodInfo->attributesCount);
         }
     }

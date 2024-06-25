@@ -530,7 +530,7 @@ namespace RexVM {
             } else if (frameType == 255) {
                 return std::make_unique<FullFrame>(is);
             } else {
-                panic(fmt::format("parseStackMapFrame error {}", frameType));
+                panic(cformat("parseStackMapFrame error {}", frameType));
             }
             //disable warning
             return nullptr;
@@ -825,7 +825,7 @@ namespace RexVM {
                        targetType == 0x4B) {
                 targetInfo = std::make_unique<TypeArgumentTarget>(is);
             } else {
-                panic(format("TypeAnnotation error targetType {}", targetType));
+                panic(cformat("TypeAnnotation error targetType {}", targetType));
             }
             targetPath = std::make_unique<TypePath>(is);
             annotation = std::make_unique<Annotation>(is);

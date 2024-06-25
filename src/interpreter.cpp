@@ -123,7 +123,7 @@ namespace RexVM {
                 }
 
                 default:
-                   panic(format("ldc error {}", valPtr->tag));
+                   panic(cformat("ldc error {}", valPtr->tag));
             }
         }
 
@@ -950,7 +950,7 @@ namespace RexVM {
 	        const auto high = frame.reader.readI4();
 	        const auto jumpOffsetsCount = high - low + 1;
             auto jumpOffsets = std::make_unique<i4[]>(jumpOffsetsCount);
-            for (size_t i = 0; i < jumpOffsetsCount; ++i) {
+            for (i4 i = 0; i < jumpOffsetsCount; ++i) {
                 jumpOffsets[i] = frame.reader.readI4();
             }
 
@@ -974,12 +974,12 @@ namespace RexVM {
             const auto count = npairs * 2;
             auto matchOffsets = std::make_unique<i4[]>(count);
 
-            for (size_t i = 0; i < count; ++i) {
+            for (i4 i = 0; i < count; ++i) {
                 matchOffsets[i] = frame.reader.readI4();
             }
 
             const auto key = frame.popI4();
-            for (size_t i = 0; i < count; i += 2) {
+            for (i4 i = 0; i < count; i += 2) {
                 if (matchOffsets[i] == key) {
 			        const auto offset = matchOffsets[i+1];
                     frame.reader.relativeOffset(offset);

@@ -6,11 +6,11 @@ namespace RexVM::Native {
 
     void selfPrintln(Frame &frame) {
         auto str = frame.getLocalRef(0);
-        println("{}", getStringNativeValue(static_cast<Oop *>(str)));
+        cprintln("{}", getStringNativeValue(static_cast<Oop *>(str)));
     }
 
     void selfPrintlnInt(Frame &frame) {
         auto val = frame.getLocalI4(0);
-        println("{}", val);
+        cprintln("{}", val);
     }
 }

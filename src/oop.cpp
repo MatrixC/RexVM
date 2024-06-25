@@ -85,7 +85,7 @@ namespace RexVM {
 
     InstanceOop *InstanceOop::clone(OopManager &manager) const {
         auto newInstance = manager.newInstance(static_cast<InstanceClass *>(klass));
-        for (auto i = 0; i < dataLength; ++i) {
+        for (size_t i = 0; i < dataLength; ++i) {
             newInstance->data[i] = this->data[i];
         }
         return newInstance;

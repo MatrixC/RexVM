@@ -11,18 +11,18 @@
 namespace RexVM {
 
     template<typename... T>
-    FMT_NODISCARD FMT_INLINE auto format(fmt::format_string<T...> fmt, T &&... args)
+    FMT_NODISCARD FMT_INLINE auto cformat(fmt::format_string<T...> fmt, T &&... args)
     -> std::string {
         return fmt::format(fmt, std::forward<T>(args)...);
     }
 
     template<typename... T>
-    FMT_INLINE void print(fmt::format_string<T...> fmt, T &&... args) {
+    FMT_INLINE void cprint(fmt::format_string<T...> fmt, T &&... args) {
         return fmt::print(fmt, std::forward<T>(args)...);
     }
 
     template<typename... T>
-    FMT_INLINE void println(fmt::format_string<T...> fmt, T &&... args) {
+    FMT_INLINE void cprintln(fmt::format_string<T...> fmt, T &&... args) {
         return fmt::println(fmt, std::forward<T>(args)...);
     }
 }

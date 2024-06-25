@@ -114,7 +114,7 @@ namespace RexVM {
                     break;
 
                 default:
-                    panic(format("parseConstantPool error tag {}", tag));
+                    panic(cformat("parseConstantPool error tag {}", tag));
                     break;
             }
         }

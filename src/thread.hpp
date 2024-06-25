@@ -27,9 +27,7 @@ namespace RexVM {
         // std::unique_ptr<ThreadOop> vmThread;
         // std::unique_ptr<InstanceOop> vmThreadGroup;
         ThreadOop *vmThread;
-        InstanceOop *vmThreadGroup;
         Frame *currentFrame{nullptr};
-        std::vector<std::unique_ptr<Frame>> frames;
 
         explicit Thread(VM &vm);
         ~Thread();

@@ -72,7 +72,7 @@ namespace RexVM {
                 break;
 
             default:
-                panic(format("error basic type: {}", static_cast<u1>(type)));
+                panic(cformat("error basic type: {}", static_cast<u1>(type)));
                 break;
         }
 
@@ -89,7 +89,7 @@ namespace RexVM {
 
     ByteTypeArrayOop *OopManager::newByteArrayOop(size_t length, u1 *initBuffer) {
         const auto oop = newByteArrayOop(length);
-        for (auto i = 0; i < length; ++i) {
+        for (size_t i = 0; i < length; ++i) {
             oop->data[i] = initBuffer[i];
         }
         return oop;
@@ -167,7 +167,7 @@ namespace RexVM {
         
         //InstanceClass static field and Class Mirror
 
-        println("allcated {}", allocatedOop.size());
+        cprintln("allcated {}", allocatedOop.size());
 
         const auto &classMap = classLoader->classMap;
         for (const auto &[key, klass] : classMap) {
@@ -190,7 +190,7 @@ namespace RexVM {
             }
         }
 
-        println("finish static and mirror {}", tracedOop.size());
+        cprintln("finish static and mirror {}", tracedOop.size());
 
         //Thread gc roots
         const auto &threads = vm.threads;
@@ -201,7 +201,7 @@ namespace RexVM {
             }
         }
 
-        println("finish thread {}", tracedOop.size());
+        cprintln("finish thread {}", tracedOop.size());
 
         std::unordered_set<Oop *> deleteOop;
         std::copy_if(allocatedOop.begin(), allocatedOop.end(), std::inserter(deleteOop, deleteOop.end()),
@@ -212,7 +212,7 @@ namespace RexVM {
             delete oop;
         }
 
-        println("{}, {}, {}", allocatedOop.size(), tracedOop.size(), deleteOop.size());
+        cprintln("{}, {}, {}", allocatedOop.size(), tracedOop.size(), deleteOop.size());
 
         oopManager->allocatedOop = tracedOop;
     }
@@ -275,14 +275,14 @@ namespace RexVM {
         const auto &gcRoots = getGCRoot(vm);
         const auto &tracedOop = startTrace(gcRoots);
 
-        println("allocated {}, gcRoots {}, traced {}", allocatedOop.size(), gcRoots.size(), tracedOop.size());
+        cprintln("allocated {}, gcRoots {}, traced {}", allocatedOop.size(), gcRoots.size(), tracedOop.size());
 
 
         std::unordered_set<Oop *> notTracedOop;
         std::copy_if(allocatedOop.begin(), allocatedOop.end(), std::inserter(notTracedOop, notTracedOop.end()),
                  [&tracedOop](const auto& value) { return !tracedOop.contains(value) && !value->getNotGC(); });
 
-        println("notTracedOop {}", notTracedOop.size());
+        cprintln("notTracedOop {}", notTracedOop.size());
         for (const auto &oop : notTracedOop) {
             delete oop;
             allocatedOop.erase(oop);
@@ -300,9 +300,9 @@ namespace RexVM {
         //     // const auto name = klass->name;
         //     // const auto mklass = mirrorOop->mirrorClass;
 
-        //     //println("{}", mklass->name);
+        //     //cprintln("{}", mklass->name);
         //     // if (name != "java/lang/Class") {
-        //     //     println("{}", klass->name);
+        //     //     cprintln("{}", klass->name);
         //     //     cnt++;
         //     // }
         // }

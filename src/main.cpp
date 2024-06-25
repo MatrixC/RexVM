@@ -7,7 +7,7 @@
 using namespace RexVM;
 
 void printUsage() {
-    println("Usage: RexVM -cp <classpath> <MainClass> [params...]");
+    cprintln("Usage: RexVM -cp <classpath> <MainClass> [params...]");
 }
 
 int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter) {

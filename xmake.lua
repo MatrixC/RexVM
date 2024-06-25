@@ -5,8 +5,8 @@ set_optimize("none")
 
 target("RexVM")
     set_kind("binary")
-    set_toolchains("clang")
-    set_toolset("debugger", "lldb")
+    set_toolchains("gcc")
+    -- set_toolset("debugger", "lldb")
     add_includedirs(
         "src/third_party/miniz",
         "src/third_party/fmt/include"

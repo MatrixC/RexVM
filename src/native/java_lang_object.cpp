@@ -20,7 +20,7 @@ namespace RexVM::Native {
         const auto klass = static_cast<TypeArrayClass *>(src->klass);
         const auto newOop = oopManager->newTypeArrayOop(klass->elementType, src->dataLength);
         auto newArray = static_cast<T *>(newOop);
-        for (auto i = 0; i < src->dataLength; ++i) {
+        for (size_t i = 0; i < src->dataLength; ++i) {
             newArray->data[i] = src->data[i];
         }
         return newArray;
@@ -29,7 +29,7 @@ namespace RexVM::Native {
     ObjArrayOop *getObjArrayClone(OopManager *oopManager, ObjArrayOop *src) {
         const auto klass = static_cast<ObjArrayClass *>(src->klass);
         const auto newOop = oopManager->newObjArrayOop(klass, src->dataLength);
-        for (auto i = 0; i < src->dataLength; ++i) {
+        for (size_t i = 0; i < src->dataLength; ++i) {
             newOop->data[i] = src->data[i];
         }
         return newOop;
