@@ -35,8 +35,9 @@ namespace RexVM {
         ~Thread();
 
         [[nodiscard]] ThreadOop *getThreadMirror() const;
-
         [[nodiscard]] std::vector<Oop *> getThreadGCRoots() const;
+
+        void join();
         
     };
 

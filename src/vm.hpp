@@ -33,6 +33,7 @@ namespace RexVM {
         void initOopManager();
         void initBootstrapClassLoader();
         void initStringPool();
+        void initMainThread();
         void initJavaSystemClass();
         void runMainMethod();
 

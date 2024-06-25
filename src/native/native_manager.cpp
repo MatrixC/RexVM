@@ -79,7 +79,7 @@ namespace RexVM {
         regNativeMethod("java/lang/Thread", "currentThread", "()Ljava/lang/Thread;", false, Native::currentThread);
         regNativeMethod("java/lang/Thread", "setPriority0", "(I)V", false, nopMethod);
         regNativeMethod("java/lang/Thread", "isAlive", "()Z", false, Native::isAlive);
-        regNativeMethod("java/lang/Thread", "start0", "()V", false, nopMethod);
+        regNativeMethod("java/lang/Thread", "start0", "()V", false, Native::start0);
 
         regNativeMethod("java/lang/Throwable", "fillInStackTrace", "(I)Ljava/lang/Throwable;", false, Native::fillInStackTrace);
 

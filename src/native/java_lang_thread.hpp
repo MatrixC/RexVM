@@ -7,6 +7,7 @@ namespace RexVM::Native {
 
     void currentThread(Frame &frame);
     void isAlive(Frame &frame);
+    void start0(Frame &frame);
 
 }
 

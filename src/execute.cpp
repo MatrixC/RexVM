@@ -148,15 +148,17 @@ namespace RexVM {
         thread.currentFrame = backupFrame;
     }
 
-    void runStaticMethodOnNewThread(VM &vm, Method &method_, std::vector<Slot> params) {
-        auto thread = std::make_unique<Thread>(vm);
-        //thread->systemThread = std::thread(createFrameAndRunMethod, *thread, method_, params, nullptr);
-        // thread->systemThread = std::thread([&thread, &method_, &params]() {
-        //     createFrameAndRunMethod(*thread, method_, params, nullptr);
-        // });
-
-        createFrameAndRunMethod(*thread, method_, params, nullptr);
+    void runStaticMethodOnMainThread(VM &vm, Method &method_, std::vector<Slot> params) {
+        createFrameAndRunMethod(*vm.threads.at(0), method_, params, nullptr);
     }
 
+    Thread *runStaticMethodOnNewThread(VM &vm, Method &method_, std::vector<Slot> params) {
+        vm.threads.emplace_back(std::make_unique<Thread>(vm));
+        auto &thread = vm.threads.back();
+        thread->systemThread = std::thread([&thread, &method_, &params]() {
+            createFrameAndRunMethod(*thread, method_, params, nullptr);
+        });
+        return thread.get();
+    }
 
 }

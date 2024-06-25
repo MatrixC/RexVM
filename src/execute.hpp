@@ -2,6 +2,7 @@
 #define EXECUTE_HPP
 #include "config.hpp"
 #include <vector>
+#include <memory>
 
 namespace RexVM {
 
@@ -14,7 +15,8 @@ namespace RexVM {
 
     void createFrameAndRunMethod(Thread &thread, Method &method_, std::vector<Slot> params, Frame *previous);
 
-    void runStaticMethodOnNewThread(VM &vm, Method &method_, std::vector<Slot> params);
+    void runStaticMethodOnMainThread(VM &vm, Method &method_, std::vector<Slot> params);
+    Thread *runStaticMethodOnNewThread(VM &vm, Method &method_, std::vector<Slot> params);
 
 }
 

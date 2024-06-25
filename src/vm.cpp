@@ -47,7 +47,11 @@ namespace RexVM {
     void VM::initJavaSystemClass() {
         const auto systemClass = bootstrapClassLoader->getInstanceClass("java/lang/System");
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
-        runStaticMethodOnNewThread(*this, *initMethod, {});
+        runStaticMethodOnMainThread(*this, *initMethod, {});
+    }
+
+    void VM::initMainThread() {
+        threads.emplace_back(std::make_unique<Thread>(*this));
     }
 
     void VM::runMainMethod() {
@@ -76,7 +80,8 @@ namespace RexVM {
             }
         }
 
-        runStaticMethodOnNewThread(*this, *mainMethod, std::vector{ Slot(stringArray) });
+        auto mainThread = runStaticMethodOnNewThread(*this, *mainMethod, std::vector{ Slot(stringArray) });
+        mainThread->join();
     }
 
 
@@ -86,6 +91,7 @@ namespace RexVM {
         initOopManager();
         initBootstrapClassLoader();
         initStringPool();
+        initMainThread();
         initJavaSystemClass();
         runMainMethod();
     }
