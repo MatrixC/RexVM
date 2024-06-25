@@ -8,12 +8,12 @@
 #include "vm.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
+#include <mutex>
 
 
 namespace RexVM {
 
     ClassLoader::ClassLoader(VM &vm, ClassPath &classPath) : vm(vm), classPath(classPath) {
-        loadPrimitiveClass();
         loadBasicClass();
     }
 
@@ -22,6 +22,7 @@ namespace RexVM {
     InstanceClass *ClassLoader::mirrorClass;
     InstanceClass *ClassLoader::mirrorClassLoader;
 
+    static std::recursive_mutex clMutex;
 
     void ClassLoader::loadInstanceClass(std::istream &is) {
         ClassFile cf(is);
@@ -40,6 +41,8 @@ namespace RexVM {
     }
 
     Class *ClassLoader::getClass(const cstring &name) {
+        std::lock_guard<std::recursive_mutex> lock(clMutex);
+
         if (name == EMPTY_STRING) {
             return nullptr;
         }
@@ -120,14 +123,6 @@ namespace RexVM {
     }
 
     void ClassLoader::loadBasicClass() {
-        mirrorClass = getInstanceClass("java/lang/Class");
-        mirrorClassLoader = getInstanceClass("java/lang/ClassLoader");
-        for (const auto &classItem: classMap) {
-            initMirrorClass(classItem.second.get());
-        }
-    }
-
-    void ClassLoader::loadPrimitiveClass() {
         for (const auto &item: PRIMITIVE_TYPE_MAP) {
             const auto name = item.first;
             auto klass = std::make_unique<Class>(
@@ -138,6 +133,12 @@ namespace RexVM {
             );
             klass->superClass = getInstanceClass("java/lang/Object");
             classMap.emplace(name, std::move(klass));
+        }
+
+        mirrorClass = getInstanceClass("java/lang/Class");
+        mirrorClassLoader = getInstanceClass("java/lang/ClassLoader");
+        for (const auto &classItem: classMap) {
+            initMirrorClass(classItem.second.get());
         }
     }
 

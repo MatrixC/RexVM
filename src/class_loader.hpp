@@ -25,7 +25,6 @@ namespace RexVM {
         VM &vm;
         ClassPath &classPath;
         std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
-        //std::unique_ptr<InstanceOop> classLoaderInstance; //no use
         static InstanceClass *mirrorClass; // java/lang/Class
         static InstanceClass *mirrorClassLoader;
 
@@ -47,8 +46,6 @@ namespace RexVM {
 
     private:
         void loadBasicClass();
-
-        void loadPrimitiveClass();
 
         void loadArrayClass(const cstring &name);
 

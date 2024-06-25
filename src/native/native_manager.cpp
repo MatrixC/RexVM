@@ -10,6 +10,7 @@
 #include "java_io_file_output_stream.hpp"
 #include "java_security_accesscontroller.hpp"
 #include "sun_misc_vm.hpp"
+#include "self_native.hpp"
 
 
 namespace RexVM {
@@ -48,10 +49,14 @@ namespace RexVM {
     }
 
     void NativeManager::regAllMethods() {
+        regNativeMethod("Fto", "println", "(Ljava/lang/String;)V", true, Native::selfPrintln);
+        regNativeMethod("Fto", "println", "(I)V", true, Native::selfPrintlnInt);
+
         regNativeMethod("java/lang/Object", "getClass", "()Ljava/lang/Class;", false, Native::getClass);
         regNativeMethod("java/lang/Object", "hashCode", "()I", false, Native::hashCode);
         regNativeMethod("java/lang/Object", "clone", "()Ljava/lang/Object;", false, Native::clone);
         regNativeMethod("java/lang/Object", "notifyAll", "()V", false, Native::notifyAll);
+        regNativeMethod("java/lang/Object", "wait", "(J)V", false, nopMethod);
 
         regNativeMethod("java/lang/Class", "getPrimitiveClass", "(Ljava/lang/String;)Ljava/lang/Class;", true, Native::getPrimitiveClass);
         regNativeMethod("java/lang/Class", "desiredAssertionStatus0", "(Ljava/lang/Class;)Z", true, Native::desiredAssertionStatus0);

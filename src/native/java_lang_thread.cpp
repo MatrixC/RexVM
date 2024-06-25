@@ -19,10 +19,13 @@ namespace RexVM::Native {
     void start0(Frame &frame) {
         const auto self = static_cast<InstanceOop *>(frame.getThis());
         const auto threadClass = static_cast<InstanceClass *>(self->klass);
+        if (threadClass->name == "java/lang/ref/Reference$ReferenceHandler") [[unlikely]] {
+            // endless loop tryHandlePending
+            return;
+        }
+        
         auto method = threadClass->getMethod("run", "()V", false);
-        //runStaticMethodOnNewThread(frame.vm, *method, {});
-        println("start 0: {}, {}", threadClass->name, method->name);
-        (void) method;
+        runStaticMethodOnNewThread(frame.vm, *method, std::vector<Slot>{ Slot(self) });
     }
 
 }

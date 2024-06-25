@@ -88,7 +88,10 @@ namespace RexVM {
         if (method.name == "loadLibrary" && frame.klass.name == "java/lang/System") {
             return;
         }
-        //println("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass->name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
+        if (method.name == "" && frame.klass.name == "") {
+            return;
+        }
+        //println("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
 
         if (!nativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
@@ -152,13 +155,15 @@ namespace RexVM {
         createFrameAndRunMethod(*vm.threads.at(0), method_, params, nullptr);
     }
 
-    Thread *runStaticMethodOnNewThread(VM &vm, Method &method_, std::vector<Slot> params) {
+    Thread* runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params) {
         vm.threads.emplace_back(std::make_unique<Thread>(vm));
-        auto &thread = vm.threads.back();
-        thread->systemThread = std::thread([&thread, &method_, &params]() {
-            createFrameAndRunMethod(*thread, method_, params, nullptr);
+        auto paramsCopy = params;
+        auto &thread = *vm.threads.back();
+        thread.systemThread = std::thread([&thread, &method, paramsCopy]() {
+            createFrameAndRunMethod(thread, method, paramsCopy, nullptr);
         });
-        return thread.get();
+        thread.systemThread.detach();
+        return &thread;
     }
 
 }

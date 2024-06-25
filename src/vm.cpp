@@ -80,8 +80,8 @@ namespace RexVM {
             }
         }
 
-        auto mainThread = runStaticMethodOnNewThread(*this, *mainMethod, std::vector{ Slot(stringArray) });
-        mainThread->join();
+        runStaticMethodOnMainThread(*this, *mainMethod, std::vector{ Slot(stringArray) });
+        sleep(1);
     }
 
 

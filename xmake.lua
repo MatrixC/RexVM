@@ -1,6 +1,6 @@
 add_rules("mode.debug", "mode.release")
 
-set_languages("c99", "cxx23")
+set_languages("c99", "cxx20")
 set_optimize("none")
 
 target("RexVM")
@@ -21,4 +21,4 @@ target("RexVM")
     set_warnings("all", "error")
 
     -- set_policy("build.sanitizer.address", true)
-    -- set_policy("build.sanitizer.undefined", true)
+    set_policy("build.sanitizer.undefined", true)
