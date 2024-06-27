@@ -101,7 +101,7 @@ namespace RexVM {
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
 
-        std::vector<Class *> getParamClasses() const;
+        [[nodiscard]] std::vector<Class *> getParamClasses() const;
 
         NativeMethodHandler nativeMethodHandler{};
 
@@ -112,7 +112,8 @@ namespace RexVM {
 
         [[nodiscard]] SlotTypeEnum getParamSlotType(size_t slotIdx) const;
 
-        std::optional<i4>  findExceptionHandler(const InstanceClass *exClass, u4 pc);
+        std::optional<i4> findExceptionHandler(const InstanceClass *exClass, u4 pc);
+        [[nodiscard]] u4 getLineNumber(u4 pc) const;
 
         ~Method() override;
     };

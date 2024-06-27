@@ -2,7 +2,6 @@
 #define OOP_HPP
 
 #include <memory>
-#include <atomic>
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "class.hpp"
@@ -26,14 +25,10 @@ namespace RexVM {
     struct Oop {
         const OopTypeEnum type;
         Class *klass;
-        bool notGC{false};
 
         explicit Oop(OopTypeEnum type, Class *klass);
 
         [[nodiscard]] bool isInstanceOf(Class *checkClass) const;
-
-        void setNotGC();
-        [[nodiscard]] bool getNotGC() const;
 
         virtual ~Oop();
 

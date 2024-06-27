@@ -14,7 +14,7 @@ namespace RexVM {
     inline const cstring JAVA_LANG_THREAD_GROUP_NAME =         "java/lang/ThreadGroup";
     inline const cstring JAVA_LANG_BOOLEAN_NAME =         "java/lang/Boolean";
     inline const cstring JAVA_LANG_CHARACTER_NAME =         "java/lang/Character";
-    inline const cstring JAVA_LNAG_SHORT_NAME =         "java/lang/Short";
+    inline const cstring JAVA_LANG_SHORT_NAME =         "java/lang/Short";
     inline const cstring JAVA_LANG_INTEGER_NAME =         "java/lang/Integer";
     inline const cstring JAVA_LANG_LONG_NAME =         "java/lang/Long";
     inline const cstring JAVA_LANG_FLOAT_NAME =         "java/lang/Float";
@@ -35,7 +35,7 @@ namespace RexVM {
         JAVA_LANG_THREAD_GROUP,
         JAVA_LANG_BOOLEAN,
         JAVA_LANG_CHARACTER,
-        JAVA_LNAG_SHORT,
+        JAVA_LANG_SHORT,
         JAVA_LANG_INTEGER,
         JAVA_LANG_LONG,
         JAVA_LANG_FLOAT,
@@ -50,11 +50,7 @@ namespace RexVM {
     };
     constexpr auto BASIC_JAVA_CLASS_ENUM_COUNT = static_cast<size_t>(BasicJavaClassEnum::COUNT) + 1;
 
-
-
-    
     extern const std::array<cstring, BASIC_JAVA_CLASS_ENUM_COUNT> BASIC_JAVA_CLASS_NAMES;
-
 
     cstring getBasicJavaClassName(BasicJavaClassEnum classEnum);
 }

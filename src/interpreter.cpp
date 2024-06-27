@@ -15,7 +15,7 @@
 namespace RexVM {
 
     namespace ByteHandler {
-        void nop(Frame &frame) {}
+        void nop([[maybe_unused]] Frame &frame) {}
 
         void aconst_null(Frame &frame) {
             frame.pushRef(nullptr);
@@ -1166,20 +1166,7 @@ namespace RexVM {
         void athrow(Frame &frame) {
             const auto ex = frame.popRef();
             const auto exOop = static_cast<InstanceOop *>(ex);
-            //println("method {} {} throw Exception on {}", frame.method.name, frame.method.klass->name, frame.pc());
-            //auto i = 1;
-            //for (auto pf = frame.previous; pf != nullptr; pf = pf->previous) {
-                //println("caller {} {}#{}:{}", i, pf->klass->name, pf->method.name, pf->method.descriptor);
-            //    i++;
-            //}
-            //println("caller end");
-            //println("caller1 {}, clller2 {}", frame.previous->method.name, frame.previous->previous->method.name);
-            const auto message = static_cast<Oop *>(exOop->getFieldValue("detailMessage", "Ljava/lang/String;").refVal);
-            if (message != nullptr) {
-                const auto messageStr = getStringNativeValue(message);
-                //println("exception message {}", messageStr);
-            }
-            frame.throwException(ex, frame.pc());
+            frame.throwException(exOop, frame.pc());
         }
 
         void checkcast(Frame &frame) {
@@ -1233,7 +1220,7 @@ namespace RexVM {
             //TODO
         }
 
-        void wide(Frame &frame) {
+        void wide([[maybe_unused]] Frame &frame) {
             //const auto opCode = frame.reader.readU1();
             //TODO
             panic("not support wide");
@@ -1242,7 +1229,7 @@ namespace RexVM {
         ref multiArrayHelper(OopManager &oopManager, ClassLoader &classLoader, std::unique_ptr<i4[]> &dimLength, i4 dimCount, const cstring& name, i4 currentDim) {
             const auto arrayLength = dimLength[currentDim];
             const auto currentArrayClass = classLoader.getArrayClass(name);
-            ArrayOop *arrayOop = nullptr;
+            ArrayOop *arrayOop;
             if (currentArrayClass->type == ClassTypeEnum::TypeArrayClass) {
                 const auto typeArrayClass = static_cast<TypeArrayClass *>(currentArrayClass);
                 arrayOop = oopManager.newTypeArrayOop(typeArrayClass->elementType, arrayLength);

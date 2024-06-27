@@ -3,7 +3,6 @@
 #include "../class.hpp"
 #include "../oop.hpp"
 #include "../class_loader.hpp"
-#include "../basic_type.hpp"
 
 namespace RexVM {
 

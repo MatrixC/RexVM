@@ -121,6 +121,8 @@ namespace RexVM {
 
         [[nodiscard]] cstring getSuperClassName() const;
 
+        [[nodiscard]] cstring getSourceFile() const;
+
         [[nodiscard]] std::vector<cstring> getInterfaceNames() const;
     };
 

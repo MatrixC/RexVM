@@ -11,9 +11,9 @@ namespace RexVM {
     struct Thread;
     struct Method;
 
-    void executeFrame(Frame &frame, cstring methodName);
+    void executeFrame(Frame &frame, const cstring& methodName);
     void createFrameAndRunMethod(Thread &thread, Method &method_, std::vector<Slot> params, Frame *previous);
-    void runStaticMethodOnThread(VM &vm, Method &method, std::vector<Slot> params);
+    void runStaticMethodOnThread(VM &vm, Method &method, std::vector<Slot> params, const cstring &name);
     void runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params);
 
 }

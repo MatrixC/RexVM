@@ -13,7 +13,6 @@ namespace RexVM {
     StringPool::~StringPool() = default;
 
     InstanceOop *StringPool::getInternString(const cstring &str) {
-        //TODO lock
         std::lock_guard<std::mutex> lock(mtx);
         if (const auto iter = internMap.find(str); iter != internMap.end()) {
             return iter->second;

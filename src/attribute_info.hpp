@@ -56,7 +56,7 @@ namespace RexVM {
         REF_invokeInterface = 9,
     };
 
-    AttributeInfo *getAssignAttribute(
+    AttributeInfo *getAssignAttributeByConstantPool(
             const std::vector<std::unique_ptr<ConstantInfo>> &constantPool,
             const std::vector<std::unique_ptr<AttributeInfo>> &attributes,
             AttributeTagEnum tagEnum

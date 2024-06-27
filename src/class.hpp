@@ -24,6 +24,7 @@ namespace RexVM {
         Init,
         Inited,
     };
+
     enum class ClassTypeEnum {
         PrimitiveClass,
         InstanceClass,
@@ -68,11 +69,11 @@ namespace RexVM {
         u2 staticSlotCount{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
 
-        //TODO to array
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<std::unique_ptr<Method>> methods;
 
         std::unique_ptr<Slot[]> staticData;
+        cstring sourceFile{};
 
     private:
         void calcFieldSlotId();

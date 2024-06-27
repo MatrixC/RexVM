@@ -15,20 +15,20 @@ namespace RexVM {
         explicit OopManager(VM &vm);
         std::unordered_set<Oop *> allocatedOop;
 
-        [[nodiscard]] InstanceOop *newInstance(InstanceClass * const klass);
-        [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * const klass, size_t length);
+        [[nodiscard]] InstanceOop *newInstance(InstanceClass * klass);
+        [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * klass, size_t length);
         [[nodiscard]] TypeArrayOop *newTypeArrayOop(BasicType type, size_t length);
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length);
-        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, u1 *initBuffer);
+        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer);
         [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length);
 
         ThreadOop *newThreadOop(Thread *thread);
 
     };
 
-    void traceOop(Oop * const root, std::unordered_set<Oop *> &tracedOop);
-    void traceInstanceOopChild(InstanceOop * const oop, std::unordered_set<Oop *> &tracedOop);
-    void traceObjArrayOopChild(ObjArrayOop * const oop, std::unordered_set<Oop *> &tracedOop);
+    void traceOop(Oop * root, std::unordered_set<Oop *> &tracedOop);
+    void traceInstanceOopChild(InstanceOop * oop, std::unordered_set<Oop *> &tracedOop);
+    void traceObjArrayOopChild(ObjArrayOop * oop, std::unordered_set<Oop *> &tracedOop);
 
     void gc(VM &vm);
     void gc2(VM &vm);

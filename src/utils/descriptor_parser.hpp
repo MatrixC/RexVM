@@ -13,8 +13,6 @@ namespace RexVM {
         bool isBasicType{true};
         BasicType basicType;
         cstring className;
-
-        cstring format();
     };
 
     struct MethodDescriptorResult {
@@ -22,9 +20,9 @@ namespace RexVM {
         cstring returnType;
     };
 
-    cview descriptorNextFieldType(const cview str);
-    std::vector<cstring> parseDescriptor(const cview str);
-    std::tuple<std::vector<cstring>, cstring> parseMethodDescriptor(const cview str);
+    cview descriptorNextFieldType(cview str);
+    std::vector<cstring> parseDescriptor(cview str);
+    std::tuple<std::vector<cstring>, cstring> parseMethodDescriptor(cview str);
 
 }
 

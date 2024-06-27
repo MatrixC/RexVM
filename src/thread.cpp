@@ -1,38 +1,27 @@
-#include "config.hpp"
-#include "utils/binary.hpp"
-#include "utils/class_utils.hpp"
-#include "class_loader.hpp"
-#include "class.hpp"
-#include "class_member.hpp"
-#include "oop.hpp"
 #include "thread.hpp"
-#include "constant_info.hpp"
-#include "constant_pool.hpp"
+#include "oop.hpp"
 #include "vm.hpp"
-#include "opcode.hpp"
 #include "frame.hpp"
 #include "memory.hpp"
-#include "interpreter.hpp"
 
 namespace RexVM {
 
-    Thread::Thread(VM &vm) : vm(vm) {
+    Thread::Thread(VM &vm, const cstring &name) : vm(vm), name(name) {
         const auto &oopManager = vm.oopManager;
         vmThread = oopManager->newThreadOop(this);
     }
 
-    Thread::~Thread() {
-    }
+    Thread::~Thread() = default;
 
     std::vector<Oop *> Thread::getThreadGCRoots() const {
         std::vector<Oop *> result;
         for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
             const auto localObjects = cur->getLocalObjects();
             const auto stackObjects = cur->operandStackContext.getObjects();
-            if (localObjects.size() > 0) {
+            if (!localObjects.empty()) {
                 result.insert(result.end(), localObjects.begin(), localObjects.end());
             }
-            if (stackObjects.size() > 0) {
+            if (!stackObjects.empty()) {
                 result.insert(result.end(), stackObjects.begin(), stackObjects.end());
             }
         }

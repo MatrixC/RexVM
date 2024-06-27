@@ -61,7 +61,7 @@ namespace RexVM {
 
         const auto paths = split_string(path, pathSep);
         for (const auto &pathView: paths) {
-            if (pathView.size() == 0) {
+            if (pathView.empty()) {
                 continue;
             }
             const cstring childPath{pathView};

@@ -29,7 +29,7 @@ namespace RexVM {
     }
 
     AttributeInfo *FMBaseInfo::getAssignAttribute(AttributeTagEnum tagEnum) const {
-        return ::RexVM::getAssignAttribute(cf.constantPool, attributes, tagEnum);
+        return getAssignAttributeByConstantPool(cf.constantPool, attributes, tagEnum);
     }
 
     ClassFile::ClassFile(std::istream &is) {
@@ -167,7 +167,7 @@ namespace RexVM {
     }
 
     cstring ClassFile::getClassName(u2 classIndex) const {
-        auto classInfo = dynamic_cast<ConstantClassInfo *>(constantPool.at(classIndex).get());
+        auto classInfo = static_cast<ConstantClassInfo *>(constantPool.at(classIndex).get());
         return getConstantStringFromPool(constantPool, classInfo->index);
     }
 
@@ -180,6 +180,22 @@ namespace RexVM {
             return {};
         }
         return getClassName(superClass);
+    }
+
+    cstring ClassFile::getSourceFile() const {
+        const auto sourceFileAttribute = 
+            getAssignAttributeByConstantPool(
+                constantPool, 
+                attributes, 
+                AttributeTagEnum::SOURCE_FILE
+            );
+
+        if (sourceFileAttribute == nullptr) {
+            return EMPTY_STRING;
+        }
+
+        const auto nameIndex = (static_cast<SourceFileAttribute *>(sourceFileAttribute))->sourceFileIndex;
+        return getConstantStringFromPool(constantPool, nameIndex);
     }
 
     std::vector<cstring> ClassFile::getInterfaceNames() const {

@@ -57,7 +57,7 @@ namespace RexVM {
         regNativeMethod(JAVA_LANG_OBJECT_NAME, "getClass", "()Ljava/lang/Class;", false, Native::getClass);
         regNativeMethod(JAVA_LANG_OBJECT_NAME, "hashCode", "()I", false, Native::hashCode);
         regNativeMethod(JAVA_LANG_OBJECT_NAME, "clone", "()Ljava/lang/Object;", false, Native::clone);
-        regNativeMethod(JAVA_LANG_OBJECT_NAME, "notifyAll", "()V", false, Native::notifyAll);
+        regNativeMethod(JAVA_LANG_OBJECT_NAME, "notifyAll", "()V", false, nopMethod);
         regNativeMethod(JAVA_LANG_OBJECT_NAME, "wait", "(J)V", false, nopMethod);
 
 

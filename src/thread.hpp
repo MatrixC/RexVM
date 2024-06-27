@@ -5,12 +5,8 @@
 #ifndef RUNTIME_HPP
 #define RUNTIME_HPP
 
-#include <memory>
 #include <vector>
-#include <cstdint>
-#include <thread>
 #include "config.hpp"
-#include "basic_type.hpp"
 
 namespace RexVM {
 
@@ -31,9 +27,10 @@ namespace RexVM {
         ThreadStatusEnum status{ThreadStatusEnum::Init};
         VM &vm;
         ThreadOop *vmThread;
+        cstring name;
         Frame *currentFrame{nullptr};
 
-        explicit Thread(VM &vm);
+        explicit Thread(VM &vm, const cstring &name);
         ~Thread();
 
         [[nodiscard]] ThreadOop *getThreadMirror() const;

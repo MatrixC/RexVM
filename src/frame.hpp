@@ -19,6 +19,23 @@ namespace RexVM {
     struct Oop;
     struct InstanceOop;
 
+    struct FrameException {
+        struct ThrowPoint {
+            Method &method;
+            u4 throwPc{0};
+            
+            explicit ThrowPoint(Method &method, u4 pc);
+            ~ThrowPoint();
+        };
+
+        InstanceOop *throwValue{nullptr};
+        std::vector<std::unique_ptr<ThrowPoint>> throwPath;
+
+        explicit FrameException(InstanceOop *throwValue, Method &method, u4 throwPc);
+        void addPath(Method &method, u4 throwPc);
+        ~FrameException();
+    };
+
     struct Frame {
         size_t localVariableTableSize;
         std::unique_ptr<Slot[]> localVariableTable;
@@ -44,8 +61,9 @@ namespace RexVM {
         SlotTypeEnum returnType{};
 
         bool markThrow{false};
-        u4 throwPc{0};
-        ref throwValue{nullptr};
+        //u4 throwPc{0};
+        //InstanceOop *throwValue{nullptr};
+        std::unique_ptr<FrameException> exception;
 
         explicit Frame(VM &vm, Thread &thread, Method &method, Frame *previous);
         ~Frame();
@@ -100,8 +118,9 @@ namespace RexVM {
         void returnF8(f8 val);
         void returnBoolean(bool val);
 
-        void throwException(ref val, u4 pc);
-        void throwException(ref val);
+        void throwException(InstanceOop * const val, u4 pc);
+        void passException(std::unique_ptr<FrameException> lastException);
+        void cleanThrow();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
 

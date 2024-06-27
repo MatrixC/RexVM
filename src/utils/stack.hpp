@@ -39,7 +39,7 @@ namespace RexVM {
         void reset();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
-        std::vector<Oop *> getObjects() const;
+        [[nodiscard]] std::vector<Oop *> getObjects() const;
     };
 }
 

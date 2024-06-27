@@ -12,7 +12,6 @@
 #include "thread.hpp"
 #include "frame.hpp"
 #include "exception.hpp"
-#include "utils/format.hpp"
 
 namespace RexVM {
 
@@ -140,6 +139,8 @@ namespace RexVM {
 
     InstanceClass::InstanceClass(ClassLoader &classLoader, ClassFile &cf) :
             Class(ClassTypeEnum::InstanceClass, cf.accessFlags, cf.getThisClassName(), classLoader) {
+
+        sourceFile = cf.getSourceFile();
 
         fields.reserve(cf.fieldCount);
         for (const auto &fieldInfo: cf.fields) {

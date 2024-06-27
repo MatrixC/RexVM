@@ -14,14 +14,6 @@ namespace RexVM {
         return checkClass->isAssignableFrom(this->klass);
     }
 
-    void Oop::setNotGC() {
-        notGC = true;
-    }
-
-    bool Oop::getNotGC() const {
-        return notGC;
-    }
-
     Oop::~Oop() = default;
 
     void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
@@ -60,8 +52,7 @@ namespace RexVM {
         initInstanceField(this, klass);
     }
 
-    InstanceOop::~InstanceOop() {
-    }
+    InstanceOop::~InstanceOop() = default;
 
     Slot InstanceOop::getFieldValue(size_t index) const {
         return data[index];

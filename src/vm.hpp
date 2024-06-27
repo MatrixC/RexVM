@@ -3,11 +3,9 @@
 
 #include <memory>
 #include <vector>
-#include <queue>
 #include <mutex>
 #include <thread>
 #include <deque>
-#include <condition_variable>
 #include "config.hpp"
 
 namespace RexVM {

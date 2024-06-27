@@ -8,46 +8,60 @@
 #include "memory.hpp"
 #include "interpreter.hpp"
 #include "thread.hpp"
+#include "basic_java_class.hpp"
 #include <mutex>
+#include <utility>
+#include <sstream>
 
 namespace RexVM {
 
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
-        const auto throwInstance = static_cast<const InstanceOop *>(frame.throwValue);
+        const auto throwInstance = frame.exception->throwValue;
+        const auto throwInstanceClass = static_cast<const InstanceClass *>(throwInstance->klass);
         auto &method = frame.method;
         const auto handler =
             method.findExceptionHandler(
-                dynamic_cast<const InstanceClass *>(throwInstance->klass),
+                throwInstanceClass,
                 frame.pc()
             );
 
         if (handler) {
-            //catch, push the exception to stack(must)
-            //TODO frame.cleanStack();
+            //clean [operand] stack and push the catched exception to stack(must)
             frame.cleanOperandStack();
-            frame.pushRef(frame.throwValue);
+            frame.pushRef(throwInstance);
 
             const auto gotoOffset = *handler;
             frame.reader.gotoOffset(gotoOffset);
-            frame.markThrow = false;
-            frame.throwPc = 0;
-            frame.throwValue = nullptr;
-
-            //println("{}method {}#{} handle exception", cstring(frame.level * 2, ' '), frame.klass->name, frame.method.name);
+            frame.cleanThrow();
         } else {
             const auto previousFrame = frame.previous;
             if (previousFrame == nullptr) {
+                //TOP Frame
                 const auto message = static_cast<Oop *>(throwInstance->getFieldValue("detailMessage", "Ljava/lang/String;").refVal);
+                cstring messageStr = "";
                 if (message != nullptr) {
-                    const auto messageStr = getStringNativeValue(message);
-                    cprintln("exception message {}", messageStr);
+                    messageStr = ": " + getStringNativeValue(message);
                 }
-                
-                cprintln("throw exception top frame");
-                std::exit(0);
+
+                cstring outMessage = cformat(
+                    "Exception in thread \"{}\" {}{}", 
+                    frame.thread.name,
+                    throwInstanceClass->name,
+                    messageStr
+                );
+
+                for (const auto &item : frame.exception->throwPath) {
+                    //example. at ExceptionTest.p(ExceptionTest.java:13)
+                    const auto className = item->method.klass.name;
+                    const auto methodName = item->method.name;
+                    const auto lineNumber = item->method.getLineNumber(item->throwPc);
+                    const auto sourceFileName = item->method.klass.sourceFile;
+                    outMessage += cformat("\n\tat {}.{}({}:{})", className, methodName, sourceFileName, lineNumber);
+                }
+                cprintln("{}", outMessage);
             } else {
-                previousFrame->throwException(frame.throwValue);
+                previousFrame->passException(std::move(frame.exception));
                 return true;
             }
         }
@@ -55,10 +69,14 @@ namespace RexVM {
         return false;
     }
 
-    void passReturnValue(Frame &frame) {
+    void checkAndPassReturnValue(Frame &frame) {
+        if (!frame.existReturnValue) {
+            return;
+        } 
+
         const auto previous = frame.previous;
         if (previous == nullptr) {
-            panic("previous is nullptr");
+            panic("checkAndPassReturnValue error: previous is nullptr");
         }
         const auto returnValue = frame.returnValue;
         switch (frame.returnType) {
@@ -77,33 +95,28 @@ namespace RexVM {
                 break;
 
             default:
-                panic("unknown slot Type");
+                panic("checkAndPassReturnValue error: unknown slot Type");
                 break;
         }
     }
 
-    void executeFrame(Frame &frame, cstring methodName) {
+    void executeFrame(Frame &frame, const cstring& methodName) {
         auto &method = frame.method;
-        const auto nativeMethod = method.isNative();
+        const auto notNativeMethod = !method.isNative();
 
-        if (method.name == "loadLibrary" && frame.klass.name == "java/lang/System") {
-            return;
-        }
-        if (method.name == "" && frame.klass.name == "") {
+        if (method.name == "loadLibrary" && frame.klass.name == JAVA_LANG_SYSTEM_NAME) {
             return;
         }
         //println("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
 
-        if (!nativeMethod) [[likely]] {
+        if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
                 frame.currentByteCode = frame.reader.readU1();
                 const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markReturn) {
-                    if (frame.existReturnValue) {
-                        passReturnValue(frame);
-                    }
+                    checkAndPassReturnValue(frame);
                     return;
                 }
                 if (frame.markThrow) {
@@ -116,13 +129,11 @@ namespace RexVM {
         } else {
             const auto nativeMethodHandler = method.nativeMethodHandler;
             if (nativeMethodHandler == nullptr) {
-                panic("runFrame error, method " + method.klass.name + "#" + method.name + ":" + method.descriptor + " nativeMethodHandler is nullptr");
+                panic("executeFrame error, method " + method.klass.name + "#" + method.name + ":" + method.descriptor + " nativeMethodHandler is nullptr");
             }
             nativeMethodHandler(frame);
             if (frame.markReturn) {
-                if (frame.existReturnValue) {
-                    passReturnValue(frame);
-                }
+                checkAndPassReturnValue(frame);
                 return;
             }
             if (frame.markThrow) {
@@ -152,11 +163,11 @@ namespace RexVM {
         thread.currentFrame = backupFrame;
     }
 
-    void runStaticMethodOnThread(VM &vm, Method &method, std::vector<Slot> params) {
-        Thread thread(vm);
+    void runStaticMethodOnThread(VM &vm, Method &method, std::vector<Slot> params, const cstring &name) {
+        Thread thread(vm, name);
         thread.status = ThreadStatusEnum::Running;
         vm.addVMThread(&thread);
-        createFrameAndRunMethod(thread, method, params, nullptr);
+        createFrameAndRunMethod(thread, method, std::move(params), nullptr);
         thread.status = ThreadStatusEnum::Terminated; 
         vm.removeVMThread(&thread);
         
@@ -164,10 +175,12 @@ namespace RexVM {
 
     void runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params) {
         std::lock_guard<std::mutex> lock(vm.threadMtx);
-        vm.threadDeque.push_back(std::thread([&vm, &method, params = std::move(params)]() {
-            const auto tid = std::this_thread::get_id();
-            runStaticMethodOnThread(vm, method, params);
-        }));
+        vm.threadDeque.emplace_back([&vm, &method, params = std::move(params)]() {
+            std::stringstream ss;
+            ss << std::this_thread::get_id();
+            const auto threadName = "Thread-" + ss.str();
+            runStaticMethodOnThread(vm, method, params, threadName);
+        });
     }
 
 

@@ -11,6 +11,21 @@
 
 namespace RexVM {
 
+    FrameException::ThrowPoint::ThrowPoint(Method &method, u4 pc) : method(method), throwPc(pc) {
+    }
+
+    FrameException::ThrowPoint::~ThrowPoint() = default;
+
+    FrameException::FrameException(InstanceOop *throwValue, Method &method, u4 throwPc) : throwValue(throwValue) {
+        addPath(method, throwPc);
+    }
+
+    void FrameException::addPath(Method &method, u4 throwPc) {
+        throwPath.emplace_back(std::make_unique<ThrowPoint>(method, throwPc));
+    }
+
+    FrameException::~FrameException() = default;
+
     Frame::Frame(VM &vm, Thread &thread, Method &method, Frame *previous) :
         localVariableTableSize(method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals),
         localVariableTable(std::make_unique<Slot[]>(localVariableTableSize)),
@@ -251,15 +266,20 @@ namespace RexVM {
         returnValue = Slot(val ? 1 : 0);
     }
 
-    void Frame::throwException(ref val, u4 pc) {
+    void Frame::throwException(InstanceOop * const val, u4 throwPc) {
         markThrow = true;
-        throwValue = val;
-        throwPc = pc;
+        exception = std::make_unique<FrameException>(val, method, throwPc);
     }
 
-    void Frame::throwException(ref val) {
+    void Frame::passException(std::unique_ptr<FrameException> lastException) {
         markThrow = true;
-        throwValue = val;
+        exception = std::move(lastException);
+        exception->addPath(method, pc());
+    }
+
+    void Frame::cleanThrow() {
+        markThrow = false;
+        exception.reset();
     }
 
 

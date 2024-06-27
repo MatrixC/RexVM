@@ -27,8 +27,8 @@ namespace RexVM {
         ClassPath &classPath;
         std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
         std::recursive_mutex clMutex;
-        InstanceClass *mirrorClass; // java/lang/Class
-        InstanceClass *mirrorClassLoader;
+        InstanceClass *mirrorClass{nullptr}; // java/lang/Class
+        InstanceClass *mirrorClassLoader{nullptr};
         std::vector<InstanceClass *> basicJavaClass;
 
         Class *getClass(const cstring &name);

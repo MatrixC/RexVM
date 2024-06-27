@@ -169,7 +169,7 @@ namespace RexVM {
 
             if (!codeAttribute->attributes.empty()) {
                 if (const auto lineNumberTableAttribute = dynamic_cast<LineNumberTableAttribute *>(
-                    getAssignAttribute(
+                    getAssignAttributeByConstantPool(
                         info->cf.constantPool,
                         codeAttribute->attributes,
                         AttributeTagEnum::LINE_NUMBER_TABLE
@@ -215,14 +215,19 @@ namespace RexVM {
         for (const auto &item: exceptionCatches) {
             if (pc >= item->start && pc < item->end) {
                 if (item->catchType == 0) {
+                    //catch (Exception ex) { xx }
                     return item->handler;
                 }
 
                 if (item->catchClass == nullptr) {
                     const auto &constantPool = klass.constantPool;
-                    const auto classConstInfo = dynamic_cast<ConstantClassInfo *>(constantPool.at(
-                            item->catchType).get());
+                    const auto classConstInfo = 
+                        static_cast<ConstantClassInfo *>(constantPool.at(item->catchType).get());
                     const auto exClassName = getConstantStringFromPool(constantPool, classConstInfo->index);
+                    if (exClass->name == exClassName) {
+                        //Optimize[catchClass == exClass], needn't load Exception Class
+                        return item->handler;
+                    }
                     item->catchClass = klass.classLoader.getInstanceClass(exClassName);
                 }
 
@@ -234,6 +239,25 @@ namespace RexVM {
         }
 
         return std::nullopt;
+    }
+
+    u4 Method::getLineNumber(u4 pc) const {
+        if (isNative()) {
+            return 0;
+        }
+
+        if (lineNumbers.empty()) {
+            return 0;
+        }
+
+        for (size_t i = lineNumbers.size() - 1; i >= 0; --i) {
+            const auto &item = lineNumbers.at(i);
+            if (pc > item->start) {
+                return item->lineNumber;
+            }
+        }
+
+        return 0;
     }
 
     Method::~Method() = default;

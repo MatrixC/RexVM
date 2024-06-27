@@ -42,7 +42,7 @@ namespace RexVM {
 
         virtual ~ConstantInfo() = default;
 
-        virtual cstring toString() = 0;
+        [[maybe_unused]] virtual cstring toString() = 0;
     };
 
     struct Constant1IndexInfo : public ConstantInfo {

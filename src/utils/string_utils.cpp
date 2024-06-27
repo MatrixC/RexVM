@@ -27,17 +27,13 @@ namespace RexVM {
         return str.substr(str.size() - suffix.size()) == suffix;
     }
 
-    bool endsWith(cview str, char suffix) {
-        return str[str.length() - 1] == suffix;
-    }
-
     cstring concat_view(cview str1, cview str2) {
         cstring result(str1);
         result += str2;
         return result;
     }
 
-    cstring replace(cstring src, cstring search, cstring replace) {
+    cstring replace(cstring src, const cstring& search, const cstring& replace) {
         size_t pos = 0;
         while ((pos = src.find(search, pos)) != std::string::npos) {
             src.replace(pos, search.length(), replace);

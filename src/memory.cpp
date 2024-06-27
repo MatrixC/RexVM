@@ -3,8 +3,6 @@
 #include "thread.hpp"
 #include "class_loader.hpp"
 #include "utils/format.hpp"
-#include "vm.hpp"
-#include <algorithm>
 
 namespace RexVM {
 
@@ -87,7 +85,7 @@ namespace RexVM {
         return oop;
     }
 
-    ByteTypeArrayOop *OopManager::newByteArrayOop(size_t length, u1 *initBuffer) {
+    ByteTypeArrayOop *OopManager::newByteArrayOop(size_t length, const u1 *initBuffer) {
         const auto oop = newByteArrayOop(length);
         for (size_t i = 0; i < length; ++i) {
             oop->data[i] = initBuffer[i];
@@ -204,9 +202,9 @@ namespace RexVM {
         cprintln("finish thread {}", tracedOop.size());
 
         std::unordered_set<Oop *> deleteOop;
-        std::copy_if(allocatedOop.begin(), allocatedOop.end(), std::inserter(deleteOop, deleteOop.end()),
-                 [&tracedOop](const auto& value) { return !tracedOop.contains(value) && !value->getNotGC(); });
-
+//        std::copy_if(allocatedOop.begin(), allocatedOop.end(), std::inserter(deleteOop, deleteOop.end()),
+//                 [&tracedOop](const auto& value) { return !tracedOop.contains(value) && !value->getNotGC(); });
+//
 
         for (const auto &oop : deleteOop) {
             delete oop;
@@ -279,9 +277,9 @@ namespace RexVM {
 
 
         std::unordered_set<Oop *> notTracedOop;
-        std::copy_if(allocatedOop.begin(), allocatedOop.end(), std::inserter(notTracedOop, notTracedOop.end()),
-                 [&tracedOop](const auto& value) { return !tracedOop.contains(value) && !value->getNotGC(); });
-
+//        std::copy_if(allocatedOop.begin(), allocatedOop.end(), std::inserter(notTracedOop, notTracedOop.end()),
+//                 [&tracedOop](const auto& value) { return !tracedOop.contains(value) && !value->getNotGC(); });
+//
         cprintln("notTracedOop {}", notTracedOop.size());
         for (const auto &oop : notTracedOop) {
             delete oop;
