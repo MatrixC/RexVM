@@ -19,8 +19,8 @@ namespace RexVM {
     }
 
     ThreadOop *OopManager::newThreadOop(Thread *thread) {
-        const auto threadClass = vm.bootstrapClassLoader->getInstanceClass("java/lang/Thread");
-        const auto threadGroupClass = vm.bootstrapClassLoader->getInstanceClass("java/lang/ThreadGroup");
+        const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+        const auto threadGroupClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
 
         const auto vmThreadOop = new ThreadOop(threadClass, thread);
         const auto vmThreadGroup = newInstance(threadGroupClass);
@@ -193,13 +193,13 @@ namespace RexVM {
         cprintln("finish static and mirror {}", tracedOop.size());
 
         //Thread gc roots
-        const auto &threads = vm.threads;
-        for (const auto &thread : threads) {
-            const auto threadGCRoots = thread->getThreadGCRoots();
-            if (threadGCRoots.size() > 0) {
-                tracedOop.insert(threadGCRoots.begin(), threadGCRoots.end());
-            }
-        }
+        // const auto &threads = vm.threads;
+        // for (const auto &thread : threads) {
+        //     const auto threadGCRoots = thread->getThreadGCRoots();
+        //     if (threadGCRoots.size() > 0) {
+        //         tracedOop.insert(threadGCRoots.begin(), threadGCRoots.end());
+        //     }
+        // }
 
         cprintln("finish thread {}", tracedOop.size());
 
@@ -248,13 +248,13 @@ namespace RexVM {
         }
 
         //From Thread
-        const auto &threads = vm.threads;
-        for (const auto &thread : threads) {
-            const auto &threadGCRoots = thread->getThreadGCRoots();
-            if (threadGCRoots.size() > 0) {
-                gcRoots.insert(threadGCRoots.begin(), threadGCRoots.end());
-            }
-        }
+        // const auto &threads = vm.threads;
+        // for (const auto &thread : threads) {
+        //     const auto &threadGCRoots = thread->getThreadGCRoots();
+        //     if (threadGCRoots.size() > 0) {
+        //         gcRoots.insert(threadGCRoots.begin(), threadGCRoots.end());
+        //     }
+        // }
 
         return gcRoots;
 

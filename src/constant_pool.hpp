@@ -7,6 +7,7 @@
 
 #include <unordered_map>
 #include <memory>
+#include <mutex>
 #include "config.hpp"
 
 namespace RexVM {
@@ -20,6 +21,8 @@ namespace RexVM {
         VM &vm;
         ClassLoader &classLoader;
         std::unordered_map<cstring, InstanceOop *> internMap;
+
+        std::mutex mtx;
 
         InstanceOop *getInternString(const cstring &str);
 

@@ -1,8 +1,6 @@
-#include "config.hpp"
 #include "utils/format.hpp"
 #include "vm.hpp"
 #include <vector>
-#include <variant>
 
 using namespace RexVM;
 

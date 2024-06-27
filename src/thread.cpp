@@ -43,9 +43,5 @@ namespace RexVM {
         return vmThread;
     }
 
-    void Thread::join() {
-        systemThread.join();
-    }
-
 
 }

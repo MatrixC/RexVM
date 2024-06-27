@@ -1,4 +1,5 @@
 #include "vm.hpp"
+#include "basic_java_class.hpp"
 #include "utils/class_path.hpp"
 #include "attribute_info.hpp"
 #include "class_loader.hpp"
@@ -9,6 +10,7 @@
 #include <ranges>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 
 namespace RexVM {
@@ -34,16 +36,14 @@ namespace RexVM {
 
     void VM::initStringPool() {
         stringPool = std::make_unique<StringPool>(*this, *bootstrapClassLoader);
+        //String Pool初始化完成后才可以初始化全部基础类 否则有些类会因为没有String Pool初始化时报npe
+        bootstrapClassLoader->initBasicJavaClass();
     }
 
     void VM::initJavaSystemClass() {
-        const auto systemClass = bootstrapClassLoader->getInstanceClass("java/lang/System");
+        const auto systemClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM);
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
-        runStaticMethodOnMainThread(*this, *initMethod, {});
-    }
-
-    void VM::initMainThread() {
-        threads.emplace_back(std::make_unique<Thread>(*this));
+        runStaticMethodOnThread(*this, *initMethod, {});
     }
 
     void VM::runMainMethod() {
@@ -62,7 +62,7 @@ namespace RexVM {
         if (mainMethod == nullptr) {
             panic("no main method in class " + className);
         }
-        const auto stringArrayClass = bootstrapClassLoader->getObjectArrayClass("java/lang/String");
+        const auto stringArrayClass = bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_STRING_NAME);
         const auto mainMethodParmSize = userParams.size() - 1;
         const auto stringArray = oopManager->newObjArrayOop(stringArrayClass, mainMethodParmSize);
 
@@ -72,25 +72,56 @@ namespace RexVM {
             }
         }
 
-        runStaticMethodOnMainThread(*this, *mainMethod, std::vector{ Slot(stringArray) });
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        runStaticMethodOnThread(*this, *mainMethod, std::vector{ Slot(stringArray) });
     }
 
+    void VM::joinThreads() {
+        while (true) {
+            std::thread *thread;
+            {
+                std::lock_guard<std::mutex> lock(threadMtx);
+                if (threadDeque.empty()) {
+                    break;
+                }
+                thread = &threadDeque.front();
+            }
 
+            if (thread->joinable()) {
+                thread->join();
+                {
+                    std::lock_guard<std::mutex> lock(threadMtx);
+                    threadDeque.pop_front(); 
+                }
+            }
+        }
+    }
+
+    void VM::addVMThread(Thread *thread) {
+        std::lock_guard<std::mutex> lock(vmThreadMtx);
+        vmThreads.emplace_back(thread);
+    }
+    void VM::removeVMThread(Thread *thread) {
+        std::lock_guard<std::mutex> lock(vmThreadMtx);
+        vmThreads.erase(std::remove(vmThreads.begin(), vmThreads.end(), thread), vmThreads.end());
+    }
 
     VM::VM(ApplicationParameter &params) : params(params) {
+    }
+
+    void VM::start() {
         initClassPath();
         initOopManager();
         initBootstrapClassLoader();
         initStringPool();
-        initMainThread();
         initJavaSystemClass();
         runMainMethod();
+        joinThreads();
     }
-
   
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
+        vm.start();
+
         //gc2(vm);
         //vm.bootstrapClassLoader.reset(nullptr);
     }

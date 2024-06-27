@@ -21,11 +21,15 @@ namespace RexVM {
     struct ThreadOop;
     struct InstanceOop;
 
+    enum class ThreadStatusEnum {
+        Init,
+        Running,
+        Terminated,
+    };
+
     struct Thread {
+        ThreadStatusEnum status{ThreadStatusEnum::Init};
         VM &vm;
-        std::thread systemThread;
-        // std::unique_ptr<ThreadOop> vmThread;
-        // std::unique_ptr<InstanceOop> vmThreadGroup;
         ThreadOop *vmThread;
         Frame *currentFrame{nullptr};
 
@@ -35,8 +39,6 @@ namespace RexVM {
         [[nodiscard]] ThreadOop *getThreadMirror() const;
         [[nodiscard]] std::vector<Oop *> getThreadGCRoots() const;
 
-        void join();
-        
     };
 
 }

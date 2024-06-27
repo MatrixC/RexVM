@@ -1,6 +1,7 @@
 #include "class.hpp"
 
 #include <utility>
+#include "basic_java_class.hpp"
 #include "constant_pool.hpp"
 #include "class_member.hpp"
 #include "constant_info.hpp"
@@ -32,15 +33,15 @@ namespace RexVM {
     }
 
     bool Class::isJavaObjectClass() const {
-        return name == "java/lang/Object";
+        return name == JAVA_LANG_OBJECT_NAME;
     }
 
     bool Class::isJavaCloneable() const {
-        return name == "java/lang/Cloneable";
+        return name == JAVA_LANG_CLONEABLE_NAME;
     }
 
     bool Class::isSerializable() const {
-        return name == "java/io/Serializable";
+        return name == JAVA_IO_SERIALIZABLE_NAME;
     }
 
     bool Class::isAssignableFrom(const Class *that) const {
@@ -319,6 +320,7 @@ namespace RexVM {
         const auto memberClass = classLoader.getClass(className);
         const auto memberInstanceClass = 
             memberClass->isArray() ? 
+                //classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT) :
                 classLoader.getInstanceClass("java/lang/Object") : 
                 classLoader.getInstanceClass(className);
             
@@ -362,7 +364,7 @@ namespace RexVM {
                 return componentClassName;
 
             case 'L':
-                return componentClassName.substr(1, componentClassName.size() - 1);
+                return componentClassName.substr(1, componentClassName.size() - 2);
 
             default:
                 return PRIMITIVE_TYPE_REVERSE_MAP.at(componentClassName);

@@ -8,6 +8,7 @@
 #include "memory.hpp"
 #include "interpreter.hpp"
 #include "thread.hpp"
+#include <mutex>
 
 namespace RexVM {
 
@@ -151,19 +152,24 @@ namespace RexVM {
         thread.currentFrame = backupFrame;
     }
 
-    void runStaticMethodOnMainThread(VM &vm, Method &method_, std::vector<Slot> params) {
-        createFrameAndRunMethod(*vm.threads.at(0), method_, params, nullptr);
+    void runStaticMethodOnThread(VM &vm, Method &method, std::vector<Slot> params) {
+        Thread thread(vm);
+        thread.status = ThreadStatusEnum::Running;
+        vm.addVMThread(&thread);
+        createFrameAndRunMethod(thread, method, params, nullptr);
+        thread.status = ThreadStatusEnum::Terminated; 
+        vm.removeVMThread(&thread);
+        
     }
 
-    Thread* runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params) {
-        vm.threads.emplace_back(std::make_unique<Thread>(vm));
-        auto paramsCopy = params;
-        auto &thread = *vm.threads.back();
-        thread.systemThread = std::thread([&thread, &method, paramsCopy]() {
-            createFrameAndRunMethod(thread, method, paramsCopy, nullptr);
-        });
-        thread.systemThread.detach();
-        return &thread;
+    void runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params) {
+        std::lock_guard<std::mutex> lock(vm.threadMtx);
+        vm.threadDeque.push_back(std::thread([&vm, &method, params = std::move(params)]() {
+            const auto tid = std::this_thread::get_id();
+            runStaticMethodOnThread(vm, method, params);
+        }));
     }
+
+
 
 }

@@ -8,6 +8,7 @@
 #include "vm.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
+#include "basic_java_class.hpp"
 #include <mutex>
 
 
@@ -19,25 +20,43 @@ namespace RexVM {
 
     ClassLoader::~ClassLoader() = default;
 
-    InstanceClass *ClassLoader::mirrorClass;
-    InstanceClass *ClassLoader::mirrorClassLoader;
-
-    static std::recursive_mutex clMutex;
-
-    void ClassLoader::loadInstanceClass(std::istream &is) {
-        ClassFile cf(is);
-        auto instanceClass = std::make_unique<InstanceClass>(*this, cf);
-        initMirrorClass(instanceClass.get());
-        classMap.emplace(instanceClass->name, std::move(instanceClass));
+    void ClassLoader::loadBasicClass() {
+        std::lock_guard<std::recursive_mutex> lock(clMutex);
+        for (const auto &item : PRIMITIVE_TYPE_MAP) {
+            const auto name = item.first;
+            auto klass = std::make_unique<Class>(
+                ClassTypeEnum::PrimitiveClass,
+                static_cast<u2>(AccessFlagEnum::ACC_PUBLIC),
+                name,
+                *this
+            );
+            klass->superClass = getInstanceClass(JAVA_LANG_OBJECT_NAME);
+            classMap.emplace(name, std::move(klass));
+        }
+    
+        mirrorClass = getInstanceClass(JAVA_LANG_CLASS_NAME);
+        mirrorClassLoader = getInstanceClass(JAVA_LANG_CLASS_LOADER_NAME);
+        for (const auto &classItem: classMap) {
+            initMirrorClass(classItem.second.get());
+        }
     }
 
-    void ClassLoader::loadInstanceClass(const cstring &name) {
+    InstanceClass *ClassLoader::loadInstanceClass(std::istream &is) {
+        ClassFile cf(is);
+        auto instanceClass = std::make_unique<InstanceClass>(*this, cf);
+        const auto rawPtr = instanceClass.get();
+        initMirrorClass(rawPtr);
+        classMap.emplace(instanceClass->name, std::move(instanceClass));
+        return rawPtr;
+    }
+
+    InstanceClass *ClassLoader::loadInstanceClass(const cstring &name) {
         auto streamPtr = classPath.getStream(name + ".class");
         if (streamPtr == nullptr) {
             panic("Can't find class " + name);
             //throw Class Not Found expception
         }
-        loadInstanceClass(*streamPtr);
+        return loadInstanceClass(*streamPtr);
     }
 
     Class *ClassLoader::getClass(const cstring &name) {
@@ -59,31 +78,6 @@ namespace RexVM {
         return classMap[name].get();
     }
 
-    InstanceClass *ClassLoader::getInstanceClass(const cstring &name) {
-        return dynamic_cast<InstanceClass *>(getClass(name));
-    }
-
-    ArrayClass *ClassLoader::getArrayClass(const cstring &name) {
-        return dynamic_cast<ArrayClass *>(getClass(name));
-    }
-
-    TypeArrayClass *ClassLoader::getTypeArrayClass(BasicType type) {
-        const auto className = typeArrayClassName(type);
-        // if (dimension > 1) {
-        //     const auto prefix = cstring(dimension - 1, '[');
-        //     className = prefix + className;
-        // }
-        auto klass = getClass(className);
-        return dynamic_cast<TypeArrayClass *>(klass);
-    }
-
-    ObjArrayClass *ClassLoader::getObjectArrayClass(const cstring &name) {
-        //const auto prefix = cstring(dimension, '[');
-        const auto prefix = "[";
-        const auto className = prefix + getDescriptorClassName(name);
-        auto klass = getClass(className);
-        return dynamic_cast<ObjArrayClass *>(klass);
-    }
 
     void ClassLoader::loadArrayClass(const cstring &name) {
         size_t typeIndex = 0;
@@ -117,30 +111,11 @@ namespace RexVM {
         }
 
         arrayClass->initStatus = ClassInitStatusEnum::Inited;
-        arrayClass->superClass = getInstanceClass("java/lang/Object");
+        arrayClass->superClass = getInstanceClass(JAVA_LANG_OBJECT_NAME);
         initMirrorClass(arrayClass.get());
         classMap.emplace(arrayClass->name, std::move(arrayClass));
     }
 
-    void ClassLoader::loadBasicClass() {
-        for (const auto &item: PRIMITIVE_TYPE_MAP) {
-            const auto name = item.first;
-            auto klass = std::make_unique<Class>(
-                ClassTypeEnum::PrimitiveClass,
-                static_cast<u2>(AccessFlagEnum::ACC_PUBLIC),
-                name,
-                *this
-            );
-            klass->superClass = getInstanceClass("java/lang/Object");
-            classMap.emplace(name, std::move(klass));
-        }
-
-        mirrorClass = getInstanceClass("java/lang/Class");
-        mirrorClassLoader = getInstanceClass("java/lang/ClassLoader");
-        for (const auto &classItem: classMap) {
-            initMirrorClass(classItem.second.get());
-        }
-    }
 
     void ClassLoader::initMirrorClass(Class *klass) const {
         if (klass->mirror == nullptr) {
@@ -156,5 +131,35 @@ namespace RexVM {
               klass->mirror = std::make_unique<MirrorOop>(mirrorClass, klass);
             }
         }
+    }
+
+
+    InstanceClass *ClassLoader::getInstanceClass(const cstring &name) {
+        return static_cast<InstanceClass *>(getClass(name));
+    }
+
+    ArrayClass *ClassLoader::getArrayClass(const cstring &name) {
+        return static_cast<ArrayClass *>(getClass(name));
+    }
+
+    TypeArrayClass *ClassLoader::getTypeArrayClass(BasicType type) {
+        const auto className = typeArrayClassName(type);
+        return static_cast<TypeArrayClass *>(getClass(className));
+    }
+
+    ObjArrayClass *ClassLoader::getObjectArrayClass(const cstring &name) {
+        const auto prefix = "[";
+        const auto className = prefix + getDescriptorClassName(name);
+        return static_cast<ObjArrayClass *>(getClass(className));
+    }
+
+    void ClassLoader::initBasicJavaClass() {
+        for (const auto &item : BASIC_JAVA_CLASS_NAMES) {
+            basicJavaClass.emplace_back(getInstanceClass(item));
+        }
+    }
+
+    InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {
+        return basicJavaClass.at(static_cast<size_t>(classEnum));
     }
 }

@@ -14,7 +14,7 @@ namespace RexVM {
 
     InstanceOop *StringPool::getInternString(const cstring &str) {
         //TODO lock
-        
+        std::lock_guard<std::mutex> lock(mtx);
         if (const auto iter = internMap.find(str); iter != internMap.end()) {
             return iter->second;
         }
@@ -30,7 +30,8 @@ namespace RexVM {
             charArrayOop->data[i] = u16Buffer[i];
         }
 
-        auto stringClass = classLoader.getInstanceClass("java/lang/String");
+        auto stringClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
+
         auto ptr = oopManager->newInstance(stringClass);
         ptr->setFieldValue("value", "[C", Slot(charArrayOop));
 

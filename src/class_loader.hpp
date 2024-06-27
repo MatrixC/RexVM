@@ -7,6 +7,7 @@
 #include <mutex>
 #include "basic_type.hpp"
 #include "config.hpp"
+#include "basic_java_class.hpp"
 
 namespace RexVM {
 
@@ -25,33 +26,33 @@ namespace RexVM {
         VM &vm;
         ClassPath &classPath;
         std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
-        static InstanceClass *mirrorClass; // java/lang/Class
-        static InstanceClass *mirrorClassLoader;
+        std::recursive_mutex clMutex;
+        InstanceClass *mirrorClass; // java/lang/Class
+        InstanceClass *mirrorClassLoader;
+        std::vector<InstanceClass *> basicJavaClass;
 
         Class *getClass(const cstring &name);
-
         InstanceClass *getInstanceClass(const cstring &name);
-
         ArrayClass *getArrayClass(const cstring &name);
-
         TypeArrayClass *getTypeArrayClass(BasicType type);
-
         ObjArrayClass *getObjectArrayClass(const cstring &name);
-
-        void initMirrorClass(Class *klass) const;
-
+        
+        void initBasicJavaClass();
+        InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
         explicit ClassLoader(VM &vm, ClassPath &classPath);
-
         ~ClassLoader();
+
 
     private:
         void loadBasicClass();
 
         void loadArrayClass(const cstring &name);
 
-        void loadInstanceClass(const cstring &name);
+        InstanceClass *loadInstanceClass(const cstring &name);
 
-        void loadInstanceClass(std::istream &is);
+        InstanceClass *loadInstanceClass(std::istream &is);
+
+        void initMirrorClass(Class *klass) const;
     };
 
 

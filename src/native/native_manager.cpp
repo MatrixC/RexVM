@@ -1,4 +1,5 @@
 #include "native_manager.hpp"
+#include "../basic_java_class.hpp"
 #include "java_lang_object.hpp"
 #include "java_lang_class.hpp"
 #include "java_lang_system.hpp"
@@ -52,47 +53,50 @@ namespace RexVM {
         regNativeMethod("Fto", "println", "(Ljava/lang/String;)V", true, Native::selfPrintln);
         regNativeMethod("Fto", "println", "(I)V", true, Native::selfPrintlnInt);
 
-        regNativeMethod("java/lang/Object", "getClass", "()Ljava/lang/Class;", false, Native::getClass);
-        regNativeMethod("java/lang/Object", "hashCode", "()I", false, Native::hashCode);
-        regNativeMethod("java/lang/Object", "clone", "()Ljava/lang/Object;", false, Native::clone);
-        regNativeMethod("java/lang/Object", "notifyAll", "()V", false, Native::notifyAll);
-        regNativeMethod("java/lang/Object", "wait", "(J)V", false, nopMethod);
+        
+        regNativeMethod(JAVA_LANG_OBJECT_NAME, "getClass", "()Ljava/lang/Class;", false, Native::getClass);
+        regNativeMethod(JAVA_LANG_OBJECT_NAME, "hashCode", "()I", false, Native::hashCode);
+        regNativeMethod(JAVA_LANG_OBJECT_NAME, "clone", "()Ljava/lang/Object;", false, Native::clone);
+        regNativeMethod(JAVA_LANG_OBJECT_NAME, "notifyAll", "()V", false, Native::notifyAll);
+        regNativeMethod(JAVA_LANG_OBJECT_NAME, "wait", "(J)V", false, nopMethod);
 
-        regNativeMethod("java/lang/Class", "getPrimitiveClass", "(Ljava/lang/String;)Ljava/lang/Class;", true, Native::getPrimitiveClass);
-        regNativeMethod("java/lang/Class", "desiredAssertionStatus0", "(Ljava/lang/Class;)Z", true, Native::desiredAssertionStatus0);
-        regNativeMethod("java/lang/Class", "getName0", "()Ljava/lang/String;", true, Native::getName0);
-        regNativeMethod("java/lang/Class", "getComponentType", "()Ljava/lang/Class;", true, Native::getComponentType);
-        regNativeMethod("java/lang/Class", "forName0", "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;", true, Native::forName0);
-        regNativeMethod("java/lang/Class", "getDeclaredFields0", "(Z)[Ljava/lang/reflect/Field;", true, Native::getDeclaredFields0);
-        regNativeMethod("java/lang/Class", "getDeclaredConstructors0", "(Z)[Ljava/lang/reflect/Constructor;", true, Native::getDeclaredConstructors0);
 
-        regNativeMethod("java/lang/Class", "isPrimitive", "()Z", true, Native::isPrimitive);
-        regNativeMethod("java/lang/Class", "isInterface", "()Z", true, Native::isInterface);
-        regNativeMethod("java/lang/Class", "isArray", "()Z", true, Native::isArray);
-        regNativeMethod("java/lang/Class", "isAssignableFrom", "(Ljava/lang/Class;)Z", true, Native::isAssignableFrom);
-        regNativeMethod("java/lang/Class", "getModifiers", "()I", true, Native::getModifiers);
-        regNativeMethod("java/lang/Class", "getSuperclass", "()Ljava/lang/Class;", true, Native::getSuperclass);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "getPrimitiveClass", "(Ljava/lang/String;)Ljava/lang/Class;", true, Native::getPrimitiveClass);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "desiredAssertionStatus0", "(Ljava/lang/Class;)Z", true, Native::desiredAssertionStatus0);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "getName0", "()Ljava/lang/String;", true, Native::getName0);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "getComponentType", "()Ljava/lang/Class;", true, Native::getComponentType);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "forName0", "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;", true, Native::forName0);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "getDeclaredFields0", "(Z)[Ljava/lang/reflect/Field;", true, Native::getDeclaredFields0);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "getDeclaredConstructors0", "(Z)[Ljava/lang/reflect/Constructor;", true, Native::getDeclaredConstructors0);
 
-        regNativeMethod("java/lang/System", "setIn0", "(Ljava/io/InputStream;)V", false, Native::setIn0);
-        regNativeMethod("java/lang/System", "setOut0", "(Ljava/io/PrintStream;)V", false, Native::setOut0);
-        regNativeMethod("java/lang/System", "setErr0", "(Ljava/io/PrintStream;)V", false, Native::setErr0);
-        regNativeMethod("java/lang/System", "currentTimeMillis", "()J", false, Native::currentTimeMillis);
-        regNativeMethod("java/lang/System", "initProperties", "(Ljava/util/Properties;)Ljava/util/Properties;", false, Native::initProperties);
-        regNativeMethod("java/lang/System", "arraycopy", "(Ljava/lang/Object;ILjava/lang/Object;II)V", false, Native::arraycopy);
-        regNativeMethod("java/lang/System", "mapLibraryName", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::mapLibraryName);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "isPrimitive", "()Z", true, Native::isPrimitive);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "isInterface", "()Z", true, Native::isInterface);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "isArray", "()Z", true, Native::isArray);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "isAssignableFrom", "(Ljava/lang/Class;)Z", true, Native::isAssignableFrom);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "getModifiers", "()I", true, Native::getModifiers);
+        regNativeMethod(JAVA_LANG_CLASS_NAME, "getSuperclass", "()Ljava/lang/Class;", true, Native::getSuperclass);
 
-        regNativeMethod("java/lang/Thread", "currentThread", "()Ljava/lang/Thread;", false, Native::currentThread);
-        regNativeMethod("java/lang/Thread", "setPriority0", "(I)V", false, nopMethod);
-        regNativeMethod("java/lang/Thread", "isAlive", "()Z", false, Native::isAlive);
-        regNativeMethod("java/lang/Thread", "start0", "()V", false, Native::start0);
 
-        regNativeMethod("java/lang/Throwable", "fillInStackTrace", "(I)Ljava/lang/Throwable;", false, Native::fillInStackTrace);
+        regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setIn0", "(Ljava/io/InputStream;)V", false, Native::setIn0);
+        regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setOut0", "(Ljava/io/PrintStream;)V", false, Native::setOut0);
+        regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setErr0", "(Ljava/io/PrintStream;)V", false, Native::setErr0);
+        regNativeMethod(JAVA_LANG_SYSTEM_NAME, "currentTimeMillis", "()J", false, Native::currentTimeMillis);
+        regNativeMethod(JAVA_LANG_SYSTEM_NAME, "initProperties", "(Ljava/util/Properties;)Ljava/util/Properties;", false, Native::initProperties);
+        regNativeMethod(JAVA_LANG_SYSTEM_NAME, "arraycopy", "(Ljava/lang/Object;ILjava/lang/Object;II)V", false, Native::arraycopy);
+        regNativeMethod(JAVA_LANG_SYSTEM_NAME, "mapLibraryName", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::mapLibraryName);
 
-        regNativeMethod("java/lang/Float", "floatToRawIntBits", "(F)I", false, Native::floatToRawIntBits);
-        regNativeMethod("java/lang/Float", "intBitsToFloat", "(I)F", false, Native::intBitsToFloat);
-        regNativeMethod("java/lang/Double", "doubleToRawLongBits", "(D)J", false, Native::doubleToRawLongBits);
-        regNativeMethod("java/lang/Double", "longBitsToDouble", "(J)D", false, Native::longBitsToDouble);
-        regNativeMethod("java/lang/String", "intern", "()Ljava/lang/String;", false, Native::intern);
+        regNativeMethod(JAVA_LANG_THREAD_NAME, "currentThread", "()Ljava/lang/Thread;", false, Native::currentThread);
+        regNativeMethod(JAVA_LANG_THREAD_NAME, "setPriority0", "(I)V", false, nopMethod);
+        regNativeMethod(JAVA_LANG_THREAD_NAME, "isAlive", "()Z", false, Native::isAlive);
+        regNativeMethod(JAVA_LANG_THREAD_NAME, "start0", "()V", false, Native::start0);
+
+        regNativeMethod(JAVA_LANG_THROWABLE_NAME, "fillInStackTrace", "(I)Ljava/lang/Throwable;", false, Native::fillInStackTrace);
+
+        regNativeMethod(JAVA_LANG_FLOAT_NAME, "floatToRawIntBits", "(F)I", false, Native::floatToRawIntBits);
+        regNativeMethod(JAVA_LANG_FLOAT_NAME, "intBitsToFloat", "(I)F", false, Native::intBitsToFloat);
+        regNativeMethod(JAVA_LANG_DOUBLE_NAME, "doubleToRawLongBits", "(D)J", false, Native::doubleToRawLongBits);
+        regNativeMethod(JAVA_LANG_DOUBLE_NAME, "longBitsToDouble", "(J)D", false, Native::longBitsToDouble);
+        regNativeMethod(JAVA_LANG_STRING_NAME, "intern", "()Ljava/lang/String;", false, Native::intern);
 
         regNativeMethod("java/io/FileOutputStream", "writeBytes", "([BIIZ)V", false, Native::writeBytes);
 
