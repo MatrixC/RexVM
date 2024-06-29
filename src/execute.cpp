@@ -12,12 +12,42 @@
 #include <mutex>
 #include <utility>
 #include <sstream>
+#include <tuple>
 
 namespace RexVM {
 
+    //Print Exception stack on stdout
+    void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
+        const auto throwInstanceClass = throwInstance->klass;
+        const auto message = static_cast<Oop *>(throwInstance->getFieldValue("detailMessage", "Ljava/lang/String;").refVal);
+        cstring messageStr;
+        if (message != nullptr) {
+            messageStr = ": " + getStringNativeValue(message);
+        }
+
+        cstring outMessage = cformat(
+                "Exception in thread \"{}\" {}{}",
+                frame.thread.name,
+                throwInstanceClass->name,
+                messageStr
+        );
+
+        for (const auto &item : frame.throwObject->throwPath) {
+            //example. at ExceptionTest.p(ExceptionTest.java:13)
+            const auto &pathMethod = std::get<0>(item);
+            const auto throwPc = std::get<1>(item);
+            const auto className = pathMethod.klass.name;
+            const auto methodName = pathMethod.name;
+            const auto lineNumber = pathMethod.getLineNumber(throwPc);
+            const auto sourceFileName = pathMethod.klass.sourceFile;
+            outMessage += cformat("\n\tat {}.{}({}:{})", className, methodName, sourceFileName, lineNumber);
+        }
+        cprintln("{}", outMessage);
+    }
+
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
-        const auto throwInstance = frame.exception->throwValue;
+        const auto throwInstance = frame.throwObject->throwValue;
         const auto throwInstanceClass = static_cast<const InstanceClass *>(throwInstance->klass);
         auto &method = frame.method;
         const auto handler =
@@ -38,30 +68,10 @@ namespace RexVM {
             const auto previousFrame = frame.previous;
             if (previousFrame == nullptr) {
                 //TOP Frame
-                const auto message = static_cast<Oop *>(throwInstance->getFieldValue("detailMessage", "Ljava/lang/String;").refVal);
-                cstring messageStr = "";
-                if (message != nullptr) {
-                    messageStr = ": " + getStringNativeValue(message);
-                }
-
-                cstring outMessage = cformat(
-                    "Exception in thread \"{}\" {}{}", 
-                    frame.thread.name,
-                    throwInstanceClass->name,
-                    messageStr
-                );
-
-                for (const auto &item : frame.exception->throwPath) {
-                    //example. at ExceptionTest.p(ExceptionTest.java:13)
-                    const auto className = item->method.klass.name;
-                    const auto methodName = item->method.name;
-                    const auto lineNumber = item->method.getLineNumber(item->throwPc);
-                    const auto sourceFileName = item->method.klass.sourceFile;
-                    outMessage += cformat("\n\tat {}.{}({}:{})", className, methodName, sourceFileName, lineNumber);
-                }
-                cprintln("{}", outMessage);
+                throwToTopFrame(frame, throwInstance);
+                frame.cleanThrow();
             } else {
-                previousFrame->passException(std::move(frame.exception));
+                previousFrame->passException(std::move(frame.throwObject));
                 return true;
             }
         }
@@ -100,7 +110,7 @@ namespace RexVM {
         }
     }
 
-    void executeFrame(Frame &frame, const cstring& methodName) {
+    void executeFrame(Frame &frame, [[maybe_unused]] const cstring& methodName) {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
 
@@ -150,7 +160,7 @@ namespace RexVM {
         Frame nextFrame(thread.vm, thread, method_, previous);
         const auto slotSize = method_.paramSlotSize;
         if (slotSize != params.size()) {
-            panic("error params length " + method_.name);
+            panic("createFrameAndRunMethod error: params length " + method_.name);
         }
         for (size_t i = 0; i < params.size(); ++i) {
             const auto slotType = method_.getParamSlotType(i);

@@ -1,30 +1,24 @@
 #include "frame.hpp"
 #include "constant_info.hpp"
 #include "class_member.hpp"
-#include "class.hpp"
 #include "oop.hpp"
 #include "thread.hpp"
 #include "vm.hpp"
 #include "execute.hpp"
-#include <algorithm>
+#include <utility>
 
 
 namespace RexVM {
 
-    FrameException::ThrowPoint::ThrowPoint(Method &method, u4 pc) : method(method), throwPc(pc) {
-    }
-
-    FrameException::ThrowPoint::~ThrowPoint() = default;
-
-    FrameException::FrameException(InstanceOop *throwValue, Method &method, u4 throwPc) : throwValue(throwValue) {
+    FrameThrowable::FrameThrowable(InstanceOop *throwValue, Method &method, u4 throwPc) : throwValue(throwValue) {
         addPath(method, throwPc);
     }
 
-    void FrameException::addPath(Method &method, u4 throwPc) {
-        throwPath.emplace_back(std::make_unique<ThrowPoint>(method, throwPc));
+    void FrameThrowable::addPath(Method &method, u4 throwPc) {
+        throwPath.emplace_back(method, throwPc);
     }
 
-    FrameException::~FrameException() = default;
+    FrameThrowable::~FrameThrowable() = default;
 
     Frame::Frame(VM &vm, Thread &thread, Method &method, Frame *previous) :
         localVariableTableSize(method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals),
@@ -70,7 +64,7 @@ namespace RexVM {
     }
 
     void Frame::runMethod(Method &runMethod_, std::vector<Slot> params) {
-        createFrameAndRunMethod(thread, runMethod_, params, this);
+        createFrameAndRunMethod(thread, runMethod_, std::move(params), this);
     }
 
     void Frame::cleanOperandStack() {
@@ -268,18 +262,18 @@ namespace RexVM {
 
     void Frame::throwException(InstanceOop * const val, u4 throwPc) {
         markThrow = true;
-        exception = std::make_unique<FrameException>(val, method, throwPc);
+        throwObject = std::make_unique<FrameThrowable>(val, method, throwPc);
     }
 
-    void Frame::passException(std::unique_ptr<FrameException> lastException) {
+    void Frame::passException(std::unique_ptr<FrameThrowable> lastException) {
         markThrow = true;
-        exception = std::move(lastException);
-        exception->addPath(method, pc());
+        throwObject = std::move(lastException);
+        throwObject->addPath(method, pc());
     }
 
     void Frame::cleanThrow() {
         markThrow = false;
-        exception.reset();
+        throwObject.reset();
     }
 
 

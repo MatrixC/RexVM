@@ -2,7 +2,7 @@
 #define FRAME_HPP
 #include <memory>
 #include <vector>
-#include <cstdint>
+#include <tuple>
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "utils/stack.hpp"
@@ -19,21 +19,13 @@ namespace RexVM {
     struct Oop;
     struct InstanceOop;
 
-    struct FrameException {
-        struct ThrowPoint {
-            Method &method;
-            u4 throwPc{0};
-            
-            explicit ThrowPoint(Method &method, u4 pc);
-            ~ThrowPoint();
-        };
-
+    struct FrameThrowable {
         InstanceOop *throwValue{nullptr};
-        std::vector<std::unique_ptr<ThrowPoint>> throwPath;
+        std::vector<std::tuple<Method&, u4>> throwPath;
 
-        explicit FrameException(InstanceOop *throwValue, Method &method, u4 throwPc);
+        explicit FrameThrowable(InstanceOop *throwValue, Method &method, u4 throwPc);
         void addPath(Method &method, u4 throwPc);
-        ~FrameException();
+        ~FrameThrowable();
     };
 
     struct Frame {
@@ -61,9 +53,7 @@ namespace RexVM {
         SlotTypeEnum returnType{};
 
         bool markThrow{false};
-        //u4 throwPc{0};
-        //InstanceOop *throwValue{nullptr};
-        std::unique_ptr<FrameException> exception;
+        std::unique_ptr<FrameThrowable> throwObject;
 
         explicit Frame(VM &vm, Thread &thread, Method &method, Frame *previous);
         ~Frame();
@@ -119,7 +109,7 @@ namespace RexVM {
         void returnBoolean(bool val);
 
         void throwException(InstanceOop * const val, u4 pc);
-        void passException(std::unique_ptr<FrameException> lastException);
+        void passException(std::unique_ptr<FrameThrowable> lastException);
         void cleanThrow();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
