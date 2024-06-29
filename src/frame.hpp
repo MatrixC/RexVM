@@ -32,7 +32,6 @@ namespace RexVM {
         size_t localVariableTableSize;
         std::unique_ptr<Slot[]> localVariableTable;
         std::unique_ptr<SlotTypeEnum[]> localVariableTableType;
-        //std::unique_ptr<Slot[]> operandStack;
         StackContext operandStackContext;
         u1 currentByteCode{};
         u2 level{0};
@@ -65,6 +64,7 @@ namespace RexVM {
         [[nodiscard]] u4 pc() const;
         [[nodiscard]] u4 nextPc() const;
 
+        //OperandStack Method
         void pushRef(void *ref);
         void pushI4(i4 val);
         void pushF4(f4 val);
@@ -84,6 +84,7 @@ namespace RexVM {
         void popLocal(size_t index);
         void popLocalWide(size_t index);
 
+        //LocalVariableTable Method
         [[nodiscard]] ref getLocalRef(size_t index) const;
         [[nodiscard]] i4 getLocalI4(size_t index) const;
         [[nodiscard]] i8 getLocalI8(size_t index) const;
@@ -108,7 +109,7 @@ namespace RexVM {
         void returnF8(f8 val);
         void returnBoolean(bool val);
 
-        void throwException(InstanceOop * const val, u4 pc);
+        void throwException(InstanceOop * val, u4 pc);
         void passException(std::unique_ptr<FrameThrowable> lastException);
         void cleanThrow();
 

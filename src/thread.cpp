@@ -1,4 +1,6 @@
 #include "thread.hpp"
+
+#include <utility>
 #include "oop.hpp"
 #include "vm.hpp"
 #include "frame.hpp"
@@ -6,7 +8,8 @@
 
 namespace RexVM {
 
-    Thread::Thread(VM &vm, const cstring &name) : vm(vm), name(name) {
+    Thread::Thread(VM &vm, cstring name)
+        : vm(vm), name(std::move(name)), stack(std::make_unique<Slot[]>(1024)) {
         const auto &oopManager = vm.oopManager;
         vmThread = oopManager->newThreadOop(this);
     }

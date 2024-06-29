@@ -9,10 +9,7 @@
 #include "interpreter.hpp"
 #include "thread.hpp"
 #include "basic_java_class.hpp"
-#include <mutex>
-#include <utility>
 #include <sstream>
-#include <tuple>
 
 namespace RexVM {
 
@@ -34,8 +31,7 @@ namespace RexVM {
 
         for (const auto &item : frame.throwObject->throwPath) {
             //example. at ExceptionTest.p(ExceptionTest.java:13)
-            const auto &pathMethod = std::get<0>(item);
-            const auto throwPc = std::get<1>(item);
+            const auto [pathMethod, throwPc] = item;
             const auto className = pathMethod.klass.name;
             const auto methodName = pathMethod.name;
             const auto lineNumber = pathMethod.getLineNumber(throwPc);
@@ -91,9 +87,15 @@ namespace RexVM {
         const auto returnValue = frame.returnValue;
         switch (frame.returnType) {
             case SlotTypeEnum::I4:
+                previous->pushI4(returnValue.i4Val);
+                break;
+
             case SlotTypeEnum::F4:
+                previous->pushF4(returnValue.f4Val);
+                break;
+
             case SlotTypeEnum::REF:
-                previous->push(returnValue);
+                previous->pushRef(returnValue.refVal);
                 break;
                             
             case SlotTypeEnum::I8:

@@ -290,7 +290,7 @@ namespace RexVM {
         for (size_t i = 0; i < localVariableTableSize; ++i) {
             const auto value = localVariableTable[i];
             if (localVariableTableType[i] == SlotTypeEnum::REF && value.refVal != nullptr) {
-                 result.push_back(static_cast<Oop *>(value.refVal));
+                 result.emplace_back(static_cast<Oop *>(value.refVal));
             }
         }
         return result;

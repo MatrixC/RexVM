@@ -6,6 +6,7 @@
 #define RUNTIME_HPP
 
 #include <vector>
+#include <memory>
 #include "config.hpp"
 
 namespace RexVM {
@@ -30,7 +31,9 @@ namespace RexVM {
         cstring name;
         Frame *currentFrame{nullptr};
 
-        explicit Thread(VM &vm, const cstring &name);
+        std::unique_ptr<Slot[]> stack;
+
+        explicit Thread(VM &vm, cstring name);
         ~Thread();
 
         [[nodiscard]] ThreadOop *getThreadMirror() const;
