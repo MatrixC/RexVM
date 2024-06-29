@@ -92,6 +92,8 @@ namespace RexVM {
     constexpr std::size_t SLOT_BYTE_SIZE = sizeof(Slot);
     constexpr std::size_t STACK_SLOT_SIZE = STACK_MEMORY_BYTE_SIZE / SLOT_BYTE_SIZE;
 
+    constexpr size_t THREAD_STACK_SLOT_SIZE = 1024;
+
     const cstring EMPTY_STRING{};
 
     struct Frame;

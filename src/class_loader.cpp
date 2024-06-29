@@ -9,6 +9,7 @@
 #include "oop.hpp"
 #include "memory.hpp"
 #include "basic_java_class.hpp"
+#include "key_slot_id.hpp"
 #include <mutex>
 
 
@@ -157,6 +158,18 @@ namespace RexVM {
         for (const auto &item : BASIC_JAVA_CLASS_NAMES) {
             basicJavaClass.emplace_back(getInstanceClass(item));
         }
+
+        initKeySlotId();
+    }
+
+    void ClassLoader::initKeySlotId() {
+        stringClassValueFieldSlotId =
+                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING)
+                        ->getField("value", "[C", false)->slotId;
+
+        throwableClassDetailMessageFieldSlotId =
+                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE)
+                        ->getField("detailMessage", "Ljava/lang/String;",false)->slotId;
     }
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {

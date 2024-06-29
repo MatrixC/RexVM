@@ -38,6 +38,7 @@ namespace RexVM {
         ObjArrayClass *getObjectArrayClass(const cstring &name);
         
         void initBasicJavaClass();
+        void initKeySlotId();
         InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
         explicit ClassLoader(VM &vm, ClassPath &classPath);
         ~ClassLoader();

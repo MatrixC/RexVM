@@ -73,8 +73,8 @@ namespace RexVM {
                     return t->isJavaCloneable() || t->isSerializable();
                 }
             } else {
-                const auto sName = (dynamic_cast<const ArrayClass *>(s))->getComponentClassName();
-                const auto tName = (dynamic_cast<const ArrayClass *>(s))->getComponentClassName();
+                const auto sName = (static_cast<const ArrayClass *>(s))->getComponentClassName();
+                const auto tName = (static_cast<const ArrayClass *>(s))->getComponentClassName();
                 return sName == tName ||
                        classLoader.getClass(tName)->isAssignableFrom(classLoader.getClass(sName));
             }
@@ -94,8 +94,8 @@ namespace RexVM {
         if (!isInstanceClass() || !that->isInstanceClass()) {
             return false;
         }
-        auto self = dynamic_cast<const InstanceClass *>(this);
-        auto interface = dynamic_cast<const InstanceClass *>(that);
+        auto self = static_cast<const InstanceClass *>(this);
+        auto interface = static_cast<const InstanceClass *>(that);
         for (auto c = self; c != nullptr; c = c->superClass) {
             for (const auto &item: c->interfaces) {
                 if (item == interface || item->isSubInterfaceOf(interface)) {
@@ -110,8 +110,8 @@ namespace RexVM {
         if (!isInstanceClass() || !that->isInstanceClass()) {
             return false;
         }
-        auto self = dynamic_cast<const InstanceClass *>(this);
-        auto interface = dynamic_cast<const InstanceClass *>(that);
+        auto self = static_cast<const InstanceClass *>(this);
+        auto interface = static_cast<const InstanceClass *>(that);
         for (const auto &item: self->interfaces) {
             if (item == interface || item->isSubInterfaceOf(interface)) {
                 return true;
@@ -237,18 +237,18 @@ namespace RexVM {
                 Slot data;
                 if (descriptor == "Z" || descriptor == "B" || descriptor == "C" ||
                     descriptor == "S" || descriptor == "I") {
-                    data = Slot(dynamic_cast<ConstantIntegerInfo *>(constValue.get())->value);
+                    data = Slot(static_cast<ConstantIntegerInfo *>(constValue.get())->value);
                 } else if (descriptor == "J") {
-                    data = Slot(dynamic_cast<ConstantLongInfo *>(constValue.get())->value);
+                    data = Slot(static_cast<ConstantLongInfo *>(constValue.get())->value);
                 } else if (descriptor == "F") {
-                    data = Slot(dynamic_cast<ConstantFloatInfo *>(constValue.get())->value);
+                    data = Slot(static_cast<ConstantFloatInfo *>(constValue.get())->value);
                 } else if (descriptor == "D") {
-                    data = Slot(dynamic_cast<ConstantDoubleInfo *>(constValue.get())->value);
+                    data = Slot(static_cast<ConstantDoubleInfo *>(constValue.get())->value);
                 } else if (descriptor == "Ljava/lang/String;") {
-                    auto stringConstInfo = dynamic_cast<ConstantStringInfo *>(constValue.get());
+                    auto stringConstInfo = static_cast<ConstantStringInfo *>(constValue.get());
                     const auto &utf8Value = constantPool.at(stringConstInfo->index);
                     auto strOop = classLoader.vm.stringPool->getInternString(
-                            dynamic_cast<ConstantUTF8Info *>(utf8Value.get())->str
+                            static_cast<ConstantUTF8Info *>(utf8Value.get())->str
                     );
                     data = Slot(strOop);
                 }
@@ -291,11 +291,11 @@ namespace RexVM {
 
 
     Field *InstanceClass::getRefField(size_t refIndex, bool isStatic) const {
-        return dynamic_cast<Field *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::FIELD, isStatic));
+        return static_cast<Field *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::FIELD, isStatic));
     }
 
     Method *InstanceClass::getRefMethod(size_t refIndex, bool isStatic) const {
-        return dynamic_cast<Method *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::METHOD, isStatic));
+        return static_cast<Method *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::METHOD, isStatic));
     }
 
     Method *InstanceClass::getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const {
@@ -311,10 +311,10 @@ namespace RexVM {
     }
 
     ClassMember *InstanceClass::getMemberByRefIndex(size_t refIndex, ClassMemberTypeEnum type, bool isStatic) const {
-        const auto memberInfo = dynamic_cast<ConstantClassNameTypeIndexInfo *>(constantPool.at(refIndex).get());
-        const auto classInfo = dynamic_cast<ConstantClassInfo *>(constantPool.at(memberInfo->classIndex).get());
+        const auto memberInfo = static_cast<ConstantClassNameTypeIndexInfo *>(constantPool.at(refIndex).get());
+        const auto classInfo = static_cast<ConstantClassInfo *>(constantPool.at(memberInfo->classIndex).get());
         const auto className = getConstantStringFromPool(constantPool, classInfo->index);
-        const auto nameAndTypeInfo = dynamic_cast<ConstantNameAndTypeInfo *>(constantPool.at(
+        const auto nameAndTypeInfo = static_cast<ConstantNameAndTypeInfo *>(constantPool.at(
                 memberInfo->nameAndTypeIndex).get());
         const auto memberName = getConstantStringFromPool(constantPool, nameAndTypeInfo->nameIndex);
         const auto memberDescriptor = getConstantStringFromPool(constantPool, nameAndTypeInfo->descriptorIndex);

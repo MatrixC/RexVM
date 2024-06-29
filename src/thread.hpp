@@ -26,12 +26,14 @@ namespace RexVM {
 
     struct Thread {
         ThreadStatusEnum status{ThreadStatusEnum::Init};
-        VM &vm;
         ThreadOop *vmThread;
-        cstring name;
         Frame *currentFrame{nullptr};
 
-        std::unique_ptr<Slot[]> stack;
+        cstring name;
+        VM &vm;
+
+        std::unique_ptr<Slot[]> stackMemory;
+        std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
 
         explicit Thread(VM &vm, cstring name);
         ~Thread();

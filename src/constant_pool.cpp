@@ -3,11 +3,14 @@
 #include "oop.hpp"
 #include "utils/string_utils.hpp"
 #include "vm.hpp"
+#include "key_slot_id.hpp"
 #include "memory.hpp"
 
 namespace RexVM {
 
-    StringPool::StringPool(VM &vm, ClassLoader &classLoader) : vm(vm), classLoader(classLoader) {
+    StringPool::StringPool(VM &vm, ClassLoader &classLoader)
+            : vm(vm), classLoader(classLoader),
+              stringClass(classLoader.getInstanceClass(JAVA_LANG_STRING_NAME)) {
     }
 
     StringPool::~StringPool() = default;
@@ -22,22 +25,22 @@ namespace RexVM {
         const auto u16Buffer = u16Str.c_str();
         const auto u16Length = u16Str.length();
 
-        const auto &oopManager = vm.oopManager;
-
-        const auto charArrayOop = oopManager->newCharArrayOop(u16Length);
+        const auto charArrayOop = vm.oopManager->newCharArrayOop(u16Length);
         for (size_t i = 0; i < u16Length; ++i) {
             charArrayOop->data[i] = u16Buffer[i];
         }
 
-        auto stringClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
+        auto stringPtr = vm.oopManager->newInstance(stringClass);
+        stringPtr->setFieldValue(stringClassValueFieldSlotId, Slot(charArrayOop));
 
-        auto ptr = oopManager->newInstance(stringClass);
-        ptr->setFieldValue("value", "[C", Slot(charArrayOop));
+        internMap.emplace(str, stringPtr);
+        return stringPtr;
+    }
 
-        //charArrayOop->setNotGC();
-        //ptr->setNotGC();
-        internMap.emplace(str, ptr);
-        return ptr;
+    cstring StringPool::getJavaString(InstanceOop *oop) {
+        const auto charArray = static_cast<CharTypeArrayOop *>(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
+        const auto char16Ptr = charArray->data.get();
+        return u16charsToString(char16Ptr, charArray->dataLength);
     }
 
 

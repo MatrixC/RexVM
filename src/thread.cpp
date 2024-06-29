@@ -9,7 +9,9 @@
 namespace RexVM {
 
     Thread::Thread(VM &vm, cstring name)
-        : vm(vm), name(std::move(name)), stack(std::make_unique<Slot[]>(1024)) {
+            : vm(vm), name(std::move(name)),
+              stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
+              stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
         const auto &oopManager = vm.oopManager;
         vmThread = oopManager->newThreadOop(this);
     }

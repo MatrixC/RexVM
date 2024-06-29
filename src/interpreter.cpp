@@ -9,8 +9,8 @@
 #include "class_loader.hpp"
 #include "vm.hpp"
 #include "constant_pool.hpp"
-#include "utils/class_utils.hpp"
 #include "memory.hpp"
+#include "interpreter_helper.hpp"
 
 namespace RexVM {
 
@@ -92,30 +92,30 @@ namespace RexVM {
 
             switch (constantTagEnum) {
                 case ConstantTagEnum::CONSTANT_Integer:
-                    frame.pushI4((dynamic_cast<ConstantIntegerInfo *>(valPtr))->value);
+                    frame.pushI4((static_cast<ConstantIntegerInfo *>(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_Float:
-                    frame.pushF4((dynamic_cast<ConstantFloatInfo *>(valPtr))->value);
+                    frame.pushF4((static_cast<ConstantFloatInfo *>(valPtr))->value);
                     break;
                 
                 case ConstantTagEnum::CONSTANT_Long:
-                    frame.pushI8((dynamic_cast<ConstantLongInfo *>(valPtr))->value);
+                    frame.pushI8((static_cast<ConstantLongInfo *>(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_Double:
-                    frame.pushF8((dynamic_cast<ConstantDoubleInfo *>(valPtr))->value);
+                    frame.pushF8((static_cast<ConstantDoubleInfo *>(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_String: {
-                    const auto stringConstInfo = dynamic_cast<ConstantStringInfo *>(valPtr);
+                    const auto stringConstInfo = static_cast<ConstantStringInfo *>(valPtr);
                     const auto strValue = getConstantStringFromPool(constantPool, stringConstInfo->index);
                     frame.pushRef(frame.vm.stringPool->getInternString(strValue));
                     break;
                 }
 
                 case ConstantTagEnum::CONSTANT_Class: {
-                    const auto classConstInfo = dynamic_cast<ConstantClassInfo *>(valPtr);
+                    const auto classConstInfo = static_cast<ConstantClassInfo *>(valPtr);
                     const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
                     const auto value = frame.classLoader.getClass(className);
                     frame.pushRef(value->mirror.get());
@@ -317,9 +317,6 @@ namespace RexVM {
             const auto val = frame.popRef();
             const auto index = frame.popI4();
             const auto array = static_cast<ObjArrayOop *>(frame.popRef());
-
-            //refHelper(static_cast<Oop *>(array->data[index]), static_cast<Oop *>(val));
-
             array->data[index] = val;
         }
 
@@ -354,67 +351,31 @@ namespace RexVM {
         }
 
         void dup(Frame &frame) {
-            const auto val = frame.pop();
-            frame.push(val);
-            frame.push(val);
+            frame.operandStackContext.dup();
         }
 
         void dup_x1(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            frame.push(val1);
-            frame.push(val2);
-            frame.push(val1);
+            frame.operandStackContext.dup_x1();
         }
 
         void dup_x2(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            const auto val3 = frame.pop();
-            frame.push(val1);
-            frame.push(val3);
-            frame.push(val2);
-            frame.push(val1);
+            frame.operandStackContext.dup_x2();
         }
 
         void dup2(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            frame.push(val2);
-            frame.push(val1);
-            frame.push(val2);
-            frame.push(val1);
+            frame.operandStackContext.dup2();
         }
 
         void dup2_x1(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            const auto val3 = frame.pop();
-            frame.push(val2);
-            frame.push(val1);
-            frame.push(val3);
-            frame.push(val2);
-            frame.push(val1); 
+            frame.operandStackContext.dup2_x1();
         }
 
         void dup2_x2(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            const auto val3 = frame.pop();
-            const auto val4 = frame.pop();
-            frame.push(val2);
-            frame.push(val1);
-            frame.push(val4);
-            frame.push(val3);
-            frame.push(val2);
-            frame.push(val1); 
+            frame.operandStackContext.dup2_x2();
         }
 
         void swap(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            frame.push(val1);
-            frame.push(val2);
+            frame.operandStackContext.swapTop();
         }
 
         void iadd(Frame &frame) {
@@ -422,7 +383,6 @@ namespace RexVM {
             const auto val1 = frame.popI4();
             const auto result = static_cast<i4>(static_cast<u4>(val1) + static_cast<u4>(val2));
             frame.pushI4(result);
-            //frame.pushI4(val1 + val2);
         }
 
         void ladd(Frame &frame) {
@@ -430,7 +390,6 @@ namespace RexVM {
             const auto val1 = frame.popI8();
             const auto result = static_cast<i8>(static_cast<u8>(val1) + static_cast<u8>(val2));
             frame.pushI8(result);
-            //frame.pushI8(val1 + val2);
         }
 
         void fadd(Frame &frame) {
@@ -474,7 +433,6 @@ namespace RexVM {
             const auto val1 = frame.popI4();
             const auto result = static_cast<i4>(static_cast<u4>(val1) * static_cast<u4>(val2));
             frame.pushI4(result);
-            //frame.pushI4(val1 * val2);
         }
 
         void lmul(Frame &frame) {
@@ -482,7 +440,6 @@ namespace RexVM {
             const auto val1 = frame.popI8();
             const auto result = static_cast<i8>(static_cast<u8>(val1) * static_cast<u8>(val2));
             frame.pushI8(result);
-            //frame.pushI8(val1 * val2);
         }
 
         void fmul(Frame &frame) {
@@ -501,7 +458,8 @@ namespace RexVM {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
             if (val2 == 0) {
-                //TODO throw Exception
+                throwArithmeticExceptionDivByZero(frame);
+                return;
             }
             frame.pushI4(val1 / val2);
         }
@@ -510,7 +468,8 @@ namespace RexVM {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
             if (val2 == 0) {
-                //TODO throw Exception
+                throwArithmeticExceptionDivByZero(frame);
+                return;
             }
             frame.pushI8(val1 / val2);
         }
@@ -519,7 +478,8 @@ namespace RexVM {
             const auto val2 = frame.popF4();   
             const auto val1 = frame.popF4();
             if (val2 == 0) {
-                //TODO throw Exception
+                throwArithmeticExceptionDivByZero(frame);
+                return;
             }
             frame.pushF4(val1 / val2);
         }
@@ -528,7 +488,8 @@ namespace RexVM {
             const auto val2 = frame.popF8();   
             const auto val1 = frame.popF8();
             if (val2 == 0) {
-                //TODO throw Exception
+                throwArithmeticExceptionDivByZero(frame);
+                return;
             }
             frame.pushF8(val1 / val2);
         }
@@ -537,7 +498,8 @@ namespace RexVM {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
             if (val2 == 0) {
-                //TODO throw Exception java.lang.ArithmeticException: / by zero
+                throwArithmeticExceptionDivByZero(frame);
+                return;
             }
             frame.pushI4(val1 % val2);
         }
@@ -546,7 +508,8 @@ namespace RexVM {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
             if (val2 == 0) {
-                //TODO throw Exception java.lang.ArithmeticException: / by zero
+                throwArithmeticExceptionDivByZero(frame);
+                return;
             }
             frame.pushI8(val1 % val2);
         }
@@ -555,7 +518,8 @@ namespace RexVM {
             const auto val2 = frame.popF4();   
             const auto val1 = frame.popF4();
             if (val2 == 0) {
-                //TODO throw Exception java.lang.ArithmeticException: / by zero
+                throwArithmeticExceptionDivByZero(frame);
+                return;
             }
             const auto result = std::fmod(val1, val2);
             frame.pushF4(result);
@@ -565,7 +529,8 @@ namespace RexVM {
             const auto val2 = frame.popF8();   
             const auto val1 = frame.popF8();
             if (val2 == 0) {
-                //TODO throw Exception java.lang.ArithmeticException: / by zero
+                throwArithmeticExceptionDivByZero(frame);
+                return;
             }
             const auto result = std::fmod(val1, val2);
             frame.pushF8(result);
@@ -1025,9 +990,10 @@ namespace RexVM {
             auto &fieldClass = fieldRef->klass;
             fieldClass.clinit(frame);
             const auto value = fieldClass.getFieldValue(fieldRef->slotId);
-            frame.push(value);
+            const auto type = fieldRef->getFieldSlotType();
+            frame.push(value, type);
             if (fieldRef->isWideType()) {
-                frame.push(Slot(0));
+                frame.push(Slot(0), type);
             }
         }
 
@@ -1041,14 +1007,7 @@ namespace RexVM {
             }
 
             const auto value = frame.pop();
-            //const auto oldValue = fieldClass.getFieldValue(fieldRef->slotId);
-
             fieldClass.setFieldValue(fieldRef->slotId, value);
-
-            // if (fieldRef->getFieldSlotType() == SlotTypeEnum::REF) {
-            //     //GC
-            //     refHelper(oldValue, value);
-            // }
         }
 
         void getfield(Frame &frame) {
@@ -1056,9 +1015,10 @@ namespace RexVM {
             const auto fieldRef = frame.klass.getRefField(index, false);
             const auto instance = static_cast<InstanceOop *>(frame.popRef());
             const auto value = instance->getFieldValue(fieldRef->slotId);
-            frame.push(value);
+            const auto type = fieldRef->getFieldSlotType();
+            frame.push(value, type);
             if (fieldRef->isWideType()) {
-                frame.push(Slot(0));
+                frame.push(Slot(0), type);
             }
         }
 
@@ -1071,21 +1031,14 @@ namespace RexVM {
             const auto value = frame.pop();
             const auto instance = static_cast<InstanceOop *>(frame.popRef());
 
-            //const auto oldValue = instance->getFieldValue(fieldRef->slotId);
             instance->setFieldValue(fieldRef->slotId, value);
-
-            // if (fieldRef->getFieldSlotType() == SlotTypeEnum::REF) {
-            //     //GC
-            //     refHelper(oldValue, value);
-            // }
-            
         }
 
         void invokevirtual(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto invokeMethod = frame.klass.getRefMethod(index, false);
             const auto instance = static_cast<Oop *>(frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal);
-            auto instanceClass = dynamic_cast<InstanceClass *>(instance->klass);
+            auto instanceClass = static_cast<InstanceClass *>(instance->klass);
             for (auto k = instanceClass; k != nullptr; k = k->superClass) {
                 const auto realInvokeMethod =
                         k->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());

@@ -22,15 +22,16 @@ namespace RexVM {
     ClassMember::ClassMember(ClassMemberTypeEnum type, InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
             ClassMember(type, info->accessFlags, info->getName(), info->getDescriptor(), klass) {
 
-        if (const auto signatureAttribute = 
-                dynamic_cast<SignatureAttribute *>(info->getAssignAttribute(AttributeTagEnum::SIGNATURE)); 
-            signatureAttribute != nullptr) {
+        if (const auto signatureAttribute =
+                    static_cast<SignatureAttribute *>(info->getAssignAttribute(AttributeTagEnum::SIGNATURE));
+                signatureAttribute != nullptr) {
             signature = getConstantStringFromPool(cf.constantPool, signatureAttribute->signatureIndex);
         }
 
-        if (const auto runtimeVisibleAnnotationAttribute = 
-                dynamic_cast<ByteStreamAttribute *>(info->getAssignAttribute(AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS));
-            runtimeVisibleAnnotationAttribute != nullptr) {
+        if (const auto runtimeVisibleAnnotationAttribute =
+                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                            AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS));
+                runtimeVisibleAnnotationAttribute != nullptr) {
             runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
             runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes);
         }
@@ -64,16 +65,20 @@ namespace RexVM {
 
     Field::Field(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
             ClassMember(ClassMemberTypeEnum::FIELD, klass, info, cf) {
-        if (const auto constValueAttribute = 
-                dynamic_cast<ConstantValueAttribute *>(info->getAssignAttribute(AttributeTagEnum::CONSTANT_VALUE)); 
-            constValueAttribute != nullptr) {
+        if (const auto constValueAttribute =
+                    static_cast<ConstantValueAttribute *>(info->getAssignAttribute(AttributeTagEnum::CONSTANT_VALUE));
+                constValueAttribute != nullptr) {
             constantValueIndex = constValueAttribute->constantValueIndex;
         }
     }
 
-    SlotTypeEnum Field::getFieldSlotType() const {
+    SlotTypeEnum Field::getFieldSlotType() {
+        if (slotType != SlotTypeEnum::UNKNOWN) {
+            return slotType;
+        }
         auto const first = descriptor[0];
-        return getSlotTypeByDescriptorFirstChar(first);
+        slotType = getSlotTypeByDescriptorFirstChar(first);
+        return slotType;
     }
 
     cstring Field::getTypeName() const {
@@ -84,22 +89,20 @@ namespace RexVM {
         return klass.classLoader.getClass(getTypeName());
     }
 
-    bool Field::isWideType() {
-        const auto first = descriptor[0];
-        return isWideSlotType(first);
+    bool Field::isWideType() const {
+        return isWideSlotType(slotType);
     }
 
     ExceptionCatchItem::ExceptionCatchItem(u2 start, u2 end, u2 handler, u2 catchType) :
-        start(start), end(end), handler(handler), catchType(catchType) {
+            start(start), end(end), handler(handler), catchType(catchType) {
     }
 
     LineNumberItem::LineNumberItem(u2 start, u2 lineNumber) :
-        start(start), lineNumber(lineNumber) {
+            start(start), lineNumber(lineNumber) {
     }
 
     Method::Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
             ClassMember(ClassMemberTypeEnum::METHOD, klass, info, cf) {
-
         if (!isStatic()) {
             paramSize += 1;
             paramSlotSize += 1;
@@ -116,25 +119,26 @@ namespace RexVM {
             paramSlotType.push_back(slotType);
 
             if (isWideSlotType(slotType)) {
-               paramSlotSize += 1;  
-               paramSlotType.push_back(slotType);
+                paramSlotSize += 1;
+                paramSlotType.push_back(slotType);
             }
         }
 
-        if (const auto runtimeVisibleParameterAnnotationAttribute = 
-                dynamic_cast<ByteStreamAttribute *>(info->getAssignAttribute(AttributeTagEnum::RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS));
-            runtimeVisibleParameterAnnotationAttribute != nullptr) {
+        if (const auto runtimeVisibleParameterAnnotationAttribute =
+                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                            AttributeTagEnum::RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS));
+                runtimeVisibleParameterAnnotationAttribute != nullptr) {
             runtimeVisibleParameterAnnotationLength = runtimeVisibleParameterAnnotationAttribute->attributeLength;
             runtimeVisibleParameterAnnotation = std::move(runtimeVisibleParameterAnnotationAttribute->bytes);
         }
 
-        if (const auto runtimeVisibleTypeAnnotationAttribute = 
-                dynamic_cast<ByteStreamAttribute *>(info->getAssignAttribute(AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
-            runtimeVisibleTypeAnnotationAttribute != nullptr) {
+        if (const auto runtimeVisibleTypeAnnotationAttribute =
+                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                            AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
+                runtimeVisibleTypeAnnotationAttribute != nullptr) {
             runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
             runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
         }
-
 
         if (isNative()) {
             nativeMethodHandler =
@@ -147,15 +151,15 @@ namespace RexVM {
             return;
         }
 
-        if (const auto codeAttribute = dynamic_cast<CodeAttribute *>(info->getAssignAttribute(AttributeTagEnum::CODE));
-            codeAttribute != nullptr) {
+        if (const auto codeAttribute = static_cast<CodeAttribute *>(info->getAssignAttribute(AttributeTagEnum::CODE));
+                codeAttribute != nullptr) {
             maxStack = codeAttribute->maxStack;
             maxLocals = codeAttribute->maxLocals;
             codeLength = codeAttribute->codeLength;
             code = std::move(codeAttribute->code);
             if (codeAttribute->exceptionTableLength > 0) {
                 exceptionCatches.reserve(codeAttribute->exceptionTableLength);
-                for (const auto &exTableItem : codeAttribute->exceptionTables) {
+                for (const auto &exTableItem: codeAttribute->exceptionTables) {
                     auto catchItem = std::make_unique<ExceptionCatchItem>(
                             exTableItem->startPC,
                             exTableItem->endPC,
@@ -168,16 +172,17 @@ namespace RexVM {
             }
 
             if (!codeAttribute->attributes.empty()) {
-                if (const auto lineNumberTableAttribute = dynamic_cast<LineNumberTableAttribute *>(
-                    getAssignAttributeByConstantPool(
-                        info->cf.constantPool,
-                        codeAttribute->attributes,
-                        AttributeTagEnum::LINE_NUMBER_TABLE
-                    )); 
-                    lineNumberTableAttribute != nullptr) {
+                if (const auto lineNumberTableAttribute = static_cast<LineNumberTableAttribute *>(
+                            getAssignAttributeByConstantPool(
+                                    info->cf.constantPool,
+                                    codeAttribute->attributes,
+                                    AttributeTagEnum::LINE_NUMBER_TABLE
+                            ));
+                        lineNumberTableAttribute != nullptr) {
                     lineNumbers.reserve(lineNumberTableAttribute->lineNumberTableLength);
-                    for (const auto &attributeItem : lineNumberTableAttribute->lineNumberTables) {
-                        lineNumbers.emplace_back(std::make_unique<LineNumberItem>(attributeItem->startPC, attributeItem->lineNumber));
+                    for (const auto &attributeItem: lineNumberTableAttribute->lineNumberTables) {
+                        lineNumbers.emplace_back(
+                                std::make_unique<LineNumberItem>(attributeItem->startPC, attributeItem->lineNumber));
                     }
                     lineNumberTableAttribute->lineNumberTables.clear();
                 }
@@ -250,7 +255,7 @@ namespace RexVM {
             return 0;
         }
 
-        for (size_t i = lineNumbers.size() - 1; i >= 0; --i) {
+        for (i4 i = static_cast<i4>(lineNumbers.size()) - 1; i >= 0; --i) {
             const auto &item = lineNumbers.at(i);
             if (pc > item->start) {
                 return item->lineNumber;

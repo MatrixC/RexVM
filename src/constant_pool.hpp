@@ -13,6 +13,7 @@
 namespace RexVM {
 
     struct VM;
+    struct InstanceClass;
     struct InstanceOop;
     struct ClassLoader;
     struct ConstantUTF8Info;
@@ -21,14 +22,17 @@ namespace RexVM {
         VM &vm;
         ClassLoader &classLoader;
         std::unordered_map<cstring, InstanceOop *> internMap;
-
         std::mutex mtx;
 
         InstanceOop *getInternString(const cstring &str);
+        static cstring getJavaString(InstanceOop *oop) ;
 
         explicit StringPool(VM &vm, ClassLoader &classLoader);
 
         ~StringPool();
+
+    private:
+        InstanceClass *stringClass;
     };
 
 }

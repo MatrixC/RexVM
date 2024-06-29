@@ -27,12 +27,4 @@ namespace RexVM {
         panic("error descriptor");
         return {};
     }
-
-    cstring getStringNativeValue(const Oop *stringOop) {
-        const auto oop = dynamic_cast<const InstanceOop *>(stringOop);
-        const auto charArray = static_cast<CharTypeArrayOop *>(oop->getFieldValue("value", "[C").refVal);
-        const auto char16Ptr = charArray->data.get();
-        return u16charsToString(char16Ptr, charArray->dataLength);
-    }
-
 }

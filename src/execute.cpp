@@ -9,6 +9,8 @@
 #include "interpreter.hpp"
 #include "thread.hpp"
 #include "basic_java_class.hpp"
+#include "constant_pool.hpp"
+#include "key_slot_id.hpp"
 #include <sstream>
 
 namespace RexVM {
@@ -16,10 +18,10 @@ namespace RexVM {
     //Print Exception stack on stdout
     void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
         const auto throwInstanceClass = throwInstance->klass;
-        const auto message = static_cast<Oop *>(throwInstance->getFieldValue("detailMessage", "Ljava/lang/String;").refVal);
+        const auto message = static_cast<InstanceOop *>(throwInstance->getFieldValue(throwableClassDetailMessageFieldSlotId).refVal);
         cstring messageStr;
         if (message != nullptr) {
-            messageStr = ": " + getStringNativeValue(message);
+            messageStr = ": " + StringPool::getJavaString(message);
         }
 
         cstring outMessage = cformat(
@@ -175,6 +177,15 @@ namespace RexVM {
         thread.currentFrame = backupFrame;
     }
 
+    void createFrameAndRunMethodNoPassParams(Thread &thread, Method &method_, Frame *previous) {
+        Frame nextFrame(thread.vm, thread, method_, previous);
+        const auto backupFrame = thread.currentFrame;
+        thread.currentFrame = &nextFrame;
+        const auto methodName = method_.klass.name + "#" + method_.name;
+        executeFrame(nextFrame, methodName);
+        thread.currentFrame = backupFrame;
+    }
+
     void runStaticMethodOnThread(VM &vm, Method &method, std::vector<Slot> params, const cstring &name) {
         Thread thread(vm, name);
         thread.status = ThreadStatusEnum::Running;
@@ -182,7 +193,6 @@ namespace RexVM {
         createFrameAndRunMethod(thread, method, std::move(params), nullptr);
         thread.status = ThreadStatusEnum::Terminated; 
         vm.removeVMThread(&thread);
-        
     }
 
     void runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params) {

@@ -29,9 +29,10 @@ namespace RexVM {
     };
 
     struct Frame {
+        Frame *previous{nullptr};
         size_t localVariableTableSize;
-        std::unique_ptr<Slot[]> localVariableTable;
-        std::unique_ptr<SlotTypeEnum[]> localVariableTableType;
+        Slot *localVariableTable;
+        SlotTypeEnum *localVariableTableType;
         StackContext operandStackContext;
         u1 currentByteCode{};
         u2 level{0};
@@ -41,7 +42,6 @@ namespace RexVM {
         Method &method;
         InstanceClass &klass;
         ByteReader reader{};
-        Frame *previous{nullptr};
 
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
         ClassLoader &classLoader;
@@ -54,7 +54,7 @@ namespace RexVM {
         bool markThrow{false};
         std::unique_ptr<FrameThrowable> throwObject;
 
-        explicit Frame(VM &vm, Thread &thread, Method &method, Frame *previous);
+        explicit Frame(VM &vm, Thread &thread, Method &method, Frame *previousFrame);
         ~Frame();
 
         void runMethod(Method &runMethod_);
@@ -70,7 +70,7 @@ namespace RexVM {
         void pushF4(f4 val);
         void pushI8(i8 val);
         void pushF8(f8 val);
-        void push(Slot val);
+        void push(Slot val, SlotTypeEnum type);
 
         void *popRef();
         i4 popI4();

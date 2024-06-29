@@ -11,8 +11,6 @@ namespace RexVM {
     cstring getDescriptorClassName(const cstring &className);
 
     cstring getClassNameByFieldDescriptor(const cstring &descriptor);
-
-    cstring getStringNativeValue(const Oop *stringOop);
 }
 
 #endif

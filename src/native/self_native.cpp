@@ -1,12 +1,13 @@
 #include "self_native.hpp"
-#include "../utils/format.hpp"
-#include "../utils/class_utils.hpp"
+#include "../vm.hpp"
+#include "../constant_pool.hpp"
 
 namespace RexVM::Native {
 
     void selfPrintln(Frame &frame) {
         auto str = frame.getLocalRef(0);
-        cprintln("{}", getStringNativeValue(static_cast<Oop *>(str)));
+        const auto cstr = StringPool::getJavaString(static_cast<InstanceOop *>(str));
+        cprintln("{}", cstr);
     }
 
     void selfPrintlnInt(Frame &frame) {

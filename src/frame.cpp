@@ -20,24 +20,28 @@ namespace RexVM {
 
     FrameThrowable::~FrameThrowable() = default;
 
-    Frame::Frame(VM &vm, Thread &thread, Method &method, Frame *previous) :
-        localVariableTableSize(method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals),
-        localVariableTable(std::make_unique<Slot[]>(localVariableTableSize)),
-        localVariableTableType(std::make_unique<SlotTypeEnum[]>(localVariableTableSize)),
-        //In the current design, because parameter passing relies on the stack, the length of the stack cannot be zero. 
-        //If the method stack length recorded in the class file is 0, then it is treated as if it has a parameter length of 0. 
-        //If it is a native method and is non-static, then it needs to default to passing in a non-zero value.
-        //operandStack(std::make_unique<Slot[]>(method.maxLocals == 0 ? 10 /*TODO*/ : method.maxStack)),
-        //operandStackContext(operandStack.get(), -1),
-        operandStackContext(method.maxLocals == 0 ? 10 /*TODO*/ : method.maxStack, -1),
-        vm(vm),
-        thread(thread),
-        method(method),
-        klass(method.klass),
-        previous(previous),
-        constantPool(klass.constantPool),
-        classLoader(klass.classLoader) 
-    {
+    Frame::Frame(VM &vm, Thread &thread, Method &method, Frame *previousFrame) :
+            previous(previousFrame),
+            localVariableTableSize(method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals),
+            localVariableTable(
+                    previous == nullptr ?
+                        thread.stackMemory.get() :
+                        previous->operandStackContext.getCurrentSlotPtr() + 1), //Previous last operand slot + 1
+            localVariableTableType(
+                    previous == nullptr ?
+                        thread.stackMemoryType.get() :
+                        previous->operandStackContext.getCurrentSlotTypePtr() + 1), //Previous last operand slot + 1
+            operandStackContext(
+                    localVariableTable + localVariableTableSize,
+                    localVariableTableType + localVariableTableSize,
+                    -1
+            ),
+            vm(vm),
+            thread(thread),
+            method(method),
+            klass(method.klass),
+            constantPool(klass.constantPool),
+            classLoader(klass.classLoader) {
         const auto nativeMethod = method.isNative();
         if (!nativeMethod) {
             auto codePtr = method.code.get();
@@ -53,14 +57,10 @@ namespace RexVM {
 
     void Frame::runMethod(Method &runMethod_) {
         const auto slotSize = runMethod_.paramSlotSize;
-        std::vector<Slot> params(slotSize);
         if (slotSize > 0) {
-            for (i4 i = static_cast<i4>(slotSize) - 1; i >= 0; --i) {
-                const auto value = pop();
-                params[i] = value;
-            }
+            operandStackContext.pop(static_cast<i4>(slotSize));
         }
-        runMethod(runMethod_, params);
+        createFrameAndRunMethodNoPassParams(thread, runMethod_, this);
     }
 
     void Frame::runMethod(Method &runMethod_, std::vector<Slot> params) {
@@ -70,7 +70,6 @@ namespace RexVM {
     void Frame::cleanOperandStack() {
         operandStackContext.reset();
     }
-
 
     u4 Frame::pc() const {
         return reader.ptr - method.code.get() - 1;
@@ -102,8 +101,8 @@ namespace RexVM {
         operandStackContext.push(Slot(static_cast<f8>(0)), SlotTypeEnum::F8);
     }
 
-    void Frame::push(Slot val) {
-        operandStackContext.push(val, SlotTypeEnum::I4);
+    void Frame::push(Slot val, SlotTypeEnum type) {
+        operandStackContext.push(val, type);
     }
 
     void *Frame::popRef() {
@@ -282,7 +281,7 @@ namespace RexVM {
     }
 
     Oop *Frame::getThis() const {
-        return static_cast<InstanceOop *>(getLocalRef(0));
+        return static_cast<Oop *>(getLocalRef(0));
     }
 
     std::vector<Oop *> Frame::getLocalObjects() const {

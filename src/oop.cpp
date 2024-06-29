@@ -63,13 +63,13 @@ namespace RexVM {
     }
 
     void InstanceOop::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) {
-        auto instanceClass = dynamic_cast<InstanceClass *>(klass);
+        auto instanceClass = static_cast<InstanceClass *>(klass);
         auto field = instanceClass->getField(name, descriptor, false);
         data[field->slotId] = value;
     }
 
     Slot InstanceOop::getFieldValue(const cstring &name, const cstring &descriptor) const {
-        auto instanceClass = dynamic_cast<InstanceClass *>(klass);
+        auto instanceClass = static_cast<InstanceClass *>(klass);
         auto field = instanceClass->getField(name, descriptor, false);
         return data[field->slotId];
     }

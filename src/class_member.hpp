@@ -52,16 +52,17 @@ namespace RexVM {
     struct Field : ClassMember {
         u2 constantValueIndex{};
         u2 slotId{};
+        SlotTypeEnum slotType{SlotTypeEnum::UNKNOWN};
  
         explicit Field(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
 
-        [[nodiscard]] SlotTypeEnum getFieldSlotType() const;
+        [[nodiscard]] SlotTypeEnum getFieldSlotType();
 
         [[nodiscard]] cstring getTypeName() const;
         [[nodiscard]] Class *getTypeClass() const;
 
         //Long or Double
-        bool isWideType();
+        bool isWideType() const;
     };
 
     struct ExceptionCatchItem {

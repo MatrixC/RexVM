@@ -12,7 +12,7 @@ namespace RexVM::Native {
 
     void getPrimitiveClass(Frame &frame) {
         auto nameOop = frame.getLocalRef(0);
-        const auto name = getStringNativeValue(static_cast<Oop *>(nameOop));
+        const auto name = StringPool::getJavaString(static_cast<InstanceOop *>(nameOop));
         const auto klass = frame.classLoader.getClass(name);
         const auto mirrorClass = klass->getMirrorOop();
         frame.returnRef(mirrorClass);
@@ -44,7 +44,7 @@ namespace RexVM::Native {
 
     void forName0(Frame &frame) {
         auto nameOop = frame.getLocalRef(0);
-        const auto name = getStringNativeValue(static_cast<Oop *>(nameOop));
+        const auto name = StringPool::getJavaString(static_cast<InstanceOop *>(nameOop));
         const auto initialize = frame.getLocalI4(1);
         //auto classLoaderOop = static_cast<InstanceOop *>(frame.getLocalRef(2));
 
