@@ -156,8 +156,6 @@ namespace RexVM {
                 }
             }
         }
-
-        //TODO pop Frame
     }
 
     void createFrameAndRunMethod(Thread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {

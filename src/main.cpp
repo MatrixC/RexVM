@@ -13,7 +13,7 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
         printUsage();
         return 1;
     }
-    
+
     cstring classpath;
     std::vector<cstring> params;
 
