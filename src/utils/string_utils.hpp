@@ -12,11 +12,10 @@ namespace RexVM {
 
     cstring concat_view(cview str1, cview str2);
 
-    cstring u16charsToString(const cchar_16 *str, size_t length);
-
-    ustring stringToUString(const cstring &str);
-
     cstring replace(cstring src, const cstring& search, const cstring& replace);
+
+    cstring utf16ToUtf8(const char16_t *utf16, size_t utf16Size);
+    std::unique_ptr<char16_t[]> utf8ToUtf16(const char *utf8, size_t utf8Size);
 }
 
 #endif

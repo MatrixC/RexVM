@@ -85,11 +85,10 @@ namespace RexVM {
 
             if (thread->joinable()) {
                 thread->join();
-                {
-                    std::lock_guard<std::mutex> lock(threadMtx);
-                    threadDeque.pop_front(); 
-                }
             }
+            //remove this thread
+            std::lock_guard<std::mutex> lock(threadMtx);
+            threadDeque.pop_front();
         }
     }
 
