@@ -5,15 +5,28 @@
 #include "vm.hpp"
 #include "frame.hpp"
 #include "memory.hpp"
+#include "execute.hpp"
 
 namespace RexVM {
 
-    Thread::Thread(VM &vm, cstring name)
-            : vm(vm), name(std::move(name)),
-              stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
-              stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
+    Thread::Thread(VM &vm, Method &method, std::vector<Slot> params, bool mainThread)
+            : vm(vm),
+            stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
+            stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
         const auto &oopManager = vm.oopManager;
-        vmThread = oopManager->newThreadOop(this);
+        vmThreadOop = oopManager->newThreadOop(this);
+
+        if (mainThread) {
+            status = ThreadStatusEnum::Running;
+            createFrameAndRunMethod(*this, method, std::move(params), nullptr);
+            status = ThreadStatusEnum::Terminated;
+        } else {
+            nativeThread = std::thread([&vm, &method, params = std::move(params), this]() {
+                status = ThreadStatusEnum::Running;
+                createFrameAndRunMethod(*this, method, std::move(params), nullptr);
+                status = ThreadStatusEnum::Terminated;
+            });
+        }
     }
 
     Thread::~Thread() = default;
@@ -34,7 +47,7 @@ namespace RexVM {
     }
 
     ThreadOop * Thread::getThreadMirror() const {
-        return vmThread;
+        return vmThreadOop;
     }
 
 

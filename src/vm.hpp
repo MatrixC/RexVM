@@ -29,15 +29,12 @@ namespace RexVM {
         std::unique_ptr<StringPool> stringPool;
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
 
-        std::mutex threadMtx, vmThreadMtx;
-        std::deque<std::thread> threadDeque;
-        std::vector<Thread *> vmThreads;
+        std::mutex vmThreadMtx;
+        std::deque<std::unique_ptr<Thread>> vmThreadDeque;
 
         explicit VM(ApplicationParameter &params);
 
         void start();
-        void addVMThread(Thread *thread);
-        void removeVMThread(Thread *thread);
 
     private:
         void initClassPath();

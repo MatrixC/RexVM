@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <memory>
+#include <thread>
 #include "config.hpp"
 
 namespace RexVM {
@@ -25,8 +26,9 @@ namespace RexVM {
     };
 
     struct Thread {
-        ThreadStatusEnum status{ThreadStatusEnum::Init};
-        ThreadOop *vmThread;
+        ThreadStatusEnum status{ThreadStatusEnum::Running};
+        std::thread nativeThread;
+        ThreadOop *vmThreadOop;
         Frame *currentFrame{nullptr};
 
         cstring name;
@@ -35,7 +37,7 @@ namespace RexVM {
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
 
-        explicit Thread(VM &vm, cstring name);
+        explicit Thread(VM &vm, Method &method, std::vector<Slot> params, bool mainThread);
         ~Thread();
 
         [[nodiscard]] ThreadOop *getThreadMirror() const;

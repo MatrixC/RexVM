@@ -40,7 +40,7 @@ namespace RexVM {
     void VM::initJavaSystemClass() {
         const auto systemClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM);
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
-        runStaticMethodOnThread(*this, *initMethod, {}, "main");
+        runStaticMethodOnMainThread(*this, *initMethod, {});
     }
 
     void VM::runMainMethod() {
@@ -69,36 +69,25 @@ namespace RexVM {
             }
         }
 
-        runStaticMethodOnThread(*this, *mainMethod, std::vector{ Slot(stringArray) }, "main");
+        runStaticMethodOnMainThread(*this, *mainMethod, { Slot(stringArray) });
     }
 
     void VM::joinThreads() {
         while (true) {
-            std::thread *thread;
+            std::unique_ptr<Thread> vmThread;
             {
-                std::lock_guard<std::mutex> lock(threadMtx);
-                if (threadDeque.empty()) {
+                std::lock_guard<std::mutex> lock(vmThreadMtx);
+                if (vmThreadDeque.empty()) {
                     break;
                 }
-                thread = &threadDeque.front();
+                vmThread = std::move(vmThreadDeque.front());
+                vmThreadDeque.pop_front();
             }
 
-            if (thread->joinable()) {
-                thread->join();
+            if (vmThread->nativeThread.joinable()) {
+                vmThread->nativeThread.join();
             }
-            //remove this thread
-            std::lock_guard<std::mutex> lock(threadMtx);
-            threadDeque.pop_front();
         }
-    }
-
-    void VM::addVMThread(Thread *thread) {
-        std::lock_guard<std::mutex> lock(vmThreadMtx);
-        vmThreads.emplace_back(thread);
-    }
-    void VM::removeVMThread(Thread *thread) {
-        std::lock_guard<std::mutex> lock(vmThreadMtx);
-        vmThreads.erase(std::remove(vmThreads.begin(), vmThreads.end(), thread), vmThreads.end());
     }
 
     VM::VM(ApplicationParameter &params) : params(params) {

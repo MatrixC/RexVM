@@ -14,7 +14,7 @@ namespace RexVM {
     void executeFrame(Frame &frame, [[maybe_unused]] const cstring& methodName);
     void createFrameAndRunMethod(Thread &thread, Method &method_, std::vector<Slot> params, Frame *previous);
     void createFrameAndRunMethodNoPassParams(Thread &thread, Method &method_, Frame *previous);
-    void runStaticMethodOnThread(VM &vm, Method &method, std::vector<Slot> params, const cstring &name);
+    void runStaticMethodOnMainThread(VM &vm, Method &method, std::vector<Slot> params);
     void runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params);
 
 }

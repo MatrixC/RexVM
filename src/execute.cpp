@@ -184,23 +184,13 @@ namespace RexVM {
         thread.currentFrame = backupFrame;
     }
 
-    void runStaticMethodOnThread(VM &vm, Method &method, std::vector<Slot> params, const cstring &name) {
-        Thread thread(vm, name);
-        thread.status = ThreadStatusEnum::Running;
-        vm.addVMThread(&thread);
-        createFrameAndRunMethod(thread, method, std::move(params), nullptr);
-        thread.status = ThreadStatusEnum::Terminated; 
-        vm.removeVMThread(&thread);
+    void runStaticMethodOnMainThread(VM &vm, Method &method, std::vector<Slot> params) {
+        Thread thread(vm, method, std::move(params), true);
     }
 
     void runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params) {
-        std::lock_guard<std::mutex> lock(vm.threadMtx);
-        vm.threadDeque.emplace_back([&vm, &method, params = std::move(params)]() {
-            std::stringstream ss;
-            ss << std::this_thread::get_id();
-            const auto threadName = "Thread-" + ss.str();
-            runStaticMethodOnThread(vm, method, params, threadName);
-        });
+        std::lock_guard<std::mutex> lock(vm.vmThreadMtx);
+        vm.vmThreadDeque.emplace_back(std::make_unique<Thread>(vm, method, std::move(params), false));
     }
 
 
