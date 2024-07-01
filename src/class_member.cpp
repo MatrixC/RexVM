@@ -209,7 +209,6 @@ namespace RexVM {
             classes.emplace_back(klass.classLoader.getClass(className));
         }
         return classes;
-
     }
 
     std::optional<i4> Method::findExceptionHandler(const InstanceClass *exClass, u4 pc) {

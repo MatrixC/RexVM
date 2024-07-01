@@ -96,7 +96,7 @@ namespace RexVM {
             arrayClass = std::make_unique<TypeArrayClass>(name, *this, typeIndex, basicType);
             if (typeIndex != 1) {
                 const auto subClassName = name.substr(1);
-                const auto subClass = dynamic_cast<ArrayClass *>(getClass(subClassName));
+                const auto subClass = static_cast<ArrayClass *>(getClass(subClassName));
                 arrayClass->lowerDimension = subClass;
                 subClass->higherDimension = arrayClass.get();
             }
@@ -105,7 +105,7 @@ namespace RexVM {
             arrayClass = std::make_unique<ObjArrayClass>(name, *this, typeIndex, elementClass);
             if (typeIndex != 1) {
                 const auto subClassName = name.substr(1);
-                const auto subClass = dynamic_cast<ArrayClass *>(getClass(subClassName));
+                const auto subClass = static_cast<ArrayClass *>(getClass(subClassName));
                 arrayClass->lowerDimension = subClass;
                 subClass->higherDimension = arrayClass.get();
             }

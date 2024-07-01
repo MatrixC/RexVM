@@ -54,7 +54,7 @@ namespace RexVM {
             const auto &val = memory[i];
             const auto valType = memoryType[i];
             if (valType == SlotTypeEnum::REF && val.refVal != nullptr) {
-                result.emplace_back(static_cast<Oop *>(val.refVal));
+                result.emplace_back(val.refVal);
             }
         }
 

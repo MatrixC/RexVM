@@ -8,6 +8,8 @@
 
 namespace RexVM {
 
+    struct Oop;
+
     using u1 = std::uint8_t;
     using u2 = std::uint16_t;
     using u4 = std::uint32_t;
@@ -18,15 +20,14 @@ namespace RexVM {
     using i8 = std::int64_t;
     using f4 = float;
     using f8 = double;
-    using ref = void *;
+    //using ref = void *;
+    using ref = Oop *;
     using size_t = std::size_t;
     using cchar = char8_t;
     using cchar_16 = char16_t;
     using cstring = std::string;
     using cview = std::string_view;
     using ustring = std::u16string;
-
-    struct Oop;
 
     union Slot {
         i4 i4Val{0};

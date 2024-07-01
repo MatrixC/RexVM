@@ -105,7 +105,7 @@ namespace RexVM {
         operandStackContext.push(val, type);
     }
 
-    void *Frame::popRef() {
+    ref Frame::popRef() {
         return operandStackContext.pop().refVal;
     }
     
@@ -281,7 +281,7 @@ namespace RexVM {
     }
 
     Oop *Frame::getThis() const {
-        return static_cast<Oop *>(getLocalRef(0));
+        return getLocalRef(0);
     }
 
     std::vector<Oop *> Frame::getLocalObjects() const {

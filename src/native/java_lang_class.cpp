@@ -132,7 +132,7 @@ namespace RexVM::Native {
             const auto paramClasses = method->getParamClasses();
             const auto paramClassesArray = oopManager->newObjArrayOop(classArrayClass, paramClasses.size());
             for (size_t j = 0; j < paramClasses.size(); ++j) {
-                paramClassesArray->data[j] = paramClasses.at(j);
+                paramClassesArray->data[j] = paramClasses.at(j)->getMirrorOop();
             }
 
             

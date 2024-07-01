@@ -131,7 +131,7 @@ namespace RexVM {
         for (const auto &field : klass->fields) {
             const auto fieldType = field->getFieldSlotType();
             if (fieldType == SlotTypeEnum::REF && !field->isStatic()) {
-                const auto memberOop = static_cast<Oop *>(oop->getFieldValue(field->slotId).refVal);
+                const auto memberOop = oop->getFieldValue(field->slotId).refVal;
                 if (memberOop != nullptr) {
                     traceOop(memberOop, tracedOop);
                 }
@@ -174,7 +174,7 @@ namespace RexVM {
                 for (const auto &field : instanceClass->fields) {
                     const auto fieldType = field->getFieldSlotType();
                     if (fieldType == SlotTypeEnum::REF && field->isStatic()) {
-                        const auto memberOop = static_cast<Oop *>(instanceClass->getFieldValue(field->slotId).refVal);
+                        const auto memberOop = instanceClass->getFieldValue(field->slotId).refVal;
                         if (memberOop != nullptr) {
                             tracedOop.insert(memberOop);
                         }
@@ -229,7 +229,7 @@ namespace RexVM {
                 for (const auto &field : instanceClass->fields) {
                     const auto fieldType = field->getFieldSlotType();
                     if (fieldType == SlotTypeEnum::REF && field->isStatic()) {
-                        const auto memberOop = static_cast<Oop *>(instanceClass->getFieldValue(field->slotId).refVal);
+                        const auto memberOop = instanceClass->getFieldValue(field->slotId).refVal;
                         if (memberOop != nullptr) {
                             gcRoots.insert(memberOop);
                         }

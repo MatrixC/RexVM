@@ -1,4 +1,5 @@
 #include "self_native.hpp"
+#include "../oop.hpp"
 #include "../vm.hpp"
 #include "../constant_pool.hpp"
 

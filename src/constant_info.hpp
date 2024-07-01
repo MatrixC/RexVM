@@ -233,11 +233,11 @@ namespace RexVM {
     };
 
     inline cstring getConstantString(ConstantInfo *info) {
-        return dynamic_cast<ConstantUTF8Info *>(info)->str;
+        return static_cast<ConstantUTF8Info *>(info)->str;
     }
 
     inline std::tuple<const u1 *, u2> getConstantStringBytes(ConstantInfo *info) {
-        auto utf8info = dynamic_cast<ConstantUTF8Info *>(info);
+        auto utf8info = static_cast<ConstantUTF8Info *>(info);
         return std::make_tuple(utf8info->bytes.get(), utf8info->length);
     }
 

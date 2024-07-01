@@ -65,14 +65,14 @@ namespace RexVM {
         [[nodiscard]] u4 nextPc() const;
 
         //OperandStack Method
-        void pushRef(void *ref);
+        void pushRef(ref ref);
         void pushI4(i4 val);
         void pushF4(f4 val);
         void pushI8(i8 val);
         void pushF8(f8 val);
         void push(Slot val, SlotTypeEnum type);
 
-        void *popRef();
+        ref popRef();
         i4 popI4();
         f4 popF4();
         i8 popI8();
