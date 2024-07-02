@@ -9,6 +9,8 @@
 #include <memory>
 #include <thread>
 #include "config.hpp"
+#include "class.hpp"
+#include "oop.hpp"
 
 namespace RexVM {
 
@@ -18,6 +20,7 @@ namespace RexVM {
     struct Method;
     struct ThreadOop;
     struct InstanceOop;
+    struct Oop;
 
     enum class ThreadStatusEnum {
         Init,
@@ -42,6 +45,24 @@ namespace RexVM {
 
         [[nodiscard]] ThreadOop *getThreadMirror() const;
         [[nodiscard]] std::vector<Oop *> getThreadGCRoots() const;
+
+    };
+
+    struct VMThread : InstanceOop {
+        bool isMainThread{false};
+        std::thread nativeThread;
+        Frame *currentFrame{nullptr};
+        Method &runMethod;
+        std::vector<Slot> params;
+        std::unique_ptr<Slot[]> stackMemory;
+        std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
+
+        VM &vm;
+
+        explicit VMThread(VM &vm, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
+        ~VMThread();
+
+        void start();
 
     };
 

@@ -39,6 +39,7 @@ namespace RexVM {
         std::unique_ptr<Slot[]> data;
 
         explicit InstanceOop(InstanceClass *klass, size_t dataLength);
+        explicit InstanceOop(InstanceClass *klassd);
         ~InstanceOop() override;
 
         void setFieldValue(size_t index, Slot value) const;
@@ -48,6 +49,8 @@ namespace RexVM {
         [[nodiscard]] Slot getFieldValue(const cstring &name, const cstring &descriptor) const;
 
         [[nodiscard]] InstanceOop *clone(OopManager &oopManager) const;
+
+        [[nodiscard]] InstanceClass *getInstanceClass() const;
 
     };
 

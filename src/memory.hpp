@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include "class.hpp"
 #include "oop.hpp"
+#include "thread.hpp"
 
 namespace RexVM {
 
@@ -23,6 +24,7 @@ namespace RexVM {
         [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length);
 
         ThreadOop *newThreadOop(Thread *thread);
+        VMThread *newVMThread();
 
     };
 

@@ -30,6 +30,10 @@ namespace RexVM {
         return vmThreadOop;
     }
 
+    VMThread *OopManager::newVMThread() {
+        return nullptr;
+    }
+
     ObjArrayOop *OopManager::newObjArrayOop(ObjArrayClass * const klass, size_t length) {
         const auto oop = new ObjArrayOop(klass, length);
         allocatedOop.insert(oop);

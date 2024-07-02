@@ -52,6 +52,9 @@ namespace RexVM {
         initInstanceField(this, klass);
     }
 
+    InstanceOop::InstanceOop(InstanceClass *klass) : InstanceOop(klass, klass->instanceSlotCount) {
+    }
+
     InstanceOop::~InstanceOop() = default;
 
     Slot InstanceOop::getFieldValue(size_t index) const {
@@ -80,6 +83,10 @@ namespace RexVM {
             newInstance->data[i] = this->data[i];
         }
         return newInstance;
+    }
+
+    InstanceClass *InstanceOop::getInstanceClass() const {
+        return static_cast<InstanceClass *>(klass);
     }
 
     MirrorOop::MirrorOop(InstanceClass *klass, Class *mirrorClass) :

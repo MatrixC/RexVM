@@ -194,5 +194,24 @@ namespace RexVM {
     }
 
 
+    //====================================================================
+    void createFrameAndRunMethod2(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
+        // Frame nextFrame(thread.vm, thread, method_, previous);
+        // const auto slotSize = method_.paramSlotSize;
+        // if (slotSize != params.size()) {
+        //     panic("createFrameAndRunMethod error: params length " + method_.name);
+        // }
+        // for (size_t i = 0; i < params.size(); ++i) {
+        //     const auto slotType = method_.getParamSlotType(i);
+        //     nextFrame.setLocal(i, params.at(i), slotType);
+        // }
+        // const auto backupFrame = thread.currentFrame;
+        // thread.currentFrame = &nextFrame;
+        // const auto methodName = method_.klass.name + "#" + method_.name;
+        // executeFrame(nextFrame, methodName);
+        // thread.currentFrame = backupFrame;
+    }
+
+
 
 }
