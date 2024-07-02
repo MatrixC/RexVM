@@ -15,40 +15,22 @@
 namespace RexVM {
 
     struct VM;
-    struct ClassLoader;
     struct Frame;
     struct Method;
-    struct ThreadOop;
     struct InstanceOop;
     struct Oop;
 
-    enum class ThreadStatusEnum {
-        Init,
-        Running,
-        Terminated,
-    };
-
-    struct Thread {
-        ThreadStatusEnum status{ThreadStatusEnum::Running};
-        std::thread nativeThread;
-        ThreadOop *vmThreadOop;
-        Frame *currentFrame{nullptr};
-
-        cstring name;
-        VM &vm;
-
-        std::unique_ptr<Slot[]> stackMemory;
-        std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
-
-        explicit Thread(VM &vm, Method &method, std::vector<Slot> params, bool mainThread);
-        ~Thread();
-
-        [[nodiscard]] ThreadOop *getThreadMirror() const;
-        [[nodiscard]] std::vector<Oop *> getThreadGCRoots() const;
-
+    enum class ThreadStatusEnum : u2 {
+        NEW = 0x0000,
+        RUNNABLE = 0x0004,
+        BLOCKED = 0x0400,
+        WAITING = 0x0010,
+        TIMED_WAITING = 0x0020,
+        TERMINATED = 0x0002,
     };
 
     struct VMThread : InstanceOop {
+        VM &vm;
         bool isMainThread{false};
         std::thread nativeThread;
         Frame *currentFrame{nullptr};
@@ -57,15 +39,21 @@ namespace RexVM {
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
 
-        VM &vm;
-
-        explicit VMThread(VM &vm, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
+        explicit VMThread(VM &vm, InstanceClass * const klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
         ~VMThread();
 
+        
         void start();
+        void join();
 
         cstring getName() const;
+        void setStatus(ThreadStatusEnum status);
+        ThreadStatusEnum getStatus() const;
+        bool isAlive() const;
         std::vector<Oop *> getThreadGCRoots() const;
+
+        private:
+            void run();
 
     };
 

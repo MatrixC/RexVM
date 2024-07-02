@@ -11,7 +11,6 @@
 namespace RexVM {
 
     struct VM;
-    struct Thread;
     struct VMThread;
     struct ClassLoader;
     struct ConstantInfo;
@@ -117,6 +116,7 @@ namespace RexVM {
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
 
         [[nodiscard]] Oop *getThis() const;
+        [[nodiscard]] InstanceOop *getThisInstance() const;
         [[nodiscard]] std::vector<Oop *> getLocalObjects() const;
   
     };

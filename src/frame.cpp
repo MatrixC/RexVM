@@ -284,6 +284,10 @@ namespace RexVM {
         return getLocalRef(0);
     }
 
+    InstanceOop *Frame::getThisInstance() const {
+        return static_cast<InstanceOop *>(getThis());
+    }
+
     std::vector<Oop *> Frame::getLocalObjects() const {
         std::vector<Oop *> result;
         for (size_t i = 0; i < localVariableTableSize; ++i) {

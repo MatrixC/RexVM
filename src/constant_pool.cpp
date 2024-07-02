@@ -11,8 +11,8 @@ namespace RexVM {
 
     StringPool::StringPool(VM &vm, ClassLoader &classLoader)
             : vm(vm), classLoader(classLoader),
-              stringClass(classLoader.getInstanceClass(JAVA_LANG_STRING_NAME)),
-              stringTable(std::make_unique<StringTable>(128)) {
+            stringTable(std::make_unique<StringTable>(128)),
+            stringClass(classLoader.getInstanceClass(JAVA_LANG_STRING_NAME)) {
     }
 
     StringPool::~StringPool() = default;

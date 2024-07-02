@@ -28,9 +28,9 @@ namespace RexVM {
             explicit Node(InstanceOop *value);
         };
 
-        std::vector<Node *> table;
         size_t tableSize;
-
+        std::vector<Node *> table;
+        
         explicit StringTable(size_t size);
         ~StringTable();
 

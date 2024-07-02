@@ -2,9 +2,20 @@
 #include "../../basic_java_class.hpp"
 #include "native_core.hpp"
 #include "../native_manager.hpp"
+
+#include "java_lang_object.hpp"
 #include "java_lang_thread.hpp"
 
 namespace RexVM::Native::Core {
+
+    void registerObjectCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "getClass", "()Ljava/lang/Class;", false, Native::Core::getClass);
+        manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "hashCode", "()I", false, Native::Core::hashCode);
+        manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "clone", "()Ljava/lang/Object;", false, Native::Core::clone);
+        manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "wait", "(J)V", false, Native::Core::wait);
+        manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "notify", "()V", false, Native::Core::notify);
+        manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "notifyAll", "()V", false, Native::Core::notifyAll);
+    }
 
     void registerThreadCoreMethods(NativeManager &manager) {
         //static

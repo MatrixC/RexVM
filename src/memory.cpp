@@ -16,22 +16,25 @@ namespace RexVM {
         return oop;
     }
 
-    ThreadOop *OopManager::newThreadOop(Thread *thread) {
-        const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
-        const auto threadGroupClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
+    VMThread *OopManager::newMainVMThread(Method &method, std::vector<Slot> params) {
+        const auto threadClass = 
+            vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
 
-        const auto vmThreadOop = new ThreadOop(threadClass, thread);
+        const auto threadGroupClass = 
+            vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
         const auto vmThreadGroup = newInstance(threadGroupClass);
 
-        vmThreadOop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
-        vmThreadOop->setFieldValue("priority", "I", Slot(1));
-
-        allocatedOop.insert(vmThreadOop);
-        return vmThreadOop;
+        const auto oop = new VMThread(vm, threadClass, &method, params);
+        oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
+        oop->setFieldValue("priority", "I", Slot(1));
+        allocatedOop.insert(oop);
+        return oop;
     }
 
-    VMThread *OopManager::newVMThread() {
-        return nullptr;
+    VMThread *OopManager::newVMThread(InstanceClass * const klass) {
+        const auto oop = new VMThread(vm, klass, nullptr, {});
+        allocatedOop.insert(oop);
+        return oop;
     }
 
     ObjArrayOop *OopManager::newObjArrayOop(ObjArrayClass * const klass, size_t length) {
@@ -91,9 +94,7 @@ namespace RexVM {
 
     ByteTypeArrayOop *OopManager::newByteArrayOop(size_t length, const u1 *initBuffer) {
         const auto oop = newByteArrayOop(length);
-        for (size_t i = 0; i < length; ++i) {
-            oop->data[i] = initBuffer[i];
-        }
+        std::copy(initBuffer, initBuffer + length, oop->data.get());
         return oop;
     }
 
@@ -131,7 +132,7 @@ namespace RexVM {
     }
 
     void traceInstanceOopChild(InstanceOop * const oop, std::unordered_set<Oop *> &tracedOop) {
-        const auto klass = static_cast<InstanceClass *>(oop->klass);
+        const auto klass = oop->getInstanceClass();
         for (const auto &field : klass->fields) {
             const auto fieldType = field->getFieldSlotType();
             if (fieldType == SlotTypeEnum::REF && !field->isStatic()) {

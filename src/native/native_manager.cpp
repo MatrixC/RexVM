@@ -1,17 +1,16 @@
 #include "native_manager.hpp"
 #include "../basic_java_class.hpp"
-#include "java_lang_object.hpp"
 #include "java_lang_class.hpp"
 #include "java_lang_system.hpp"
 #include "java_lang_float.hpp"
 #include "java_lang_string.hpp"
 #include "java_lang_throwable.hpp"
-#include "java_lang_thread.hpp"
 #include "java_util_atomic.hpp"
 #include "java_io_file_output_stream.hpp"
 #include "java_security_accesscontroller.hpp"
 #include "sun_misc_vm.hpp"
 #include "self_native.hpp"
+#include "core/native_core.hpp"
 
 
 namespace RexVM {
@@ -52,14 +51,7 @@ namespace RexVM {
     void NativeManager::regAllMethods() {
         regNativeMethod("Fto", "println", "(Ljava/lang/String;)V", true, Native::selfPrintln);
         regNativeMethod("Fto", "println", "(I)V", true, Native::selfPrintlnInt);
-
-        
-        regNativeMethod(JAVA_LANG_OBJECT_NAME, "getClass", "()Ljava/lang/Class;", false, Native::getClass);
-        regNativeMethod(JAVA_LANG_OBJECT_NAME, "hashCode", "()I", false, Native::hashCode);
-        regNativeMethod(JAVA_LANG_OBJECT_NAME, "clone", "()Ljava/lang/Object;", false, Native::clone);
-        regNativeMethod(JAVA_LANG_OBJECT_NAME, "notifyAll", "()V", false, nopMethod);
-        regNativeMethod(JAVA_LANG_OBJECT_NAME, "wait", "(J)V", false, nopMethod);
-
+       
 
         regNativeMethod(JAVA_LANG_CLASS_NAME, "getPrimitiveClass", "(Ljava/lang/String;)Ljava/lang/Class;", true, Native::getPrimitiveClass);
         regNativeMethod(JAVA_LANG_CLASS_NAME, "desiredAssertionStatus0", "(Ljava/lang/Class;)Z", true, Native::desiredAssertionStatus0);
@@ -84,11 +76,6 @@ namespace RexVM {
         regNativeMethod(JAVA_LANG_SYSTEM_NAME, "initProperties", "(Ljava/util/Properties;)Ljava/util/Properties;", false, Native::initProperties);
         regNativeMethod(JAVA_LANG_SYSTEM_NAME, "arraycopy", "(Ljava/lang/Object;ILjava/lang/Object;II)V", false, Native::arraycopy);
         regNativeMethod(JAVA_LANG_SYSTEM_NAME, "mapLibraryName", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::mapLibraryName);
-
-        regNativeMethod(JAVA_LANG_THREAD_NAME, "currentThread", "()Ljava/lang/Thread;", false, Native::currentThread);
-        regNativeMethod(JAVA_LANG_THREAD_NAME, "setPriority0", "(I)V", false, nopMethod);
-        regNativeMethod(JAVA_LANG_THREAD_NAME, "isAlive", "()Z", false, Native::isAlive);
-        regNativeMethod(JAVA_LANG_THREAD_NAME, "start0", "()V", false, Native::start0);
 
         regNativeMethod(JAVA_LANG_THROWABLE_NAME, "fillInStackTrace", "(I)Ljava/lang/Throwable;", false, Native::fillInStackTrace);
 
@@ -132,6 +119,9 @@ namespace RexVM {
         regNativeMethod("sun/reflect/NativeConstructorAccessorImpl", "newInstance0", "(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;", false, Native::newInstance0);
 
         regNativeMethod("java/util/concurrent/atomic/AtomicLong", "VMSupportsCS8", "()Z", false, Native::vmSupportsCS8);
+
+        Native::Core::registerObjectCoreMethods(*this);
+        Native::Core::registerThreadCoreMethods(*this);
     }
 
 

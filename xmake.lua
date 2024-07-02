@@ -15,6 +15,7 @@ target("RexVM")
         "src/*.cpp",
         "src/utils/*.cpp",
         "src/native/*.cpp",
+        "src/native/core/*.cpp",
 
         "src/third_party/miniz/miniz.c"
     )

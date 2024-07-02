@@ -6,6 +6,7 @@ namespace RexVM {
 
     extern u2 stringClassValueFieldSlotId;
     extern u2 throwableClassDetailMessageFieldSlotId;
+    extern u2 threadClassThreadStatusFieldSlotId;
 }
 
 #endif

@@ -4,7 +4,7 @@
 namespace RexVM {
 
     StackContext::StackContext(Slot *memory, SlotTypeEnum *memoryType, i4 pos) :
-        memory(memory), memoryType(memoryType), sp(pos) {
+        sp(pos), memory(memory), memoryType(memoryType) {
     }
 
     void StackContext::push(Slot val, SlotTypeEnum slotType) {

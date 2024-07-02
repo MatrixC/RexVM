@@ -14,8 +14,8 @@ namespace RexVM {
     struct ClassLoader;
     struct StringPool;
     struct NativeManager;
+    struct VMThread;
     struct OopManager;
-    struct Thread;
 
     struct ApplicationParameter {
         cstring userClassPath;
@@ -30,11 +30,13 @@ namespace RexVM {
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
 
         std::mutex vmThreadMtx;
-        std::deque<std::unique_ptr<Thread>> vmThreadDeque;
+        std::deque<VMThread *> vmThreadDeque;
 
         explicit VM(ApplicationParameter &params);
 
         void start();
+
+        void addStartThread(VMThread *vmThread);
 
     private:
         void initClassPath();

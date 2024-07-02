@@ -198,6 +198,10 @@ namespace RexVM {
         return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_ABSTRACT)) != 0;
     }
 
+    bool Method::isSynchronized() const {
+        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_SYNCHRONIZED)) != 0;
+    }
+
     SlotTypeEnum Method::getParamSlotType(size_t slotIdx) const {
         return paramSlotType.at(slotIdx);
     }

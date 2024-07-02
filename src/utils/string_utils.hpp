@@ -2,6 +2,7 @@
 #define STRING_UTILS_HPP
 
 #include <vector>
+#include <memory>
 #include "../config.hpp"
 
 namespace RexVM {

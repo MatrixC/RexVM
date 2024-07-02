@@ -17,7 +17,7 @@ namespace RexVM {
 
     //Print Exception stack on stdout
     void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
-        const auto throwInstanceClass = throwInstance->klass;
+        //const auto throwInstanceClass = throwInstance->klass;
         const auto message = static_cast<InstanceOop *>(throwInstance->getFieldValue(throwableClassDetailMessageFieldSlotId).refVal);
         cstring messageStr;
         if (message != nullptr) {
@@ -145,6 +145,12 @@ namespace RexVM {
             if (nativeMethodHandler == nullptr) {
                 panic("executeFrame error, method " + method.klass.name + "#" + method.name + ":" + method.descriptor + " nativeMethodHandler is nullptr");
             }
+            if (method.name == "wait") {
+                uint8_t* bytePtr = reinterpret_cast<uint8_t*>(nativeMethodHandler);
+                uint8_t byte1 = bytePtr[0];
+                uint8_t byte2 = bytePtr[1];
+                //cprintln("nativeMethod handler thread {}, ptr {}, byte1 {:#04x}, byte2 {:#04x}", (void*)&frame.thread, reinterpret_cast<uintptr_t>(nativeMethodHandler), byte1, byte2);
+            }
             nativeMethodHandler(frame);
             if (frame.markReturn) {
                 checkAndPassReturnValue(frame);
@@ -155,6 +161,21 @@ namespace RexVM {
                     return;
                 }
             }
+        }
+    }
+
+    void monitorExecuteFrame(Frame &frame, const cstring &methodName) {
+        bool lock = false;
+        const auto &method = frame.method;
+        Oop *monitorHandler = nullptr;
+        if (method.isSynchronized()) [[unlikely]] {
+            monitorHandler = method.isStatic() ? method.klass.mirror.get() : frame.getThis();
+            monitorHandler->monitorMtx.lock();
+            lock = true;
+        }
+        executeFrame(frame, methodName);
+        if (lock) {
+            monitorHandler->monitorMtx.unlock();
         }
     }
 
@@ -171,7 +192,7 @@ namespace RexVM {
         const auto backupFrame = thread.currentFrame;
         thread.currentFrame = &nextFrame;
         const auto methodName = method_.klass.name + "#" + method_.name;
-        executeFrame(nextFrame, methodName);
+        monitorExecuteFrame(nextFrame, methodName);
         thread.currentFrame = backupFrame;
     }
 
@@ -180,16 +201,14 @@ namespace RexVM {
         const auto backupFrame = thread.currentFrame;
         thread.currentFrame = &nextFrame;
         const auto methodName = method_.klass.name + "#" + method_.name;
-        executeFrame(nextFrame, methodName);
+        monitorExecuteFrame(nextFrame, methodName);
         thread.currentFrame = backupFrame;
     }
 
     void runStaticMethodOnMainThread(VM &vm, Method &method, std::vector<Slot> params) {
-        Thread thread(vm, method, std::move(params), true);
+        const auto vmThread = vm.oopManager->newMainVMThread(method, std::move(params));
+        vmThread->start();
+        vmThread->join();
     }
 
-    void runStaticMethodOnNewThread(VM &vm, Method &method, std::vector<Slot> params) {
-        std::lock_guard<std::mutex> lock(vm.vmThreadMtx);
-        vm.vmThreadDeque.emplace_back(std::make_unique<Thread>(vm, method, std::move(params), false));
-    }
 }

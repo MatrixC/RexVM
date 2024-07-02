@@ -7,88 +7,66 @@
 #include "execute.hpp"
 #include "class_loader.hpp"
 #include "basic_java_class.hpp"
+#include "key_slot_id.hpp"
 
 namespace RexVM {
 
-    Thread::Thread(VM &vm, Method &method, std::vector<Slot> params, bool mainThread)
-            : vm(vm),
-            stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
-            stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
-        const auto &oopManager = vm.oopManager;
-        vmThreadOop = oopManager->newThreadOop(this);
-
-        if (mainThread) {
-            status = ThreadStatusEnum::Running;
-            //createFrameAndRunMethod(*this, method, std::move(params), nullptr);
-            status = ThreadStatusEnum::Terminated;
-        } else {
-            nativeThread = std::thread([&vm, &method, params = std::move(params), this]() {
-                status = ThreadStatusEnum::Running;
-                //createFrameAndRunMethod(*this, method, std::move(params), nullptr);
-                status = ThreadStatusEnum::Terminated;
-            });
-        }
-    }
-
-    Thread::~Thread() = default;
-
-    std::vector<Oop *> Thread::getThreadGCRoots() const {
-        std::vector<Oop *> result;
-        for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
-            const auto localObjects = cur->getLocalObjects();
-            const auto stackObjects = cur->operandStackContext.getObjects();
-            if (!localObjects.empty()) {
-                result.insert(result.end(), localObjects.begin(), localObjects.end());
-            }
-            if (!stackObjects.empty()) {
-                result.insert(result.end(), stackObjects.begin(), stackObjects.end());
-            }
-        }
-        return result;
-    }
-
-    ThreadOop * Thread::getThreadMirror() const {
-        return vmThreadOop;
-    }
-
-
-    //===================================
-
-    VMThread::VMThread(VM &vm, Method *runnableMethod, std::vector<Slot> runnableMethodParams)
-            : vm(vm), isMainThread(runnableMethod != nullptr), 
-            InstanceOop(vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)),
+    VMThread::VMThread(VM &vm, InstanceClass * const klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams)
+            : InstanceOop(klass), 
+            vm(vm), 
+            isMainThread(runnableMethod != nullptr), 
             runMethod(isMainThread ? *runnableMethod : *getInstanceClass()->getMethod("run", "()V", false)),
             params(isMainThread ? std::move(runnableMethodParams) : std::vector{ Slot(this) }),
             stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
             stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
-
-        // if (mainThread) {
-        //     status = ThreadStatusEnum::Running;
-        //     createFrameAndRunMethod(*this, method, std::move(params), nullptr);
-        //     status = ThreadStatusEnum::Terminated;
-        // } else {
-        //     nativeThread = std::thread([&vm, &method, params = std::move(params), this]() {
-        //         status = ThreadStatusEnum::Running;
-        //         createFrameAndRunMethod(*this, method, std::move(params), nullptr);
-        //         status = ThreadStatusEnum::Terminated;
-        //     });
-        // }
     }
 
     VMThread::~VMThread() = default;
 
+    void VMThread::run() {
+        setStatus(ThreadStatusEnum::RUNNABLE);
+        createFrameAndRunMethod(*this, runMethod, params, nullptr);
+        setStatus(ThreadStatusEnum::TERMINATED);
+        std::lock_guard<std::recursive_mutex> lock(monitorMtx);
+        monitorCv.notify_all();
+    }
+
     void VMThread::start() {
+        if (getStatus() != ThreadStatusEnum::NEW) {
+            panic("Thread status is not NEW");
+            //TODO to java exception
+        }
         if (isMainThread) [[unlikely]] {
-            createFrameAndRunMethod(*this, runMethod, params, nullptr);
+            vm.addStartThread(this);
+            run();
         } else {
             nativeThread = std::thread([this]() {
-                createFrameAndRunMethod(*this, runMethod, params, nullptr);
+                run();
             }); 
+            vm.addStartThread(this);
         }
     }
 
     cstring VMThread::getName() const {
         return "Thread";
+    }
+
+    void VMThread::setStatus(ThreadStatusEnum status) {
+        setFieldValue(threadClassThreadStatusFieldSlotId, Slot(static_cast<i4>(status)));
+    }
+
+    ThreadStatusEnum VMThread::getStatus() const {
+        return static_cast<ThreadStatusEnum>(getFieldValue(threadClassThreadStatusFieldSlotId).i4Val);
+    }
+
+    bool VMThread::isAlive() const {
+        return getStatus() != ThreadStatusEnum::TERMINATED;
+    }
+
+    void VMThread::join() {
+        if (!isMainThread && nativeThread.joinable()) {
+            nativeThread.join();
+        }
     }
 
     std::vector<Oop *> VMThread::getThreadGCRoots() const {

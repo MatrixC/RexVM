@@ -1,5 +1,7 @@
 #include "interpreter.hpp"
 #include <cmath>
+
+#include "interpreter_helper.hpp"
 #include "utils/byte_reader.hpp"
 #include "opcode.hpp"
 #include "constant_info.hpp"
@@ -10,7 +12,6 @@
 #include "vm.hpp"
 #include "constant_pool.hpp"
 #include "memory.hpp"
-#include "interpreter_helper.hpp"
 
 namespace RexVM {
 
@@ -1089,7 +1090,14 @@ namespace RexVM {
             const auto instanceClass = frame.classLoader.getInstanceClass(className);
             instanceClass->clinit(frame);
             const auto &oopManager = frame.vm.oopManager;
-            frame.pushRef(oopManager->newInstance(instanceClass));
+
+            const auto threadClass = frame.classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+
+            if (instanceClass == threadClass || instanceClass->isSubClassOf(threadClass)) {
+                frame.pushRef(oopManager->newVMThread(instanceClass));
+            } else {
+                frame.pushRef(oopManager->newInstance(instanceClass));
+            }
         }
 
         void newarray(Frame &frame) {
@@ -1160,19 +1168,53 @@ namespace RexVM {
         }
 
         void monitorenter(Frame &frame) {
-            frame.popRef();
-            //TODO
+            const auto oop = frame.popRef();
+            oop->monitorMtx.lock();
         }
 
         void monitorexit(Frame &frame) {
-            frame.popRef();
-            //TODO
+            const auto oop = frame.popRef();
+            oop->monitorMtx.unlock();
         }
 
-        void wide([[maybe_unused]] Frame &frame) {
-            //const auto opCode = frame.reader.readU1();
-            //TODO
-            panic("not support wide");
+        void wide(Frame &frame) {
+            const auto opCode = static_cast<OpCodeEnum>(frame.reader.readU1());
+            const auto index = frame.reader.readU2();
+
+            switch (opCode) {
+                case OpCodeEnum::ILOAD:
+                case OpCodeEnum::FLOAD:
+                case OpCodeEnum::ALOAD:
+                    frame.pushLocal(index);
+                break;
+
+                case OpCodeEnum::LLOAD:
+                case OpCodeEnum::DLOAD:
+                    frame.pushLocalWide(index);
+                break;
+                
+
+                case OpCodeEnum::ISTORE:
+                case OpCodeEnum::FSTORE:
+                case OpCodeEnum::ASTORE:
+                    frame.popLocal(index);
+                break;
+
+                case OpCodeEnum::LSTORE:
+                case OpCodeEnum::DSTORE:
+                    frame.popLocalWide(index);
+                break;
+
+                case OpCodeEnum::IINC: {
+                    const auto value = frame.reader.readI2();
+                    frame.setLocalI4(index, frame.getLocalI4(index) + value);
+                    break;
+                }
+
+                case OpCodeEnum::RET:
+                    panic("ret not implement!");
+                break;
+            }
         }
 
         ref multiArrayHelper(OopManager &oopManager, ClassLoader &classLoader, std::unique_ptr<i4[]> &dimLength, i4 dimCount, const cstring& name, i4 currentDim) {
@@ -1242,7 +1284,6 @@ namespace RexVM {
             const auto offset = frame.reader.readI4();
             frame.reader.relativeOffset(offset);
         }
-
         
     }
 

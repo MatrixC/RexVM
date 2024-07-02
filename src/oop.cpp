@@ -66,22 +66,22 @@ namespace RexVM {
     }
 
     void InstanceOop::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) {
-        auto instanceClass = static_cast<InstanceClass *>(klass);
+        auto instanceClass = getInstanceClass();
         auto field = instanceClass->getField(name, descriptor, false);
         data[field->slotId] = value;
     }
 
     Slot InstanceOop::getFieldValue(const cstring &name, const cstring &descriptor) const {
-        auto instanceClass = static_cast<InstanceClass *>(klass);
+        auto instanceClass = getInstanceClass();
         auto field = instanceClass->getField(name, descriptor, false);
         return data[field->slotId];
     }
 
     InstanceOop *InstanceOop::clone(OopManager &manager) const {
-        auto newInstance = manager.newInstance(static_cast<InstanceClass *>(klass));
-        for (size_t i = 0; i < dataLength; ++i) {
-            newInstance->data[i] = this->data[i];
-        }
+        auto newInstance = manager.newInstance(getInstanceClass());
+        const auto from = this->data.get();
+        const auto to = newInstance->data.get();
+        std::copy(from, from + dataLength, to);
         return newInstance;
     }
 
@@ -93,12 +93,6 @@ namespace RexVM {
         InstanceOop(klass, klass->instanceSlotCount),
         mirrorClass(mirrorClass) {
     }
-
-    ThreadOop::ThreadOop(InstanceClass *klass, Thread *thread) :
-        InstanceOop(klass, klass->instanceSlotCount),
-        thread(thread) {
-    }
-
 
     ArrayOop::ArrayOop(const OopTypeEnum type, ArrayClass *klass, const size_t dataLength) :
             Oop(type, klass), dataLength(dataLength) {

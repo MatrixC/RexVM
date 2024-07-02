@@ -13,7 +13,7 @@ namespace RexVM::Native::Core {
 
     //public static native Thread currentThread();
     void currentThread(Frame &frame) {
-        frame.returnRef(frame.thread.getThreadMirror());
+        frame.returnRef(&frame.thread);
     }
 
     //public static native void yield();
@@ -42,7 +42,8 @@ namespace RexVM::Native::Core {
 
     //public final native boolean isAlive();
     void isAlive(Frame &frame) {
-        frame.returnBoolean(frame.thread.status != ThreadStatusEnum::Terminated);
+        const auto self = static_cast<VMThread *>(frame.getThisInstance()); //Thread Instance
+        frame.returnBoolean(self->isAlive());
     }
 
     //public static native boolean holdsLock(Object obj);
@@ -52,25 +53,24 @@ namespace RexVM::Native::Core {
 
     //private native void start0();
     void start0(Frame &frame) {
-        const auto self = frame.getThisInstance(); //Thread Instance
-        const auto threadClass = static_cast<InstanceClass *>(self->klass);
+        const auto self = static_cast<VMThread *>(frame.getThisInstance()); //Thread Instance
+        const auto threadClass = self->getInstanceClass();
         if (threadClass->name == "java/lang/ref/Reference$ReferenceHandler") [[unlikely]] {
             // endless loop tryHandlePending
             return;
         }
-        
-        auto method = threadClass->getMethod("run", "()V", false);
-        runStaticMethodOnNewThread(frame.vm, *method, nullptr, { Slot(self) });
+        self->start();
     }
 
     //public native int countStackFrames();
     void countStackFrames(Frame &frame) {
-        const auto vmThreadMirror = static_cast<ThreadOop *>(frame.getThisInstance());
-        if (vmThreadMirror == nullptr) {
+        const auto self = static_cast<VMThread *>(frame.getThisInstance()); //Thread Instance
+        if (self->currentFrame == nullptr) {
             frame.returnI4(0);
             return;
         }
-        frame.returnI4(frame.level + 1);
+
+        frame.returnI4(self->currentFrame->level + 1);
     }
 
     //private native void interrupt0();

@@ -74,20 +74,22 @@ namespace RexVM {
 
     void VM::joinThreads() {
         while (true) {
-            std::unique_ptr<Thread> vmThread;
+            VMThread *vmThread;
             {
                 std::lock_guard<std::mutex> lock(vmThreadMtx);
                 if (vmThreadDeque.empty()) {
                     break;
                 }
-                vmThread = std::move(vmThreadDeque.front());
+                vmThread = vmThreadDeque.front();
                 vmThreadDeque.pop_front();
             }
-
-            if (vmThread->nativeThread.joinable()) {
-                vmThread->nativeThread.join();
-            }
+            vmThread->join();
         }
+    }
+
+    void VM::addStartThread(VMThread *thread) {
+        std::lock_guard<std::mutex> lock(vmThreadMtx);
+        vmThreadDeque.emplace_back(thread);
     }
 
     VM::VM(ApplicationParameter &params) : params(params) {
@@ -106,7 +108,6 @@ namespace RexVM {
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();
-
         //gc2(vm);
         //vm.bootstrapClassLoader.reset(nullptr);
     }

@@ -2,6 +2,9 @@
 #define OOP_HPP
 
 #include <memory>
+#include <mutex>
+#include <atomic>
+#include <condition_variable>
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "class.hpp"
@@ -13,7 +16,6 @@ namespace RexVM {
     struct ArrayClass;
     struct TypeArrayClass;
     struct ObjArrayClass;
-    struct Thread;
     struct OopManager;
 
     enum class OopTypeEnum {
@@ -25,6 +27,11 @@ namespace RexVM {
     struct Oop {
         const OopTypeEnum type;
         Class *klass;
+
+        bool waitFlag{false};
+        std::recursive_mutex monitorMtx;
+        std::condition_variable_any monitorCv;
+
 
         explicit Oop(OopTypeEnum type, Class *klass);
 
@@ -58,12 +65,6 @@ namespace RexVM {
         Class *mirrorClass;
 
         explicit MirrorOop(InstanceClass *klass, Class *mirrorClass);
-    };
-
-    struct ThreadOop : InstanceOop {
-        Thread *thread;
-
-        explicit ThreadOop(InstanceClass *klass, Thread *thread);
     };
 
     struct ArrayOop : Oop {

@@ -110,6 +110,7 @@ namespace RexVM {
 
         [[nodiscard]] bool isNative() const;
         [[nodiscard]] bool isAbstract() const;
+        [[nodiscard]] bool isSynchronized() const;
 
         [[nodiscard]] SlotTypeEnum getParamSlotType(size_t slotIdx) const;
 

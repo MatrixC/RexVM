@@ -170,6 +170,10 @@ namespace RexVM {
         throwableClassDetailMessageFieldSlotId =
                 getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE)
                         ->getField("detailMessage", "Ljava/lang/String;",false)->slotId;
+
+        threadClassThreadStatusFieldSlotId =
+                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                        ->getField("threadStatus", "I",false)->slotId;
     }
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {

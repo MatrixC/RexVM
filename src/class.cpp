@@ -123,7 +123,6 @@ namespace RexVM {
 
     bool Class::isSuperClassOf(const Class *that) const {
         return that->isSubClassOf(this);
-
     }
 
     bool Class::isSuperInterfaceOf(const Class *that) const {
@@ -306,7 +305,17 @@ namespace RexVM {
                 }
             }
         }
-            
+
+        if (isInterface()) {
+            for (const auto &interface : interfaces) {
+                if (const auto interfaceMethod = interface->getMethod(name, descriptor, isStatic); 
+                        interfaceMethod != nullptr) {
+                    return interfaceMethod;
+                }
+                
+            }
+        }
+
         return nullptr;
     }
 
@@ -314,16 +323,14 @@ namespace RexVM {
         const auto memberInfo = static_cast<ConstantClassNameTypeIndexInfo *>(constantPool.at(refIndex).get());
         const auto classInfo = static_cast<ConstantClassInfo *>(constantPool.at(memberInfo->classIndex).get());
         const auto className = getConstantStringFromPool(constantPool, classInfo->index);
-        const auto nameAndTypeInfo = static_cast<ConstantNameAndTypeInfo *>(constantPool.at(
-                memberInfo->nameAndTypeIndex).get());
+        const auto nameAndTypeInfo = static_cast<ConstantNameAndTypeInfo *>(constantPool.at(memberInfo->nameAndTypeIndex).get());
         const auto memberName = getConstantStringFromPool(constantPool, nameAndTypeInfo->nameIndex);
         const auto memberDescriptor = getConstantStringFromPool(constantPool, nameAndTypeInfo->descriptorIndex);
         const auto memberClass = classLoader.getClass(className);
         const auto memberInstanceClass = 
             memberClass->isArray() ? 
-                //classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT) :
-                classLoader.getInstanceClass("java/lang/Object") : 
-                classLoader.getInstanceClass(className);
+                classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT) :
+                static_cast<InstanceClass *>(memberClass);
             
         if (type == ClassMemberTypeEnum::FIELD) {
             return memberInstanceClass->getField(memberName, memberDescriptor, isStatic);
