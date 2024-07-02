@@ -19,12 +19,12 @@ namespace RexVM {
 
         if (mainThread) {
             status = ThreadStatusEnum::Running;
-            createFrameAndRunMethod(*this, method, std::move(params), nullptr);
+            //createFrameAndRunMethod(*this, method, std::move(params), nullptr);
             status = ThreadStatusEnum::Terminated;
         } else {
             nativeThread = std::thread([&vm, &method, params = std::move(params), this]() {
                 status = ThreadStatusEnum::Running;
-                createFrameAndRunMethod(*this, method, std::move(params), nullptr);
+                //createFrameAndRunMethod(*this, method, std::move(params), nullptr);
                 status = ThreadStatusEnum::Terminated;
             });
         }
@@ -79,12 +79,31 @@ namespace RexVM {
 
     void VMThread::start() {
         if (isMainThread) [[unlikely]] {
-            createFrameAndRunMethod2(*this, runMethod, params, nullptr);
+            createFrameAndRunMethod(*this, runMethod, params, nullptr);
         } else {
             nativeThread = std::thread([this]() {
-                createFrameAndRunMethod2(*this, runMethod, params, nullptr);
+                createFrameAndRunMethod(*this, runMethod, params, nullptr);
             }); 
         }
+    }
+
+    cstring VMThread::getName() const {
+        return "Thread";
+    }
+
+    std::vector<Oop *> VMThread::getThreadGCRoots() const {
+        std::vector<Oop *> result;
+        for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
+            const auto localObjects = cur->getLocalObjects();
+            const auto stackObjects = cur->operandStackContext.getObjects();
+            if (!localObjects.empty()) {
+                result.insert(result.end(), localObjects.begin(), localObjects.end());
+            }
+            if (!stackObjects.empty()) {
+                result.insert(result.end(), stackObjects.begin(), stackObjects.end());
+            }
+        }
+        return result;
     }
 
 

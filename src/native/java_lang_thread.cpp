@@ -8,7 +8,7 @@
 namespace RexVM::Native {
 
     void currentThread(Frame &frame) {
-        const auto vmThreadRef = frame.thread.getThreadMirror();
+        const auto vmThreadRef = &frame.thread;
         frame.returnRef(vmThreadRef);
     }
 

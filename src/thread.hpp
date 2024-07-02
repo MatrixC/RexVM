@@ -64,6 +64,9 @@ namespace RexVM {
 
         void start();
 
+        cstring getName() const;
+        std::vector<Oop *> getThreadGCRoots() const;
+
     };
 
 }

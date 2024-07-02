@@ -12,6 +12,7 @@ namespace RexVM {
 
     struct VM;
     struct Thread;
+    struct VMThread;
     struct ClassLoader;
     struct ConstantInfo;
     struct InstanceClass;
@@ -38,7 +39,7 @@ namespace RexVM {
         u2 level{0};
 
         VM &vm;
-        Thread &thread;
+        VMThread &thread;
         Method &method;
         InstanceClass &klass;
         ByteReader reader{};
@@ -54,7 +55,7 @@ namespace RexVM {
         bool markThrow{false};
         std::unique_ptr<FrameThrowable> throwObject;
 
-        explicit Frame(VM &vm, Thread &thread, Method &method, Frame *previousFrame);
+        explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame);
         ~Frame();
 
         void runMethod(Method &runMethod_);

@@ -24,23 +24,23 @@ namespace RexVM {
             messageStr = ": " + StringPool::getJavaString(message);
         }
 
-        cstring outMessage = cformat(
-                "Exception in thread \"{}\" {}{}",
-                frame.thread.name,
-                throwInstanceClass->name,
-                messageStr
-        );
+        // cstring outMessage = cformat(
+        //         "Exception in thread \"{}\" {}{}",
+        //         frame.thread.name,
+        //         throwInstanceClass->name,
+        //         messageStr
+        // );
 
-        for (const auto &item : frame.throwObject->throwPath) {
-            //example. at ExceptionTest.p(ExceptionTest.java:13)
-            const auto [pathMethod, throwPc] = item;
-            const auto className = pathMethod.klass.name;
-            const auto methodName = pathMethod.name;
-            const auto lineNumber = pathMethod.getLineNumber(throwPc);
-            const auto sourceFileName = pathMethod.klass.sourceFile;
-            outMessage += cformat("\n\tat {}.{}({}:{})", className, methodName, sourceFileName, lineNumber);
-        }
-        cprintln("{}", outMessage);
+        // for (const auto &item : frame.throwObject->throwPath) {
+        //     //example. at ExceptionTest.p(ExceptionTest.java:13)
+        //     const auto [pathMethod, throwPc] = item;
+        //     const auto className = pathMethod.klass.name;
+        //     const auto methodName = pathMethod.name;
+        //     const auto lineNumber = pathMethod.getLineNumber(throwPc);
+        //     const auto sourceFileName = pathMethod.klass.sourceFile;
+        //     outMessage += cformat("\n\tat {}.{}({}:{})", className, methodName, sourceFileName, lineNumber);
+        // }
+        // cprintln("{}", outMessage);
     }
 
     //return mark current frame return(throw to previous frame)
@@ -158,7 +158,7 @@ namespace RexVM {
         }
     }
 
-    void createFrameAndRunMethod(Thread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
+    void createFrameAndRunMethod(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
         Frame nextFrame(thread.vm, thread, method_, previous);
         const auto slotSize = method_.paramSlotSize;
         if (slotSize != params.size()) {
@@ -175,7 +175,7 @@ namespace RexVM {
         thread.currentFrame = backupFrame;
     }
 
-    void createFrameAndRunMethodNoPassParams(Thread &thread, Method &method_, Frame *previous) {
+    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous) {
         Frame nextFrame(thread.vm, thread, method_, previous);
         const auto backupFrame = thread.currentFrame;
         thread.currentFrame = &nextFrame;
@@ -192,26 +192,4 @@ namespace RexVM {
         std::lock_guard<std::mutex> lock(vm.vmThreadMtx);
         vm.vmThreadDeque.emplace_back(std::make_unique<Thread>(vm, method, std::move(params), false));
     }
-
-
-    //====================================================================
-    void createFrameAndRunMethod2(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
-        // Frame nextFrame(thread.vm, thread, method_, previous);
-        // const auto slotSize = method_.paramSlotSize;
-        // if (slotSize != params.size()) {
-        //     panic("createFrameAndRunMethod error: params length " + method_.name);
-        // }
-        // for (size_t i = 0; i < params.size(); ++i) {
-        //     const auto slotType = method_.getParamSlotType(i);
-        //     nextFrame.setLocal(i, params.at(i), slotType);
-        // }
-        // const auto backupFrame = thread.currentFrame;
-        // thread.currentFrame = &nextFrame;
-        // const auto methodName = method_.klass.name + "#" + method_.name;
-        // executeFrame(nextFrame, methodName);
-        // thread.currentFrame = backupFrame;
-    }
-
-
-
 }

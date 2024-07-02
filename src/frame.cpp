@@ -20,7 +20,7 @@ namespace RexVM {
 
     FrameThrowable::~FrameThrowable() = default;
 
-    Frame::Frame(VM &vm, Thread &thread, Method &method, Frame *previousFrame) :
+    Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame) :
             previous(previousFrame),
             localVariableTableSize(method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals),
             localVariableTable(
