@@ -96,8 +96,8 @@ namespace RexVM {
         size_t runtimeVisibleTypeAnnotationLength;
         std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
 
-        std::vector<cstring> paramDesc;
-        cstring returnTypeDesc;
+        std::vector<cstring> paramType;
+        cstring returnType;
         size_t paramSize{0};
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;

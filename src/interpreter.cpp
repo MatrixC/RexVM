@@ -12,6 +12,7 @@
 #include "vm.hpp"
 #include "constant_pool.hpp"
 #include "memory.hpp"
+#include "invoke_dynamic.hpp"
 
 namespace RexVM {
 
@@ -1082,6 +1083,14 @@ namespace RexVM {
             }
         }
 
+        void invokedynamic(Frame &frame) {
+            const auto index = frame.reader.readU2();
+            frame.reader.readU2(); //ignore zero
+
+            invokeDynamic(frame, index);
+
+        }
+
         void new_(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto &constantPool = frame.constantPool;
@@ -1131,7 +1140,7 @@ namespace RexVM {
         }
 
         void checkcast(Frame &frame) {
-            const auto index = frame.reader.readI2();
+            const auto index = frame.reader.readU2();
             const auto ref = frame.pop().refVal;
             frame.pushRef(ref);
             if (ref == nullptr) {
@@ -1149,7 +1158,7 @@ namespace RexVM {
         }
 
         void instanceof(Frame &frame) {
-            const auto index = frame.reader.readI2();
+            const auto index = frame.reader.readU2();
             const auto ref = frame.pop().refVal;
             if (ref == nullptr) {
                 frame.pushI4(0);
@@ -1214,6 +1223,9 @@ namespace RexVM {
                 case OpCodeEnum::RET:
                     panic("ret not implement!");
                 break;
+
+                default:
+                    panic("wide error");
             }
         }
 
@@ -1474,7 +1486,7 @@ namespace RexVM {
         ByteHandler::invokespecial, // = 183:  invokespecial
         ByteHandler::invokestatic, // = 184:  invokestatic
         ByteHandler::invokeinterface, // = 185:  invokeinterface
-        nullptr,// ByteHandler::invokedynamic, // = 186:  invokedynamic
+        ByteHandler::invokedynamic, // = 186:  invokedynamic
         ByteHandler::new_, // = 187:  new
         ByteHandler::newarray, // = 188:  newarray
         ByteHandler::anewarray, // = 189:  anewarray

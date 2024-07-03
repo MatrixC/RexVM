@@ -59,6 +59,7 @@ namespace RexVM {
 
         void runMethod(Method &runMethod_);
         void runMethod(Method &runMethod_, std::vector<Slot> params);
+        Slot runMethodGetReturn(Method &runMethod_, std::vector<Slot> params);
         void cleanOperandStack();
         
         [[nodiscard]] u4 pc() const;
@@ -119,6 +120,7 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *getThisInstance() const;
         [[nodiscard]] std::vector<Oop *> getLocalObjects() const;
   
+        void printCallStack() const;
     };
 
 }

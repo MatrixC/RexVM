@@ -6,6 +6,9 @@ namespace RexVM::Native::Core {
 
     void registerObjectCoreMethods(NativeManager &manager);
     void registerThreadCoreMethods(NativeManager &manager);
+    void registerClassCoreMethods(NativeManager &manager);
+    void registerRuntimeCoreMethods(NativeManager &manager);
+    void registerInvokeCoreMethods(NativeManager &manager);
 }
 
 #endif

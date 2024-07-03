@@ -67,6 +67,11 @@ namespace RexVM {
         createFrameAndRunMethod(thread, runMethod_, std::move(params), this);
     }
 
+    Slot Frame::runMethodGetReturn(Method &runMethod_, std::vector<Slot> params) {
+        runMethod(runMethod_, std::move(params));
+        return pop();
+    }
+
     void Frame::cleanOperandStack() {
         operandStackContext.reset();
     }
@@ -297,6 +302,15 @@ namespace RexVM {
             }
         }
         return result;
+    }
+
+    void Frame::printCallStack() const {
+        for (auto f = this; f != nullptr; f = f->previous) {
+            const auto &method = f->method;
+            const auto &klass = f->method.klass;
+            const auto nativeMethod = method.isNative();
+            cprintln("  {}#{}:{} {}", klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
+        }
     }
 
 }

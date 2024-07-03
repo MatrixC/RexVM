@@ -17,30 +17,30 @@ namespace RexVM {
 
     //Print Exception stack on stdout
     void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
-        //const auto throwInstanceClass = throwInstance->klass;
+        const auto throwInstanceClass = throwInstance->klass;
         const auto message = static_cast<InstanceOop *>(throwInstance->getFieldValue(throwableClassDetailMessageFieldSlotId).refVal);
         cstring messageStr;
         if (message != nullptr) {
             messageStr = ": " + StringPool::getJavaString(message);
         }
 
-        // cstring outMessage = cformat(
-        //         "Exception in thread \"{}\" {}{}",
-        //         frame.thread.name,
-        //         throwInstanceClass->name,
-        //         messageStr
-        // );
+        cstring outMessage = cformat(
+                "Exception in thread \"{}\" {}{}",
+                "main",
+                throwInstanceClass->name,
+                messageStr
+        );
 
-        // for (const auto &item : frame.throwObject->throwPath) {
-        //     //example. at ExceptionTest.p(ExceptionTest.java:13)
-        //     const auto [pathMethod, throwPc] = item;
-        //     const auto className = pathMethod.klass.name;
-        //     const auto methodName = pathMethod.name;
-        //     const auto lineNumber = pathMethod.getLineNumber(throwPc);
-        //     const auto sourceFileName = pathMethod.klass.sourceFile;
-        //     outMessage += cformat("\n\tat {}.{}({}:{})", className, methodName, sourceFileName, lineNumber);
-        // }
-        // cprintln("{}", outMessage);
+        for (const auto &item : frame.throwObject->throwPath) {
+            //example. at ExceptionTest.p(ExceptionTest.java:13)
+            const auto [pathMethod, throwPc] = item;
+            const auto className = pathMethod.klass.name;
+            const auto methodName = pathMethod.name;
+            const auto lineNumber = pathMethod.getLineNumber(throwPc);
+            const auto sourceFileName = pathMethod.klass.sourceFile;
+            outMessage += cformat("\n\tat {}.{}({}:{})", className, methodName, sourceFileName, lineNumber);
+        }
+        cprintln("{}", outMessage);
     }
 
     //return mark current frame return(throw to previous frame)
@@ -127,6 +127,7 @@ namespace RexVM {
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
                 frame.currentByteCode = frame.reader.readU1();
+                const auto pc __attribute__((unused)) = frame.pc();
                 const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markReturn) {
@@ -144,12 +145,6 @@ namespace RexVM {
             const auto nativeMethodHandler = method.nativeMethodHandler;
             if (nativeMethodHandler == nullptr) {
                 panic("executeFrame error, method " + method.klass.name + "#" + method.name + ":" + method.descriptor + " nativeMethodHandler is nullptr");
-            }
-            if (method.name == "wait") {
-                uint8_t* bytePtr = reinterpret_cast<uint8_t*>(nativeMethodHandler);
-                uint8_t byte1 = bytePtr[0];
-                uint8_t byte2 = bytePtr[1];
-                //cprintln("nativeMethod handler thread {}, ptr {}, byte1 {:#04x}, byte2 {:#04x}", (void*)&frame.thread, reinterpret_cast<uintptr_t>(nativeMethodHandler), byte1, byte2);
             }
             nativeMethodHandler(frame);
             if (frame.markReturn) {

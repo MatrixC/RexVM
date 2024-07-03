@@ -108,10 +108,9 @@ namespace RexVM {
             paramSlotSize += 1;
             paramSlotType.push_back(SlotTypeEnum::REF);
         }
-
-        std::tie(paramDesc, returnTypeDesc) = parseMethodDescriptor(descriptor);
-        paramSize = paramDesc.size();
-        for (const auto &desc: paramDesc) {
+        std::tie(paramType, returnType) = parseMethodDescriptor(descriptor);
+        paramSize = paramType.size();
+        for (const auto &desc: paramType) {
             const auto first = desc[0];
             paramSlotSize += 1;
             const auto slotType = getSlotTypeByDescriptorFirstChar(first);
@@ -208,9 +207,9 @@ namespace RexVM {
 
     std::vector<Class *> Method::getParamClasses() const {
         std::vector<Class *> classes;
-        for (const auto &desc: paramDesc) {
-            const auto className = getDescriptorClassName(desc);
-            classes.emplace_back(klass.classLoader.getClass(className));
+        for (const auto &desc: paramType) {
+            //const auto className = getDescriptorClassName(desc);
+            classes.emplace_back(klass.classLoader.getClass(desc));
         }
         return classes;
     }
@@ -229,9 +228,7 @@ namespace RexVM {
 
                 if (item->catchClass == nullptr) {
                     const auto &constantPool = klass.constantPool;
-                    const auto classConstInfo = 
-                        static_cast<ConstantClassInfo *>(constantPool.at(item->catchType).get());
-                    const auto exClassName = getConstantStringFromPool(constantPool, classConstInfo->index);
+                    const auto exClassName = getConstantStringFromPoolByIndexInfo(klass.constantPool, item->catchType);
                     if (exClass->name == exClassName) {
                         //Optimize[catchClass == exClass], needn't load Exception Class
                         return item->handler;

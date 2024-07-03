@@ -7,7 +7,6 @@ namespace RexVM::Native {
 
     void getPrimitiveClass(Frame &frame);
     void desiredAssertionStatus0(Frame &frame);
-    void getName0(Frame &frame);
     void getComponentType(Frame &frame);
     void forName0(Frame &frame);
     void getDeclaredFields0(Frame &frame);

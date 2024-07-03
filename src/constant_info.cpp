@@ -18,4 +18,58 @@ namespace RexVM {
             {ConstantTagEnum::CONSTANT_MethodType,         "MethodType"},
             {ConstantTagEnum::CONSTANT_InvokeDynamic,      "InvokeDynamic"},
     };
+
+
+    cstring getConstantString(ConstantInfo *info) {
+        return static_cast<ConstantUTF8Info *>(info)->str;
+    }
+
+    std::tuple<const u1 *, u2> getConstantStringBytes(ConstantInfo *info) {
+        auto utf8info = static_cast<ConstantUTF8Info *>(info);
+        return std::make_tuple(utf8info->bytes.get(), utf8info->length);
+    }
+
+    cstring
+    getConstantStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index) {
+        return getConstantString(pool.at(index).get());
+    }
+
+    std::tuple<const u1 *, u2>
+    getConstantStringBytesFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index) {
+        return getConstantStringBytes(pool.at(index).get());
+    }
+
+    cstring getConstantStringFromPoolByIndexInfo(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool,
+        const size_t index
+    ) {
+        return getConstantStringFromPool(
+            pool,
+            static_cast<Constant1IndexInfo *>(pool[index].get())->index
+        );
+    }
+
+    std::tuple<cstring, cstring> getConstantStringFromPoolByNameAndType(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool,
+        const size_t index
+    ) {
+        const auto nameAndTypeInfo = static_cast<ConstantNameAndTypeInfo *>(pool[index].get());
+        return std::make_tuple(
+            getConstantStringFromPool(pool, nameAndTypeInfo->nameIndex),
+            getConstantStringFromPool(pool, nameAndTypeInfo->descriptorIndex)
+        );
+    }
+
+    std::tuple<cstring, cstring, cstring> getConstantStringFromPoolByClassNameType(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool,
+        const size_t index
+    ) {
+        const auto classNameAndTypeInfo = static_cast<ConstantClassNameTypeIndexInfo *>(pool[index].get());
+        const auto [name, type] = getConstantStringFromPoolByNameAndType(pool, classNameAndTypeInfo->nameAndTypeIndex);
+        return std::make_tuple(
+            getConstantStringFromPoolByIndexInfo(pool, classNameAndTypeInfo->classIndex),
+            name,
+            type
+        );
+    }
 }

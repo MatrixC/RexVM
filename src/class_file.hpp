@@ -70,6 +70,8 @@ namespace RexVM {
         }
     };
 
+    using ConstantPoolRef = std::vector<std::unique_ptr<ConstantInfo>> &;
+
     struct ClassFile {
         u4 magic{};
         u2 minorVersion{};
@@ -115,6 +117,8 @@ namespace RexVM {
 
         ~ClassFile();
 
+        [[nodiscard]] AttributeInfo *getAssignAttribute(AttributeTagEnum tagEnum) const;
+
         [[nodiscard]] cstring getClassName(u2 classIndex) const;
 
         [[nodiscard]] cstring getThisClassName() const;
@@ -122,6 +126,8 @@ namespace RexVM {
         [[nodiscard]] cstring getSuperClassName() const;
 
         [[nodiscard]] cstring getSourceFile() const;
+
+        void getBootstrapMethods() const;
 
         [[nodiscard]] std::vector<cstring> getInterfaceNames() const;
     };

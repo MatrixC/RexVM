@@ -232,24 +232,31 @@ namespace RexVM {
         }
     };
 
-    inline cstring getConstantString(ConstantInfo *info) {
-        return static_cast<ConstantUTF8Info *>(info)->str;
-    }
+    cstring getConstantString(ConstantInfo *info);
 
-    inline std::tuple<const u1 *, u2> getConstantStringBytes(ConstantInfo *info) {
-        auto utf8info = static_cast<ConstantUTF8Info *>(info);
-        return std::make_tuple(utf8info->bytes.get(), utf8info->length);
-    }
+    std::tuple<const u1 *, u2> getConstantStringBytes(ConstantInfo *info);
 
-    inline cstring
-    getConstantStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index) {
-        return getConstantString(pool.at(index).get());
-    }
+    cstring getConstantStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index);
 
-    inline std::tuple<const u1 *, u2>
-    getConstantStringBytesFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index) {
-        return getConstantStringBytes(pool.at(index).get());
-    }
+    std::tuple<const u1 *, u2> getConstantStringBytesFromPool(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool, 
+        const size_t index
+    );
+
+    cstring getConstantStringFromPoolByIndexInfo(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool,
+        const size_t index
+    );
+
+    std::tuple<cstring, cstring> getConstantStringFromPoolByNameAndType(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool,
+        const size_t index
+    );
+
+    std::tuple<cstring, cstring, cstring> getConstantStringFromPoolByClassNameType(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool,
+        const size_t index
+    );
 
 
 }

@@ -66,7 +66,7 @@ namespace RexVM {
             {'J', BasicType::T_LONG},
             {'C', BasicType::T_CHAR},
             {'F', BasicType::T_FLOAT},
-           {'D', BasicType::T_DOUBLE},
+            {'D', BasicType::T_DOUBLE},
    };
 
     cstring typeArrayClassName(BasicType type) {

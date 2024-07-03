@@ -8,8 +8,8 @@ target("RexVM")
     set_toolchains("clang")
     -- set_toolset("debugger", "lldb")
     add_includedirs(
-        "src/third_party/miniz",
-        "src/third_party/fmt/include"
+        "third_party/miniz",
+        "third_party/fmt/include"
     )
     add_files(
         "src/*.cpp",
@@ -17,9 +17,9 @@ target("RexVM")
         "src/native/*.cpp",
         "src/native/core/*.cpp",
 
-        "src/third_party/miniz/miniz.c"
+        "third_party/miniz/miniz.c"
     )
     -- set_warnings("all", "error")
 
     -- set_policy("build.sanitizer.address", true)
-    set_policy("build.sanitizer.undefined", true)
+    -- set_policy("build.sanitizer.undefined", true)

@@ -5,6 +5,10 @@
 
 #include "java_lang_object.hpp"
 #include "java_lang_thread.hpp"
+#include "java_lang_class.hpp"
+#include "java_lang_runtime.hpp"
+
+#include "java_lang_invoke_method_handle_natives.hpp"
 
 namespace RexVM::Native::Core {
 
@@ -38,4 +42,21 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_LANG_THREAD_NAME, "suspend0", "()V", false, Native::Core::suspend0);
         manager.regNativeMethod(JAVA_LANG_THREAD_NAME, "resume0", "()V", false, Native::Core::resume0);
     }
+
+    void registerClassCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_CLASS_NAME, "getName0", "()Ljava/lang/String;", true, Native::Core::getName0);
+        manager.regNativeMethod(JAVA_LANG_CLASS_NAME, "getEnclosingMethod0", "()[Ljava/lang/Object;", false, Native::Core::getEnclosingMethod0);    
+        manager.regNativeMethod(JAVA_LANG_CLASS_NAME, "getDeclaringClass0", "()Ljava/lang/Class;", false, Native::Core::getDeclaringClass0);
+    }
+
+    void registerRuntimeCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_RUNTIME_NAME, "availableProcessors", "()I", true, Native::Core::availableProcessors);
+    }
+
+    constexpr auto JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS = "java/lang/invoke/MethodHandleNatives";
+    void registerInvokeCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS, "getConstant", "(I)I", true, Native::Core::getConstant);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS, "resolve", "(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;", true, Native::Core::getConstant);
+    }
+
 }

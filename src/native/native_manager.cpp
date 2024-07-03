@@ -55,7 +55,6 @@ namespace RexVM {
 
         regNativeMethod(JAVA_LANG_CLASS_NAME, "getPrimitiveClass", "(Ljava/lang/String;)Ljava/lang/Class;", true, Native::getPrimitiveClass);
         regNativeMethod(JAVA_LANG_CLASS_NAME, "desiredAssertionStatus0", "(Ljava/lang/Class;)Z", true, Native::desiredAssertionStatus0);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "getName0", "()Ljava/lang/String;", true, Native::getName0);
         regNativeMethod(JAVA_LANG_CLASS_NAME, "getComponentType", "()Ljava/lang/Class;", true, Native::getComponentType);
         regNativeMethod(JAVA_LANG_CLASS_NAME, "forName0", "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;", true, Native::forName0);
         regNativeMethod(JAVA_LANG_CLASS_NAME, "getDeclaredFields0", "(Z)[Ljava/lang/reflect/Field;", true, Native::getDeclaredFields0);
@@ -122,6 +121,9 @@ namespace RexVM {
 
         Native::Core::registerObjectCoreMethods(*this);
         Native::Core::registerThreadCoreMethods(*this);
+        Native::Core::registerClassCoreMethods(*this);
+        Native::Core::registerRuntimeCoreMethods(*this);
+        Native::Core::registerInvokeCoreMethods(*this);
     }
 
 

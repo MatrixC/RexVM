@@ -12,6 +12,7 @@ namespace RexVM {
     bool endsWith(cview str, cview suffix);
 
     cstring concat_view(cview str1, cview str2);
+    cstring concat_view(cview str1, cview str2, cview str3);
 
     cstring replace(cstring src, const cstring& search, const cstring& replace);
 

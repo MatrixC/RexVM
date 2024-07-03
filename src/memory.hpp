@@ -22,6 +22,11 @@ namespace RexVM {
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length);
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer);
         [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length);
+        [[nodiscard]] InstanceOop *newIntegerOop(i4 value);
+        [[nodiscard]] InstanceOop *newFloatOop(f4 value);
+        [[nodiscard]] InstanceOop *newLongOop(i8 value);
+        [[nodiscard]] InstanceOop *newDoubleOop(f8 value);
+
 
         VMThread *newVMThread(InstanceClass * const klass);
         VMThread *newMainVMThread(Method &method, std::vector<Slot> params);

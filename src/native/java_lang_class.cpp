@@ -22,13 +22,6 @@ namespace RexVM::Native {
         frame.returnI4(0);
     }
 
-    void getName0(Frame &frame) {
-        const auto instance = dynamic_cast<MirrorOop *>(frame.getThis());
-        const auto mirrorClass = instance->mirrorClass;
-        auto strOop = frame.vm.stringPool->getInternString(mirrorClass->name);
-        frame.returnRef(strOop);
-    }
-
     void getComponentType(Frame &frame) {
         const auto instance = static_cast<MirrorOop *>(frame.getLocalRef(0));
         const auto mirrorClass = instance->mirrorClass;

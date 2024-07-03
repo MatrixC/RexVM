@@ -25,6 +25,7 @@ namespace RexVM {
     inline const cstring JAVA_LANG_THROWABLE_NAME = "java/lang/Throwable";
     inline const cstring JAVA_LANG_CLONEABLE_NAME = "java/lang/Cloneable";
     inline const cstring JAVA_IO_SERIALIZABLE_NAME = "java/io/Serializable";
+    inline const cstring JAVA_LANG_RUNTIME_NAME = "java/lang/Runtime";
 
     enum class BasicJavaClassEnum : size_t {
         JAVA_LANG_OBJECT,
@@ -46,6 +47,7 @@ namespace RexVM {
         JAVA_LANG_THROWABLE,
         JAVA_LANG_CLONEABLE,
         JAVA_IO_SERIALIZABLE,
+        JAVA_LANG_RUNTIME,
         COUNT,
     };
     constexpr auto BASIC_JAVA_CLASS_ENUM_COUNT = static_cast<size_t>(BasicJavaClassEnum::COUNT) + 1;

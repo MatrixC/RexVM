@@ -7,6 +7,7 @@
 #include <memory>
 #include <unordered_map>
 #include "class_member.hpp"
+#include "attribute_info.hpp"
 
 namespace RexVM {
 
@@ -71,6 +72,12 @@ namespace RexVM {
 
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<std::unique_ptr<Method>> methods;
+        std::unique_ptr<AttributeInfo> bootstrapMethodsAttr;
+        std::unique_ptr<AttributeInfo> enclosingMethodAttr;
+        std::unique_ptr<AttributeInfo> innerClassesAttr;
+        [[nodiscard]] BootstrapMethodsAttribute *getBootstrapMethodAttr() const;
+        [[nodiscard]] EnclosingMethodAttribute *getEnclosingMethodAttr() const;
+        [[nodiscard]] InnerClassesAttribute *getInnerClassesAttr() const;
 
         std::unique_ptr<Slot[]> staticData;
         cstring sourceFile{};
@@ -102,8 +109,6 @@ namespace RexVM {
 
 
     };
-
-    struct ObjArrayClass;
 
     struct ArrayClass : InstanceClass {
         size_t dimension{1};

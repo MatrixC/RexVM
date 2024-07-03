@@ -140,6 +140,23 @@ namespace RexVM {
             Class(ClassTypeEnum::InstanceClass, cf.accessFlags, cf.getThisClassName(), classLoader) {
 
         sourceFile = cf.getSourceFile();
+        for (auto &attribute: cf.attributes) {
+            const auto attributeName = getConstantStringFromPool(cf.constantPool, (const size_t) attribute->attributeNameIndex);
+            const auto attributeTypeEnum = ATTRIBUTE_NAME_TAG_MAP.at(attributeName);
+            switch (attributeTypeEnum) {
+                case AttributeTagEnum::BOOTSTRAP_METHODS:
+                    bootstrapMethodsAttr = std::move(attribute);
+                break;
+
+                case AttributeTagEnum::ENCLOSING_METHOD:
+                    enclosingMethodAttr = std::move(attribute);
+                break;
+
+                case AttributeTagEnum::INNER_CLASSES:
+                    innerClassesAttr = std::move(attribute);
+                break;
+            }
+        }
 
         fields.reserve(cf.fieldCount);
         for (const auto &fieldInfo: cf.fields) {
@@ -244,10 +261,8 @@ namespace RexVM {
                 } else if (descriptor == "D") {
                     data = Slot(static_cast<ConstantDoubleInfo *>(constValue.get())->value);
                 } else if (descriptor == "Ljava/lang/String;") {
-                    auto stringConstInfo = static_cast<ConstantStringInfo *>(constValue.get());
-                    const auto &utf8Value = constantPool.at(stringConstInfo->index);
                     auto strOop = classLoader.vm.stringPool->getInternString(
-                            static_cast<ConstantUTF8Info *>(utf8Value.get())->str
+                        getConstantStringFromPoolByIndexInfo(constantPool, field->constantValueIndex)
                     );
                     data = Slot(strOop);
                 }
@@ -272,6 +287,18 @@ namespace RexVM {
                 }
             }
         }
+    }
+
+    BootstrapMethodsAttribute *InstanceClass::getBootstrapMethodAttr() const {
+        return static_cast<BootstrapMethodsAttribute *>(bootstrapMethodsAttr.get());
+    }
+
+    EnclosingMethodAttribute *InstanceClass::getEnclosingMethodAttr() const {
+        return static_cast<EnclosingMethodAttribute *>(enclosingMethodAttr.get());
+    }
+
+    InnerClassesAttribute *InstanceClass::getInnerClassesAttr() const {
+        return static_cast<InnerClassesAttribute *>(innerClassesAttr.get());
     }
 
 
@@ -320,12 +347,7 @@ namespace RexVM {
     }
 
     ClassMember *InstanceClass::getMemberByRefIndex(size_t refIndex, ClassMemberTypeEnum type, bool isStatic) const {
-        const auto memberInfo = static_cast<ConstantClassNameTypeIndexInfo *>(constantPool.at(refIndex).get());
-        const auto classInfo = static_cast<ConstantClassInfo *>(constantPool.at(memberInfo->classIndex).get());
-        const auto className = getConstantStringFromPool(constantPool, classInfo->index);
-        const auto nameAndTypeInfo = static_cast<ConstantNameAndTypeInfo *>(constantPool.at(memberInfo->nameAndTypeIndex).get());
-        const auto memberName = getConstantStringFromPool(constantPool, nameAndTypeInfo->nameIndex);
-        const auto memberDescriptor = getConstantStringFromPool(constantPool, nameAndTypeInfo->descriptorIndex);
+        const auto [className, memberName, memberDescriptor] = getConstantStringFromPoolByClassNameType(constantPool, refIndex);
         const auto memberClass = classLoader.getClass(className);
         const auto memberInstanceClass = 
             memberClass->isArray() ? 

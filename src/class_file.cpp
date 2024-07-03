@@ -166,6 +166,10 @@ namespace RexVM {
         parseClassAttributes(is);
     }
 
+    AttributeInfo *ClassFile::getAssignAttribute(AttributeTagEnum tagEnum) const {
+        return getAssignAttributeByConstantPool(constantPool, attributes, tagEnum);
+    }
+
     cstring ClassFile::getClassName(u2 classIndex) const {
         auto classInfo = static_cast<ConstantClassInfo *>(constantPool.at(classIndex).get());
         return getConstantStringFromPool(constantPool, classInfo->index);
@@ -183,12 +187,7 @@ namespace RexVM {
     }
 
     cstring ClassFile::getSourceFile() const {
-        const auto sourceFileAttribute = 
-            getAssignAttributeByConstantPool(
-                constantPool, 
-                attributes, 
-                AttributeTagEnum::SOURCE_FILE
-            );
+        const auto sourceFileAttribute = getAssignAttribute(AttributeTagEnum::SOURCE_FILE);
 
         if (sourceFileAttribute == nullptr) {
             return EMPTY_STRING;
@@ -196,6 +195,16 @@ namespace RexVM {
 
         const auto nameIndex = (static_cast<SourceFileAttribute *>(sourceFileAttribute))->sourceFileIndex;
         return getConstantStringFromPool(constantPool, nameIndex);
+    }
+
+    void ClassFile::getBootstrapMethods() const {
+        const auto oriAttribute = getAssignAttribute(AttributeTagEnum::BOOTSTRAP_METHODS);
+
+        if (oriAttribute == nullptr) {
+            return;
+        }
+
+        const auto bootstrapMethodAttribute = static_cast<BootstrapMethodsAttribute *>(oriAttribute);
     }
 
     std::vector<cstring> ClassFile::getInterfaceNames() const {

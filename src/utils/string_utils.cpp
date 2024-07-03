@@ -33,6 +33,13 @@ namespace RexVM {
         return result;
     }
 
+    cstring concat_view(cview str1, cview str2, cview str3) {
+        cstring result(str1);
+        result += str2;
+        result += str3;
+        return result;
+    }
+
     cstring replace(cstring src, const cstring& search, const cstring& replace) {
         size_t pos = 0;
         while ((pos = src.find(search, pos)) != std::string::npos) {

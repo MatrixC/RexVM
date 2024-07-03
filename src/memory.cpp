@@ -105,6 +105,34 @@ namespace RexVM {
         return oop;
     }
 
+    InstanceOop *OopManager::newIntegerOop(i4 value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INTEGER);
+        const auto integerOop = newInstance(klass);
+        integerOop->setFieldValue("value", "I", Slot(value));
+        return integerOop;
+    }
+
+    InstanceOop *OopManager::newFloatOop(f4 value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_FLOAT);
+        const auto integerOop = newInstance(klass);
+        integerOop->setFieldValue("value", "F", Slot(value));
+        return integerOop;
+    }
+
+    InstanceOop *OopManager::newLongOop(i8 value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_LONG);
+        const auto integerOop = newInstance(klass);
+        integerOop->setFieldValue("value", "J", Slot(value));
+        return integerOop;
+    }
+
+    InstanceOop *OopManager::newDoubleOop(f8 value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_DOUBLE);
+        const auto integerOop = newInstance(klass);
+        integerOop->setFieldValue("value", "D", Slot(value));
+        return integerOop;
+    }
+
 
     void traceOop(Oop * const oop, std::unordered_set<Oop *> &tracedOop) {
         if (oop == nullptr) {
