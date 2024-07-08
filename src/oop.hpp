@@ -46,7 +46,7 @@ namespace RexVM {
         std::unique_ptr<Slot[]> data;
 
         explicit InstanceOop(InstanceClass *klass, size_t dataLength);
-        explicit InstanceOop(InstanceClass *klassd);
+        explicit InstanceOop(InstanceClass *klass);
         ~InstanceOop() override;
 
         void setFieldValue(size_t index, Slot value) const;
@@ -63,6 +63,7 @@ namespace RexVM {
 
     struct MirrorOop : InstanceOop {
         Class *mirrorClass;
+        std::unique_ptr<InstanceOop> constantPoolOop;
 
         explicit MirrorOop(InstanceClass *klass, Class *mirrorClass);
     };

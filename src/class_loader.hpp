@@ -53,7 +53,7 @@ namespace RexVM {
 
         InstanceClass *loadInstanceClass(std::istream &is);
 
-        void initMirrorClass(Class *klass) const;
+        void initMirrorClass(Class *klass);
     };
 
 

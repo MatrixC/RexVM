@@ -121,14 +121,21 @@ namespace RexVM {
         if (method.name == "loadLibrary" && frame.klass.name == JAVA_LANG_SYSTEM_NAME) {
             return;
         }
+
+        if (method.klass.name == "java/util/concurrent/atomic/AtomicReferenceFieldUpdater$AtomicReferenceFieldUpdaterImpl" && method.name == "<init>") {
+            (void)0;
+        }
         //println("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
+            std::vector<u4> pcList;
             while (!byteReader.eof()) {
                 frame.currentByteCode = frame.reader.readU1();
                 const auto pc __attribute__((unused)) = frame.pc();
                 const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
+                const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
+                pcList.emplace_back(pc);
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markReturn) {
                     checkAndPassReturnValue(frame);

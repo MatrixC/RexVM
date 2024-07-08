@@ -31,6 +31,7 @@ namespace RexVM {
         return {};
     }
 
+    //解析出descriptor中对应的类名, primitive类型也用int, long等实际类名
     std::vector<cstring> parseDescriptor(const cview str) {
         size_t currentIndex = 0;
         const auto size = str.size();
@@ -53,7 +54,11 @@ namespace RexVM {
                     arrayLength == 0 ?
                         cstring(typeView) :
                         concat_view(str.substr(currentIndex, arrayLength), typeView);
-            types.emplace_back(type);
+            if (type.size() == 1 && isBasicType(type[0])) {
+                types.emplace_back(PRIMITIVE_TYPE_REVERSE_MAP.at(type)); 
+            } else {
+                types.emplace_back(type);
+            }
             currentIndex += type.size();
             if (typeFirstChar == 'L' && !isArray) {
                 //skip Instance Class Name 'L' and ':'

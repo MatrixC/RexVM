@@ -57,6 +57,8 @@ namespace RexVM {
         explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame);
         ~Frame();
 
+        ClassLoader *getCurrentClassLoader() const;
+
         void runMethod(Method &runMethod_);
         void runMethod(Method &runMethod_, std::vector<Slot> params);
         Slot runMethodGetReturn(Method &runMethod_, std::vector<Slot> params);

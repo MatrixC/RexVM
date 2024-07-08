@@ -89,12 +89,16 @@ namespace RexVM {
         std::unique_ptr<u1[]> code;
         std::vector<std::unique_ptr<ExceptionCatchItem>> exceptionCatches;
         std::vector<std::unique_ptr<LineNumberItem>> lineNumbers;
+        std::vector<u2> exceptionsIndex;
 
         size_t runtimeVisibleParameterAnnotationLength;
         std::unique_ptr<u1[]> runtimeVisibleParameterAnnotation;
 
         size_t runtimeVisibleTypeAnnotationLength;
         std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
+
+        size_t annotationDefaultLength;
+        std::unique_ptr<u1[]> annotationDefault;
 
         std::vector<cstring> paramType;
         cstring returnType;
@@ -118,6 +122,15 @@ namespace RexVM {
         [[nodiscard]] u4 getLineNumber(u4 pc) const;
 
         ~Method() override;
+
+
+        private:
+        void initParamSlotSize();
+        void initAnnotations(FMBaseInfo *info);
+        void initCode(FMBaseInfo *info);
+        void initExceptions(FMBaseInfo *info);
+
+
     };
 
 

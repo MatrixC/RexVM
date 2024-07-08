@@ -23,16 +23,10 @@ namespace RexVM {
 
     void ClassLoader::loadBasicClass() {
         std::lock_guard<std::recursive_mutex> lock(clMutex);
-        for (const auto &item : PRIMITIVE_TYPE_MAP) {
-            const auto name = item.first;
-            auto klass = std::make_unique<Class>(
-                ClassTypeEnum::PrimitiveClass,
-                static_cast<u2>(AccessFlagEnum::ACC_PUBLIC),
-                name,
-                *this
-            );
+        for (const auto item : PRIMITIVE_TYPE_ARRAY) {
+            auto klass = std::make_unique<PrimitiveClass>(item, *this);
             klass->superClass = getInstanceClass(JAVA_LANG_OBJECT_NAME);
-            classMap.emplace(name, std::move(klass));
+            classMap.emplace(klass->name, std::move(klass));
         }
     
         mirrorClass = getInstanceClass(JAVA_LANG_CLASS_NAME);
@@ -118,9 +112,10 @@ namespace RexVM {
     }
 
 
-    void ClassLoader::initMirrorClass(Class *klass) const {
+    void ClassLoader::initMirrorClass(Class *klass) {
         if (klass->mirror == nullptr) {
             if (mirrorClass != nullptr) {
+
                 /*
                 auto mirror = new MirrorOop(mirrorClass, klass);
                 if (classLoaderInstance != nullptr) {
@@ -129,11 +124,15 @@ namespace RexVM {
                 }
                 klass->mirror = mirror;
                 */
-              klass->mirror = std::make_unique<MirrorOop>(mirrorClass, klass);
+                klass->mirror = std::make_unique<MirrorOop>(mirrorClass, klass);
+                // if (klass->type == ClassTypeEnum::InstanceClass) {
+                //     const auto constantPoolClass = getInstanceClass("sun/reflect/ConstantPool");
+                //     klass->mirror->constantPoolOop = std::make_unique<InstanceOop>(constantPoolClass);
+                //     klass->mirror->constantPoolOop->setFieldValue("constantPoolOop", "Ljava/lang/Object", Slot(klass->mirror.get()));
+                // }
             }
         }
     }
-
 
     InstanceClass *ClassLoader::getInstanceClass(const cstring &name) {
         return static_cast<InstanceClass *>(getClass(name));
@@ -149,9 +148,13 @@ namespace RexVM {
     }
 
     ObjArrayClass *ClassLoader::getObjectArrayClass(const cstring &name) {
+        const auto firstChar = name[0];
+        if (firstChar == '[') {
+            return static_cast<ObjArrayClass *>(getClass(name));
+        }
         const auto prefix = "[";
-        const auto className = prefix + getDescriptorClassName(name);
-        return static_cast<ObjArrayClass *>(getClass(className));
+        const auto arrayClassName = prefix + getDescriptorClassName(name);
+        return static_cast<ObjArrayClass *>(getClass(arrayClassName));
     }
 
     void ClassLoader::initBasicJavaClass() {

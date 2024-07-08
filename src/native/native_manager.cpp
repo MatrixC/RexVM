@@ -1,9 +1,7 @@
 #include "native_manager.hpp"
 #include "../basic_java_class.hpp"
-#include "java_lang_class.hpp"
 #include "java_lang_system.hpp"
 #include "java_lang_float.hpp"
-#include "java_lang_string.hpp"
 #include "java_lang_throwable.hpp"
 #include "java_util_atomic.hpp"
 #include "java_io_file_output_stream.hpp"
@@ -52,20 +50,7 @@ namespace RexVM {
         regNativeMethod("Fto", "println", "(Ljava/lang/String;)V", true, Native::selfPrintln);
         regNativeMethod("Fto", "println", "(I)V", true, Native::selfPrintlnInt);
        
-
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "getPrimitiveClass", "(Ljava/lang/String;)Ljava/lang/Class;", true, Native::getPrimitiveClass);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "desiredAssertionStatus0", "(Ljava/lang/Class;)Z", true, Native::desiredAssertionStatus0);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "getComponentType", "()Ljava/lang/Class;", true, Native::getComponentType);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "forName0", "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;", true, Native::forName0);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "getDeclaredFields0", "(Z)[Ljava/lang/reflect/Field;", true, Native::getDeclaredFields0);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "getDeclaredConstructors0", "(Z)[Ljava/lang/reflect/Constructor;", true, Native::getDeclaredConstructors0);
-
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "isPrimitive", "()Z", true, Native::isPrimitive);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "isInterface", "()Z", true, Native::isInterface);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "isArray", "()Z", true, Native::isArray);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "isAssignableFrom", "(Ljava/lang/Class;)Z", true, Native::isAssignableFrom);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "getModifiers", "()I", true, Native::getModifiers);
-        regNativeMethod(JAVA_LANG_CLASS_NAME, "getSuperclass", "()Ljava/lang/Class;", true, Native::getSuperclass);
+        
 
 
         regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setIn0", "(Ljava/io/InputStream;)V", false, Native::setIn0);
@@ -82,7 +67,6 @@ namespace RexVM {
         regNativeMethod(JAVA_LANG_FLOAT_NAME, "intBitsToFloat", "(I)F", false, Native::intBitsToFloat);
         regNativeMethod(JAVA_LANG_DOUBLE_NAME, "doubleToRawLongBits", "(D)J", false, Native::doubleToRawLongBits);
         regNativeMethod(JAVA_LANG_DOUBLE_NAME, "longBitsToDouble", "(J)D", false, Native::longBitsToDouble);
-        regNativeMethod(JAVA_LANG_STRING_NAME, "intern", "()Ljava/lang/String;", false, Native::intern);
 
         regNativeMethod("java/io/FileOutputStream", "writeBytes", "([BIIZ)V", false, Native::writeBytes);
 
@@ -119,11 +103,7 @@ namespace RexVM {
 
         regNativeMethod("java/util/concurrent/atomic/AtomicLong", "VMSupportsCS8", "()Z", false, Native::vmSupportsCS8);
 
-        Native::Core::registerObjectCoreMethods(*this);
-        Native::Core::registerThreadCoreMethods(*this);
-        Native::Core::registerClassCoreMethods(*this);
-        Native::Core::registerRuntimeCoreMethods(*this);
-        Native::Core::registerInvokeCoreMethods(*this);
+        Native::Core::registerCoreMethods(*this);
     }
 
 

@@ -60,7 +60,8 @@ namespace RexVM {
     }
 
     bool VMThread::isAlive() const {
-        return getStatus() != ThreadStatusEnum::TERMINATED;
+        const auto status = getStatus();
+        return status != ThreadStatusEnum::NEW && status != ThreadStatusEnum::TERMINATED;
     }
 
     void VMThread::join() {

@@ -27,4 +27,14 @@ namespace RexVM {
         panic("error descriptor");
         return {};
     }
+
+    cstring getDescriptorByClass(Class *klass) {
+        if (klass->type == ClassTypeEnum::PrimitiveClass) {
+            return PRIMITIVE_TYPE_MAP.at(klass->name);
+        } else if (klass->type == ClassTypeEnum::InstanceClass) {
+            return getDescriptorClassName(klass->name);
+        } else {
+            return klass->name;
+        }
+    }
 }

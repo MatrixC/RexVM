@@ -54,20 +54,8 @@ namespace RexVM {
 
     bool isBasicType(cchar type) {
         return type == 'Z' || type == 'B' || type == 'S' || type == 'I' ||
-               type == 'J' || type == 'C' || type == 'F' || type == 'D';
+               type == 'J' || type == 'C' || type == 'F' || type == 'D' || type == 'V';
     }
-
-    const std::unordered_map<cchar, BasicType> DESCRIPTOR_BASIC_TYPE_MAP{
-            {'V', BasicType::T_VOID},
-            {'Z', BasicType::T_BOOLEAN},
-            {'B', BasicType::T_BYTE},
-            {'S', BasicType::T_SHORT},
-            {'I', BasicType::T_INT},
-            {'J', BasicType::T_LONG},
-            {'C', BasicType::T_CHAR},
-            {'F', BasicType::T_FLOAT},
-            {'D', BasicType::T_DOUBLE},
-   };
 
     cstring typeArrayClassName(BasicType type) {
         switch (type) {
@@ -94,4 +82,43 @@ namespace RexVM {
         }
         return {};
     }
+
+    cstring basicTypeClassName(BasicType type) {
+        switch (type) {
+            case BasicType::T_BOOLEAN:
+                return "boolean";
+            case BasicType::T_CHAR:
+                return "char";
+            case BasicType::T_FLOAT:
+                return "float";
+            case BasicType::T_DOUBLE:
+                return "double";
+            case BasicType::T_BYTE:
+                return "byte";
+            case BasicType::T_SHORT:
+                return "short";
+            case BasicType::T_INT:
+                return "int";
+            case BasicType::T_LONG:
+                return "long";
+            case BasicType::T_VOID:
+                return "void";
+            default:
+                panic("type error");
+                break;
+        }
+        return {};
+    }
+
+    const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY = {
+        BasicType::T_BOOLEAN,
+        BasicType::T_CHAR,
+        BasicType::T_FLOAT,
+        BasicType::T_DOUBLE,
+        BasicType::T_BYTE,
+        BasicType::T_SHORT,
+        BasicType::T_INT,
+        BasicType::T_LONG,
+        BasicType::T_VOID,
+    };
 }

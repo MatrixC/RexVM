@@ -197,6 +197,17 @@ namespace RexVM {
         return getConstantStringFromPool(constantPool, nameIndex);
     }
 
+    cstring ClassFile::getSignature() const {
+        const auto signatureAttribute = getAssignAttribute(AttributeTagEnum::SIGNATURE);
+
+        if (signatureAttribute == nullptr) {
+            return EMPTY_STRING;
+        }
+
+        const auto nameIndex = (static_cast<SignatureAttribute *>(signatureAttribute))->signatureIndex;
+        return getConstantStringFromPool(constantPool, nameIndex);    
+    }
+
     void ClassFile::getBootstrapMethods() const {
         const auto oriAttribute = getAssignAttribute(AttributeTagEnum::BOOTSTRAP_METHODS);
 

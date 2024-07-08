@@ -7,10 +7,13 @@ namespace RexVM {
     struct Oop;
     struct ClassLoader;
     struct ByteTypeArrayOop;
+    struct Class;
 
     cstring getDescriptorClassName(const cstring &className);
 
     cstring getClassNameByFieldDescriptor(const cstring &descriptor);
+
+    cstring getDescriptorByClass(Class *klass);
 }
 
 #endif

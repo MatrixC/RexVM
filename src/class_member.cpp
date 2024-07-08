@@ -103,26 +103,46 @@ namespace RexVM {
 
     Method::Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
             ClassMember(ClassMemberTypeEnum::METHOD, klass, info, cf) {
+        
+        initParamSlotSize();
+        initAnnotations(info);
+        initCode(info);
+        initExceptions(info);
+    }
+
+    void Method::initParamSlotSize() {
         if (!isStatic()) {
             paramSize += 1;
             paramSlotSize += 1;
-            paramSlotType.push_back(SlotTypeEnum::REF);
+            paramSlotType.emplace_back(SlotTypeEnum::REF);
         }
         std::tie(paramType, returnType) = parseMethodDescriptor(descriptor);
-        paramSize = paramType.size();
+        paramSize += paramType.size();
         for (const auto &desc: paramType) {
-            const auto first = desc[0];
             paramSlotSize += 1;
-            const auto slotType = getSlotTypeByDescriptorFirstChar(first);
 
-            paramSlotType.push_back(slotType);
+            SlotTypeEnum slotType;
+            if (desc == "boolean" || desc == "byte" || desc == "short" || desc == "int" || desc == "char") {
+                slotType = SlotTypeEnum::I4;
+            } else if (desc == "long") {
+                slotType = SlotTypeEnum::I8;
+            } else if (desc == "float") {
+                slotType = SlotTypeEnum::F4;
+            } else if (desc == "double") {
+                slotType = SlotTypeEnum::F8;
+            } else {
+                slotType = SlotTypeEnum::REF;
+            }
+            paramSlotType.emplace_back(slotType);
 
             if (isWideSlotType(slotType)) {
                 paramSlotSize += 1;
                 paramSlotType.push_back(slotType);
             }
         }
+    }
 
+    void Method::initAnnotations(FMBaseInfo *info) {
         if (const auto runtimeVisibleParameterAnnotationAttribute =
                     static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
                             AttributeTagEnum::RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS));
@@ -139,6 +159,16 @@ namespace RexVM {
             runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
         }
 
+        if (const auto annotationDefaultAttribute =
+                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                            AttributeTagEnum::ANNOTATION_DEFAULT));
+                annotationDefaultAttribute != nullptr) {
+            annotationDefaultLength = annotationDefaultAttribute->attributeLength;
+            annotationDefault = std::move(annotationDefaultAttribute->bytes);
+        }
+    }
+
+    void Method::initCode(FMBaseInfo *info) {
         if (isNative()) {
             nativeMethodHandler =
                     NativeManager::instance.getNativeMethod(
@@ -189,6 +219,14 @@ namespace RexVM {
         }
     }
 
+    void Method::initExceptions(FMBaseInfo *info) {
+        const auto exceptionsAttribute = static_cast<ExceptionsAttribute *>(info->getAssignAttribute(AttributeTagEnum::EXCEPTIONS));
+        if (exceptionsAttribute != nullptr) {
+            exceptionsIndex.reserve(exceptionsAttribute->numberOfExceptions);
+            exceptionsIndex.assign(exceptionsAttribute->exceptionIndexTable.begin(), exceptionsAttribute->exceptionIndexTable.end());
+        }
+    }
+
     bool Method::isNative() const {
         return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_NATIVE)) != 0;
     }
@@ -208,7 +246,6 @@ namespace RexVM {
     std::vector<Class *> Method::getParamClasses() const {
         std::vector<Class *> classes;
         for (const auto &desc: paramType) {
-            //const auto className = getDescriptorClassName(desc);
             classes.emplace_back(klass.classLoader.getClass(desc));
         }
         return classes;

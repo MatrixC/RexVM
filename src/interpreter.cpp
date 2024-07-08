@@ -1094,8 +1094,7 @@ namespace RexVM {
         void new_(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto &constantPool = frame.constantPool;
-            const auto classInfo = static_cast<ConstantClassInfo *>(constantPool.at(index).get());
-            const auto className = getConstantStringFromPool(constantPool, classInfo->index);
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto instanceClass = frame.classLoader.getInstanceClass(className);
             instanceClass->clinit(frame);
             const auto &oopManager = frame.vm.oopManager;
@@ -1122,8 +1121,7 @@ namespace RexVM {
             const auto classIndex = frame.reader.readU2();
             const auto length = frame.popI4();
             const auto &constantPool = frame.constantPool;
-            const auto classConstInfo = static_cast<ConstantClassInfo *>(constantPool.at(classIndex).get());
-            const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, classIndex);
             const auto array = frame.classLoader.getObjectArrayClass(className);
             frame.pushRef(oopManager->newObjArrayOop(array, length));
         }
@@ -1147,9 +1145,7 @@ namespace RexVM {
                 return;
             }
             const auto &constantPool = frame.constantPool;
-            const auto valPtr = constantPool.at(index).get();
-            const auto classConstInfo = static_cast<ConstantClassInfo *>(valPtr);
-            const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto checkClass = frame.classLoader.getClass(className);
             if (!ref->isInstanceOf(checkClass)) {
                 //TODO frameThrow
@@ -1165,9 +1161,7 @@ namespace RexVM {
                 return;
             }
             const auto &constantPool = frame.constantPool;
-            const auto valPtr = constantPool.at(index).get();
-            const auto classConstInfo = static_cast<ConstantClassInfo *>(valPtr);
-            const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto checkClass = frame.classLoader.getClass(className);
             if (ref->isInstanceOf(checkClass)) {
                 frame.pushI4(1);
@@ -1261,10 +1255,7 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             const auto dimension = frame.reader.readU1();
             const auto &constantPool = frame.constantPool;
-            const auto infoPtr = constantPool.at(index).get(); 
-            const auto classConstInfo = static_cast<ConstantClassInfo *>(infoPtr);
-            const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
-
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             auto dimLength = std::make_unique<i4[]>(dimension);
             for (i4 i = dimension - 1; i >= 0; --i) {
                 dimLength[i] = frame.popI4();

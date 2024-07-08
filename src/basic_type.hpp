@@ -2,6 +2,7 @@
 #define BASIC_TYPE_HPP
 
 #include <unordered_map>
+#include <array>
 #include "config.hpp"
 #include "exception.hpp"
 
@@ -26,11 +27,12 @@ namespace RexVM {
         T_ILLEGAL = 255,
     };
 
-    extern const std::unordered_map<cchar, BasicType> DESCRIPTOR_BASIC_TYPE_MAP;
     extern const std::unordered_map<cstring, cstring> PRIMITIVE_TYPE_MAP;
     extern const std::unordered_map<cstring, cstring> PRIMITIVE_TYPE_REVERSE_MAP;
+    extern const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY;
 
     extern cstring typeArrayClassName(BasicType type);
+    cstring basicTypeClassName(BasicType type);
     BasicType getBasicType(cchar type);
     bool isBasicType(cchar type);
 

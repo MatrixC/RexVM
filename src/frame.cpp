@@ -55,6 +55,14 @@ namespace RexVM {
 
     Frame::~Frame() = default;
 
+    ClassLoader *Frame::getCurrentClassLoader() const {
+        //TODO: This klass's class loader
+        return vm.bootstrapClassLoader.get();
+    }
+
+    //java方法执行过程中用
+    //先pop上一个Frame，移动其sp。因为新Frame的Top是根据上一个Frame的操作数栈sp来计算的
+    //所以可以直接将新Frame的Local区对齐到上个Frame push的参数起点，用来减少一次参数写入
     void Frame::runMethod(Method &runMethod_) {
         const auto slotSize = runMethod_.paramSlotSize;
         if (slotSize > 0) {
@@ -63,10 +71,12 @@ namespace RexVM {
         createFrameAndRunMethodNoPassParams(thread, runMethod_, this);
     }
 
+    //手动调用java方法用，创建新Frame，用params向其传递参数
     void Frame::runMethod(Method &runMethod_, std::vector<Slot> params) {
         createFrameAndRunMethod(thread, runMethod_, std::move(params), this);
     }
 
+    //手动调用java方法用，理应确定是否有Ret，做下判断比较好，如果有ret必须
     Slot Frame::runMethodGetReturn(Method &runMethod_, std::vector<Slot> params) {
         runMethod(runMethod_, std::move(params));
         return pop();

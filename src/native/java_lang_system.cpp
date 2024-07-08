@@ -50,14 +50,11 @@ namespace RexVM::Native {
     //"runFrame error, method java/security/AccessController:doPrivileged nativeMethodHandler is nullptr"
 
     void doPrivileged(Frame &frame) {
-        const auto self = frame.getThis();
-        const auto refMethod =
-                dynamic_cast<const InstanceClass *>(self->klass)->getMethod("run", "()Ljava/lang/Object;", false);
-        frame.pushRef(self);
-        frame.runMethod(*refMethod);
+        const auto action = frame.getThisInstance();
+        const auto runMethod = action->getInstanceClass()->getMethod("run", "()Ljava/lang/Object;", false);
+        const auto result = frame.runMethodGetReturn(*runMethod, { Slot(action) }).refVal;
         if (!frame.markThrow) {
-            const auto retValue = frame.popRef();
-            frame.returnRef(retValue);
+            frame.returnRef(result);
         }
     }
 

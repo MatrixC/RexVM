@@ -129,10 +129,28 @@ namespace RexVM {
         return that->isSubInterfaceOf(this);
     }
 
+    constexpr auto PRIMITIVE_CLASS_ACCESS_FLAGS = 
+        static_cast<u2>(AccessFlagEnum::ACC_PUBLIC) | 
+        static_cast<u2>(AccessFlagEnum::ACC_FINAL) | 
+        static_cast<u2>(AccessFlagEnum::ACC_ABSTRACT);
+
+    PrimitiveClass::PrimitiveClass(BasicType basicType, ClassLoader &classLoader) :
+        Class(
+            ClassTypeEnum::PrimitiveClass, 
+            PRIMITIVE_CLASS_ACCESS_FLAGS, 
+            basicTypeClassName(basicType), 
+            classLoader
+        ),
+        basicType(basicType) {
+    }
+
+    BasicType PrimitiveClass::getBasicType() const {
+        return basicType;
+    }
+
     MirrorOop * Class::getMirrorOop() const {
         return mirror.get();
     }
-
 
     Class::~Class() = default;
 
@@ -140,6 +158,17 @@ namespace RexVM {
             Class(ClassTypeEnum::InstanceClass, cf.accessFlags, cf.getThisClassName(), classLoader) {
 
         sourceFile = cf.getSourceFile();
+        signature = cf.getSignature();
+        initAttributes(cf);
+        initFields(cf);
+        initMethods(cf);
+        initInterfaceAndSuperClass(cf);
+        moveConstantPool(cf);
+        calcFieldSlotId();
+        initStaticField();
+    }
+
+    void InstanceClass::initAttributes(ClassFile &cf) {
         for (auto &attribute: cf.attributes) {
             const auto attributeName = getConstantStringFromPool(cf.constantPool, (const size_t) attribute->attributeNameIndex);
             const auto attributeTypeEnum = ATTRIBUTE_NAME_TAG_MAP.at(attributeName);
@@ -155,9 +184,25 @@ namespace RexVM {
                 case AttributeTagEnum::INNER_CLASSES:
                     innerClassesAttr = std::move(attribute);
                 break;
+
+                case AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS: {
+                    const auto runtimeVisibleAnnotationAttribute = static_cast<ByteStreamAttribute *>(attribute.get());
+                    runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
+                    runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes); 
+                    break;
+                }
+
+                case AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS: {
+                    const auto runtimeVisibleTypeAnnotationAttribute = static_cast<ByteStreamAttribute *>(attribute.get());
+                    runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
+                    runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
+                    break;
+                }
             }
         }
+    }
 
+    void InstanceClass::initFields(ClassFile &cf) {
         fields.reserve(cf.fieldCount);
         for (const auto &fieldInfo: cf.fields) {
             auto field = 
@@ -168,7 +213,9 @@ namespace RexVM {
                 );
             fields.emplace_back(std::move(field));
         }
+    }
 
+    void InstanceClass::initMethods(ClassFile &cf) {
         methods.reserve(cf.methodCount);
         for (const auto &methodInfo: cf.methods) {
             auto method =
@@ -179,18 +226,23 @@ namespace RexVM {
                     );
             methods.emplace_back(std::move(method));
         }
+    }
 
+    void InstanceClass::initInterfaceAndSuperClass(ClassFile &cf) {
         interfaces.reserve(cf.interfaceCount);
         for (const auto &interfaceName: cf.getInterfaceNames()) {
             interfaces.emplace_back(classLoader.getInstanceClass(interfaceName));
         }
 
-        superClass = classLoader.getInstanceClass(cf.getSuperClassName());
+        if (!isInterface()) {
+            //OpenJDK实现, Interface没有SuperClass
+            superClass = classLoader.getInstanceClass(cf.getSuperClassName());
+        }
+    }
+
+    void InstanceClass::moveConstantPool(ClassFile &cf) {
         constantPool.reserve(cf.constantPool.size());
         std::move(cf.constantPool.begin(), cf.constantPool.end(), std::back_inserter(constantPool));
-
-        calcFieldSlotId();
-        initStaticField();
     }
 
     void InstanceClass::calcFieldSlotId() {
@@ -212,30 +264,6 @@ namespace RexVM {
         }
         instanceSlotCount = slotId;
         staticSlotCount = staticSlotId;
-
-    }
-
-    bool InstanceClass::notInitialize() const {
-        return initStatus == ClassInitStatusEnum::Loaded;
-    }
-
-    void InstanceClass::clinit(Frame &frame) {
-        if (!notInitialize()) {
-            return;
-        }
-        
-        initStatus = ClassInitStatusEnum::Init;
-
-        if (superClass != nullptr) {
-           superClass->clinit(frame);
-        }
-
-        const auto clinitMethod = getMethod("<clinit>", "()V", true);
-        if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
-            frame.runMethod(*clinitMethod);
-        }
-
-        initStatus = ClassInitStatusEnum::Inited;
     }
 
     void InstanceClass::initStaticField() {
@@ -287,6 +315,29 @@ namespace RexVM {
                 }
             }
         }
+    }
+
+    bool InstanceClass::notInitialize() const {
+        return initStatus == ClassInitStatusEnum::Loaded;
+    }
+
+    void InstanceClass::clinit(Frame &frame) {
+        if (!notInitialize()) {
+            return;
+        }
+        
+        initStatus = ClassInitStatusEnum::Init;
+
+        if (superClass != nullptr) {
+           superClass->clinit(frame);
+        }
+
+        const auto clinitMethod = getMethod("<clinit>", "()V", true);
+        if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
+            frame.runMethod(*clinitMethod);
+        }
+
+        initStatus = ClassInitStatusEnum::Inited;
     }
 
     BootstrapMethodsAttribute *InstanceClass::getBootstrapMethodAttr() const {

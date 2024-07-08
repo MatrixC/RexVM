@@ -65,6 +65,15 @@ namespace RexVM {
         virtual ~Class();
     };
 
+    //Hotspot对Primitive类型没有建立Class，只有对应的MirrorOop
+    //我觉得建立这个PrimitiveClass整体会更统一方便一点，少做一些特殊处理
+    struct PrimitiveClass : Class {
+        BasicType basicType;
+        explicit PrimitiveClass(BasicType basicType, ClassLoader &classLoader);
+
+        [[nodiscard]] BasicType getBasicType() const;
+    };
+
     struct InstanceClass : Class {
         u2 instanceSlotCount{};
         u2 staticSlotCount{};
@@ -79,12 +88,24 @@ namespace RexVM {
         [[nodiscard]] EnclosingMethodAttribute *getEnclosingMethodAttr() const;
         [[nodiscard]] InnerClassesAttribute *getInnerClassesAttr() const;
 
+        size_t runtimeVisibleAnnotationLength{};
+        std::unique_ptr<u1[]> runtimeVisibleAnnotation;
+
+        size_t runtimeVisibleTypeAnnotationLength;
+        std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
+
         std::unique_ptr<Slot[]> staticData;
         cstring sourceFile{};
+        cstring signature{};
 
     private:
         void calcFieldSlotId();
         void initStaticField();
+        void initAttributes(ClassFile &cf);
+        void initFields(ClassFile &cf);
+        void initMethods(ClassFile &cf);
+        void initInterfaceAndSuperClass(ClassFile &cf);
+        void moveConstantPool(ClassFile &cf);
 
     public:
 
