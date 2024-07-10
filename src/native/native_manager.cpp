@@ -71,23 +71,10 @@ namespace RexVM {
         regNativeMethod("java/io/FileOutputStream", "writeBytes", "([BIIZ)V", false, Native::writeBytes);
 
         regNativeMethod("sun/misc/VM", "initialize", "()V", false, Native::initialize);
-        regNativeMethod("sun/misc/Unsafe", "arrayBaseOffset", "(Ljava/lang/Class;)I", false, Native::arrayBaseOffset);
-        regNativeMethod("sun/misc/Unsafe", "arrayIndexScale", "(Ljava/lang/Class;)I", false, Native::arrayIndexScale);
-        regNativeMethod("sun/misc/Unsafe", "addressSize", "()I", false, Native::addressSize);
-        regNativeMethod("sun/misc/Unsafe", "objectFieldOffset", "(Ljava/lang/reflect/Field;)J", false, Native::objectFieldOffset);
-        regNativeMethod("sun/reflect/Reflection", "getCallerClass", "()Ljava/lang/Class;", false, Native::getCallerClass);
-        regNativeMethod("sun/reflect/Reflection", "getClassAccessFlags", "(Ljava/lang/Class;)I", false, Native::getClassAccessFlags);
 
-
-        regNativeMethod("sun/misc/Unsafe", "compareAndSwapObject", "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", false, Native::compareAndSwapObject);
-        regNativeMethod("sun/misc/Unsafe", "compareAndSwapInt", "(Ljava/lang/Object;JII)Z", false, Native::compareAndSwapInt);
-        regNativeMethod("sun/misc/Unsafe", "compareAndSwapLong", "(Ljava/lang/Object;JJJ)Z", false, Native::compareAndSwapLong);
-        regNativeMethod("sun/misc/Unsafe", "getIntVolatile", "(Ljava/lang/Object;J)I", false, Native::getIntVolatile);
-        regNativeMethod("sun/misc/Unsafe", "getObjectVolatile", "(Ljava/lang/Object;J)Ljava/lang/Object;", false, Native::getObjectVolatile);
-        regNativeMethod("sun/misc/Unsafe", "allocateMemory", "(J)J", false, Native::allocateMemory);
+        
         regNativeMethod("sun/misc/Unsafe", "putLong", "(JJ)V", false, Native::putLong);
         regNativeMethod("sun/misc/Unsafe", "getByte", "(J)B", false, Native::getByte);
-        regNativeMethod("sun/misc/Unsafe", "freeMemory", "(J)V", false, Native::freeMemory);
 
         regNativeMethod("sun/misc/Signal", "findSignal", "(Ljava/lang/String;)I", false, Native::findSignal);
         regNativeMethod("sun/misc/Signal", "handle0", "(IJ)J", false, Native::handle0);

@@ -1045,7 +1045,7 @@ namespace RexVM {
                 const auto realInvokeMethod =
                         k->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
                 if (realInvokeMethod != nullptr) {
-                    frame.runMethod(*realInvokeMethod);
+                    frame.runMethodInner(*realInvokeMethod);
                     return;
                 }
             }
@@ -1055,14 +1055,14 @@ namespace RexVM {
         void invokespecial(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto invokeMethod = frame.klass.getRefMethod(index, false);
-            frame.runMethod(*invokeMethod);
+            frame.runMethodInner(*invokeMethod);
         }
 
         void invokestatic(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto invokeMethod = frame.klass.getRefMethod(index, true);
             invokeMethod->klass.clinit(frame);
-            frame.runMethod(*invokeMethod);
+            frame.runMethodInner(*invokeMethod);
         }
 
         void invokeinterface(Frame &frame) {
@@ -1074,9 +1074,9 @@ namespace RexVM {
             const auto instanceClass = static_cast<const InstanceClass *>(instance->klass);
             const auto realInvokeMethod = instanceClass->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
             if (realInvokeMethod != nullptr) {
-                frame.runMethod(*realInvokeMethod);
+                frame.runMethodInner(*realInvokeMethod);
             } else if (!invokeMethod->isAbstract()) {
-                frame.runMethod(*invokeMethod);
+                frame.runMethodInner(*invokeMethod);
             } else {
                 //TODO
                 panic("can't find method");
@@ -1100,12 +1100,24 @@ namespace RexVM {
             const auto &oopManager = frame.vm.oopManager;
 
             const auto threadClass = frame.classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
-
             if (instanceClass == threadClass || instanceClass->isSubClassOf(threadClass)) {
                 frame.pushRef(oopManager->newVMThread(instanceClass));
             } else {
                 frame.pushRef(oopManager->newInstance(instanceClass));
             }
+            // const auto specialType = instanceClass->specialInstanceClass;
+            // switch (specialType) {
+            //     case SpecialInstanceClass::NONE:
+            //         frame.pushRef(oopManager->newInstance(instanceClass));
+            //         break;
+                
+            //     case SpecialInstanceClass::THREAD_CLASS:
+            //         frame.pushRef(oopManager->newVMThread(instanceClass));
+            //         break;
+                
+            //     case SpecialInstanceClass::CLASS_LOADER_CLASS:
+            //         break;
+            // }
         }
 
         void newarray(Frame &frame) {

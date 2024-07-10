@@ -60,26 +60,34 @@ namespace RexVM {
         return vm.bootstrapClassLoader.get();
     }
 
-    //java方法执行过程中用
-    //先pop上一个Frame，移动其sp。因为新Frame的Top是根据上一个Frame的操作数栈sp来计算的
-    //所以可以直接将新Frame的Local区对齐到上个Frame push的参数起点，用来减少一次参数写入
-    void Frame::runMethod(Method &runMethod_) {
-        const auto slotSize = runMethod_.paramSlotSize;
+    //java方法执行过程中用,被invoke系列指令调用,参数都是字节码提前push好的
+    //先pop上一个Frame, 移动其sp.因为新Frame的Top是根据上一个Frame的操作数栈sp来计算的
+    //所以可以直接将新Frame的Local区对齐到上个Frame push的参数起点,用来减少一次参数写入
+    void Frame::runMethodInner(Method &runMethod) {
+        const auto slotSize = runMethod.paramSlotSize;
         if (slotSize > 0) {
             operandStackContext.pop(static_cast<i4>(slotSize));
         }
-        createFrameAndRunMethodNoPassParams(thread, runMethod_, this);
+        createFrameAndRunMethodNoPassParams(thread, runMethod, this);
     }
 
-    //手动调用java方法用，创建新Frame，用params向其传递参数
-    void Frame::runMethod(Method &runMethod_, std::vector<Slot> params) {
-        createFrameAndRunMethod(thread, runMethod_, std::move(params), this);
-    }
-
-    //手动调用java方法用，理应确定是否有Ret，做下判断比较好，如果有ret必须
-    Slot Frame::runMethodGetReturn(Method &runMethod_, std::vector<Slot> params) {
-        runMethod(runMethod_, std::move(params));
-        return pop();
+    //手动调用java方法用,创建新Frame,用params向其传递参数
+    std::tuple<SlotTypeEnum, Slot> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
+        createFrameAndRunMethod(thread, runMethod, std::move(params), this);
+        //Method可能有返回值,需要处理返回值的pop
+        if (runMethod.returnSlotType == SlotTypeEnum::NONE) {
+            //void函数，无返回
+            return std::make_tuple(SlotTypeEnum::NONE, Slot(0));
+        } else {
+            if (runMethod.returnSlotType == SlotTypeEnum::I8) {
+                return std::make_tuple(runMethod.returnSlotType, Slot(popI8()));
+            } else if (runMethod.returnSlotType == SlotTypeEnum::F8) {
+                return std::make_tuple(runMethod.returnSlotType, Slot(popF8()));
+            } else {
+                //除了I8和F8,其他类型只需要pop一个值
+                return std::make_tuple(runMethod.returnSlotType, pop());
+            }
+        }
     }
 
     void Frame::cleanOperandStack() {
@@ -232,46 +240,35 @@ namespace RexVM {
         existReturnValue = false;
     }
 
-    void Frame::returnRef(ref val) {
+    void Frame::returnSlot(Slot val, SlotTypeEnum type) {
         markReturn = true;
         existReturnValue = true;
-        returnType = SlotTypeEnum::REF;
-        returnValue = Slot(val);
+        returnType = type;
+        returnValue = val;
+    }
+
+    void Frame::returnRef(ref val) {
+        returnSlot(Slot(val), SlotTypeEnum::REF);
     }
 
     void Frame::returnI4(i4 val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::I4;
-        returnValue = Slot(val);
+        returnSlot(Slot(val), SlotTypeEnum::I4);
     }
 
     void Frame::returnI8(i8 val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::I8;
-        returnValue = Slot(val);
+        returnSlot(Slot(val), SlotTypeEnum::I8);
     }
 
     void Frame::returnF4(f4 val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::F4;
-        returnValue = Slot(val);
+        returnSlot(Slot(val), SlotTypeEnum::F4);
     }
 
     void Frame::returnF8(f8 val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::F8;
-        returnValue = Slot(val);
+        returnSlot(Slot(val), SlotTypeEnum::F8);
     }
 
     void Frame::returnBoolean(bool val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::I4;
-        returnValue = Slot(val ? 1 : 0);
+        returnSlot(Slot(val ? 1 : 0), SlotTypeEnum::I4);
     }
 
     void Frame::throwException(InstanceOop * const val, u4 throwPc) {

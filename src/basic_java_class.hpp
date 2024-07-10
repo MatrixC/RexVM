@@ -13,6 +13,7 @@ namespace RexVM {
     inline const cstring JAVA_LANG_THREAD_NAME =         "java/lang/Thread";
     inline const cstring JAVA_LANG_THREAD_GROUP_NAME =         "java/lang/ThreadGroup";
     inline const cstring JAVA_LANG_BOOLEAN_NAME =         "java/lang/Boolean";
+    inline const cstring JAVA_LANG_BYTE_NAME =         "java/lang/Byte";
     inline const cstring JAVA_LANG_CHARACTER_NAME =         "java/lang/Character";
     inline const cstring JAVA_LANG_SHORT_NAME =         "java/lang/Short";
     inline const cstring JAVA_LANG_INTEGER_NAME =         "java/lang/Integer";
@@ -35,6 +36,7 @@ namespace RexVM {
         JAVA_LANG_THREAD,
         JAVA_LANG_THREAD_GROUP,
         JAVA_LANG_BOOLEAN,
+        JAVA_LANG_BYTE,
         JAVA_LANG_CHARACTER,
         JAVA_LANG_SHORT,
         JAVA_LANG_INTEGER,

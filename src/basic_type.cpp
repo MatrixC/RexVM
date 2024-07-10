@@ -52,6 +52,28 @@ namespace RexVM {
         return BasicType::T_ILLEGAL;
     }
 
+    BasicType getBasicTypeByTypeArrayClassName(const cstring &className) {
+        if (className == "[Z") {
+            return BasicType::T_BOOLEAN;
+        } else if (className == "[B") {
+            return BasicType::T_BYTE;
+        } else if (className == "[S") {
+            return BasicType::T_SHORT;
+        } else if (className == "[I") {
+            return BasicType::T_INT;
+        } else if (className == "[C") {
+            return BasicType::T_CHAR;
+        } else if (className == "[J") {
+            return BasicType::T_LONG;
+        } else if (className == "[F") {
+            return BasicType::T_FLOAT;
+        } else if (className == "[D") {
+            return BasicType::T_DOUBLE;
+        }
+        panic("getBasicTypeByTypeArrayClassName error: error className " + className);
+        return BasicType::T_VOID;
+    }
+
     bool isBasicType(cchar type) {
         return type == 'Z' || type == 'B' || type == 'S' || type == 'I' ||
                type == 'J' || type == 'C' || type == 'F' || type == 'D' || type == 'V';
@@ -59,23 +81,14 @@ namespace RexVM {
 
     cstring typeArrayClassName(BasicType type) {
         switch (type) {
-            case BasicType::T_BOOLEAN:
-                return "[Z";
-            case BasicType::T_CHAR:
-                return "[C";
-            case BasicType::T_FLOAT:
-                return "[F";
-            case BasicType::T_DOUBLE:
-                return "[D";
-            case BasicType::T_BYTE:
-                return "[B";
-            case BasicType::T_SHORT:
-                return "[S";
-            case BasicType::T_INT:
-                return "[I";
-            case BasicType::T_LONG:
-                return "[J";
-
+            case BasicType::T_BOOLEAN: return "[Z";
+            case BasicType::T_CHAR: return "[C";
+            case BasicType::T_FLOAT: return "[F";
+            case BasicType::T_DOUBLE: return "[D";
+            case BasicType::T_BYTE: return "[B";
+            case BasicType::T_SHORT: return "[S";
+            case BasicType::T_INT: return "[I";
+            case BasicType::T_LONG: return "[J";
             default:
                 panic("type error");
                 break;
@@ -110,6 +123,10 @@ namespace RexVM {
         return {};
     }
 
+    bool isWideBasicType(BasicType type) {
+        return type == BasicType::T_LONG || type == BasicType::T_DOUBLE;
+    }
+
     const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY = {
         BasicType::T_BOOLEAN,
         BasicType::T_CHAR,
@@ -121,4 +138,23 @@ namespace RexVM {
         BasicType::T_LONG,
         BasicType::T_VOID,
     };
+
+    SlotTypeEnum getSlotTypeByBasicTypeClassName(const cstring &className) {
+        SlotTypeEnum slotType;
+        if (className == "boolean" || className == "byte" || className == "short" || className == "int" || className == "char") {
+            slotType = SlotTypeEnum::I4;
+        } else if (className == "long") {
+            slotType = SlotTypeEnum::I8;
+        } else if (className == "float") {
+            slotType = SlotTypeEnum::F4;
+        } else if (className == "double") {
+            slotType = SlotTypeEnum::F8;
+        } else if (className == "void") {
+            slotType = SlotTypeEnum::NONE;
+        } else {
+            slotType = SlotTypeEnum::REF;
+        }
+
+        return slotType;
+    }
 }

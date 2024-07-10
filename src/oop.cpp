@@ -20,22 +20,30 @@ namespace RexVM {
         for (const auto &field: klass->fields) {
             if (!field->isStatic()) {
                 const auto slotType = field->getFieldSlotType();
+                const auto slotId = field->slotId;
                 switch (slotType) {
+                    case SlotTypeEnum::I4:
+                        oop->data[slotId] = Slot(static_cast<i4>(0));
+                        break;
+
                     case SlotTypeEnum::REF:
-                        oop->data[field->slotId] = Slot(nullptr);
+                        oop->data[slotId] = Slot(nullptr);
                         break;
 
                     case SlotTypeEnum::F4:
-                        oop->data[field->slotId] = Slot(static_cast<f4>(0));
+                        oop->data[slotId] = Slot(static_cast<f4>(0));
+                        break;
+
+                    case SlotTypeEnum::I8:
+                        oop->data[slotId] = Slot(static_cast<i8>(0));
                         break;
 
                     case SlotTypeEnum::F8:
-                        oop->data[field->slotId] = Slot(static_cast<f8>(0));
+                        oop->data[slotId] = Slot(static_cast<f4>(0));
                         break;
 
                     default:
-                        oop->data[field->slotId] = Slot(static_cast<i4>(0));
-                        break;
+                        panic("initInstanceField error");
                 }
             }
         }

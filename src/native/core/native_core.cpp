@@ -5,14 +5,26 @@
 
 #include "java_lang_object.hpp"
 #include "java_lang_thread.hpp"
+#include "java_lang_system.hpp"
 #include "java_lang_class.hpp"
+#include "java_lang_class_loader.hpp"
 #include "java_lang_runtime.hpp"
 #include "java_lang_string.hpp"
 #include "java_lang_reflect_array.hpp"
+#include "unsafe.hpp"
+#include "define_class.hpp"
 
 #include "java_lang_invoke_method_handle_natives.hpp"
 
 namespace RexVM::Native::Core {
+    constexpr auto UNSAFE_CLASS_NAME = "sun/misc/Unsafe";
+    constexpr auto JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS_NAME = "java/lang/invoke/MethodHandleNatives";
+    constexpr auto JAVA_LANG_REFLECT_ARRAY_NAME = "java/lang/reflect/Array";
+    constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
+    constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
+    constexpr auto SUN_REFLECT_NATIVE_METHOD_ACCESSOR_IMPL_NAME = "sun/reflect/NativeMethodAccessorImpl";
+    constexpr auto SUN_REFLECT_CONSTANT_POOL_NAME = "sun/reflect/ConstantPool";
+    constexpr auto SUN_REFLECT_REFLECTION = "sun/reflect/Reflection";
 
     void registerObjectCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "getClass", "()Ljava/lang/Class;", false, Native::Core::getClass);
@@ -25,6 +37,11 @@ namespace RexVM::Native::Core {
 
     void registerStringCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_STRING_NAME, "intern", "()Ljava/lang/String;", false, Native::Core::intern);
+    }
+
+    void registerSystemCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "nanoTime", "()J", true, Native::Core::nanoTime);
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "identityHashCode", "(Ljava/lang/Object;)I", true, Native::Core::identityHashCode);
     }
 
     void registerThreadCoreMethods(NativeManager &manager) {
@@ -77,38 +94,136 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_LANG_CLASS_NAME, "getConstantPool", "()Lsun/reflect/ConstantPool;", false, Native::Core::getConstantPool);
         manager.regNativeMethod(JAVA_LANG_CLASS_NAME, "getDeclaredClasses0", "()[Ljava/lang/Class;", false, Native::Core::getDeclaredClasses0);
 
+        manager.regNativeMethod(JAVA_LANG_REFLECT_FIELD_NAME, "getTypeAnnotationBytes0", "()[B", false, Native::Core::fieldGetTypeAnnotationBytes0);
 
-        manager.regNativeMethod("sun/reflect/ConstantPool", "getClassAt0", "(Ljava/lang/Object;I)Ljava/lang/Class;", false, Native::Core::getClassAt0);
-        manager.regNativeMethod("sun/reflect/ConstantPool", "getIntAt0", "(Ljava/lang/Object;I)I", false, Native::Core::getIntAt0);
-        manager.regNativeMethod("sun/reflect/ConstantPool", "getLongAt0", "(Ljava/lang/Object;I)J", false, Native::Core::getLongAt0);
-        manager.regNativeMethod("sun/reflect/ConstantPool", "getFloatAt0", "(Ljava/lang/Object;I)F", false, Native::Core::getFloatAt0);
-        manager.regNativeMethod("sun/reflect/ConstantPool", "getDoubleAt0", "(Ljava/lang/Object;I)D", false, Native::Core::getDoubleAt0);
-        manager.regNativeMethod("sun/reflect/ConstantPool", "getUTF8At0", "(Ljava/lang/Object;I)Ljava/lang/String;", false, Native::Core::getUTF8At0);
+        manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getClassAt0", "(Ljava/lang/Object;I)Ljava/lang/Class;", false, Native::Core::getClassAt0);
+        manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getIntAt0", "(Ljava/lang/Object;I)I", false, Native::Core::getIntAt0);
+        manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getLongAt0", "(Ljava/lang/Object;I)J", false, Native::Core::getLongAt0);
+        manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getFloatAt0", "(Ljava/lang/Object;I)F", false, Native::Core::getFloatAt0);
+        manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getDoubleAt0", "(Ljava/lang/Object;I)D", false, Native::Core::getDoubleAt0);
+        manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getUTF8At0", "(Ljava/lang/Object;I)Ljava/lang/String;", false, Native::Core::getUTF8At0);
+
+        manager.regNativeMethod(SUN_REFLECT_REFLECTION, "getCallerClass", "()Ljava/lang/Class;", false, Native::Core::getCallerClass);
+        manager.regNativeMethod(SUN_REFLECT_REFLECTION, "getClassAccessFlags", "(Ljava/lang/Class;)I", false, Native::Core::getClassAccessFlags);
+
+        manager.regNativeMethod(SUN_REFLECT_NATIVE_METHOD_ACCESSOR_IMPL_NAME, "invoke0", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false, Native::Core::invoke0);
+    }
+
+    void registerClassLoaderCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "defineClass0", "(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass0);
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "defineClass1", "(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass0);
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "defineClass2", "(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass2);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "defineClass", "(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;", false, Native::Core::unsafeDefineClass);
+        manager.regNativeMethod(JAVA_LANG_REFLECT_PROXY_NAME, "defineClass0", "(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;", false, Native::Core::proxyDefineClass0);
+
+
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "resolveClass0", "(Ljava/lang/Class;)V", false, Native::Core::classLoaderDefineClass0);
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "findBootstrapClass", "(Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass0);
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "findLoadedClass0", "(Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass0);
     }
 
     void registerRuntimeCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_RUNTIME_NAME, "availableProcessors", "()I", true, Native::Core::availableProcessors);
     }
 
-    constexpr auto JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS_NAME = "java/lang/invoke/MethodHandleNatives";
     void registerInvokeCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS_NAME, "getConstant", "(I)I", true, Native::Core::getConstant);
         manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS_NAME, "resolve", "(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;", true, Native::Core::getConstant);
     }
 
-    constexpr auto JAVA_LANG_REFLECT_ARRAY_NAME = "java/lang/reflect/Array";
     void registerReflectCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_REFLECT_ARRAY_NAME, "newArray", "(Ljava/lang/Class;I)Ljava/lang/Object;", true, Native::Core::newArray);
+    }
+    
+    void registerUnsafeCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "ensureClassInitialized", "(Ljava/lang/Class;)V", false, Native::Core::ensureClassInitialized);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "shouldBeInitialized", "(Ljava/lang/Class;)Z", false, Native::Core::shouldBeInitialized);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "allocateMemory", "(J)J", false, Native::Core::allocateMemory);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "freeMemory", "(J)V", false, Native::Core::freeMemory);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "reallocateMemory", "(JJ)J", false, Native::Core::reallocateMemory);
+        
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "arrayBaseOffset", "(Ljava/lang/Class;)I", false, Native::Core::arrayBaseOffset);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "arrayIndexScale", "(Ljava/lang/Class;)I", false, Native::Core::arrayIndexScale);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "addressSize", "()I", false, Native::Core::addressSize);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "objectFieldOffset", "(Ljava/lang/reflect/Field;)J", false, Native::Core::objectFieldOffset);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "staticFieldOffset", "(Ljava/lang/reflect/Field;)J", false, Native::Core::staticFieldOffset);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "staticFieldBase", "(Ljava/lang/reflect/Field;)Ljava/lang/Object;", false, Native::Core::staticFieldBase);
+
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "compareAndSwapObject", "(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z", false, Native::Core::compareAndSwapObject);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "compareAndSwapInt", "(Ljava/lang/Object;JII)Z", false, Native::Core::compareAndSwapInt);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "compareAndSwapLong", "(Ljava/lang/Object;JJJ)Z", false, Native::Core::compareAndSwapLong);
+
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getObjectVolatile", "(Ljava/lang/Object;J)Ljava/lang/Object;", false, Native::Core::getObjectVolatile);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putObjectVolatile", "(Ljava/lang/Object;JLjava/lang/Object;)V", false, Native::Core::putObjectVolatile);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getBooleanVolatile", "(Ljava/lang/Object;J)Z", false, Native::Core::getVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putBooleanVolatile", "(Ljava/lang/Object;JZ)V", false, Native::Core::putVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getByteVolatile", "(Ljava/lang/Object;J)B", false, Native::Core::getVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putByteVolatile", "(Ljava/lang/Object;JB)V", false, Native::Core::putVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getShortVolatile", "(Ljava/lang/Object;J)S", false, Native::Core::getVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putShortVolatile", "(Ljava/lang/Object;JS)V", false, Native::Core::putVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getCharVolatile", "(Ljava/lang/Object;J)C", false, Native::Core::getVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putCharVolatile", "(Ljava/lang/Object;JC)V", false, Native::Core::putVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getIntVolatile", "(Ljava/lang/Object;J)I", false, Native::Core::getVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putIntVolatile", "(Ljava/lang/Object;JI)V", false, Native::Core::putVolatileI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getLongVolatile", "(Ljava/lang/Object;J)J", false, Native::Core::getLongVolatile);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putLongVolatile", "(Ljava/lang/Object;JJ)V", false, Native::Core::putLongVolatile);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getFloatVolatile", "(Ljava/lang/Object;J)F", false, Native::Core::getFloatVolatile);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putFloatVolatile", "(Ljava/lang/Object;JF)V", false, Native::Core::putFloatVolatile);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getDoubleVolatile", "(Ljava/lang/Object;J)D", false, Native::Core::getDoubleVolatile);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putDoubleVolatile", "(Ljava/lang/Object;JD)V", false, Native::Core::putDoubleVolatile);
+
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getObject", "(Ljava/lang/Object;J)Ljava/lang/Object;", false, Native::Core::getObject);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putObject", "(Ljava/lang/Object;JLjava/lang/Object;)V", false, Native::Core::putObject);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getBoolean", "(Ljava/lang/Object;J)Z", false, Native::Core::getI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putBoolean", "(Ljava/lang/Object;JZ)V", false, Native::Core::putI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getByte", "(Ljava/lang/Object;J)B", false, Native::Core::getI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putByte", "(Ljava/lang/Object;JB)V", false, Native::Core::putI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getShort", "(Ljava/lang/Object;J)S", false, Native::Core::getI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putShort", "(Ljava/lang/Object;JS)V", false, Native::Core::putI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getChar", "(Ljava/lang/Object;J)C", false, Native::Core::getI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putChar", "(Ljava/lang/Object;JC)V", false, Native::Core::putI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getInt", "(Ljava/lang/Object;J)I", false, Native::Core::getI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putInt", "(Ljava/lang/Object;JI)V", false, Native::Core::putI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getLong", "(Ljava/lang/Object;J)J", false, Native::Core::getLong);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putLong", "(Ljava/lang/Object;JJ)V", false, Native::Core::putLong);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getFloat", "(Ljava/lang/Object;J)F", false, Native::Core::getFloat);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putFloat", "(Ljava/lang/Object;JF)V", false, Native::Core::putFloat);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getDouble", "(Ljava/lang/Object;J)D", false, Native::Core::getDouble);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putDouble", "(Ljava/lang/Object;JD)V", false, Native::Core::putDouble);
+
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getByte", "(J)B", false, Native::Core::cheapGetI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putByte", "(JB)V", false, Native::Core::cheapPutI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getShort", "(J)S", false, Native::Core::cheapGetI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putShort", "(JS)V", false, Native::Core::cheapPutI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getChar", "(J)C", false, Native::Core::cheapGetI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putChar", "(JC)V", false, Native::Core::cheapPutI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getInt", "(J)I", false, Native::Core::cheapGetI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putInt", "(JI)V", false, Native::Core::cheapPutI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getLong", "(J)J", false, Native::Core::cheapGetI8);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putLong", "(JJ)V", false, Native::Core::cheapPutI8);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getFloat", "(J)F", false, Native::Core::cheapGetF4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putFloat", "(JF)V", false, Native::Core::cheapPutF4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getDouble", "(J)D", false, Native::Core::cheapGetF8);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putDouble", "(JD)V", false, Native::Core::cheapPutF8);
+
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getAddress", "(J)J", false, Native::Core::cheapGetI8);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putAddress", "(JJ)V", false, Native::Core::cheapPutI8);
+
+
+
     }
 
     void registerCoreMethods(NativeManager &manager) {
         registerObjectCoreMethods(manager);
         registerStringCoreMethods(manager);
+        registerSystemCoreMethods(manager);
         registerThreadCoreMethods(manager);
         registerClassCoreMethods(manager);
+        registerClassLoaderCoreMethods(manager);
         registerRuntimeCoreMethods(manager);
         registerInvokeCoreMethods(manager);
         registerReflectCoreMethods(manager);
+        registerUnsafeCoreMethods(manager);
 
     }
 

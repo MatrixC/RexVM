@@ -17,7 +17,7 @@ namespace RexVM {
         //TODO Opt key slot id
         const auto methodHandlesClass = vm.bootstrapClassLoader->getInstanceClass("java/lang/invoke/MethodHandles");
         const auto lookupMethod = methodHandlesClass->getMethod("lookup", "()Ljava/lang/invoke/MethodHandles$Lookup;", true);
-        const auto lookupOop = frame.runMethodGetReturn(*lookupMethod, {});
+        const auto [_, lookupOop] = frame.runMethodManual(*lookupMethod, {});
         return static_cast<InstanceOop *>(lookupOop.refVal);
     }
 
@@ -42,7 +42,6 @@ namespace RexVM {
     }
 
     InstanceOop *createMethodHandle(Frame &frame, ConstantMethodHandleInfo *methodHandleInfo) {
-        auto &vm = frame.vm;
         const auto &methodClass = frame.klass;
         const auto &constantPool = methodClass.constantPool;
 
@@ -73,103 +72,103 @@ namespace RexVM {
         const auto refMethodDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/MethodHandle;";
 
         Method *method = nullptr;
-        Oop *result;
+        std::tuple<SlotTypeEnum, Slot> result;
         switch (kind) {
             case MethodHandleEnum::REF_getField:
                 method = lookupOopClass->getMethod("findGetter", refFieldDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(classLoader->getClass(methodHandleMemberDescriptor)->getMirrorOop())
-                }).refVal;
+                });
                 break;
 
             case MethodHandleEnum::REF_getStatic:
                 method = lookupOopClass->getMethod("findStaticGetter", refFieldDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(classLoader->getClass(methodHandleMemberDescriptor)->getMirrorOop())
-                }).refVal;
+                });
             break;
 
             case MethodHandleEnum::REF_putField:
                 method = lookupOopClass->getMethod("findSetter", refFieldDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(classLoader->getClass(methodHandleMemberDescriptor)->getMirrorOop())
-                }).refVal;
+                });
             break;
 
             case MethodHandleEnum::REF_putStatic:
                 method = lookupOopClass->getMethod("findStaticSetter", refFieldDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(classLoader->getClass(methodHandleMemberDescriptor)->getMirrorOop())
-                }).refVal;
+                });
             break;
 
             case MethodHandleEnum::REF_invokeVirtual:
                 method = lookupOopClass->getMethod("findVirtual", refMethodDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(createMethodType(vm, methodHandleMemberDescriptor))
-                }).refVal;
+                });
             break;
 
             case MethodHandleEnum::REF_invokeStatic:
                 method = lookupOopClass->getMethod("findStatic", refMethodDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(createMethodType(vm, methodHandleMemberDescriptor))
-                }).refVal;
+                });
             break;
 
             case MethodHandleEnum::REF_invokeSpecial:
                 method = lookupOopClass->getMethod("findSpecial", refMethodDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(createMethodType(vm, methodHandleMemberDescriptor))
-                }).refVal;
+                });
             break;
 
             case MethodHandleEnum::REF_newInvokeSpecial:
                 method = lookupOopClass->getMethod("findSpecial", refMethodDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(createMethodType(vm, methodHandleMemberDescriptor))
-                }).refVal;
+                });
             break;
 
             case MethodHandleEnum::REF_invokeInterface:
                 method = lookupOopClass->getMethod("findVirtual", refMethodDescriptor, false);
-                result = frame.runMethodGetReturn(*method, {
+                result = frame.runMethodManual(*method, {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
                         Slot(createMethodType(vm, methodHandleMemberDescriptor))
-                }).refVal;
+                });
             break;
 
             default:
                 panic("createMethodHandles error: error kind");
         }
 
-        return static_cast<InstanceOop *>(result);
+        return static_cast<InstanceOop *>(std::get<1>(result).refVal);
     }
 
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
@@ -245,20 +244,21 @@ namespace RexVM {
         const auto arrayListInitMethod = arrayListClass->getMethod("<init>", "()V", false);
         const auto arrayListAddMethod = arrayListClass->getMethod("add", "(Ljava/lang/Object;)Z", false);
 
-        frame.runMethod(*arrayListInitMethod, { Slot(arrayListOop) });
+        frame.runMethodManual(*arrayListInitMethod, { Slot(arrayListOop) });
         for (const auto &item : callSiteParam) {
-            frame.runMethodGetReturn(*arrayListAddMethod, { Slot(item) });
+            frame.runMethodManual(*arrayListAddMethod, { Slot(item) });
         }
 
         const auto invokeWithArgumentsMethod = methodHandleOop->getInstanceClass()->getMethod("invokeWithArguments", "(Ljava/util/List;)Ljava/lang/Object;", false);
-        const auto callSiteOop = static_cast<InstanceOop *>(frame.runMethodGetReturn(*invokeWithArgumentsMethod, { Slot(methodHandleOop), Slot(arrayListOop)}).refVal);
 
+
+        const auto callSiteOop = static_cast<InstanceOop *>(std::get<1>(frame.runMethodManual(*invokeWithArgumentsMethod, { Slot(methodHandleOop), Slot(arrayListOop)})).refVal);
         const auto [invokeParamType, _] = parseMethodDescriptor(invokeDescriptor);
         const auto dynamicInvokerMethod = callSiteOop->getInstanceClass()->getMethod("dynamicInvoker", "()Ljava/lang/invoke/MethodHandle;", false);
-        const auto invokeMethodHandleOop = static_cast<InstanceOop *>(frame.runMethodGetReturn(*dynamicInvokerMethod, { Slot(callSiteOop) }).refVal);
+        const auto invokeMethodHandleOop = static_cast<InstanceOop *>(std::get<1>(frame.runMethodManual(*dynamicInvokerMethod, { Slot(callSiteOop) })).refVal);
 
         const auto invokeExactMethod = invokeMethodHandleOop->getInstanceClass()->getMethod("invokeExact", "([Ljava/lang/Object;)Ljava/lang/Object;", false);
-
+        (void)invokeExactMethod;
 
 
 

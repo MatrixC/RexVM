@@ -10,6 +10,7 @@ namespace RexVM {
             JAVA_LANG_THREAD_NAME,
             JAVA_LANG_THREAD_GROUP_NAME,
             JAVA_LANG_BOOLEAN_NAME,
+            JAVA_LANG_BYTE_NAME,
             JAVA_LANG_CHARACTER_NAME,
             JAVA_LANG_SHORT_NAME,
             JAVA_LANG_INTEGER_NAME,

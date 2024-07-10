@@ -105,6 +105,34 @@ namespace RexVM {
         return oop;
     }
 
+    InstanceOop *OopManager::newBooleanOop(i4 value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_BOOLEAN);
+        const auto integerOop = newInstance(klass);
+        integerOop->setFieldValue("value", "Z", Slot(value));
+        return integerOop;
+    }
+
+    InstanceOop *OopManager::newByteOop(i4 value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_BYTE);
+        const auto integerOop = newInstance(klass);
+        integerOop->setFieldValue("value", "B", Slot(value));
+        return integerOop;
+    }
+
+    InstanceOop *OopManager::newCharOop(i4 value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_CHARACTER);
+        const auto integerOop = newInstance(klass);
+        integerOop->setFieldValue("value", "C", Slot(value));
+        return integerOop;
+    }
+
+    InstanceOop *OopManager::newShortOop(i4 value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SHORT);
+        const auto integerOop = newInstance(klass);
+        integerOop->setFieldValue("value", "S", Slot(value));
+        return integerOop;
+    }
+
     InstanceOop *OopManager::newIntegerOop(i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INTEGER);
         const auto integerOop = newInstance(klass);

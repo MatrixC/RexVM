@@ -34,15 +34,15 @@ namespace RexVM::Native {
         const auto setPropertyMethod = propsClass->getMethod("setProperty", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", false);
         const auto &stringPool = frame.vm.stringPool;
 
-        frame.runMethod(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("file.encoding")), Slot(stringPool->getInternString("UTF-8")) });
-        frame.runMethod(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("sun.stdout.encoding")), Slot(stringPool->getInternString("UTF-8")) });
-        frame.runMethod(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("sun.stderr.encoding")), Slot(stringPool->getInternString("UTF-8")) });
+        frame.runMethodManual(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("file.encoding")), Slot(stringPool->getInternString("UTF-8")) });
+        frame.runMethodManual(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("sun.stdout.encoding")), Slot(stringPool->getInternString("UTF-8")) });
+        frame.runMethodManual(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("sun.stderr.encoding")), Slot(stringPool->getInternString("UTF-8")) });
 
 
-        frame.runMethod(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("file.separator")), Slot(stringPool->getInternString("/")) });
-        frame.runMethod(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("path.separator")), Slot(stringPool->getInternString(":")) });
-        frame.runMethod(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("line.separator")), Slot(stringPool->getInternString("\n")) });
-        frame.runMethod(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("java.home")), Slot(stringPool->getInternString(".")) });
+        frame.runMethodManual(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("file.separator")), Slot(stringPool->getInternString("/")) });
+        frame.runMethodManual(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("path.separator")), Slot(stringPool->getInternString(":")) });
+        frame.runMethodManual(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("line.separator")), Slot(stringPool->getInternString("\n")) });
+        frame.runMethodManual(*setPropertyMethod, std::vector<Slot>{ Slot(props), Slot(stringPool->getInternString("java.home")), Slot(stringPool->getInternString(".")) });
 
         frame.returnRef(props);
     }
@@ -52,9 +52,9 @@ namespace RexVM::Native {
     void doPrivileged(Frame &frame) {
         const auto action = frame.getThisInstance();
         const auto runMethod = action->getInstanceClass()->getMethod("run", "()Ljava/lang/Object;", false);
-        const auto result = frame.runMethodGetReturn(*runMethod, { Slot(action) }).refVal;
+        const auto [_ ,result] = frame.runMethodManual(*runMethod, { Slot(action) });
         if (!frame.markThrow) {
-            frame.returnRef(result);
+            frame.returnRef(result.refVal);
         }
     }
 

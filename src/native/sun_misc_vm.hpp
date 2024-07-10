@@ -7,31 +7,10 @@ namespace RexVM::Native {
 
     void initialize(Frame &frame);
 
-    void arrayBaseOffset(Frame &frame);
-
-    void arrayIndexScale(Frame &frame);
-
-    void addressSize(Frame &frame);
-
-    void getCallerClass(Frame &frame);
-
-    void objectFieldOffset(Frame &frame);
-
-    void compareAndSwapObject(Frame &frame);
-
-    void compareAndSwapInt(Frame &frame);
-
-    void compareAndSwapLong(Frame &frame);
-
-    void getObjectVolatile(Frame &frame);
-
-    void putObjectVolatile(Frame &frame);
 
     void getIntVolatile(Frame &frame);
 
     void putIntVolatile(Frame &frame);
-
-    void getClassAccessFlags(Frame &frame);
 
     void newInstance0(Frame &frame);
 

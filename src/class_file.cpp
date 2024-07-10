@@ -215,7 +215,7 @@ namespace RexVM {
             return;
         }
 
-        const auto bootstrapMethodAttribute = static_cast<BootstrapMethodsAttribute *>(oriAttribute);
+        //const auto bootstrapMethodAttribute = static_cast<BootstrapMethodsAttribute *>(oriAttribute);
     }
 
     std::vector<cstring> ClassFile::getInterfaceNames() const {

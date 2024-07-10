@@ -1,4 +1,6 @@
 #include "vm.hpp"
+#include <thread>
+#include <atomic>
 #include "basic_java_class.hpp"
 #include "utils/class_path.hpp"
 #include "attribute_info.hpp"
@@ -7,7 +9,6 @@
 #include "thread.hpp"
 #include "memory.hpp"
 #include "execute.hpp"
-#include <thread>
 
 
 namespace RexVM {
@@ -104,12 +105,20 @@ namespace RexVM {
         runMainMethod();
         joinThreads();
     }
-  
+
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();
         //gc2(vm);
         //vm.bootstrapClassLoader.reset(nullptr);
+
+        // int x = 10;
+        // bool s = compareAndSwapInt(&x, 11, 20);
+        // cprintln("{} {}", s, x);
+        
+
+
+
     }
 
 }

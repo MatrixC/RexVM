@@ -56,7 +56,7 @@ namespace RexVM {
     };
 
     enum class SlotTypeEnum : u1 {
-        UNKNOWN,
+        NONE,
         I4,
         F4,
         I8,

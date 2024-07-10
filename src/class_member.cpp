@@ -35,6 +35,14 @@ namespace RexVM {
             runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
             runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes);
         }
+
+        if (const auto runtimeVisibleTypeAnnotationAttribute =
+                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                            AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
+                runtimeVisibleTypeAnnotationAttribute != nullptr) {
+            runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
+            runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
+        }
     }
 
     bool ClassMember::isStatic() const {
@@ -73,7 +81,7 @@ namespace RexVM {
     }
 
     SlotTypeEnum Field::getFieldSlotType() {
-        if (slotType != SlotTypeEnum::UNKNOWN) {
+        if (slotType != SlotTypeEnum::NONE) {
             return slotType;
         }
         auto const first = descriptor[0];
@@ -101,8 +109,8 @@ namespace RexVM {
             start(start), lineNumber(lineNumber) {
     }
 
-    Method::Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
-            ClassMember(ClassMemberTypeEnum::METHOD, klass, info, cf) {
+    Method::Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index) :
+            ClassMember(ClassMemberTypeEnum::METHOD, klass, info, cf), index(index) {
         
         initParamSlotSize();
         initAnnotations(info);
@@ -121,18 +129,7 @@ namespace RexVM {
         for (const auto &desc: paramType) {
             paramSlotSize += 1;
 
-            SlotTypeEnum slotType;
-            if (desc == "boolean" || desc == "byte" || desc == "short" || desc == "int" || desc == "char") {
-                slotType = SlotTypeEnum::I4;
-            } else if (desc == "long") {
-                slotType = SlotTypeEnum::I8;
-            } else if (desc == "float") {
-                slotType = SlotTypeEnum::F4;
-            } else if (desc == "double") {
-                slotType = SlotTypeEnum::F8;
-            } else {
-                slotType = SlotTypeEnum::REF;
-            }
+            SlotTypeEnum slotType = getSlotTypeByBasicTypeClassName(desc);
             paramSlotType.emplace_back(slotType);
 
             if (isWideSlotType(slotType)) {
@@ -140,6 +137,7 @@ namespace RexVM {
                 paramSlotType.push_back(slotType);
             }
         }
+        returnSlotType = getSlotTypeByBasicTypeClassName(returnType);
     }
 
     void Method::initAnnotations(FMBaseInfo *info) {
@@ -149,14 +147,6 @@ namespace RexVM {
                 runtimeVisibleParameterAnnotationAttribute != nullptr) {
             runtimeVisibleParameterAnnotationLength = runtimeVisibleParameterAnnotationAttribute->attributeLength;
             runtimeVisibleParameterAnnotation = std::move(runtimeVisibleParameterAnnotationAttribute->bytes);
-        }
-
-        if (const auto runtimeVisibleTypeAnnotationAttribute =
-                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
-                            AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
-                runtimeVisibleTypeAnnotationAttribute != nullptr) {
-            runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
-            runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
         }
 
         if (const auto annotationDefaultAttribute =
@@ -265,7 +255,7 @@ namespace RexVM {
 
                 if (item->catchClass == nullptr) {
                     const auto &constantPool = klass.constantPool;
-                    const auto exClassName = getConstantStringFromPoolByIndexInfo(klass.constantPool, item->catchType);
+                    const auto exClassName = getConstantStringFromPoolByIndexInfo(constantPool, item->catchType);
                     if (exClass->name == exClassName) {
                         //Optimize[catchClass == exClass], needn't load Exception Class
                         return item->handler;

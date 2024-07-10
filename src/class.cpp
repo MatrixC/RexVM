@@ -12,6 +12,7 @@
 #include "thread.hpp"
 #include "frame.hpp"
 #include "exception.hpp"
+#include "memory.hpp"
 
 namespace RexVM {
 
@@ -148,6 +149,44 @@ namespace RexVM {
         return basicType;
     }
 
+    bool PrimitiveClass::isWideType() const {
+        return isWideBasicType(basicType);
+    }
+
+    Slot PrimitiveClass::getValueFromBoxingOop(InstanceOop *oop) const {
+        switch (basicType) {
+            case BasicType::T_BOOLEAN: return oop->getFieldValue("value", "Z");
+            case BasicType::T_CHAR: return oop->getFieldValue("value", "C");
+            case BasicType::T_FLOAT: return oop->getFieldValue("value", "F");
+            case BasicType::T_DOUBLE: return oop->getFieldValue("value", "D");
+            case BasicType::T_BYTE: return oop->getFieldValue("value", "B");
+            case BasicType::T_SHORT: return oop->getFieldValue("value", "S");
+            case BasicType::T_INT: return oop->getFieldValue("value", "I");
+            case BasicType::T_LONG: return oop->getFieldValue("value", "J");
+            case BasicType::T_VOID: panic("error type void");
+            default:
+                panic("error basicType");
+                return Slot(0);
+        }
+    }
+
+    InstanceOop *PrimitiveClass::getBoxingOopFromValue(Slot value, OopManager &oopManager) const {
+        switch (basicType) {
+            case BasicType::T_BOOLEAN: return oopManager.newBooleanOop(value.i4Val);
+            case BasicType::T_CHAR: return oopManager.newCharOop(value.i4Val);
+            case BasicType::T_FLOAT: return oopManager.newFloatOop(value.f4Val);
+            case BasicType::T_DOUBLE: return oopManager.newDoubleOop(value.f8Val);
+            case BasicType::T_BYTE: return oopManager.newByteOop(value.i4Val);
+            case BasicType::T_SHORT: return oopManager.newShortOop(value.i4Val);
+            case BasicType::T_INT: return oopManager.newIntegerOop(value.i4Val);
+            case BasicType::T_LONG: return oopManager.newLongOop(value.i4Val);
+            case BasicType::T_VOID: panic("error type void");
+            default:
+                panic("error basicType");
+                return nullptr;
+        }
+    }
+
     MirrorOop * Class::getMirrorOop() const {
         return mirror.get();
     }
@@ -166,6 +205,8 @@ namespace RexVM {
         moveConstantPool(cf);
         calcFieldSlotId();
         initStaticField();
+
+
     }
 
     void InstanceClass::initAttributes(ClassFile &cf) {
@@ -198,6 +239,9 @@ namespace RexVM {
                     runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
                     break;
                 }
+
+                default:
+                    break;
             }
         }
     }
@@ -217,12 +261,14 @@ namespace RexVM {
 
     void InstanceClass::initMethods(ClassFile &cf) {
         methods.reserve(cf.methodCount);
+        u2 index = 0;
         for (const auto &methodInfo: cf.methods) {
             auto method =
                     std::make_unique<Method>(
                             *this,
                             methodInfo.get(),
-                            cf
+                            cf,
+                            index++
                     );
             methods.emplace_back(std::move(method));
         }
@@ -316,6 +362,13 @@ namespace RexVM {
             }
         }
     }
+    
+    void InstanceClass::initSpecialType() {
+        const auto threadClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+        if (this->isSubClassOf(threadClass)) {
+            specialInstanceClass = SpecialInstanceClass::THREAD_CLASS;
+        }
+    }
 
     bool InstanceClass::notInitialize() const {
         return initStatus == ClassInitStatusEnum::Loaded;
@@ -325,7 +378,7 @@ namespace RexVM {
         if (!notInitialize()) {
             return;
         }
-        
+
         initStatus = ClassInitStatusEnum::Init;
 
         if (superClass != nullptr) {
@@ -334,8 +387,10 @@ namespace RexVM {
 
         const auto clinitMethod = getMethod("<clinit>", "()V", true);
         if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
-            frame.runMethod(*clinitMethod);
+            frame.runMethodManual(*clinitMethod, {});
         }
+
+        initSpecialType();
 
         initStatus = ClassInitStatusEnum::Inited;
     }

@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <atomic>
 #include "class_member.hpp"
 #include "attribute_info.hpp"
 
@@ -19,6 +20,7 @@ namespace RexVM {
     struct MirrorOop;
     struct InstanceClass;
     struct Frame;
+    struct OopManager;
 
     enum class ClassInitStatusEnum {
         Loaded,
@@ -33,13 +35,20 @@ namespace RexVM {
         ObjArrayClass,
     };
 
+    //标记在InstanceClass上, 用于在new指令上提升效率
+    enum class SpecialInstanceClass {
+        NONE,
+        THREAD_CLASS,
+        CLASS_LOADER_CLASS,
+    };
+
     struct Class {
         const ClassTypeEnum type;
         const u2 accessFlags{};
         const cstring name;
         std::unique_ptr<MirrorOop> mirror;
         ClassLoader &classLoader;
-        ClassInitStatusEnum initStatus{ClassInitStatusEnum::Loaded};
+        std::atomic<ClassInitStatusEnum> initStatus{ClassInitStatusEnum::Loaded};
 
         InstanceClass *superClass{nullptr};
         std::vector<InstanceClass *> interfaces;
@@ -72,9 +81,13 @@ namespace RexVM {
         explicit PrimitiveClass(BasicType basicType, ClassLoader &classLoader);
 
         [[nodiscard]] BasicType getBasicType() const;
+        [[nodiscard]] bool isWideType() const;
+        [[nodiscard]] Slot getValueFromBoxingOop(InstanceOop *oop) const;
+        [[nodiscard]] InstanceOop *getBoxingOopFromValue(Slot value, OopManager &oopManager) const;
     };
 
     struct InstanceClass : Class {
+        SpecialInstanceClass specialInstanceClass{SpecialInstanceClass::NONE};
         u2 instanceSlotCount{};
         u2 staticSlotCount{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
@@ -105,6 +118,7 @@ namespace RexVM {
         void initFields(ClassFile &cf);
         void initMethods(ClassFile &cf);
         void initInterfaceAndSuperClass(ClassFile &cf);
+        void initSpecialType();
         void moveConstantPool(ClassFile &cf);
 
     public:

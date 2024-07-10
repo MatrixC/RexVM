@@ -33,6 +33,9 @@ namespace RexVM {
         size_t runtimeVisibleAnnotationLength{};
         std::unique_ptr<u1[]> runtimeVisibleAnnotation;
 
+        size_t runtimeVisibleTypeAnnotationLength;
+        std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
+
         explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
                              InstanceClass &klass);
 
@@ -52,7 +55,7 @@ namespace RexVM {
     struct Field : ClassMember {
         u2 constantValueIndex{};
         u2 slotId{};
-        SlotTypeEnum slotType{SlotTypeEnum::UNKNOWN};
+        SlotTypeEnum slotType{SlotTypeEnum::NONE};
  
         explicit Field(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
 
@@ -83,6 +86,7 @@ namespace RexVM {
     };
 
     struct Method : ClassMember {
+        u2 index{};
         u2 maxStack{};
         u2 maxLocals{};
         u4 codeLength{};
@@ -94,9 +98,6 @@ namespace RexVM {
         size_t runtimeVisibleParameterAnnotationLength;
         std::unique_ptr<u1[]> runtimeVisibleParameterAnnotation;
 
-        size_t runtimeVisibleTypeAnnotationLength;
-        std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
-
         size_t annotationDefaultLength;
         std::unique_ptr<u1[]> annotationDefault;
 
@@ -105,12 +106,13 @@ namespace RexVM {
         size_t paramSize{0};
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
+        SlotTypeEnum returnSlotType;
 
         [[nodiscard]] std::vector<Class *> getParamClasses() const;
 
         NativeMethodHandler nativeMethodHandler{};
 
-        explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
+        explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index);
 
         [[nodiscard]] bool isNative() const;
         [[nodiscard]] bool isAbstract() const;

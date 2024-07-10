@@ -34,7 +34,10 @@ namespace RexVM {
     extern cstring typeArrayClassName(BasicType type);
     cstring basicTypeClassName(BasicType type);
     BasicType getBasicType(cchar type);
+    BasicType getBasicTypeByTypeArrayClassName(const cstring &className);
     bool isBasicType(cchar type);
+    bool isWideBasicType(BasicType type);
+    SlotTypeEnum getSlotTypeByBasicTypeClassName(const cstring &className);
 
 }
 

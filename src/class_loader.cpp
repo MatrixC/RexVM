@@ -115,7 +115,6 @@ namespace RexVM {
     void ClassLoader::initMirrorClass(Class *klass) {
         if (klass->mirror == nullptr) {
             if (mirrorClass != nullptr) {
-
                 /*
                 auto mirror = new MirrorOop(mirrorClass, klass);
                 if (classLoaderInstance != nullptr) {
@@ -125,11 +124,6 @@ namespace RexVM {
                 klass->mirror = mirror;
                 */
                 klass->mirror = std::make_unique<MirrorOop>(mirrorClass, klass);
-                // if (klass->type == ClassTypeEnum::InstanceClass) {
-                //     const auto constantPoolClass = getInstanceClass("sun/reflect/ConstantPool");
-                //     klass->mirror->constantPoolOop = std::make_unique<InstanceOop>(constantPoolClass);
-                //     klass->mirror->constantPoolOop->setFieldValue("constantPoolOop", "Ljava/lang/Object", Slot(klass->mirror.get()));
-                // }
             }
         }
     }
@@ -181,5 +175,13 @@ namespace RexVM {
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {
         return basicJavaClass.at(static_cast<size_t>(classEnum));
+    }
+
+    InstanceClass *ClassLoader::loadInstanceClass(u1 *ptr, size_t length) {
+        cstring buffer(length, 0);
+        auto bufferPtr = reinterpret_cast<void *>(buffer.data());
+        std::memcpy(bufferPtr, ptr, length * sizeof(u1));
+        const auto classStream = std::make_unique<std::istringstream>(buffer);
+        return loadInstanceClass(*classStream);
     }
 }

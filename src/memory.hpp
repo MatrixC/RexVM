@@ -22,6 +22,11 @@ namespace RexVM {
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length);
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer);
         [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length);
+
+        [[nodiscard]] InstanceOop *newBooleanOop(i4 value);
+        [[nodiscard]] InstanceOop *newByteOop(i4 value);
+        [[nodiscard]] InstanceOop *newCharOop(i4 value);
+        [[nodiscard]] InstanceOop *newShortOop(i4 value);
         [[nodiscard]] InstanceOop *newIntegerOop(i4 value);
         [[nodiscard]] InstanceOop *newFloatOop(f4 value);
         [[nodiscard]] InstanceOop *newLongOop(i8 value);

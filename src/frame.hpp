@@ -59,9 +59,8 @@ namespace RexVM {
 
         ClassLoader *getCurrentClassLoader() const;
 
-        void runMethod(Method &runMethod_);
-        void runMethod(Method &runMethod_, std::vector<Slot> params);
-        Slot runMethodGetReturn(Method &runMethod_, std::vector<Slot> params);
+        void runMethodInner(Method &runMethod_);
+        std::tuple<SlotTypeEnum, Slot> runMethodManual(Method &runMethod_, std::vector<Slot> params);
         void cleanOperandStack();
         
         [[nodiscard]] u4 pc() const;
@@ -105,6 +104,7 @@ namespace RexVM {
         void setLocal(size_t index, Slot val, SlotTypeEnum type) const;
 
         void returnVoid();
+        void returnSlot(Slot val, SlotTypeEnum type);
         void returnRef(ref val);
         void returnI4(i4 val);
         void returnI8(i8 val);
