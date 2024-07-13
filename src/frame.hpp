@@ -57,7 +57,7 @@ namespace RexVM {
         explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame);
         ~Frame();
 
-        ClassLoader *getCurrentClassLoader() const;
+        [[nodiscard]] ClassLoader *getCurrentClassLoader() const;
 
         void runMethodInner(Method &runMethod_);
         std::tuple<SlotTypeEnum, Slot> runMethodManual(Method &runMethod_, std::vector<Slot> params);
@@ -113,6 +113,7 @@ namespace RexVM {
         void returnBoolean(bool val);
 
         void throwException(InstanceOop * val, u4 pc);
+        void throwException(InstanceOop * val);
         void passException(std::unique_ptr<FrameThrowable> lastException);
         void cleanThrow();
 

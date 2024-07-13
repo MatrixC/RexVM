@@ -1,12 +1,11 @@
 add_rules("mode.debug", "mode.release")
 
-set_languages("c99", "cxx20")
+set_languages("c11", "cxx20")
 set_optimize("none")
 
 target("RexVM")
     set_kind("binary")
     set_toolchains("clang")
-    -- set_toolset("debugger", "lldb")
     add_includedirs(
         "third_party/miniz",
         "third_party/fmt/include"
@@ -16,6 +15,7 @@ target("RexVM")
         "src/utils/*.cpp",
         "src/native/*.cpp",
         "src/native/core/*.cpp",
+        "src/native/sun/*.cpp",
 
         "third_party/miniz/miniz.c"
     )

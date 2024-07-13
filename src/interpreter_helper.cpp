@@ -15,6 +15,6 @@ namespace RexVM {
         const auto throwable = frame.vm.oopManager->newInstance(instanceClass);
         const auto exceptionMessage = frame.vm.stringPool->getInternString("/ by zero");
         throwable->setFieldValue(throwableClassDetailMessageFieldSlotId, Slot(exceptionMessage));
-        frame.throwException(throwable, frame.pc());
+        frame.throwException(throwable);
     }
 }

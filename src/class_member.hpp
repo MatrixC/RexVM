@@ -33,7 +33,7 @@ namespace RexVM {
         size_t runtimeVisibleAnnotationLength{};
         std::unique_ptr<u1[]> runtimeVisibleAnnotation;
 
-        size_t runtimeVisibleTypeAnnotationLength;
+        size_t runtimeVisibleTypeAnnotationLength{};
         std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
 
         explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
@@ -44,6 +44,7 @@ namespace RexVM {
         [[nodiscard]] bool isStatic() const;
         [[nodiscard]] bool isFinal() const;
         [[nodiscard]] bool isPublic() const;
+        [[nodiscard]] bool isPrivate() const;
         [[nodiscard]] i4 getModifier() const;
 
         [[nodiscard]] bool is(const cstring &name, const cstring &descriptor) const;
@@ -65,7 +66,7 @@ namespace RexVM {
         [[nodiscard]] Class *getTypeClass() const;
 
         //Long or Double
-        bool isWideType() const;
+        [[nodiscard]] bool isWideType() const;
     };
 
     struct ExceptionCatchItem {
@@ -95,10 +96,10 @@ namespace RexVM {
         std::vector<std::unique_ptr<LineNumberItem>> lineNumbers;
         std::vector<u2> exceptionsIndex;
 
-        size_t runtimeVisibleParameterAnnotationLength;
+        size_t runtimeVisibleParameterAnnotationLength{};
         std::unique_ptr<u1[]> runtimeVisibleParameterAnnotation;
 
-        size_t annotationDefaultLength;
+        size_t annotationDefaultLength{};
         std::unique_ptr<u1[]> annotationDefault;
 
         std::vector<cstring> paramType;
@@ -106,7 +107,7 @@ namespace RexVM {
         size_t paramSize{0};
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
-        SlotTypeEnum returnSlotType;
+        SlotTypeEnum returnSlotType{SlotTypeEnum::NONE};
 
         [[nodiscard]] std::vector<Class *> getParamClasses() const;
 

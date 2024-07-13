@@ -118,6 +118,7 @@ namespace RexVM {
                 return true;
             }
         }
+
         return false;
 
     }
@@ -365,7 +366,7 @@ namespace RexVM {
     
     void InstanceClass::initSpecialType() {
         const auto threadClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
-        if (this->isSubClassOf(threadClass)) {
+        if (this == threadClass || this->isSubClassOf(threadClass)) {
             specialInstanceClass = SpecialInstanceClass::THREAD_CLASS;
         }
     }

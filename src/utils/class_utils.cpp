@@ -37,4 +37,13 @@ namespace RexVM {
             return klass->name;
         }
     }
+
+    cstring getJVMClassName(const cstring &javaClassName) {
+        return replace(javaClassName, ".", "/");
+    }
+
+    cstring getJavaClassName(const cstring &jvmClassName) {
+        return replace(jvmClassName, "/", ".");
+    }
+
 }

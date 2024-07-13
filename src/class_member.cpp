@@ -57,6 +57,10 @@ namespace RexVM {
         return (accessFlags & CAST_U2(AccessFlagEnum::ACC_PUBLIC)) != 0;
     }
 
+    bool ClassMember::isPrivate() const {
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_PRIVATE)) != 0;
+    }
+
     i4 ClassMember::getModifier() const {
         return (accessFlags & ~(CAST_U2(AccessFlagEnum::ACC_ANNOTATION)));
     }
@@ -235,6 +239,7 @@ namespace RexVM {
 
     std::vector<Class *> Method::getParamClasses() const {
         std::vector<Class *> classes;
+        classes.reserve(paramType.size());
         for (const auto &desc: paramType) {
             classes.emplace_back(klass.classLoader.getClass(desc));
         }

@@ -9,6 +9,7 @@
 #include "sun_misc_vm.hpp"
 #include "self_native.hpp"
 #include "core/native_core.hpp"
+#include "sun/native_sun.hpp"
 
 
 namespace RexVM {
@@ -91,6 +92,7 @@ namespace RexVM {
         regNativeMethod("java/util/concurrent/atomic/AtomicLong", "VMSupportsCS8", "()Z", false, Native::vmSupportsCS8);
 
         Native::Core::registerCoreMethods(*this);
+        Native::SUN::registerSunMethods(*this);
     }
 
 

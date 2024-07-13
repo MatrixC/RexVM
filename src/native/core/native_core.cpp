@@ -6,6 +6,7 @@
 #include "java_lang_thread.hpp"
 #include "java_lang_system.hpp"
 #include "java_lang_class.hpp"
+#include "java_lang_class_loader.hpp"
 #include "java_lang_runtime.hpp"
 #include "java_lang_string.hpp"
 #include "java_lang_reflect_array.hpp"
@@ -112,12 +113,12 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "defineClass1", "(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass0);
         manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "defineClass2", "(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass2);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "defineClass", "(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;", false, Native::Core::unsafeDefineClass);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "defineAnonymousClass", "(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;", false, Native::Core::unsafeDefineAnonymousClass);
         manager.regNativeMethod(JAVA_LANG_REFLECT_PROXY_NAME, "defineClass0", "(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;", false, Native::Core::proxyDefineClass0);
 
-
-        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "resolveClass0", "(Ljava/lang/Class;)V", false, Native::Core::classLoaderDefineClass0);
-        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "findBootstrapClass", "(Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass0);
-        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "findLoadedClass0", "(Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::classLoaderDefineClass0);
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "resolveClass0", "(Ljava/lang/Class;)V", false, Native::Core::resolveClass0);
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "findBootstrapClass", "(Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::findBootstrapClass);
+        manager.regNativeMethod(JAVA_LANG_CLASS_LOADER_NAME, "findLoadedClass0", "(Ljava/lang/String;)Ljava/lang/Class;", false, Native::Core::findLoadedClass0);
     }
 
     void registerRuntimeCoreMethods(NativeManager &manager) {
@@ -125,8 +126,11 @@ namespace RexVM::Native::Core {
     }
 
     void registerInvokeCoreMethods(NativeManager &manager) {
-        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "getConstant", "(I)I", true, Native::Core::getConstant);
-        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "resolve", "(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;", true, Native::Core::getConstant);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "getConstant", "(I)I", true, Native::Core::methodHandlerGetConstant);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "resolve", "(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;", true, Native::Core::methodHandlerResolve);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "init", "(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V", true, Native::Core::methodHandlerInit);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "objectFieldOffset", "(Ljava/lang/invoke/MemberName;)J", true, Native::Core::methodHandleObjectFieldOffset);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "getMembers", "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Class;I[Ljava/lang/invoke/MemberName;)I", true, Native::Core::methodHandleGetMembers);
     }
 
     void registerReflectCoreMethods(NativeManager &manager) {
@@ -136,9 +140,6 @@ namespace RexVM::Native::Core {
     void registerUnsafeCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "ensureClassInitialized", "(Ljava/lang/Class;)V", false, Native::Core::ensureClassInitialized);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "shouldBeInitialized", "(Ljava/lang/Class;)Z", false, Native::Core::shouldBeInitialized);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "allocateMemory", "(J)J", false, Native::Core::allocateMemory);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "freeMemory", "(J)V", false, Native::Core::freeMemory);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "reallocateMemory", "(JJ)J", false, Native::Core::reallocateMemory);
         
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "arrayBaseOffset", "(Ljava/lang/Class;)I", false, Native::Core::arrayBaseOffset);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "arrayIndexScale", "(Ljava/lang/Class;)I", false, Native::Core::arrayIndexScale);
@@ -189,6 +190,14 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getDouble", "(Ljava/lang/Object;J)D", false, Native::Core::getDouble);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "putDouble", "(Ljava/lang/Object;JD)V", false, Native::Core::putDouble);
 
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putOrderedObject", "(Ljava/lang/Object;JLjava/lang/Object;)V", false, Native::Core::putObject);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putOrderedInt", "(Ljava/lang/Object;JI)V", false, Native::Core::putI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putOrderedLong", "(Ljava/lang/Object;JJ)V", false, Native::Core::putLong);
+
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "allocateMemory", "(J)J", false, Native::Core::cheapAllocateMemory);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "freeMemory", "(J)V", false, Native::Core::cheapFreeMemory);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "reallocateMemory", "(JJ)J", false, Native::Core::cheapReallocateMemory);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "setMemory", "(Ljava/lang/Object;JJB)V", false, Native::Core::cheapSetMemory);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getByte", "(J)B", false, Native::Core::cheapGetI4);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "putByte", "(JB)V", false, Native::Core::cheapPutI4);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getShort", "(J)S", false, Native::Core::cheapGetI4);
@@ -203,11 +212,16 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "putFloat", "(JF)V", false, Native::Core::cheapPutF4);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getDouble", "(J)D", false, Native::Core::cheapGetF8);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "putDouble", "(JD)V", false, Native::Core::cheapPutF8);
-
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getAddress", "(J)J", false, Native::Core::cheapGetI8);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "putAddress", "(JJ)V", false, Native::Core::cheapPutI8);
 
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "pageSize", "()I", false, Native::Core::pageSize);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "allocateInstance", "(Ljava/lang/Class;)Ljava/lang/Object;", false, Native::Core::allocateInstance);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "throwException", "(Ljava/lang/Throwable;)V", false, Native::Core::throwException);
 
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "loadFence", "()V", false, Native::Core::loadFence);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "storeFence", "()V", false, Native::Core::storeFence);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "fullFence", "()V", false, Native::Core::fullFence);
 
     }
 

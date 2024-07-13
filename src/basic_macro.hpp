@@ -62,4 +62,7 @@
 #define CAST_MIRROR_OOP(x) static_cast<MirrorOop *>(x)
 #define CAST_VM_THREAD_OOP(x) static_cast<VMThread *>(x)
 
+#define GET_MIRROR_CLASS(x) CAST_MIRROR_OOP(x)->mirrorClass
+#define GET_MIRROR_INSTANCE_CLASS(x) CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(x)->mirrorClass)
+
 #endif

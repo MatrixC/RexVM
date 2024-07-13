@@ -74,8 +74,8 @@ namespace RexVM {
         virtual ~Class();
     };
 
-    //Hotspot对Primitive类型没有建立Class，只有对应的MirrorOop
-    //我觉得建立这个PrimitiveClass整体会更统一方便一点，少做一些特殊处理
+    //Hotspot对Primitive类型没有建立Class, 只有对应的MirrorOop
+    //我觉得建立这个PrimitiveClass整体会更统一方便一点,少做一些特殊处理
     struct PrimitiveClass : Class {
         BasicType basicType;
         explicit PrimitiveClass(BasicType basicType, ClassLoader &classLoader);

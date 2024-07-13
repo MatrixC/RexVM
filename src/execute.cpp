@@ -11,7 +11,6 @@
 #include "basic_java_class.hpp"
 #include "constant_pool.hpp"
 #include "key_slot_id.hpp"
-#include <sstream>
 
 namespace RexVM {
 
@@ -132,13 +131,6 @@ namespace RexVM {
         // if (method.name == "tabAt") {
         //     cprintln("aa");
         // }
-        static bool printStack = false;
-        if (!printStack && method.name == "k2") {
-            printStack = true;
-        }
-        if (printStack) {
-            cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
-        }
 
 
         if (notNativeMethod) [[likely]] {
@@ -149,9 +141,6 @@ namespace RexVM {
                 const auto pc __attribute__((unused)) = frame.pc();
                 const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
                 const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
-                if (method.name == "main" && lineNumber == 53) {
-                    (void)0;
-                }
                 pcList.emplace_back(pc);
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markReturn) {

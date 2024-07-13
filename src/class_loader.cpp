@@ -39,20 +39,26 @@ namespace RexVM {
         }
     }
 
-    InstanceClass *ClassLoader::loadInstanceClass(std::istream &is) {
+    constexpr auto ANONYMOUS_CLASS_NAME_PREFIX = "ANONYMOUS";
+    InstanceClass *ClassLoader::loadInstanceClass(std::istream &is, bool notAnonymous) {
         ClassFile cf(is);
         auto instanceClass = std::make_unique<InstanceClass>(*this, cf);
         const auto rawPtr = instanceClass.get();
         initMirrorClass(rawPtr);
-        classMap.emplace(instanceClass->name, std::move(instanceClass));
+        const auto className = notAnonymous ? instanceClass->name : ANONYMOUS_CLASS_NAME_PREFIX + std::to_string(anonymousClassIndex.fetch_add(1));
+        classMap.emplace(className, std::move(instanceClass));
         return rawPtr;
+    }
+
+    InstanceClass *ClassLoader::loadInstanceClass(std::istream &is) {
+        return loadInstanceClass(is, true);
     }
 
     InstanceClass *ClassLoader::loadInstanceClass(const cstring &name) {
         auto streamPtr = classPath.getStream(name + ".class");
         if (streamPtr == nullptr) {
             panic("Can't find class " + name);
-            //throw Class Not Found expception
+            //throw Class Not Found exception
         }
         return loadInstanceClass(*streamPtr);
     }
@@ -162,7 +168,7 @@ namespace RexVM {
         initKeySlotId();
     }
 
-    void ClassLoader::initKeySlotId() {
+    void ClassLoader::initKeySlotId() const {
         stringClassValueFieldSlotId =
                 getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING)
                         ->getField("value", "[C", false)->slotId;
@@ -180,11 +186,11 @@ namespace RexVM {
         return basicJavaClass.at(CAST_SIZE_T(classEnum));
     }
 
-    InstanceClass *ClassLoader::loadInstanceClass(u1 *ptr, size_t length) {
+    InstanceClass *ClassLoader::loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous) {
         cstring buffer(length, 0);
         auto bufferPtr = reinterpret_cast<void *>(buffer.data());
         std::memcpy(bufferPtr, ptr, length * sizeof(u1));
         const auto classStream = std::make_unique<std::istringstream>(buffer);
-        return loadInstanceClass(*classStream);
+        return loadInstanceClass(*classStream, notAnonymous);
     }
 }

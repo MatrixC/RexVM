@@ -1,7 +1,3 @@
-//
-// Created by ch on 12/20/23.
-//
-
 #ifndef CLASS_FILE_PRINT_HPP
 #define CLASS_FILE_PRINT_HPP
 

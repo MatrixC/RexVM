@@ -276,6 +276,10 @@ namespace RexVM {
         throwObject = std::make_unique<FrameThrowable>(val, method, throwPc);
     }
 
+    void Frame::throwException(InstanceOop * const val) {
+        throwException(val, pc());
+    }
+
     void Frame::passException(std::unique_ptr<FrameThrowable> lastException) {
         markThrow = true;
         throwObject = std::move(lastException);
@@ -313,8 +317,6 @@ namespace RexVM {
 
     void Frame::printCallStack() const {
         for (auto f = this; f != nullptr; f = f->previous) {
-            const auto &method = f->method;
-            const auto &klass = f->method.klass;
             const auto nativeMethod = method.isNative();
             cprintln("  {}#{}:{} {}", klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
         }

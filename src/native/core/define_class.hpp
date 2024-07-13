@@ -15,7 +15,7 @@
 
 namespace RexVM::Native::Core {
 
-    void defineClassCommon(Frame &frame, ref bufferOop, i4 off, i4 len, bool useArrayLength) {
+    void defineClassCommon(Frame &frame, ref bufferOop, i4 off, i4 len, bool useArrayLength, bool notAnonymous) {
         if (bufferOop == nullptr) {
             panic("bufferOop can't be null");
         }
@@ -27,7 +27,7 @@ namespace RexVM::Native::Core {
         const auto bufferPtr = buffer->data.get() + off;
 
         auto &classLoader = *frame.getCurrentClassLoader();
-        const auto classOop = classLoader.loadInstanceClass(bufferPtr, len);
+        const auto classOop = classLoader.loadInstanceClass(bufferPtr, len, notAnonymous);
         frame.returnRef(classOop->getMirrorOop());
     }
 
@@ -36,7 +36,7 @@ namespace RexVM::Native::Core {
         const auto bufferOop = frame.getLocalRef(2);
         const auto off = frame.getLocalI4(3);
         const auto len = frame.getLocalI4(4);
-        defineClassCommon(frame, bufferOop, off, len, false);
+        defineClassCommon(frame, bufferOop, off, len, false, true);
     }
 
     //native Class<?> defineClass2(String name, java.nio.ByteBuffer b, int off, int len, ProtectionDomain pd, String source);
@@ -48,7 +48,7 @@ namespace RexVM::Native::Core {
         const auto bufferOop = byteBufferOop->getFieldValue("hb", "[B").refVal;
         const auto off = frame.getLocalI4(3);
         const auto len = frame.getLocalI4(4);
-        defineClassCommon(frame, bufferOop, off, len, false);
+        defineClassCommon(frame, bufferOop, off, len, false, true);
     }
 
     //static native Class<?> defineClass0(ClassLoader loader, String name, byte[] b, int off, int len);
@@ -56,7 +56,7 @@ namespace RexVM::Native::Core {
         const auto bufferOop = frame.getLocalRef(2);
         const auto off = frame.getLocalI4(3);
         const auto len = frame.getLocalI4(4);
-        defineClassCommon(frame, bufferOop, off, len, false);
+        defineClassCommon(frame, bufferOop, off, len, false, true);
     }
 
     //native Class<?> defineClass(String name, byte[] b, int off, int len, ClassLoader loader, ProtectionDomain protectionDomain);
@@ -64,7 +64,7 @@ namespace RexVM::Native::Core {
         const auto bufferOop = frame.getLocalRef(2);
         const auto off = frame.getLocalI4(3);
         const auto len = frame.getLocalI4(4);
-        defineClassCommon(frame, bufferOop, off, len, false);
+        defineClassCommon(frame, bufferOop, off, len, false, true);
 
     }
 
@@ -72,8 +72,9 @@ namespace RexVM::Native::Core {
     void unsafeDefineAnonymousClass(Frame &frame) {
         //const auto hostClassMirrorOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         const auto bufferOop = frame.getLocalRef(2);
-
-        defineClassCommon(frame, bufferOop, 0, 0, true);
+        const auto cpPatchesOop = frame.getLocalRef(3);
+        (void)cpPatchesOop;
+        defineClassCommon(frame, bufferOop, 0, 0, true, false);
     }
 
 

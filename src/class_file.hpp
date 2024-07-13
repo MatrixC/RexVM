@@ -1,7 +1,3 @@
-//
-// Created by ch on 12/17/23.
-//
-
 #ifndef CLASS_FILE_HPP
 #define CLASS_FILE_HPP
 
@@ -14,7 +10,6 @@
 namespace RexVM {
 
     constexpr std::uint32_t MAGIC_NUMBER = 0xCAFEBABE;
-
 
     struct ConstantInfo;
     struct AttributeInfo;

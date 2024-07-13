@@ -29,13 +29,15 @@ namespace RexVM::Native::Core {
 
     template <typename T>
     bool strongCompareAndSwap(T *src, T expect, T val) {
-        auto* atomSrc = reinterpret_cast<std::atomic<T>*>(src);
-        return std::atomic_compare_exchange_strong(atomSrc, &expect, val);
+        static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
+        std::atomic<T>* atomSrc = reinterpret_cast<std::atomic<T>*>(src);
+        T temp = expect;
+        return std::atomic_compare_exchange_strong(atomSrc, &temp, val);
     }
 
     template <typename T>
     bool compareAndSwap(T *src, T expect, T val) {
-        return weakCompareAndSwap(src, expect, val);
+        return strongCompareAndSwap(src, expect, val);
     }
 
     template<typename T>
@@ -195,12 +197,21 @@ namespace RexVM::Native::Core {
         frame.returnSlot(Slot(*dataPtr), type);
     }
 
+    template<typename T>
+    void setMemoryAction(Frame &frame, T *dataPtr) {
+        const auto bytes = CAST_SIZE_T(frame.getLocalI8(4));
+        const auto value = CAST_U1(frame.getLocalI4(6));
+        const auto rawPtr = reinterpret_cast<void *>(dataPtr);
+        std::memset(rawPtr, value, bytes);
+    }
+
     enum class UnsafeActionTypeEnum {
         COMPARE_AND_SWAP,
         GET_VOLATILE,
         PUT_VOLATILE,
         GET,
         PUT,
+        SET_MEMORY,
     };
 
     template<typename T>
@@ -235,26 +246,56 @@ namespace RexVM::Native::Core {
                 putAction(frame, dataPtr);
                 break;
             }
+
+            case UnsafeActionTypeEnum::SET_MEMORY:
+                setMemoryAction(frame, dataPtr);
+                break;
         }
+    }
+    
+    i8 encodeStaticFieldOffset(i8 value) {
+        return (value + 1) * -1;
+    }
+
+    i8 decodeStaticFieldOffset(i8 value) {
+        return (value * -1) - 1;
+    }
+
+    bool isStaticFieldOffset(i8 value) {
+        return value < 0;
     }
 
     void unsafCommon(Frame &frame, UnsafeActionTypeEnum actionType, SlotTypeEnum slotType) {
         //obj 有两种情况, 一个正常类的实例或者一个Class对象: 来源于staticFieldBase方法
         //如果要读取一个类的static字段, 则obj会传入类对应的Class对象
-        //这也意味着Unsafe应该无法正常处理Class类本身的字段,因为Unsafe的get/put方法没有区分是否为static字段
-        //所以需要根据obj是否为Class对象来判断, 是Class对象则取对应类的static字段 否则取对应的正常字段
-        const auto obj = frame.getLocalRef(1);
+        //为了区分普通offset和static字段的offset, 在生成offset的时候做了一些区分, 静态offset用负数表示
+        auto obj = frame.getLocalRef(1);
         auto offset = frame.getLocalI8(2);
+        if (obj == nullptr) {
+            if (actionType != UnsafeActionTypeEnum::SET_MEMORY) {
+                panic("error object");
+            }
+            //offset就是address 转换成i4 *是为了适配泛型方法
+            const auto dataPtr = reinterpret_cast<i4 *>(std::bit_cast<void *>(offset));
+            actionSwitch(frame, actionType, dataPtr, slotType);
+            return;
+        }
+        
+        if (isStaticFieldOffset(offset)) {
+            offset = decodeStaticFieldOffset(offset);
+            if (obj->klass->name != JAVA_LANG_CLASS_NAME) {
+                panic("error object");
+            }
+            const auto mirrorClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(obj)->mirrorClass);
+            auto dataPtr = mirrorClass->staticData.get();
+            dataPtr += offset;
+            actionSwitch(frame, actionType, dataPtr, slotType);
+            return;
+        }
 
         if (obj->type == OopTypeEnum::InstanceOop) {
             const auto instanceObj = CAST_INSTANCE_OOP(obj);
             auto dataPtr = instanceObj->data.get();
-            const auto objClass = instanceObj->getInstanceClass();
-            if (offset >= objClass->instanceSlotCount) {
-                //static
-                dataPtr = objClass->staticData.get();
-                offset -= objClass->instanceSlotCount;
-            }
             dataPtr += offset;
             actionSwitch(frame, actionType, dataPtr, slotType);
             return;

@@ -12,10 +12,25 @@
 #include "../../invoke_dynamic.hpp"
 #include "../../utils/class_utils.hpp"
 
-
 namespace RexVM::Native::Core {
 
-    void getConstant(Frame &frame) {
+    // MemberName
+    // The JVM uses values of -2 and above for vtable indexes.
+    // Field values are simple positive offsets.
+    // Ref: src/share/vm/oops/methodOop.hpp
+    // This value is negative enough to avoid such numbers,
+    // but not too negative.
+    constexpr i4 MN_IS_METHOD           = 0x00010000; // method (not constructor)
+    constexpr i4 MN_IS_CONSTRUCTOR      = 0x00020000; // constructor
+    constexpr i4 MN_IS_FIELD            = 0x00040000; // field
+    constexpr i4 MN_IS_TYPE             = 0x00080000; // nested type
+    constexpr i4 MN_CALLER_SENSITIVE    = 0x00100000; // @CallerSensitive annotation detected
+    constexpr i4 MN_REFERENCE_KIND_SHIFT = 24; // refKind
+    constexpr i4 MN_REFERENCE_KIND_MASK = 0x0F000000 >> MN_REFERENCE_KIND_SHIFT;
+    constexpr i4 MN_SEARCH_SUPERCLASSES = 0x00100000;
+    constexpr i4 MN_SEARCH_INTERFACES   = 0x00200000;
+
+    void methodHandlerGetConstant(Frame &frame) {
         frame.returnI4(0);
     }
 
@@ -25,7 +40,7 @@ namespace RexVM::Native::Core {
 				(name == "invoke"
 				|| name == "invokeBasic"
 				|| name == "invokeExact"
-				|| name == "invokeWithArauments"
+				|| name == "invokeWithArguments"
 				|| name == "linkToSpecial"
 				|| name == "linkToStatic"
 				|| name == "linkToVirtual"
@@ -55,58 +70,106 @@ namespace RexVM::Native::Core {
         return descriptor;
     }
 
-    void resolve(Frame &frame) {
-        const auto memeberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
-        if (memeberNameOop == nullptr) {
-            frame.returnRef(nullptr);
+    void methodHandlerResolve(Frame &frame) {
+        const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        if (memberNameOop == nullptr) {
+            panic("can't be error throws");
             return;
         }
+        auto &classLoader = *frame.getCurrentClassLoader();
 
-        /*
-        private Class<?> clazz;       // class in which the method is defined
-        private String   name;        // may be null if not yet materialized
-        private Object   type;        // may be null if not yet materialized
-        private int      flags;  
-        */
+//        private Class<?> clazz;       // class in which the method is defined
+//        private String   name;        // may be null if not yet materialized
+//        private Object   type;        // may be null if not yet materialized
+//        private int      flags;
 
-        auto clazz = (CAST_MIRROR_OOP(memeberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal))->mirrorClass;
-        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memeberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
-        //const auto type = CAST_INSTANCE_OOP(memeberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto flags = memeberNameOop->getFieldValue("type", "I").i4Val;
-        //const auto kind = static_cast<MethodHandleEnum>((flags & 0xF000000) >> 24);
+        auto clazz = GET_MIRROR_CLASS(memberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
+        const auto type = CAST_INSTANCE_OOP(memberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
+        const auto flags = memberNameOop->getFieldValue("flags", "I").i4Val;
+        const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
 
         if (clazz == nullptr) {
             panic("resolve error");
         } else if (clazz->type == ClassTypeEnum::TypeArrayClass || clazz->type == ClassTypeEnum::ObjArrayClass) {
-            clazz = frame.vm.bootstrapClassLoader->getClass(JAVA_LANG_OBJECT_NAME);
+            clazz = classLoader.getClass(JAVA_LANG_OBJECT_NAME);
         }
-
-        //const auto mirrorInstanceClass = CAST_INSTANCE_CLASS(clazz);
-        //const auto descriptor = getDescriptor(clazz, type, name);
-        
-
-        if (flags & 0x10000) {
-            //const auto method = mirrorInstanceClass->getMethod(name, descriptor, false);
-            //auto result = frame.vm.oopManager->newInstance(mirrorInstanceClass);
-            
-
-
-
-        } else if (flags & 0x20000) {
-
-        } else if (flags & 0x40000) {
-
-        } else {
-            panic("resolve error");
+        const auto instanceClass = CAST_INSTANCE_CLASS(clazz);
+        const auto descriptor = getDescriptor(clazz, type, name);
+        if (flags & MN_IS_METHOD) {
+            const auto isStatic = kind == MethodHandleEnum::REF_invokeStatic;
+            const auto resolveMethod = instanceClass->getMethod(name, descriptor, isStatic);
+            const auto newFlags = flags | CAST_I4(resolveMethod->accessFlags);
+            memberNameOop->setFieldValue("flags", "I", Slot(newFlags));
+            memberNameOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(resolveMethod->klass.getMirrorOop()));
+            frame.returnRef(memberNameOop);
+        } else if (flags & MN_IS_CONSTRUCTOR) {
+            panic("error");
+        } else if (flags & MN_IS_FIELD) {
+            const auto isStatic = kind == MethodHandleEnum::REF_getStatic || kind == MethodHandleEnum::REF_putStatic;
+            const auto resolveField = instanceClass->getField(name, descriptor, isStatic);
+            const auto newFlags = flags | CAST_I4(resolveField->accessFlags);
+            memberNameOop->setFieldValue("flags", "I", Slot(newFlags));
+            memberNameOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(resolveField->klass.getMirrorOop()));
+            frame.returnRef(memberNameOop);
+        } else if (flags & MN_IS_TYPE) {
+            panic("error");
         }
-        
-
-
-
-
-
-
     }
+
+    void methodHandlerInit(Frame &frame) {
+        const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        const auto refOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
+        const auto refClassName = refOop->klass->name;
+        //const auto flags = memberNameOop->getFieldValue("flags", "I").i4Val;
+
+        if (refClassName == "java/lang/reflect/Method") {
+            const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
+            const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+            const auto methodPtr = klass->methods[slotId].get();
+            //const auto newFlags = flags | CAST_I4(methodPtr->accessFlags);
+            auto newFlags = CAST_I4(methodPtr->accessFlags) | MN_IS_METHOD;
+
+            if (methodPtr->isPrivate() && !methodPtr->isStatic()) {
+                newFlags |= (CAST_I4(MethodHandleEnum::REF_invokeSpecial) << MN_REFERENCE_KIND_SHIFT);
+            } else if (methodPtr->isStatic()) {
+                newFlags |= (CAST_I4(MethodHandleEnum::REF_invokeStatic) << MN_REFERENCE_KIND_SHIFT);
+            } else {
+                if (klass->isInterface()) {
+                    newFlags |= (CAST_I4(MethodHandleEnum::REF_invokeInterface) << MN_REFERENCE_KIND_SHIFT);
+                } else {
+                    newFlags |= (CAST_I4(MethodHandleEnum::REF_invokeVirtual) << MN_REFERENCE_KIND_SHIFT);
+                }
+            }
+
+            memberNameOop->setFieldValue("flags", "I", Slot(newFlags));
+            memberNameOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(methodPtr->klass.getMirrorOop()));
+        } else if (refClassName == "java/lang/reflect/Field") {
+            panic("error");
+        } else if (refClassName == "java/lang/reflect/Constructor") {
+            panic("error");
+        } else {
+            panic("error");
+        }
+    }
+
+    void methodHandleObjectFieldOffset(Frame &frame) {
+        const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        const auto klass = GET_MIRROR_INSTANCE_CLASS(memberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
+        const auto type = GET_MIRROR_INSTANCE_CLASS(memberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
+        const auto flags = memberNameOop->getFieldValue("flags", "I").i4Val;
+        const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
+        const auto isStatic = kind == MethodHandleEnum::REF_getStatic || kind == MethodHandleEnum::REF_putStatic;
+        const auto field = klass->getField(name, getDescriptorByClass(type), isStatic);
+        frame.returnI8(field->slotId);
+    }
+
+    void methodHandleGetMembers(Frame &frame) {
+        frame.returnI4(1000);
+    }
+
+
 
 }
 

@@ -237,7 +237,7 @@ namespace RexVM {
 
     std::tuple<const u1 *, u2> getConstantStringBytes(ConstantInfo *info);
 
-    cstring getConstantStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index);
+    cstring getConstantStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, size_t index);
 
     std::tuple<const u1 *, u2> getConstantStringBytesFromPool(
         const std::vector<std::unique_ptr<ConstantInfo>> &pool, 

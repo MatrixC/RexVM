@@ -1,6 +1,7 @@
 #ifndef NATIVE_CORE_UNSAFE_HPP
 #define NATIVE_CORE_UNSAFE_HPP
 #include <atomic>
+#include <unistd.h>
 #include "unsafe_helper.hpp"
 #include "../../config.hpp"
 #include "../../vm.hpp"
@@ -54,11 +55,9 @@ namespace RexVM::Native::Core {
     //native long staticFieldOffset(Field f);
     void staticFieldOffset(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto mirrorOop = CAST_MIRROR_OOP(fieldMirror->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->mirrorClass);
         const auto value = fieldMirror->getFieldValue("slot", "I").i4Val;
-        const auto encodeValue = (value + 1) * -1;
-        frame.returnI8(mirrorClass->instanceSlotCount + value);
+        //见unsafeCommon
+        frame.returnI8(encodeStaticFieldOffset(value));
     }
 
     //native Object staticFieldBase(Field f);
@@ -164,23 +163,27 @@ namespace RexVM::Native::Core {
     }
 
     //C heap function
-    void allocateMemory(Frame &frame) {
+    void cheapAllocateMemory(Frame &frame) {
         const auto length = frame.getLocalI8(1);
         const auto ptr = std::malloc(length);
         frame.returnI8(std::bit_cast<i8>(ptr));
     }
 
-    void freeMemory(Frame &frame) {
+    void cheapFreeMemory(Frame &frame) {
         const auto addressLong = frame.getLocalI8(1);
         const auto address = std::bit_cast<void *>(addressLong);
         std::free(address);
     }
 
-    void reallocateMemory(Frame &frame) {
+    void cheapReallocateMemory(Frame &frame) {
         const auto addressLong = frame.getLocalI8(1);
         const auto size = CAST_SIZE_T(frame.getLocalI8(3));
         const auto address = std::bit_cast<void *>(addressLong);
         frame.returnI8(std::bit_cast<i8>(std::realloc(address, size)));
+    }
+
+    void cheapSetMemory(Frame &frame) {
+        unsafCommon(frame, UnsafeActionTypeEnum::SET_MEMORY, SlotTypeEnum::REF);
     }
 
     void cheapGetI4(Frame &frame) {
@@ -235,8 +238,35 @@ namespace RexVM::Native::Core {
         *address = value;
     }
 
+    void pageSize(Frame &frame) {
+        const auto pageSize = CAST_I4(getpagesize());
+        frame.returnI4(pageSize);
+    }
 
+    //native Object allocateInstance(Class<?> cls) throws InstantiationException;
+    void allocateInstance(Frame &frame) {
+        const auto mirrorClass = GET_MIRROR_INSTANCE_CLASS(frame.getLocalRef(1));
+        const auto &oopManager = frame.vm.oopManager;
+        const auto instance = oopManager->newInstance(mirrorClass);
+        frame.returnRef(instance);
+    }
 
+    //native void throwException(Throwable ee);
+    void throwException(Frame &frame) {
+        frame.throwException(CAST_INSTANCE_OOP(frame.getLocalRef(1)));
+    }
+
+    void loadFence(Frame &frame) {
+        __atomic_signal_fence(__ATOMIC_ACQUIRE);
+    }
+
+    void storeFence(Frame &frame) {
+        __atomic_signal_fence(__ATOMIC_RELEASE);
+    }
+
+    void fullFence(Frame &frame) {
+        __atomic_thread_fence(__ATOMIC_SEQ_CST);
+    }
 
     
 

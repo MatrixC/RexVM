@@ -9,7 +9,6 @@
 #include "class.hpp"
 #include "oop.hpp"
 #include "class_loader.hpp"
-#include "vm.hpp"
 #include "constant_pool.hpp"
 #include "memory.hpp"
 #include "invoke_dynamic.hpp"
@@ -1038,6 +1037,9 @@ namespace RexVM {
 
         void invokevirtual(Frame &frame) {
             const auto index = frame.reader.readU2();
+            if (frame.method.name == "main" && frame.pc() == 22) {
+                (void)0;
+            }
             const auto invokeMethod = frame.klass.getRefMethod(index, false);
             const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
@@ -1099,25 +1101,20 @@ namespace RexVM {
             instanceClass->clinit(frame);
             const auto &oopManager = frame.vm.oopManager;
 
-            const auto threadClass = frame.classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
-            if (instanceClass == threadClass || instanceClass->isSubClassOf(threadClass)) {
-                frame.pushRef(oopManager->newVMThread(instanceClass));
-            } else {
-                frame.pushRef(oopManager->newInstance(instanceClass));
+            const auto specialType = instanceClass->specialInstanceClass;
+            switch (specialType) {
+                case SpecialInstanceClass::NONE:
+                    frame.pushRef(oopManager->newInstance(instanceClass));
+                    break;
+                
+                case SpecialInstanceClass::THREAD_CLASS:
+                    frame.pushRef(oopManager->newVMThread(instanceClass));
+                    break;
+                
+                case SpecialInstanceClass::CLASS_LOADER_CLASS:
+                    panic("not implement");
+                    break;
             }
-            // const auto specialType = instanceClass->specialInstanceClass;
-            // switch (specialType) {
-            //     case SpecialInstanceClass::NONE:
-            //         frame.pushRef(oopManager->newInstance(instanceClass));
-            //         break;
-                
-            //     case SpecialInstanceClass::THREAD_CLASS:
-            //         frame.pushRef(oopManager->newVMThread(instanceClass));
-            //         break;
-                
-            //     case SpecialInstanceClass::CLASS_LOADER_CLASS:
-            //         break;
-            // }
         }
 
         void newarray(Frame &frame) {
@@ -1146,7 +1143,7 @@ namespace RexVM {
         void athrow(Frame &frame) {
             const auto ex = frame.popRef();
             const auto exOop = CAST_INSTANCE_OOP(ex);
-            frame.throwException(exOop, frame.pc());
+            frame.throwException(exOop);
         }
 
         void checkcast(Frame &frame) {

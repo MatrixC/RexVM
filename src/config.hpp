@@ -73,10 +73,6 @@ namespace RexVM {
         return slotType == SlotTypeEnum::I8 || slotType == SlotTypeEnum::F8;
     }
 
-    inline bool isWideSlotType(cchar first) {
-        return first == 'J' || first == 'D';
-    }
-
     inline SlotTypeEnum getSlotTypeByDescriptorFirstChar(cchar first) {
         switch (first) {
             case 'L':

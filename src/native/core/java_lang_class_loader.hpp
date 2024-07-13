@@ -12,6 +12,7 @@
 #include "../../class_loader.hpp"
 #include "../../constant_pool.hpp"
 #include "../../utils/string_utils.hpp"
+#include "../../utils/class_utils.hpp"
 
 namespace RexVM::Native::Core {
 
@@ -44,7 +45,7 @@ namespace RexVM::Native::Core {
             frame.returnRef(nullptr);
             return;
         }
-        const auto className = StringPool::getJavaString(classNameOop);
+        const auto className = getJVMClassName(StringPool::getJavaString(classNameOop));
         const auto mirrorOop = frame.getCurrentClassLoader()->getClass(className)->getMirrorOop();
         frame.returnRef(mirrorOop);
     }
