@@ -36,17 +36,17 @@ namespace RexVM::Native::Core {
             const auto typeClassName = typeClass->name;
 		    if (typeClassName == "java/lang/invoke/MethodType") {
 			    descriptor += "(";
-                const auto ptypes = static_cast<ObjArrayOop *>(type->getFieldValue("ptypes", "[Ljava/lang/Class;").refVal);
+                const auto ptypes = CAST_OBJ_ARRAY_OOP(type->getFieldValue("ptypes", "[Ljava/lang/Class;").refVal);
                 for (size_t i = 0; i < ptypes->dataLength; ++i) {
-                    const auto classMirrorOop = static_cast<MirrorOop *>(ptypes->data[i]);
+                    const auto classMirrorOop = CAST_MIRROR_OOP(ptypes->data[i]);
                     const auto mirrorClass = classMirrorOop->mirrorClass;
                     descriptor += getDescriptorByClass(mirrorClass);
                 }
 			    descriptor += ")";
-                const auto rtype = static_cast<MirrorOop *>(type->getFieldValue("rtype", "Ljava/lang/Class;").refVal);
+                const auto rtype = CAST_MIRROR_OOP(type->getFieldValue("rtype", "Ljava/lang/Class;").refVal);
 			    descriptor += getDescriptorByClass(rtype->mirrorClass);
 		    } else if (typeClassName == JAVA_LANG_CLASS_NAME) {
-                const auto mirrorClass = static_cast<MirrorOop *>(type)->mirrorClass;
+                const auto mirrorClass = CAST_MIRROR_OOP(type)->mirrorClass;
                 descriptor = getDescriptorByClass(mirrorClass);
 		    } else {
                 panic("error");
@@ -56,7 +56,7 @@ namespace RexVM::Native::Core {
     }
 
     void resolve(Frame &frame) {
-        const auto memeberNameOop = static_cast<InstanceOop *>(frame.getLocalRef(0));
+        const auto memeberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         if (memeberNameOop == nullptr) {
             frame.returnRef(nullptr);
             return;
@@ -69,9 +69,9 @@ namespace RexVM::Native::Core {
         private int      flags;  
         */
 
-        auto clazz = (static_cast<MirrorOop *>(memeberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal))->mirrorClass;
-        const auto name = StringPool::getJavaString(static_cast<InstanceOop *>(memeberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
-        //const auto type = static_cast<InstanceOop *>(memeberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
+        auto clazz = (CAST_MIRROR_OOP(memeberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal))->mirrorClass;
+        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memeberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
+        //const auto type = CAST_INSTANCE_OOP(memeberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
         const auto flags = memeberNameOop->getFieldValue("type", "I").i4Val;
         //const auto kind = static_cast<MethodHandleEnum>((flags & 0xF000000) >> 24);
 
@@ -81,7 +81,7 @@ namespace RexVM::Native::Core {
             clazz = frame.vm.bootstrapClassLoader->getClass(JAVA_LANG_OBJECT_NAME);
         }
 
-        //const auto mirrorInstanceClass = static_cast<InstanceClass *>(clazz);
+        //const auto mirrorInstanceClass = CAST_INSTANCE_CLASS(clazz);
         //const auto descriptor = getDescriptor(clazz, type, name);
         
 

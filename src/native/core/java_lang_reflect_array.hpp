@@ -10,7 +10,7 @@ namespace RexVM::Native::Core {
 
     //static native Object newArray(Class<?> componentType, int length)
     void newArray(Frame &frame) {
-        const auto mirrorOop = static_cast<MirrorOop *>(frame.getLocalRef(0));
+        const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(0));
         if (mirrorOop == nullptr) {
             frame.returnRef(nullptr);
             return;
@@ -20,7 +20,7 @@ namespace RexVM::Native::Core {
         const auto mirrorClass = mirrorOop->mirrorClass;
         switch (mirrorClass->type) {
             case ClassTypeEnum::PrimitiveClass: {
-                const auto primitiveClass = static_cast<PrimitiveClass *>(mirrorClass);
+                const auto primitiveClass = CAST_PRIMITIVE_CLASS(mirrorClass);
                 const auto arrayObj = oopManager->newTypeArrayOop(primitiveClass->getBasicType(), length);
                 frame.returnRef(arrayObj);
                 return;

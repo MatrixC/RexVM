@@ -18,7 +18,7 @@ namespace RexVM {
         const auto methodHandlesClass = vm.bootstrapClassLoader->getInstanceClass("java/lang/invoke/MethodHandles");
         const auto lookupMethod = methodHandlesClass->getMethod("lookup", "()Ljava/lang/invoke/MethodHandles$Lookup;", true);
         const auto [_, lookupOop] = frame.runMethodManual(*lookupMethod, {});
-        return static_cast<InstanceOop *>(lookupOop.refVal);
+        return CAST_INSTANCE_OOP(lookupOop.refVal);
     }
 
     InstanceOop *createMethodType(VM &vm, const cstring &methodDescriptor) {
@@ -168,7 +168,7 @@ namespace RexVM {
                 panic("createMethodHandles error: error kind");
         }
 
-        return static_cast<InstanceOop *>(std::get<1>(result).refVal);
+        return CAST_INSTANCE_OOP(std::get<1>(result).refVal);
     }
 
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
@@ -176,13 +176,13 @@ namespace RexVM {
         const auto &oopManager = vm.oopManager;
         const auto &methodClass = frame.klass;
         const auto &constantPool = methodClass.constantPool;
-        const auto invokeDynamicInfo = static_cast<ConstantInvokeDynamicInfo *>(constantPool[invokeDynamicIdx].get());
+        const auto invokeDynamicInfo = CAST_CONSTANT_INVOKE_DYNAMIC_INFO(constantPool[invokeDynamicIdx].get());
         //=========================================================================================================
         //Key
         const auto [invokeName, invokeDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, invokeDynamicInfo->nameAndTypeIndex);
 
         const auto bootstrapMethodAttr = methodClass.getBootstrapMethodAttr()->bootstrapMethods[invokeDynamicInfo->bootstrapMethodAttrIndex].get();
-        const auto methodHandleInfo = static_cast<ConstantMethodHandleInfo *>(constantPool[bootstrapMethodAttr->bootstrapMethodRef].get());
+        const auto methodHandleInfo = CAST_CONSTANT_METHOD_HANDLE_INFO(constantPool[bootstrapMethodAttr->bootstrapMethodRef].get());
         //=========================================================================================================
 
         //Key
@@ -195,7 +195,7 @@ namespace RexVM {
         for (size_t i = 0; i < bootstrapMethodAttr->numberOfBootstrapArguments; ++i) {
             const auto argIdx = bootstrapMethodAttr->bootstrapArguments[i];
             const auto argInfo = constantPool[argIdx].get();
-            const auto argInfoType = static_cast<ConstantTagEnum>(argInfo->tag);
+            const auto argInfoType = CAST_CONSTANT_TAG_ENUM(argInfo->tag);
             switch (argInfoType) {
                 case ConstantTagEnum::CONSTANT_String: {
                     const auto strVal = getConstantStringFromPoolByIndexInfo(constantPool, argIdx);
@@ -204,33 +204,33 @@ namespace RexVM {
                 }
 
                 case ConstantTagEnum::CONSTANT_Class: {
-                    const auto className = getConstantStringFromPool(constantPool, static_cast<ConstantClassInfo *>(argInfo)->index);
+                    const auto className = getConstantStringFromPool(constantPool, CAST_CONSTANT_CLASS_INFO(argInfo)->index);
                     callSiteParam.emplace_back(vm.bootstrapClassLoader->getClass(className)->getMirrorOop());
                     break;
                 }
 
                 case ConstantTagEnum::CONSTANT_Integer:
-                    callSiteParam.emplace_back(oopManager->newIntegerOop((static_cast<ConstantIntegerInfo *>(argInfo))->value));
+                    callSiteParam.emplace_back(oopManager->newIntegerOop((CAST_CONSTANT_INTEGER_INFO(argInfo))->value));
                 break;
 
                 case ConstantTagEnum::CONSTANT_Float:
-                    callSiteParam.emplace_back(oopManager->newFloatOop((static_cast<ConstantFloatInfo *>(argInfo))->value));
+                    callSiteParam.emplace_back(oopManager->newFloatOop((CAST_CONSTANT_FLOAT_INFO(argInfo))->value));
                 break;
 
                 case ConstantTagEnum::CONSTANT_Long:
-                    callSiteParam.emplace_back(oopManager->newLongOop((static_cast<ConstantLongInfo *>(argInfo))->value));
+                    callSiteParam.emplace_back(oopManager->newLongOop((CAST_CONSTANT_LONG_INFO(argInfo))->value));
                 break;
 
                 case ConstantTagEnum::CONSTANT_Double:
-                    callSiteParam.emplace_back(oopManager->newDoubleOop((static_cast<ConstantDoubleInfo *>(argInfo))->value));
+                    callSiteParam.emplace_back(oopManager->newDoubleOop((CAST_CONSTANT_DOUBLE_INFO(argInfo))->value));
                 break;
 
                 case ConstantTagEnum::CONSTANT_MethodHandle:
-                    callSiteParam.emplace_back(createMethodHandle(frame, static_cast<ConstantMethodHandleInfo *>(argInfo)));
+                    callSiteParam.emplace_back(createMethodHandle(frame, CAST_CONSTANT_METHOD_HANDLE_INFO(argInfo)));
                 break;
 
                 case ConstantTagEnum::CONSTANT_MethodType:
-                    callSiteParam.emplace_back(createMethodType(vm, getConstantStringFromPool(constantPool, (static_cast<ConstantMethodTypeInfo *>(argInfo))->descriptorIndex)));
+                    callSiteParam.emplace_back(createMethodType(vm, getConstantStringFromPool(constantPool, (CAST_CONSTANT_METHOD_TYPE_INFO(argInfo))->descriptorIndex)));
                 break;
 
                 default:
@@ -252,10 +252,10 @@ namespace RexVM {
         const auto invokeWithArgumentsMethod = methodHandleOop->getInstanceClass()->getMethod("invokeWithArguments", "(Ljava/util/List;)Ljava/lang/Object;", false);
 
 
-        const auto callSiteOop = static_cast<InstanceOop *>(std::get<1>(frame.runMethodManual(*invokeWithArgumentsMethod, { Slot(methodHandleOop), Slot(arrayListOop)})).refVal);
+        const auto callSiteOop = CAST_INSTANCE_OOP(std::get<1>(frame.runMethodManual(*invokeWithArgumentsMethod, { Slot(methodHandleOop), Slot(arrayListOop)})).refVal);
         const auto [invokeParamType, _] = parseMethodDescriptor(invokeDescriptor);
         const auto dynamicInvokerMethod = callSiteOop->getInstanceClass()->getMethod("dynamicInvoker", "()Ljava/lang/invoke/MethodHandle;", false);
-        const auto invokeMethodHandleOop = static_cast<InstanceOop *>(std::get<1>(frame.runMethodManual(*dynamicInvokerMethod, { Slot(callSiteOop) })).refVal);
+        const auto invokeMethodHandleOop = CAST_INSTANCE_OOP(std::get<1>(frame.runMethodManual(*dynamicInvokerMethod, { Slot(callSiteOop) })).refVal);
 
         const auto invokeExactMethod = invokeMethodHandleOop->getInstanceClass()->getMethod("invokeExact", "([Ljava/lang/Object;)Ljava/lang/Object;", false);
         (void)invokeExactMethod;

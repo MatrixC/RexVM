@@ -18,7 +18,7 @@ namespace RexVM {
     StringPool::~StringPool() = default;
 
     cstring StringPool::getJavaString(InstanceOop *oop) {
-        const auto charArray = static_cast<CharTypeArrayOop *>(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
+        const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
         const auto char16Ptr = charArray->data.get();
         return utf16ToUtf8(char16Ptr, charArray->dataLength);
     }
@@ -63,7 +63,7 @@ namespace RexVM {
     }
 
     bool StringPool::equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t arrayLength) {
-        const auto charArray = static_cast<CharTypeArrayOop *>(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
+        const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
         const auto charArrayPtr = charArray->data.get();
         const auto charArrayLength = charArray->dataLength;
         return arrayLength == charArrayLength

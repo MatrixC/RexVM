@@ -23,13 +23,13 @@ namespace RexVM {
             ClassMember(type, info->accessFlags, info->getName(), info->getDescriptor(), klass) {
 
         if (const auto signatureAttribute =
-                    static_cast<SignatureAttribute *>(info->getAssignAttribute(AttributeTagEnum::SIGNATURE));
+                    CAST_SIGNATURE_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::SIGNATURE));
                 signatureAttribute != nullptr) {
             signature = getConstantStringFromPool(cf.constantPool, signatureAttribute->signatureIndex);
         }
 
         if (const auto runtimeVisibleAnnotationAttribute =
-                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                    CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
                             AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS));
                 runtimeVisibleAnnotationAttribute != nullptr) {
             runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
@@ -37,7 +37,7 @@ namespace RexVM {
         }
 
         if (const auto runtimeVisibleTypeAnnotationAttribute =
-                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                    CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
                             AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
                 runtimeVisibleTypeAnnotationAttribute != nullptr) {
             runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
@@ -46,19 +46,19 @@ namespace RexVM {
     }
 
     bool ClassMember::isStatic() const {
-        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_STATIC)) != 0;
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_STATIC)) != 0;
     }
 
     bool ClassMember::isFinal() const {
-        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_FINAL)) != 0;
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_FINAL)) != 0;
     }
 
     bool ClassMember::isPublic() const {
-        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_PUBLIC)) != 0;
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_PUBLIC)) != 0;
     }
 
     i4 ClassMember::getModifier() const {
-        return (accessFlags & ~(static_cast<u2>(AccessFlagEnum::ACC_ANNOTATION)));
+        return (accessFlags & ~(CAST_U2(AccessFlagEnum::ACC_ANNOTATION)));
     }
 
     bool ClassMember::is(const cstring &name_, const cstring &descriptor_) const {
@@ -74,7 +74,7 @@ namespace RexVM {
     Field::Field(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
             ClassMember(ClassMemberTypeEnum::FIELD, klass, info, cf) {
         if (const auto constValueAttribute =
-                    static_cast<ConstantValueAttribute *>(info->getAssignAttribute(AttributeTagEnum::CONSTANT_VALUE));
+                    CAST_CONSTANT_VALUE_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::CONSTANT_VALUE));
                 constValueAttribute != nullptr) {
             constantValueIndex = constValueAttribute->constantValueIndex;
         }
@@ -142,7 +142,7 @@ namespace RexVM {
 
     void Method::initAnnotations(FMBaseInfo *info) {
         if (const auto runtimeVisibleParameterAnnotationAttribute =
-                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                    CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
                             AttributeTagEnum::RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS));
                 runtimeVisibleParameterAnnotationAttribute != nullptr) {
             runtimeVisibleParameterAnnotationLength = runtimeVisibleParameterAnnotationAttribute->attributeLength;
@@ -150,7 +150,7 @@ namespace RexVM {
         }
 
         if (const auto annotationDefaultAttribute =
-                    static_cast<ByteStreamAttribute *>(info->getAssignAttribute(
+                    CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
                             AttributeTagEnum::ANNOTATION_DEFAULT));
                 annotationDefaultAttribute != nullptr) {
             annotationDefaultLength = annotationDefaultAttribute->attributeLength;
@@ -170,7 +170,7 @@ namespace RexVM {
             return;
         }
 
-        if (const auto codeAttribute = static_cast<CodeAttribute *>(info->getAssignAttribute(AttributeTagEnum::CODE));
+        if (const auto codeAttribute = CAST_CODE_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::CODE));
                 codeAttribute != nullptr) {
             maxStack = codeAttribute->maxStack;
             maxLocals = codeAttribute->maxLocals;
@@ -191,7 +191,7 @@ namespace RexVM {
             }
 
             if (!codeAttribute->attributes.empty()) {
-                if (const auto lineNumberTableAttribute = static_cast<LineNumberTableAttribute *>(
+                if (const auto lineNumberTableAttribute = CAST_LINE_NUMBER_ATTRIBUTE(
                             getAssignAttributeByConstantPool(
                                     info->cf.constantPool,
                                     codeAttribute->attributes,
@@ -210,7 +210,7 @@ namespace RexVM {
     }
 
     void Method::initExceptions(FMBaseInfo *info) {
-        const auto exceptionsAttribute = static_cast<ExceptionsAttribute *>(info->getAssignAttribute(AttributeTagEnum::EXCEPTIONS));
+        const auto exceptionsAttribute = CAST_EXCEPTIONS_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::EXCEPTIONS));
         if (exceptionsAttribute != nullptr) {
             exceptionsIndex.reserve(exceptionsAttribute->numberOfExceptions);
             exceptionsIndex.assign(exceptionsAttribute->exceptionIndexTable.begin(), exceptionsAttribute->exceptionIndexTable.end());
@@ -218,15 +218,15 @@ namespace RexVM {
     }
 
     bool Method::isNative() const {
-        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_NATIVE)) != 0;
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_NATIVE)) != 0;
     }
 
     bool Method::isAbstract() const {
-        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_ABSTRACT)) != 0;
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_ABSTRACT)) != 0;
     }
 
     bool Method::isSynchronized() const {
-        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_SYNCHRONIZED)) != 0;
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_SYNCHRONIZED)) != 0;
     }
 
     SlotTypeEnum Method::getParamSlotType(size_t slotIdx) const {
@@ -282,7 +282,7 @@ namespace RexVM {
             return 0;
         }
 
-        for (i4 i = static_cast<i4>(lineNumbers.size()) - 1; i >= 0; --i) {
+        for (i4 i = CAST_I4(lineNumbers.size()) - 1; i >= 0; --i) {
             const auto &item = lineNumbers.at(i);
             if (pc > item->start) {
                 return item->lineNumber;

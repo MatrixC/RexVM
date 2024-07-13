@@ -51,7 +51,7 @@ namespace RexVM {
         constantPool.emplace_back(nullptr);
         for (auto i = 1; i < constantPoolCount; ++i) {
             const StreamByteType auto tag = peek<u1>(is);
-            const auto constantTagEnum = static_cast<ConstantTagEnum>(tag);
+            const auto constantTagEnum = CAST_CONSTANT_TAG_ENUM(tag);
             switch (constantTagEnum) {
                 case ConstantTagEnum::CONSTANT_Class:
                     constantPool.emplace_back(std::make_unique<ConstantClassInfo>(is));
@@ -171,7 +171,7 @@ namespace RexVM {
     }
 
     cstring ClassFile::getClassName(u2 classIndex) const {
-        auto classInfo = static_cast<ConstantClassInfo *>(constantPool.at(classIndex).get());
+        auto classInfo = CAST_CONSTANT_CLASS_INFO(constantPool.at(classIndex).get());
         return getConstantStringFromPool(constantPool, classInfo->index);
     }
 
@@ -193,7 +193,7 @@ namespace RexVM {
             return EMPTY_STRING;
         }
 
-        const auto nameIndex = (static_cast<SourceFileAttribute *>(sourceFileAttribute))->sourceFileIndex;
+        const auto nameIndex = (CAST_SOURCE_FILE_ATTRIBUTE(sourceFileAttribute))->sourceFileIndex;
         return getConstantStringFromPool(constantPool, nameIndex);
     }
 
@@ -204,7 +204,7 @@ namespace RexVM {
             return EMPTY_STRING;
         }
 
-        const auto nameIndex = (static_cast<SignatureAttribute *>(signatureAttribute))->signatureIndex;
+        const auto nameIndex = (CAST_SIGNATURE_ATTRIBUTE(signatureAttribute))->signatureIndex;
         return getConstantStringFromPool(constantPool, nameIndex);    
     }
 
@@ -215,7 +215,7 @@ namespace RexVM {
             return;
         }
 
-        //const auto bootstrapMethodAttribute = static_cast<BootstrapMethodsAttribute *>(oriAttribute);
+        //const auto bootstrapMethodAttribute = CAST_BOOT_STRAP_METHODS_ATTRIBUTE(oriAttribute);
     }
 
     std::vector<cstring> ClassFile::getInterfaceNames() const {

@@ -20,10 +20,10 @@ namespace RexVM::Native {
   
     void newInstance0(Frame &frame) {
         const auto &oopManager = frame.vm.oopManager;
-        const auto constructor = static_cast<InstanceOop *>(frame.getLocalRef(0));
-        const auto paramArray = static_cast<ObjArrayOop *>(frame.getLocalRef(1));
+        const auto constructor = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        const auto paramArray = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(1));
 
-        const auto srcClassOop = static_cast<MirrorOop *>(constructor->getFieldValue("clazz",
+        const auto srcClassOop = CAST_MIRROR_OOP(constructor->getFieldValue("clazz",
                                                                                      "Ljava/lang/Class;").refVal);
         const auto slotId = constructor->getFieldValue("slot", "I").i4Val;
         const auto srcClass = dynamic_cast<InstanceClass *>(srcClassOop->mirrorClass);

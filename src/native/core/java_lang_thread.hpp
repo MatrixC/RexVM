@@ -42,7 +42,7 @@ namespace RexVM::Native::Core {
 
     //public final native boolean isAlive();
     void isAlive(Frame &frame) {
-        const auto self = static_cast<VMThread *>(frame.getThisInstance()); //Thread Instance
+        const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
         frame.returnBoolean(self->isAlive());
     }
 
@@ -53,7 +53,7 @@ namespace RexVM::Native::Core {
 
     //private native void start0();
     void start0(Frame &frame) {
-        const auto self = static_cast<VMThread *>(frame.getThisInstance()); //Thread Instance
+        const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
         const auto threadClass = self->getInstanceClass();
         if (threadClass->name == "java/lang/ref/Reference$ReferenceHandler") [[unlikely]] {
             // endless loop tryHandlePending
@@ -64,7 +64,7 @@ namespace RexVM::Native::Core {
 
     //public native int countStackFrames();
     void countStackFrames(Frame &frame) {
-        const auto self = static_cast<VMThread *>(frame.getThisInstance()); //Thread Instance
+        const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
         if (self->currentFrame == nullptr) {
             frame.returnI4(0);
             return;

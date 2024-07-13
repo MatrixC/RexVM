@@ -52,7 +52,7 @@ namespace RexVM {
     }
 
     void VMThread::setStatus(ThreadStatusEnum status) {
-        setFieldValue(threadClassThreadStatusFieldSlotId, Slot(static_cast<i4>(status)));
+        setFieldValue(threadClassThreadStatusFieldSlotId, Slot(CAST_I4(status)));
     }
 
     ThreadStatusEnum VMThread::getStatus() const {

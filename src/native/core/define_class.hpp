@@ -20,7 +20,7 @@ namespace RexVM::Native::Core {
             panic("bufferOop can't be null");
         }
 
-        const auto buffer = static_cast<ByteTypeArrayOop *>(bufferOop);
+        const auto buffer = CAST_BYTE_TYPE_ARRAY_OOP(bufferOop);
         if (useArrayLength) [[unlikely]] {
             len = buffer->dataLength;
         }
@@ -41,7 +41,7 @@ namespace RexVM::Native::Core {
 
     //native Class<?> defineClass2(String name, java.nio.ByteBuffer b, int off, int len, ProtectionDomain pd, String source);
     void classLoaderDefineClass2(Frame &frame) {
-        const auto byteBufferOop = static_cast<InstanceOop *>(frame.getLocalRef(2));
+        const auto byteBufferOop = CAST_INSTANCE_OOP(frame.getLocalRef(2));
         if (byteBufferOop == nullptr) {
             panic("byteBufferOop can't be null");
         }
@@ -70,7 +70,7 @@ namespace RexVM::Native::Core {
 
     //native Class<?> defineAnonymousClass(Class<?> hostClass, byte[] data, Object[] cpPatches);
     void unsafeDefineAnonymousClass(Frame &frame) {
-        //const auto hostClassMirrorOop = static_cast<InstanceOop *>(frame.getLocalRef(1));
+        //const auto hostClassMirrorOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         const auto bufferOop = frame.getLocalRef(2);
 
         defineClassCommon(frame, bufferOop, 0, 0, true);

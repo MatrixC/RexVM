@@ -18,7 +18,7 @@ namespace RexVM {
     //Print Exception stack on stdout
     void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
         const auto throwInstanceClass = throwInstance->klass;
-        const auto message = static_cast<InstanceOop *>(throwInstance->getFieldValue(throwableClassDetailMessageFieldSlotId).refVal);
+        const auto message = CAST_INSTANCE_OOP(throwInstance->getFieldValue(throwableClassDetailMessageFieldSlotId).refVal);
         cstring messageStr;
         if (message != nullptr) {
             messageStr = ": " + StringPool::getJavaString(message);
@@ -46,7 +46,7 @@ namespace RexVM {
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
         const auto throwInstance = frame.throwObject->throwValue;
-        const auto throwInstanceClass = static_cast<const InstanceClass *>(throwInstance->klass);
+        const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->klass);
         auto &method = frame.method;
         const auto handler =
             method.findExceptionHandler(

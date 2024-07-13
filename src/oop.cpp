@@ -23,7 +23,7 @@ namespace RexVM {
                 const auto slotId = field->slotId;
                 switch (slotType) {
                     case SlotTypeEnum::I4:
-                        oop->data[slotId] = Slot(static_cast<i4>(0));
+                        oop->data[slotId] = Slot(CAST_I4(0));
                         break;
 
                     case SlotTypeEnum::REF:
@@ -31,15 +31,15 @@ namespace RexVM {
                         break;
 
                     case SlotTypeEnum::F4:
-                        oop->data[slotId] = Slot(static_cast<f4>(0));
+                        oop->data[slotId] = Slot(CAST_F4(0));
                         break;
 
                     case SlotTypeEnum::I8:
-                        oop->data[slotId] = Slot(static_cast<i8>(0));
+                        oop->data[slotId] = Slot(CAST_I8(0));
                         break;
 
                     case SlotTypeEnum::F8:
-                        oop->data[slotId] = Slot(static_cast<f4>(0));
+                        oop->data[slotId] = Slot(CAST_F4(0));
                         break;
 
                     default:
@@ -94,7 +94,7 @@ namespace RexVM {
     }
 
     InstanceClass *InstanceOop::getInstanceClass() const {
-        return static_cast<InstanceClass *>(klass);
+        return CAST_INSTANCE_CLASS(klass);
     }
 
     MirrorOop::MirrorOop(InstanceClass *klass, Class *mirrorClass) :
@@ -117,22 +117,22 @@ namespace RexVM {
 
     ByteTypeArrayOop::ByteTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<u1[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<u1>(0));
+            std::fill_n(data.get(), dataLength, CAST_U1(0));
     }
 
     ShortTypeArrayOop::ShortTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<i2[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<i2>(0));
+            std::fill_n(data.get(), dataLength, CAST_I2(0));
     }
 
     IntTypeArrayOop::IntTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<i4[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<i4>(0));
+            std::fill_n(data.get(), dataLength, CAST_I4(0));
     }
 
     LongTypeArrayOop::LongTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<i8[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<i8>(0));
+            std::fill_n(data.get(), dataLength, CAST_I8(0));
     }
 
     CharTypeArrayOop::CharTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
@@ -142,12 +142,12 @@ namespace RexVM {
 
     FloatTypeArrayOop::FloatTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<f4[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<f4>(0));
+            std::fill_n(data.get(), dataLength, CAST_F4(0));
     }
 
     DoubleTypeArrayOop::DoubleTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<f8[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<f8>(0));
+            std::fill_n(data.get(), dataLength, CAST_F8(0));
     }
 
 

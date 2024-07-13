@@ -7,7 +7,7 @@ namespace RexVM::Native {
 
     void selfPrintln(Frame &frame) {
         auto str = frame.getLocalRef(0);
-        const auto cstr = StringPool::getJavaString(static_cast<InstanceOop *>(str));
+        const auto cstr = StringPool::getJavaString(CAST_INSTANCE_OOP(str));
         cprintln("{}", cstr);
     }
 

@@ -93,7 +93,7 @@ namespace RexVM {
             arrayClass = std::make_unique<TypeArrayClass>(name, *this, typeIndex, basicType);
             if (typeIndex != 1) {
                 const auto subClassName = name.substr(1);
-                const auto subClass = static_cast<ArrayClass *>(getClass(subClassName));
+                const auto subClass = CAST_ARRAY_CLASS(getClass(subClassName));
                 arrayClass->lowerDimension = subClass;
                 subClass->higherDimension = arrayClass.get();
             }
@@ -102,7 +102,7 @@ namespace RexVM {
             arrayClass = std::make_unique<ObjArrayClass>(name, *this, typeIndex, elementClass);
             if (typeIndex != 1) {
                 const auto subClassName = name.substr(1);
-                const auto subClass = static_cast<ArrayClass *>(getClass(subClassName));
+                const auto subClass = CAST_ARRAY_CLASS(getClass(subClassName));
                 arrayClass->lowerDimension = subClass;
                 subClass->higherDimension = arrayClass.get();
             }
@@ -132,26 +132,26 @@ namespace RexVM {
     }
 
     InstanceClass *ClassLoader::getInstanceClass(const cstring &name) {
-        return static_cast<InstanceClass *>(getClass(name));
+        return CAST_INSTANCE_CLASS(getClass(name));
     }
 
     ArrayClass *ClassLoader::getArrayClass(const cstring &name) {
-        return static_cast<ArrayClass *>(getClass(name));
+        return CAST_ARRAY_CLASS(getClass(name));
     }
 
     TypeArrayClass *ClassLoader::getTypeArrayClass(BasicType type) {
         const auto className = typeArrayClassName(type);
-        return static_cast<TypeArrayClass *>(getClass(className));
+        return CAST_TYPE_ARRAY_CLASS(getClass(className));
     }
 
     ObjArrayClass *ClassLoader::getObjectArrayClass(const cstring &name) {
         const auto firstChar = name[0];
         if (firstChar == '[') {
-            return static_cast<ObjArrayClass *>(getClass(name));
+            return CAST_OBJ_ARRAY_CLASS(getClass(name));
         }
         const auto prefix = "[";
         const auto arrayClassName = prefix + getDescriptorClassName(name);
-        return static_cast<ObjArrayClass *>(getClass(arrayClassName));
+        return CAST_OBJ_ARRAY_CLASS(getClass(arrayClassName));
     }
 
     void ClassLoader::initBasicJavaClass() {
@@ -177,7 +177,7 @@ namespace RexVM {
     }
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {
-        return basicJavaClass.at(static_cast<size_t>(classEnum));
+        return basicJavaClass.at(CAST_SIZE_T(classEnum));
     }
 
     InstanceClass *ClassLoader::loadInstanceClass(u1 *ptr, size_t length) {

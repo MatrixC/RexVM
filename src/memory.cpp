@@ -77,7 +77,7 @@ namespace RexVM {
                 break;
 
             default:
-                panic(cformat("error basic type: {}", static_cast<u1>(type)));
+                panic(cformat("error basic type: {}", CAST_U1(type)));
                 break;
         }
 
@@ -174,11 +174,11 @@ namespace RexVM {
         const auto oopType = oop->type;
         switch (oopType) {
             case OopTypeEnum::InstanceOop:
-                traceInstanceOopChild(static_cast<InstanceOop *>(oop), tracedOop);
+                traceInstanceOopChild(CAST_INSTANCE_OOP(oop), tracedOop);
             break;
 
             case OopTypeEnum::ObjArrayOop:
-                traceObjArrayOopChild(static_cast<ObjArrayOop *>(oop), tracedOop);
+                traceObjArrayOopChild(CAST_OBJ_ARRAY_OOP(oop), tracedOop);
             break;
 
             case OopTypeEnum::TypeArrayOop:
@@ -206,7 +206,7 @@ namespace RexVM {
             for (size_t i = 0; i < arrayLength; ++i) {
                 const auto element = oop->data[i];
                 if (element != nullptr) {
-                    traceOop(static_cast<Oop *>(element), tracedOop);
+                    traceOop(element, tracedOop);
                 }
             }
         }
@@ -231,7 +231,7 @@ namespace RexVM {
         const auto &classMap = classLoader->classMap;
         for (const auto &[key, klass] : classMap) {
             if (klass->type == ClassTypeEnum::InstanceClass) {
-                auto const instanceClass = static_cast<InstanceClass *>(klass.get());
+                auto const instanceClass = CAST_INSTANCE_CLASS(klass.get());
                 for (const auto &field : instanceClass->fields) {
                     const auto fieldType = field->getFieldSlotType();
                     if (fieldType == SlotTypeEnum::REF && field->isStatic()) {
@@ -286,7 +286,7 @@ namespace RexVM {
         const auto &classMap = classLoader->classMap;
         for (const auto &[key, klass] : classMap) {
             if (klass->type == ClassTypeEnum::InstanceClass) {
-                auto const instanceClass = static_cast<InstanceClass *>(klass.get());
+                auto const instanceClass = CAST_INSTANCE_CLASS(klass.get());
                 for (const auto &field : instanceClass->fields) {
                     const auto fieldType = field->getFieldSlotType();
                     if (fieldType == SlotTypeEnum::REF && field->isStatic()) {
@@ -355,7 +355,7 @@ namespace RexVM {
 
         // for (const auto &oop : tracedOop) {
         //     const auto klass = oop->klass;
-        //     // const auto mirrorOop = static_cast<MirrorOop *>(oop);
+        //     // const auto mirrorOop = CAST_MIRROR_OOP(oop);
         //     // const auto name = klass->name;
         //     // const auto mklass = mirrorOop->mirrorClass;
 

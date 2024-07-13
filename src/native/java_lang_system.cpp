@@ -24,12 +24,12 @@ namespace RexVM::Native {
     void currentTimeMillis(Frame &frame) {
         const auto now = std::chrono::system_clock::now();
         const auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
-        frame.returnI8(static_cast<i8>(ms));
+        frame.returnI8(CAST_I8(ms));
     }
 
     void initProperties(Frame &frame) {
 
-        const auto props = static_cast<InstanceOop *>(frame.getLocalRef(0));
+        const auto props = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto propsClass = dynamic_cast<const InstanceClass *>(props->klass);
         const auto setPropertyMethod = propsClass->getMethod("setProperty", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", false);
         const auto &stringPool = frame.vm.stringPool;
@@ -59,9 +59,9 @@ namespace RexVM::Native {
     }
 
     void arraycopy(Frame &frame) {
-        const auto src = static_cast<ArrayOop *>(frame.getLocalRef(0));
+        const auto src = CAST_ARRAY_OOP(frame.getLocalRef(0));
         const auto srcPos = frame.getLocalI4(1);
-        const auto dest = static_cast<ArrayOop *>(frame.getLocalRef(2));
+        const auto dest = CAST_ARRAY_OOP(frame.getLocalRef(2));
         const auto destPos = frame.getLocalI4(3);
         const auto length = frame.getLocalI4(4);
 

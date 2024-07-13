@@ -14,19 +14,19 @@ namespace RexVM::Native::Core {
 
     //native void ensureClassInitialized(Class<?> c);
     void ensureClassInitialized(Frame &frame) {
-        const auto mirrorClassOop = static_cast<MirrorOop *>(frame.getLocalRef(1));
+        const auto mirrorClassOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
         const auto mirrorClass = mirrorClassOop->mirrorClass;
         if (mirrorClass->type == ClassTypeEnum::InstanceClass) {
-            (static_cast<InstanceClass *>(mirrorClass))->clinit(frame);
+            (CAST_INSTANCE_CLASS(mirrorClass))->clinit(frame);
         }
     }
 
     //native boolean shouldBeInitialized(Class<?> c);
     void shouldBeInitialized(Frame &frame) {
-        const auto mirrorOop = static_cast<MirrorOop *>(frame.getLocalRef(1));
+        const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
         const auto mirrorClass = mirrorOop->mirrorClass;
         if (mirrorClass->type == ClassTypeEnum::InstanceClass) {
-            const auto instanceMirrorClass = static_cast<InstanceClass *>(mirrorClass);
+            const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
             frame.returnBoolean(instanceMirrorClass->notInitialize());
             return;
         }
@@ -46,23 +46,24 @@ namespace RexVM::Native::Core {
     }
 
     void objectFieldOffset(Frame &frame) {
-        const auto fieldMirror = static_cast<InstanceOop *>(frame.getLocalRef(1));
+        const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         const auto value = fieldMirror->getFieldValue("slot", "I").i4Val;
         frame.returnI8(value);
     }
 
     //native long staticFieldOffset(Field f);
     void staticFieldOffset(Frame &frame) {
-        const auto fieldMirror = static_cast<InstanceOop *>(frame.getLocalRef(1));
-        const auto mirrorOop = static_cast<MirrorOop *>(fieldMirror->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto mirrorClass = static_cast<InstanceClass *>(mirrorOop->mirrorClass);
+        const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
+        const auto mirrorOop = CAST_MIRROR_OOP(fieldMirror->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->mirrorClass);
         const auto value = fieldMirror->getFieldValue("slot", "I").i4Val;
+        const auto encodeValue = (value + 1) * -1;
         frame.returnI8(mirrorClass->instanceSlotCount + value);
     }
 
     //native Object staticFieldBase(Field f);
     void staticFieldBase(Frame &frame) {
-        const auto fieldMirror = static_cast<InstanceOop *>(frame.getLocalRef(1));
+        const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         const auto value = fieldMirror->getFieldValue("clazz", "Ljava/lang/Class;").refVal;
         frame.returnRef(value);
     }
@@ -177,7 +178,7 @@ namespace RexVM::Native::Core {
 
     void reallocateMemory(Frame &frame) {
         const auto addressLong = frame.getLocalI8(1);
-        const auto size = static_cast<size_t>(frame.getLocalI8(3));
+        const auto size = CAST_SIZE_T(frame.getLocalI8(3));
         const auto address = std::bit_cast<void *>(addressLong);
         frame.returnI8(std::bit_cast<i8>(std::realloc(address, size)));
     }

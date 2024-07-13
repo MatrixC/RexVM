@@ -66,7 +66,7 @@ namespace RexVM {
     void Frame::runMethodInner(Method &runMethod) {
         const auto slotSize = runMethod.paramSlotSize;
         if (slotSize > 0) {
-            operandStackContext.pop(static_cast<i4>(slotSize));
+            operandStackContext.pop(CAST_I4(slotSize));
         }
         createFrameAndRunMethodNoPassParams(thread, runMethod, this);
     }
@@ -116,12 +116,12 @@ namespace RexVM {
     
     void Frame::pushI8(i8 val) {
         operandStackContext.push(Slot(val), SlotTypeEnum::I8);
-        operandStackContext.push(Slot(static_cast<i8>(0)), SlotTypeEnum::I8);
+        operandStackContext.push(Slot(CAST_I8(0)), SlotTypeEnum::I8);
     }
     
     void Frame::pushF8(f8 val) {
         operandStackContext.push(Slot(val), SlotTypeEnum::F8);
-        operandStackContext.push(Slot(static_cast<f8>(0)), SlotTypeEnum::F8);
+        operandStackContext.push(Slot(CAST_F8(0)), SlotTypeEnum::F8);
     }
 
     void Frame::push(Slot val, SlotTypeEnum type) {
@@ -297,7 +297,7 @@ namespace RexVM {
     }
 
     InstanceOop *Frame::getThisInstance() const {
-        return static_cast<InstanceOop *>(getThis());
+        return CAST_INSTANCE_OOP(getThis());
     }
 
     std::vector<Oop *> Frame::getLocalObjects() const {
@@ -305,7 +305,7 @@ namespace RexVM {
         for (size_t i = 0; i < localVariableTableSize; ++i) {
             const auto value = localVariableTable[i];
             if (localVariableTableType[i] == SlotTypeEnum::REF && value.refVal != nullptr) {
-                 result.emplace_back(static_cast<Oop *>(value.refVal));
+                 result.emplace_back(value.refVal);
             }
         }
         return result;

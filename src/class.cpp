@@ -25,7 +25,7 @@ namespace RexVM {
     }
 
     bool Class::isInterface() const {
-        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_INTERFACE)) != 0;
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_INTERFACE)) != 0;
     }
 
     bool Class::isArray() const {
@@ -45,8 +45,8 @@ namespace RexVM {
     }
 
     bool Class::isAssignableFrom(const Class *that) const {
-        const auto s = that;
-        const auto t = this;
+        auto s = that;
+        auto t = this;
 
         if (s == t) {
             return true;
@@ -131,9 +131,9 @@ namespace RexVM {
     }
 
     constexpr auto PRIMITIVE_CLASS_ACCESS_FLAGS = 
-        static_cast<u2>(AccessFlagEnum::ACC_PUBLIC) | 
-        static_cast<u2>(AccessFlagEnum::ACC_FINAL) | 
-        static_cast<u2>(AccessFlagEnum::ACC_ABSTRACT);
+        CAST_U2(AccessFlagEnum::ACC_PUBLIC) |
+        CAST_U2(AccessFlagEnum::ACC_FINAL) |
+        CAST_U2(AccessFlagEnum::ACC_ABSTRACT);
 
     PrimitiveClass::PrimitiveClass(BasicType basicType, ClassLoader &classLoader) :
         Class(
@@ -227,14 +227,14 @@ namespace RexVM {
                 break;
 
                 case AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS: {
-                    const auto runtimeVisibleAnnotationAttribute = static_cast<ByteStreamAttribute *>(attribute.get());
+                    const auto runtimeVisibleAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
                     runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
                     runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes); 
                     break;
                 }
 
                 case AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS: {
-                    const auto runtimeVisibleTypeAnnotationAttribute = static_cast<ByteStreamAttribute *>(attribute.get());
+                    const auto runtimeVisibleTypeAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
                     runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
                     runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
                     break;
@@ -327,13 +327,13 @@ namespace RexVM {
                 Slot data;
                 if (descriptor == "Z" || descriptor == "B" || descriptor == "C" ||
                     descriptor == "S" || descriptor == "I") {
-                    data = Slot(static_cast<ConstantIntegerInfo *>(constValue.get())->value);
+                    data = Slot(CAST_CONSTANT_INTEGER_INFO(constValue.get())->value);
                 } else if (descriptor == "J") {
-                    data = Slot(static_cast<ConstantLongInfo *>(constValue.get())->value);
+                    data = Slot(CAST_CONSTANT_LONG_INFO(constValue.get())->value);
                 } else if (descriptor == "F") {
-                    data = Slot(static_cast<ConstantFloatInfo *>(constValue.get())->value);
+                    data = Slot(CAST_CONSTANT_FLOAT_INFO(constValue.get())->value);
                 } else if (descriptor == "D") {
-                    data = Slot(static_cast<ConstantDoubleInfo *>(constValue.get())->value);
+                    data = Slot(CAST_CONSTANT_DOUBLE_INFO(constValue.get())->value);
                 } else if (descriptor == "Ljava/lang/String;") {
                     auto strOop = classLoader.vm.stringPool->getInternString(
                         getConstantStringFromPoolByIndexInfo(constantPool, field->constantValueIndex)
@@ -349,15 +349,15 @@ namespace RexVM {
                         break;
 
                     case SlotTypeEnum::F4:
-                        staticData[field->slotId] = Slot(static_cast<f4>(0));
+                        staticData[field->slotId] = Slot(CAST_F4(0));
                         break;
 
                     case SlotTypeEnum::F8:
-                        staticData[field->slotId] = Slot(static_cast<f8>(0));
+                        staticData[field->slotId] = Slot(CAST_F8(0));
                         break;
 
                     default:
-                        staticData[field->slotId] = Slot(static_cast<i4>(0));
+                        staticData[field->slotId] = Slot(CAST_I4(0));
                 }
             }
         }
@@ -396,15 +396,15 @@ namespace RexVM {
     }
 
     BootstrapMethodsAttribute *InstanceClass::getBootstrapMethodAttr() const {
-        return static_cast<BootstrapMethodsAttribute *>(bootstrapMethodsAttr.get());
+        return CAST_BOOT_STRAP_METHODS_ATTRIBUTE(bootstrapMethodsAttr.get());
     }
 
     EnclosingMethodAttribute *InstanceClass::getEnclosingMethodAttr() const {
-        return static_cast<EnclosingMethodAttribute *>(enclosingMethodAttr.get());
+        return CAST_ENCLOSING_METHOD_ATTRIBUTE(enclosingMethodAttr.get());
     }
 
     InnerClassesAttribute *InstanceClass::getInnerClassesAttr() const {
-        return static_cast<InnerClassesAttribute *>(innerClassesAttr.get());
+        return CAST_INNER_CLASSES_ATTRIBUTE(innerClassesAttr.get());
     }
 
 
@@ -458,7 +458,7 @@ namespace RexVM {
         const auto memberInstanceClass = 
             memberClass->isArray() ? 
                 classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT) :
-                static_cast<InstanceClass *>(memberClass);
+                CAST_INSTANCE_CLASS(memberClass);
             
         if (type == ClassMemberTypeEnum::FIELD) {
             return memberInstanceClass->getField(memberName, memberDescriptor, isStatic);
@@ -489,7 +489,7 @@ namespace RexVM {
 
     ArrayClass::ArrayClass(const ClassTypeEnum type, const cstring &name,
                            ClassLoader &classLoader, size_t dimension) :
-            InstanceClass(type, static_cast<u2>(AccessFlagEnum::ACC_PUBLIC), name, classLoader), dimension(dimension) {
+            InstanceClass(type, CAST_U2(AccessFlagEnum::ACC_PUBLIC), name, classLoader), dimension(dimension) {
     }
 
     cstring ArrayClass::getComponentClassName() const {

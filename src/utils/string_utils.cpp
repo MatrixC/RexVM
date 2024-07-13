@@ -1,5 +1,6 @@
 #include "string_utils.hpp"
 #include "format.hpp"
+#include "../basic_macro.hpp"
 #include <ranges>
 #include <string>
 
@@ -67,19 +68,19 @@ namespace RexVM {
                 ++i;
             }
             if (codepoint <= 0x7F) {
-                utf8 += static_cast<char>(codepoint);
+                utf8 += CAST_CHAR(codepoint);
             } else if (codepoint <= 0x7FF) {
-                utf8 += static_cast<char>((codepoint >> 6) | 0xC0);
-                utf8 += static_cast<char>((codepoint & 0x3F) | 0x80);
+                utf8 += CAST_CHAR((codepoint >> 6) | 0xC0);
+                utf8 += CAST_CHAR((codepoint & 0x3F) | 0x80);
             } else if (codepoint <= 0xFFFF) {
-                utf8 += static_cast<char>((codepoint >> 12) | 0xE0);
-                utf8 += static_cast<char>(((codepoint >> 6) & 0x3F) | 0x80);
-                utf8 += static_cast<char>((codepoint & 0x3F) | 0x80);
+                utf8 += CAST_CHAR((codepoint >> 12) | 0xE0);
+                utf8 += CAST_CHAR(((codepoint >> 6) & 0x3F) | 0x80);
+                utf8 += CAST_CHAR((codepoint & 0x3F) | 0x80);
             } else {
-                utf8 += static_cast<char>((codepoint >> 18) | 0xF0);
-                utf8 += static_cast<char>(((codepoint >> 12) & 0x3F) | 0x80);
-                utf8 += static_cast<char>(((codepoint >> 6) & 0x3F) | 0x80);
-                utf8 += static_cast<char>((codepoint & 0x3F) | 0x80);
+                utf8 += CAST_CHAR((codepoint >> 18) | 0xF0);
+                utf8 += CAST_CHAR(((codepoint >> 12) & 0x3F) | 0x80);
+                utf8 += CAST_CHAR(((codepoint >> 6) & 0x3F) | 0x80);
+                utf8 += CAST_CHAR((codepoint & 0x3F) | 0x80);
             }
         }
 
@@ -114,8 +115,8 @@ namespace RexVM {
                 utf16Array[utf16Index++] = codepoint;
             } else {
                 codepoint -= 0x10000;
-                utf16Array[utf16Index++] = static_cast<char16_t>((codepoint >> 10) + 0xD800);
-                utf16Array[utf16Index++] = static_cast<char16_t>((codepoint & 0x3FF) + 0xDC00);
+                utf16Array[utf16Index++] = CAST_CHAR_16_T((codepoint >> 10) + 0xD800);
+                utf16Array[utf16Index++] = CAST_CHAR_16_T((codepoint & 0x3FF) + 0xDC00);
             }
         }
 

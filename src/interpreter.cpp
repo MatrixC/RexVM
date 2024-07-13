@@ -90,34 +90,34 @@ namespace RexVM {
         void ldc_(Frame &frame, u2 index) {
             const auto &constantPool = frame.constantPool;
             const auto valPtr = constantPool.at(index).get();
-            const auto constantTagEnum = static_cast<ConstantTagEnum>(valPtr->tag);
+            const auto constantTagEnum = CAST_CONSTANT_TAG_ENUM(valPtr->tag);
 
             switch (constantTagEnum) {
                 case ConstantTagEnum::CONSTANT_Integer:
-                    frame.pushI4((static_cast<ConstantIntegerInfo *>(valPtr))->value);
+                    frame.pushI4((CAST_CONSTANT_INTEGER_INFO(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_Float:
-                    frame.pushF4((static_cast<ConstantFloatInfo *>(valPtr))->value);
+                    frame.pushF4((CAST_CONSTANT_FLOAT_INFO(valPtr))->value);
                     break;
                 
                 case ConstantTagEnum::CONSTANT_Long:
-                    frame.pushI8((static_cast<ConstantLongInfo *>(valPtr))->value);
+                    frame.pushI8((CAST_CONSTANT_LONG_INFO(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_Double:
-                    frame.pushF8((static_cast<ConstantDoubleInfo *>(valPtr))->value);
+                    frame.pushF8((CAST_CONSTANT_DOUBLE_INFO(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_String: {
-                    const auto stringConstInfo = static_cast<ConstantStringInfo *>(valPtr);
+                    const auto stringConstInfo = CAST_CONSTANT_STRING_INFO(valPtr);
                     const auto strValue = getConstantStringFromPool(constantPool, stringConstInfo->index);
                     frame.pushRef(frame.vm.stringPool->getInternString(strValue));
                     break;
                 }
 
                 case ConstantTagEnum::CONSTANT_Class: {
-                    const auto classConstInfo = static_cast<ConstantClassInfo *>(valPtr);
+                    const auto classConstInfo = CAST_CONSTANT_CLASS_INFO(valPtr);
                     const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
                     const auto value = frame.classLoader.getClass(className);
                     frame.pushRef(value->mirror.get());
@@ -165,75 +165,75 @@ namespace RexVM {
         }
 
         void iload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::ILOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::ILOAD_0);
             frame.pushLocal(index);
         }
 
         void lload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::LLOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::LLOAD_0);
             frame.pushLocalWide(index);
         }
 
         void fload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::FLOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::FLOAD_0);
             frame.pushLocal(index);
         }
 
         void dload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::DLOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::DLOAD_0);
             frame.pushLocalWide(index);
         }
 
         void aload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::ALOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::ALOAD_0);
             frame.pushLocal(index);
         }
 
         void iaload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<IntTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_INT_TYPE_ARRAY_OOP(frame.popRef());
             frame.pushI4(array->data[index]);
         }
 
         void laload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<LongTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_LONG_TYPE_ARRAY_OOP(frame.popRef());
             frame.pushI8(array->data[index]);
         }
 
         void faload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<FloatTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_FLOAT_TYPE_ARRAY_OOP(frame.popRef());
             frame.pushF4(array->data[index]);
         }
 
         void daload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<DoubleTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_DOUBLE_TYPE_ARRAY_OOP(frame.popRef());
             frame.pushF8(array->data[index]);
         }
 
         void aaload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<ObjArrayOop *>(frame.popRef());
+            const auto array = CAST_OBJ_ARRAY_OOP(frame.popRef());
             frame.pushRef(array->data[index]);
         }
 
         void baload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<ByteTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_BYTE_TYPE_ARRAY_OOP(frame.popRef());
             frame.pushI4(array->data[index]);
         }
 
         void caload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<CharTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_CHAR_TYPE_ARRAY_OOP(frame.popRef());
             frame.pushI4(array->data[index]);
         }
 
         void saload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<ShortTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_SHORT_TYPE_ARRAY_OOP(frame.popRef());
             frame.pushI4(array->data[index]);
         }
 
@@ -263,83 +263,83 @@ namespace RexVM {
         }
 
         void istorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::ISTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::ISTORE_0);
             frame.popLocal(index);
         }
 
         void lstorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::LSTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::LSTORE_0);
             frame.popLocalWide(index);
         }
 
         void fstorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::FSTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::FSTORE_0);
             frame.popLocal(index);
         }
 
         void dstorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::DSTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::DSTORE_0);
             frame.popLocalWide(index);
         }
 
         void astorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::ASTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::ASTORE_0);
             frame.popLocal(index);
         }
 
         void iastore(Frame &frame) {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
-            const auto array = static_cast<IntTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_INT_TYPE_ARRAY_OOP(frame.popRef());
             array->data[index] = val;
         }
 
         void lastore(Frame &frame) {
             const auto val = frame.popI8();
             const auto index = frame.popI4();
-            const auto array = static_cast<LongTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_LONG_TYPE_ARRAY_OOP(frame.popRef());
             array->data[index] = val;
         }
 
         void fastore(Frame &frame) {
             const auto val = frame.popF4();
             const auto index = frame.popI4();
-            const auto array = static_cast<FloatTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_FLOAT_TYPE_ARRAY_OOP(frame.popRef());
             array->data[index] = val;
         }
 
         void dastore(Frame &frame) {
             const auto val = frame.popF8();
             const auto index = frame.popI4();
-            const auto array = static_cast<DoubleTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_DOUBLE_TYPE_ARRAY_OOP(frame.popRef());
             array->data[index] = val;
         }
 
         void aastore(Frame &frame) {
             const auto val = frame.popRef();
             const auto index = frame.popI4();
-            const auto array = static_cast<ObjArrayOop *>(frame.popRef());
+            const auto array = CAST_OBJ_ARRAY_OOP(frame.popRef());
             array->data[index] = val;
         }
 
         void bastore(Frame &frame) {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
-            const auto array = static_cast<ByteTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_BYTE_TYPE_ARRAY_OOP(frame.popRef());
             array->data[index] = val;
         }
 
         void castore(Frame &frame) {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
-            const auto array = static_cast<CharTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_CHAR_TYPE_ARRAY_OOP(frame.popRef());
             array->data[index] = val;
         }
 
         void sastore(Frame &frame) {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
-            const auto array = static_cast<ShortTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_SHORT_TYPE_ARRAY_OOP(frame.popRef());
             array->data[index] = val;
         }
 
@@ -383,14 +383,14 @@ namespace RexVM {
         void iadd(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto result = static_cast<i4>(static_cast<u4>(val1) + static_cast<u4>(val2));
+            const auto result = CAST_I4(CAST_U4(val1) + CAST_U4(val2));
             frame.pushI4(result);
         }
 
         void ladd(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            const auto result = static_cast<i8>(static_cast<u8>(val1) + static_cast<u8>(val2));
+            const auto result = CAST_I8(CAST_U8(val1) + CAST_U8(val2));
             frame.pushI8(result);
         }
 
@@ -433,14 +433,14 @@ namespace RexVM {
         void imul(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto result = static_cast<i4>(static_cast<u4>(val1) * static_cast<u4>(val2));
+            const auto result = CAST_I4(CAST_U4(val1) * CAST_U4(val2));
             frame.pushI4(result);
         }
 
         void lmul(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            const auto result = static_cast<i8>(static_cast<u8>(val1) * static_cast<u8>(val2));
+            const auto result = CAST_I8(CAST_U8(val1) * CAST_U8(val2));
             frame.pushI8(result);
         }
 
@@ -557,43 +557,43 @@ namespace RexVM {
         void ishl(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto s = (static_cast<u4>(val2)) & 0x1F;
+            const auto s = (CAST_U4(val2)) & 0x1F;
             frame.pushI4(val1 << s);
         }
 
         void lshl(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI8();
-            const auto s = (static_cast<u4>(val2)) & 0x3F;
+            const auto s = (CAST_U4(val2)) & 0x3F;
             frame.pushI8(val1 << s);
         }
 
         void ishr(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto s = (static_cast<u4>(val2)) & 0x1F;
+            const auto s = (CAST_U4(val2)) & 0x1F;
             frame.pushI4(val1 >> s);
         }
 
         void lshr(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI8();
-            const auto s = (static_cast<u4>(val2)) & 0x3F;
+            const auto s = (CAST_U4(val2)) & 0x3F;
             frame.pushI8(val1 >> s);
         }
 
         void iushr(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto s = (static_cast<u4>(val2)) & 0x1F;
-            frame.pushI4(static_cast<u4>(val1) >> s);
+            const auto s = (CAST_U4(val2)) & 0x1F;
+            frame.pushI4(CAST_U4(val1) >> s);
         }
 
         void lushr(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI8();
-            const auto s = (static_cast<u4>(val2)) & 0x3F;
-            frame.pushI8(static_cast<u8>(val1) >> s);
+            const auto s = (CAST_U4(val2)) & 0x3F;
+            frame.pushI8(CAST_U8(val1) >> s);
         }
 
         void iand(Frame &frame) {
@@ -642,77 +642,77 @@ namespace RexVM {
 
         void i2l(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushI8(static_cast<i8>(val));
+            frame.pushI8(CAST_I8(val));
         }
         
         void i2f(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushF4(static_cast<f4>(val));
+            frame.pushF4(CAST_F4(val));
         }
 
         void i2d(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushF8(static_cast<f8>(val));
+            frame.pushF8(CAST_F8(val));
         }
 
         void l2i(Frame &frame) {
             const auto val = frame.popI8();
-            frame.pushI4(static_cast<i4>(val));
+            frame.pushI4(CAST_I4(val));
         }
 
         void l2f(Frame &frame) {
             const auto val = frame.popI8();
-            frame.pushF4(static_cast<f4>(val));
+            frame.pushF4(CAST_F4(val));
         }
 
         void l2d(Frame &frame) {
             const auto val = frame.popI8();
-            frame.pushF8(static_cast<f8>(val));
+            frame.pushF8(CAST_F8(val));
         }
 
         void f2i(Frame &frame) {
             const auto val = frame.popF4();
-            frame.pushI4(static_cast<i4>(val));
+            frame.pushI4(CAST_I4(val));
         }
 
         void f2l(Frame &frame) {
             const auto val = frame.popF4();
-            frame.pushI8(static_cast<i8>(val));
+            frame.pushI8(CAST_I8(val));
         }
 
         void f2d(Frame &frame) {
             const auto val = frame.popF4();
-            frame.pushF8(static_cast<f8>(val));
+            frame.pushF8(CAST_F8(val));
         }
 
         void d2i(Frame &frame) {
             const auto val = frame.popF8();
-            frame.pushI4(static_cast<i4>(val));
+            frame.pushI4(CAST_I4(val));
         }
 
         void d2l(Frame &frame) {
             const auto val = frame.popF8();
-            frame.pushI8(static_cast<i8>(val));
+            frame.pushI8(CAST_I8(val));
         }
 
         void d2f(Frame &frame) {
             const auto val = frame.popF8();
-            frame.pushF4(static_cast<f4>(val));
+            frame.pushF4(CAST_F4(val));
         }
 
         void i2b(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushI4(static_cast<i1>(val));
+            frame.pushI4(CAST_I1(val));
         }
 
         void i2c(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushI4(static_cast<u2>(val));
+            frame.pushI4(CAST_U2(val));
         }
 
         void i2s(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushI4(static_cast<i2>(val));
+            frame.pushI4(CAST_I2(val));
         }
 
         void lcmp(Frame &frame) {
@@ -924,9 +924,9 @@ namespace RexVM {
             const auto index = frame.popI4();
             i4 offset = 0;
 	        if (index >= low && index <= high) {
-		        offset = static_cast<i4>(jumpOffsets[index-low]);
+		        offset = CAST_I4(jumpOffsets[index-low]);
 	        } else {
-		        offset = static_cast<i4>(defaultOffset);
+		        offset = CAST_I4(defaultOffset);
 	        }
 
             frame.reader.relativeOffset(offset);
@@ -1015,7 +1015,7 @@ namespace RexVM {
         void getfield(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto fieldRef = frame.klass.getRefField(index, false);
-            const auto instance = static_cast<InstanceOop *>(frame.popRef());
+            const auto instance = CAST_INSTANCE_OOP(frame.popRef());
             const auto value = instance->getFieldValue(fieldRef->slotId);
             const auto type = fieldRef->getFieldSlotType();
             frame.push(value, type);
@@ -1031,7 +1031,7 @@ namespace RexVM {
                 frame.pop();
             }
             const auto value = frame.pop();
-            const auto instance = static_cast<InstanceOop *>(frame.popRef());
+            const auto instance = CAST_INSTANCE_OOP(frame.popRef());
 
             instance->setFieldValue(fieldRef->slotId, value);
         }
@@ -1040,7 +1040,7 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             const auto invokeMethod = frame.klass.getRefMethod(index, false);
             const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
-            const auto instanceClass = static_cast<InstanceClass *>(instance->klass);
+            const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
             for (auto k = instanceClass; k != nullptr; k = k->superClass) {
                 const auto realInvokeMethod =
                         k->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
@@ -1071,7 +1071,7 @@ namespace RexVM {
 
             const auto invokeMethod = frame.klass.getRefMethod(index, false);
             const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
-            const auto instanceClass = static_cast<const InstanceClass *>(instance->klass);
+            const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
             const auto realInvokeMethod = instanceClass->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
             if (realInvokeMethod != nullptr) {
                 frame.runMethodInner(*realInvokeMethod);
@@ -1139,13 +1139,13 @@ namespace RexVM {
         }
 
         void arraylength(Frame &frame) {
-            const auto array = static_cast<ArrayOop *>(frame.popRef());
+            const auto array = CAST_ARRAY_OOP(frame.popRef());
             frame.pushI4(array->dataLength);
         }
 
         void athrow(Frame &frame) {
             const auto ex = frame.popRef();
-            const auto exOop = static_cast<InstanceOop *>(ex);
+            const auto exOop = CAST_INSTANCE_OOP(ex);
             frame.throwException(exOop, frame.pc());
         }
 
@@ -1240,10 +1240,10 @@ namespace RexVM {
             const auto currentArrayClass = classLoader.getArrayClass(name);
             ArrayOop *arrayOop;
             if (currentArrayClass->type == ClassTypeEnum::TypeArrayClass) {
-                const auto typeArrayClass = static_cast<TypeArrayClass *>(currentArrayClass);
+                const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(currentArrayClass);
                 arrayOop = oopManager.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
             } else {
-                const auto objArrayClass = static_cast<ObjArrayClass *>(currentArrayClass);
+                const auto objArrayClass = CAST_OBJ_ARRAY_CLASS(currentArrayClass);
                 arrayOop = oopManager.newObjArrayOop(objArrayClass, arrayLength);
             }
 
@@ -1251,7 +1251,7 @@ namespace RexVM {
                 return arrayOop;
             }
 
-            auto objArrayOop = static_cast<ObjArrayOop *>(arrayOop);
+            auto objArrayOop = CAST_OBJ_ARRAY_OOP(arrayOop);
             if (currentDim < dimCount - 1) {
                 const auto childName = name.substr(1);
                 for (auto i = 0; i < arrayLength; ++i) {

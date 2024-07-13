@@ -59,15 +59,15 @@ namespace RexVM::Native::Core {
     }
 
     void compareAndSwapAction(Frame &frame, u1 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, static_cast<u1>(expected.i4Val), static_cast<u1>(x.i4Val)));
+        frame.returnBoolean(compareAndSwap(dataPtr, CAST_U1(expected.i4Val), CAST_U1(x.i4Val)));
     }
 
     void compareAndSwapAction(Frame &frame, cchar_16 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, static_cast<cchar_16>(expected.i4Val), static_cast<cchar_16>(x.i4Val)));
+        frame.returnBoolean(compareAndSwap(dataPtr, CAST_CCHAR_16(expected.i4Val), CAST_CCHAR_16(x.i4Val)));
     }
 
     void compareAndSwapAction(Frame &frame, i2 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, static_cast<i2>(expected.i4Val), static_cast<i2>(x.i4Val)));
+        frame.returnBoolean(compareAndSwap(dataPtr, CAST_I2(expected.i4Val), CAST_I2(x.i4Val)));
     }
 
     void compareAndSwapAction(Frame &frame, i4 *dataPtr, Slot expected, Slot x) {
@@ -98,17 +98,17 @@ namespace RexVM::Native::Core {
 
     void putVolatileAction(Frame &frame, u1 *obj) {
         const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, static_cast<u1>(x.i4Val));
+        putObjectVolatileHelper(obj, CAST_U1(x.i4Val));
     }
 
     void putVolatileAction(Frame &frame, cchar_16 *obj) {
         const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, static_cast<cchar_16>(x.i4Val));
+        putObjectVolatileHelper(obj, CAST_CCHAR_16(x.i4Val));
     }
 
     void putVolatileAction(Frame &frame, i2 *obj) {
         const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, static_cast<i2>(x.i4Val));
+        putObjectVolatileHelper(obj, CAST_I2(x.i4Val));
     }
 
     void putVolatileAction(Frame &frame, i4 *obj) {
@@ -143,17 +143,17 @@ namespace RexVM::Native::Core {
 
     void putAction(Frame &frame, u1 *obj) {
         const auto x = frame.getLocal(4);
-        *obj = static_cast<u1>(x.i4Val);
+        *obj = CAST_U1(x.i4Val);
     }
 
     void putAction(Frame &frame, cchar_16 *obj) {
         const auto x = frame.getLocal(4);
-        *obj = static_cast<cchar_16>(x.i4Val);
+        *obj = CAST_CCHAR_16(x.i4Val);
     }
 
     void putAction(Frame &frame, i2 *obj) {
         const auto x = frame.getLocal(4);
-        *obj = static_cast<i2>(x.i4Val);
+        *obj = CAST_I2(x.i4Val);
     }
 
     void putAction(Frame &frame, i4 *obj) {
@@ -259,60 +259,60 @@ namespace RexVM::Native::Core {
             actionSwitch(frame, actionType, dataPtr, slotType);
             return;
         } else if (obj->type == OopTypeEnum::ObjArrayOop) {
-            const auto arrayObj = static_cast<ObjArrayOop *>(obj);
+            const auto arrayObj = CAST_OBJ_ARRAY_OOP(obj);
             auto dataPtr = arrayObj->data.get();
             dataPtr += offset;
             actionSwitch(frame, actionType, dataPtr, slotType);
             return;
         } else {
-            const auto typeArrayClass = static_cast<TypeArrayClass *>(obj->klass);
+            const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(obj->klass);
             const auto basicType = getBasicTypeByTypeArrayClassName(typeArrayClass->name);
             switch (basicType) {
                 case BasicType::T_BOOLEAN:
                 case BasicType::T_BYTE: {
-                    const auto arrayObj = static_cast<ByteTypeArrayOop *>(obj);
+                    const auto arrayObj = CAST_BYTE_TYPE_ARRAY_OOP(obj);
                     auto dataPtr = arrayObj->data.get();
                     dataPtr += offset;
                     actionSwitch(frame, actionType, dataPtr, slotType);
                     return;
                 }
                 case BasicType::T_CHAR: {
-                    const auto arrayObj = static_cast<CharTypeArrayOop *>(obj);
+                    const auto arrayObj = CAST_CHAR_TYPE_ARRAY_OOP(obj);
                     auto dataPtr = arrayObj->data.get();
                     dataPtr += offset;
                     actionSwitch(frame, actionType, dataPtr, slotType);
                     return;
                 }
                 case BasicType::T_SHORT: {
-                    const auto arrayObj = static_cast<ShortTypeArrayOop *>(obj);
+                    const auto arrayObj = CAST_SHORT_TYPE_ARRAY_OOP(obj);
                     auto dataPtr = arrayObj->data.get();
                     dataPtr += offset;
                     actionSwitch(frame, actionType, dataPtr, slotType);
                     return;
                 }
                 case BasicType::T_INT: {
-                    const auto arrayObj = static_cast<IntTypeArrayOop *>(obj);
+                    const auto arrayObj = CAST_INT_TYPE_ARRAY_OOP(obj);
                     auto dataPtr = arrayObj->data.get();
                     dataPtr += offset;
                     actionSwitch(frame, actionType, dataPtr, slotType);
                     return;
                 }
                 case BasicType::T_FLOAT: {
-                    const auto arrayObj = static_cast<FloatTypeArrayOop *>(obj);
+                    const auto arrayObj = CAST_FLOAT_TYPE_ARRAY_OOP(obj);
                     auto dataPtr = arrayObj->data.get();
                     dataPtr += offset;
                     actionSwitch(frame, actionType, dataPtr, slotType);
                     return;
                 }
                 case BasicType::T_LONG: {
-                    const auto arrayObj = static_cast<LongTypeArrayOop *>(obj);
+                    const auto arrayObj = CAST_LONG_TYPE_ARRAY_OOP(obj);
                     auto dataPtr = arrayObj->data.get();
                     dataPtr += offset;
                     actionSwitch(frame, actionType, dataPtr, slotType);
                     return;
                 }
                 case BasicType::T_DOUBLE: {
-                    const auto arrayObj = static_cast<DoubleTypeArrayOop *>(obj);
+                    const auto arrayObj = CAST_DOUBLE_TYPE_ARRAY_OOP(obj);
                     auto dataPtr = arrayObj->data.get();
                     dataPtr += offset;
                     actionSwitch(frame, actionType, dataPtr, slotType);

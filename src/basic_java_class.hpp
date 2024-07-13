@@ -52,7 +52,7 @@ namespace RexVM {
         JAVA_LANG_RUNTIME,
         COUNT,
     };
-    constexpr auto BASIC_JAVA_CLASS_ENUM_COUNT = static_cast<size_t>(BasicJavaClassEnum::COUNT) + 1;
+    constexpr auto BASIC_JAVA_CLASS_ENUM_COUNT = CAST_SIZE_T(BasicJavaClassEnum::COUNT) + 1;
 
     extern const std::array<cstring, BASIC_JAVA_CLASS_ENUM_COUNT> BASIC_JAVA_CLASS_NAMES;
 

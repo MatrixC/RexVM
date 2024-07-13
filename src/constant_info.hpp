@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <tuple>
+#include "basic_macro.hpp"
 #include "config.hpp"
 #include "utils/binary.hpp"
 
@@ -53,7 +54,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}#{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), index);
+            return cformat("{:<20}#{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), index);
         }
     };
 
@@ -78,7 +79,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}#{}.#{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), classIndex,
+            return cformat("{:<20}#{}.#{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), classIndex,
                           nameAndTypeIndex);
         }
     };
@@ -103,11 +104,11 @@ namespace RexVM {
         i4 value;
 
         explicit ConstantIntegerInfo(std::istream &is) : ConstantInfo(is) {
-            value = static_cast<i4>(read<u4>(is));
+            value = CAST_I4(read<u4>(is));
         }
 
         cstring toString() override {
-            return cformat("{:<20}{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), value);
+            return cformat("{:<20}{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), value);
         }
     };
 
@@ -122,7 +123,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), value);
+            return cformat("{:<20}{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), value);
         }
     };
 
@@ -130,11 +131,11 @@ namespace RexVM {
         i8 value;
 
         explicit ConstantLongInfo(std::istream &is) : ConstantInfo(is) {
-            value = static_cast<i8>(read<u8>(is));
+            value = CAST_I8(read<u8>(is));
         }
 
         cstring toString() override {
-            return cformat("{:<20}{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), value);
+            return cformat("{:<20}{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), value);
         }
     };
 
@@ -155,7 +156,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), value);
+            return cformat("{:<20}{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), value);
         }
     };
 
@@ -169,7 +170,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}#{}:#{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), nameIndex,
+            return cformat("{:<20}#{}:#{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), nameIndex,
                           descriptorIndex);
         }
     };
@@ -186,7 +187,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), str);
+            return cformat("{:<20}{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), str);
         }
     };
 
@@ -200,7 +201,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}#{}:#{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), referenceKind,
+            return cformat("{:<20}#{}:#{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), referenceKind,
                           referenceIndex);
         }
     };
@@ -213,7 +214,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}#{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)), descriptorIndex);
+            return cformat("{:<20}#{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), descriptorIndex);
         }
     };
 
@@ -227,7 +228,7 @@ namespace RexVM {
         }
 
         cstring toString() override {
-            return cformat("{:<20}#{}:#{}", CONST_NAME_MAP.at(static_cast<ConstantTagEnum>(tag)),
+            return cformat("{:<20}#{}:#{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)),
                           bootstrapMethodAttrIndex, nameAndTypeIndex);
         }
     };

@@ -1,7 +1,6 @@
 #include "../../config.hpp"
 #include "../../basic_java_class.hpp"
 #include "native_core.hpp"
-#include "../native_manager.hpp"
 
 #include "java_lang_object.hpp"
 #include "java_lang_thread.hpp"
@@ -17,7 +16,7 @@
 
 namespace RexVM::Native::Core {
     constexpr auto UNSAFE_CLASS_NAME = "sun/misc/Unsafe";
-    constexpr auto JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS_NAME = "java/lang/invoke/MethodHandleNatives";
+    constexpr auto JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME = "java/lang/invoke/MethodHandleNatives";
     constexpr auto JAVA_LANG_REFLECT_ARRAY_NAME = "java/lang/reflect/Array";
     constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
@@ -126,8 +125,8 @@ namespace RexVM::Native::Core {
     }
 
     void registerInvokeCoreMethods(NativeManager &manager) {
-        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS_NAME, "getConstant", "(I)I", true, Native::Core::getConstant);
-        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVS_NAME, "resolve", "(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;", true, Native::Core::getConstant);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "getConstant", "(I)I", true, Native::Core::getConstant);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "resolve", "(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;", true, Native::Core::getConstant);
     }
 
     void registerReflectCoreMethods(NativeManager &manager) {

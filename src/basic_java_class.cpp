@@ -27,7 +27,7 @@ namespace RexVM {
     };
 
     cstring getBasicJavaClassName(BasicJavaClassEnum classEnum) {
-        return BASIC_JAVA_CLASS_NAMES[static_cast<size_t>(classEnum)];
+        return BASIC_JAVA_CLASS_NAMES[CAST_SIZE_T(classEnum)];
     }
 
 }

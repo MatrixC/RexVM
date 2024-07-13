@@ -25,7 +25,7 @@ namespace RexVM::Native::Core {
 
     //static native int identityHashCode(Object x);
     void identityHashCode(Frame &frame) {
-        frame.returnI4(static_cast<i4>(std::bit_cast<u8>(frame.getLocalRef(0))));
+        frame.returnI4(CAST_I4(std::bit_cast<u8>(frame.getLocalRef(0))));
     }
 }
 
