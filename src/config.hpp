@@ -53,6 +53,10 @@ namespace RexVM {
 
         explicit Slot(ref val) : refVal(val) {
         }
+
+        bool operator==(const Slot& other) const {
+            return i8Val == other.i8Val;
+        }
     };
 
     enum class SlotTypeEnum : u1 {
@@ -126,6 +130,17 @@ namespace RexVM {
         ACC_MANDATED = 0x8000,
     };
 }
+#define CAST_INSTANCE_OOP(x) static_cast<InstanceOop *>(x)
+#define CAST_OBJ_ARRAY_OOP(x) static_cast<ObjArrayOop *>(x)
+#define CAST_TYPE_ARRAY_OOP(x) static_cast<TypeArrayClass *>(x)
+#define CAST_BYTE_TYPE_ARRAY_OOP(x) static_cast<ByteTypeArrayOop *>(x)
+#define CAST_CHAR_TYPE_ARRAY_OOP(x) static_cast<CharTypeArrayOop *>(x)
+#define CAST_SHORT_TYPE_ARRAY_OOP(x) static_cast<ShortTypeArrayOop *>(x)
+#define CAST_INT_TYPE_ARRAY_OOP(x) static_cast<IntTypeArrayOop *>(x)
+#define CAST_FLOAT_TYPE_ARRAY_OOP(x) static_cast<FloatTypeArrayOop *>(x)
+#define CAST_LONG_TYPE_ARRAY_OOP(x) static_cast<LongTypeArrayOop *>(x)
+#define CAST_DOUBLE_TYPE_ARRAY_OOP(x) static_cast<DoubleTypeArrayOop *>(x)
+
 
 
 #endif

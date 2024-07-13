@@ -7,7 +7,6 @@
 #include "java_lang_thread.hpp"
 #include "java_lang_system.hpp"
 #include "java_lang_class.hpp"
-#include "java_lang_class_loader.hpp"
 #include "java_lang_runtime.hpp"
 #include "java_lang_string.hpp"
 #include "java_lang_reflect_array.hpp"

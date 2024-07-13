@@ -1,4 +1,7 @@
 #include "class_loader.hpp"
+#include <mutex>
+#include <memory>
+#include <sstream>
 #include "basic_type.hpp"
 #include "utils/class_path.hpp"
 #include "utils/class_utils.hpp"
@@ -10,7 +13,7 @@
 #include "memory.hpp"
 #include "basic_java_class.hpp"
 #include "key_slot_id.hpp"
-#include <mutex>
+
 
 
 namespace RexVM {

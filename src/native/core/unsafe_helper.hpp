@@ -11,10 +11,31 @@
 
 namespace RexVM::Native::Core {
 
+    template<typename T>
+    bool weakCompareAndSwap(T* src, T expected, T desired) {
+        const auto atom = reinterpret_cast<std::atomic<T>*>(src);
+        bool success = false;
+        do {
+            expected = atom->load(std::memory_order_relaxed);
+            if (expected == *src) { // 额外检查，确保src值未被其他线程更改
+                success = atom->compare_exchange_weak(expected, desired, std::memory_order_seq_cst);
+                if (success) {
+                    *src = desired; // 成功后同步回原指针
+                }
+            }
+        } while (!success);
+        return success;
+    }
+
+    template <typename T>
+    bool strongCompareAndSwap(T *src, T expect, T val) {
+        auto* atomSrc = reinterpret_cast<std::atomic<T>*>(src);
+        return std::atomic_compare_exchange_strong(atomSrc, &expect, val);
+    }
+
     template <typename T>
     bool compareAndSwap(T *src, T expect, T val) {
-        std::atomic<T>* atomSrc = reinterpret_cast<std::atomic<T>*>(src);
-        return std::atomic_compare_exchange_strong(atomSrc, &expect, val);
+        return weakCompareAndSwap(src, expect, val);
     }
 
     template<typename T>
@@ -226,7 +247,7 @@ namespace RexVM::Native::Core {
         auto offset = frame.getLocalI8(2);
 
         if (obj->type == OopTypeEnum::InstanceOop) {
-            const auto instanceObj = static_cast<InstanceOop *>(obj);
+            const auto instanceObj = CAST_INSTANCE_OOP(obj);
             auto dataPtr = instanceObj->data.get();
             const auto objClass = instanceObj->getInstanceClass();
             if (offset >= objClass->instanceSlotCount) {
