@@ -13,6 +13,20 @@
 
 namespace RexVM {
 
+    bool isMethodHandleInvoke(const cstring &className, const cstring &memberName) {
+        return (className == "java/lang/invoke/MethodHandle" && 
+            (memberName == "invoke"
+                || memberName == "invokeBasic"
+                || memberName == "invokeExact"
+                || memberName == "invokeWithArauments"
+                || memberName == "linkToSpecial"
+                || memberName == "linkToStatic"
+                || memberName == "linkToVirtual"
+                || memberName == "linkToInterface"));
+    }
+
+
+
     InstanceOop *createLookup(VM &vm, Frame &frame) {
         //TODO Opt key slot id
         const auto methodHandlesClass = vm.bootstrapClassLoader->getInstanceClass("java/lang/invoke/MethodHandles");

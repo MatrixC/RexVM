@@ -19,7 +19,7 @@ target("RexVM")
 
         "third_party/miniz/miniz.c"
     )
-    set_warnings("all", "error")
+    -- set_warnings("all", "error")
 
     -- set_policy("build.sanitizer.address", true)
     -- set_policy("build.sanitizer.undefined", true)

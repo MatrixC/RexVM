@@ -12,6 +12,7 @@
 #include "../../class_loader.hpp"
 #include "../../constant_pool.hpp"
 #include "../../utils/string_utils.hpp"
+#include "../../utils/class_utils.hpp"
 
 namespace RexVM::Native::Core {
 
@@ -28,7 +29,7 @@ namespace RexVM::Native::Core {
     void getName0(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
         const auto className = mirrorClass->name;
-        const auto javaClassName = replace(className, "/", ".");
+        const auto javaClassName = getJavaClassName(className);
         auto strOop = frame.vm.stringPool->getInternString(javaClassName);
         frame.returnRef(strOop);
     }
@@ -39,7 +40,7 @@ namespace RexVM::Native::Core {
         const auto className = StringPool::getJavaString(CAST_INSTANCE_OOP(classNameOop));
         const auto initialize = frame.getLocalI4(1);
 
-        const auto jvmClassName = replace(className, ".", "/");
+        const auto jvmClassName = getJVMClassName(className);
         const auto klass = frame.getCurrentClassLoader()->getInstanceClass(jvmClassName);
         if (initialize) {
             klass->clinit(frame);

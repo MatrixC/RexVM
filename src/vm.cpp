@@ -4,6 +4,7 @@
 #include "basic_java_class.hpp"
 #include "utils/class_path.hpp"
 #include "utils/string_utils.hpp"
+#include "utils/class_utils.hpp"
 #include "attribute_info.hpp"
 #include "class_loader.hpp"
 #include "constant_pool.hpp"
@@ -52,7 +53,7 @@ namespace RexVM {
             panic("must input run class");
         }
 
-        const auto &className = replace(userParams.at(0), "/", ".");
+        const auto &className = getJVMClassName(userParams.at(0));
         const auto runClass = bootstrapClassLoader->getInstanceClass(className);
         if (runClass == nullptr) {
             panic("can't find class " + className);

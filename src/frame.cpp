@@ -71,6 +71,13 @@ namespace RexVM {
         createFrameAndRunMethodNoPassParams(thread, runMethod, this);
     }
 
+    void Frame::runMethodInner(Method &runMethod, size_t popLength) {
+        if (popLength > 0) {
+            operandStackContext.pop(CAST_I4(popLength));
+        }
+        createFrameAndRunMethodNoPassParams(thread, runMethod, this);
+    }
+
     //手动调用java方法用,创建新Frame,用params向其传递参数
     std::tuple<SlotTypeEnum, Slot> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
         createFrameAndRunMethod(thread, runMethod, std::move(params), this);

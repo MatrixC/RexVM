@@ -23,7 +23,9 @@ namespace RexVM {
         REF_invokeInterface = 9,
     };
 
+    inline const cstring METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR = "([Ljava/lang/Object;)Ljava/lang/Object;";
 
+    bool isMethodHandleInvoke(const cstring &className, const cstring &memberName);
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
     InstanceOop *createLookup(VM &vm, Frame &frame);
     InstanceOop *createMethodHandle(Frame &frame, ConstantMethodHandleInfo *methodHandleInfo);

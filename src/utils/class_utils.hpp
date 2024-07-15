@@ -14,6 +14,7 @@ namespace RexVM {
     cstring getDescriptorByClass(Class *klass);
     cstring getJVMClassName(const cstring &javaClassName);
     cstring getJavaClassName(const cstring &jvmClassName);
+    bool isWideClassName(const cstring &className);
 }
 
 #endif

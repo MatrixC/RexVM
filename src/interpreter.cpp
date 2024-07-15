@@ -3,6 +3,8 @@
 
 #include "interpreter_helper.hpp"
 #include "utils/byte_reader.hpp"
+#include "utils/descriptor_parser.hpp"
+#include "utils/class_utils.hpp"
 #include "opcode.hpp"
 #include "constant_info.hpp"
 #include "frame.hpp"
@@ -1034,12 +1036,40 @@ namespace RexVM {
 
             instance->setFieldValue(fieldRef->slotId, value);
         }
+        
+        void invokeMethodHandle(
+            Frame &frame, 
+            const cstring &className, 
+            const cstring &methodName, 
+            const cstring &methodDescriptor
+        ) {
+            auto &classLoader = *frame.getCurrentClassLoader();
+            const auto invokeMethod = 
+                    classLoader.getInstanceClass("java/lang/invoke/MethodHandle")
+                        ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR, false);
+            const auto [paramType, _] = parseMethodDescriptor(methodDescriptor); 
+            //1是因为第一个参数为MethodHandle Object
+            size_t popLength = 1;
+            for (const auto &paramClassName : paramType) {
+                if (isWideClassName(paramClassName)) {
+                    popLength += 2;
+                } else {
+                    popLength += 1;
+                }
+            }
+            frame.runMethodInner(*invokeMethod, popLength);
+        }
 
         void invokevirtual(Frame &frame) {
+            const auto &constantPool = frame.constantPool;
             const auto index = frame.reader.readU2();
-            if (frame.method.name == "main" && frame.pc() == 22) {
-                (void)0;
+            auto [className, methodName, methodDescriptor] = 
+                    getConstantStringFromPoolByClassNameType(constantPool, index);
+            if (isMethodHandleInvoke(className, methodName)) {
+                invokeMethodHandle(frame, className, methodName, methodDescriptor);
+                return;
             }
+
             const auto invokeMethod = frame.klass.getRefMethod(index, false);
             const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
@@ -1053,6 +1083,26 @@ namespace RexVM {
             }
             panic("invoke failed");
         }
+
+
+        /*
+        原版 invokevirtual
+        void invokevirtual(Frame &frame) {
+            const auto index = frame.reader.readU2();
+            const auto invokeMethod = frame.klass.getRefMethod(index, false);
+            const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
+            const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
+            for (auto k = instanceClass; k != nullptr; k = k->superClass) {
+                const auto realInvokeMethod =
+                        k->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
+                if (realInvokeMethod != nullptr) {
+                    frame.runMethodInner(*realInvokeMethod);
+                    return;
+                }
+            }
+            panic("invoke failed");
+        }
+        */
 
         void invokespecial(Frame &frame) {
             const auto index = frame.reader.readU2();

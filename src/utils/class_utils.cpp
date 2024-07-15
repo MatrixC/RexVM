@@ -46,4 +46,8 @@ namespace RexVM {
         return replace(jvmClassName, "/", ".");
     }
 
+    bool isWideClassName(const cstring &className) {
+        return className == "long" || className == "double";
+    }
+
 }

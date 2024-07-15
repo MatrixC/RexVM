@@ -18,6 +18,7 @@
 namespace RexVM::Native::Core {
     constexpr auto UNSAFE_CLASS_NAME = "sun/misc/Unsafe";
     constexpr auto JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME = "java/lang/invoke/MethodHandleNatives";
+    constexpr auto JAVA_LANG_INVOKE_METHOD_HANDLE_NAME = "java/lang/invoke/MethodHandle";
     constexpr auto JAVA_LANG_REFLECT_ARRAY_NAME = "java/lang/reflect/Array";
     constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
@@ -131,6 +132,9 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "init", "(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V", true, Native::Core::methodHandlerInit);
         manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "objectFieldOffset", "(Ljava/lang/invoke/MemberName;)J", true, Native::Core::methodHandleObjectFieldOffset);
         manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_NAME, "getMembers", "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Class;I[Ljava/lang/invoke/MemberName;)I", true, Native::Core::methodHandleGetMembers);
+
+
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NAME, "invoke", "([Ljava/lang/Object;)Ljava/lang/Object;", true, Native::Core::methodHandleInvoke);
     }
 
     void registerReflectCoreMethods(NativeManager &manager) {

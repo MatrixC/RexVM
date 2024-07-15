@@ -59,7 +59,8 @@ namespace RexVM {
 
         [[nodiscard]] ClassLoader *getCurrentClassLoader() const;
 
-        void runMethodInner(Method &runMethod_);
+        void runMethodInner(Method &runMethod);
+        void runMethodInner(Method &runMethod, size_t popLength);
         std::tuple<SlotTypeEnum, Slot> runMethodManual(Method &runMethod_, std::vector<Slot> params);
         void cleanOperandStack();
         
