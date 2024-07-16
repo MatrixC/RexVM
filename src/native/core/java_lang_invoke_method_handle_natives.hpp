@@ -2,6 +2,7 @@
 #define NATIVE_CORE_JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_HPP
 
 #include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 #include "../../config.hpp"
 #include "../../vm.hpp"
@@ -34,13 +35,17 @@ namespace RexVM::Native::Core {
     const cstring JAVA_LANG_INVOKE_METHOD_TYPE_NAME = "java/lang/invoke/MethodType";
 
     //gc car
+    /*
     std::unordered_map<InstanceOop *, InstanceOop *> MEMBER_NAME_CACHE_MAP;
+    std::unordered_set<InstanceOop *> MEMBER_NAME_CACHE_SET;
+    
     std::mutex MEMBER_NAME_CACHE_MAP_MUTEX;
 
     void cacheMemberName(InstanceOop *memberNameOop) {
         const auto type = CAST_INSTANCE_OOP(memberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
         std::lock_guard<std::mutex> lock(MEMBER_NAME_CACHE_MAP_MUTEX);
         MEMBER_NAME_CACHE_MAP[type] = memberNameOop;
+        MEMBER_NAME_CACHE_SET.insert(memberNameOop);
     }
 
     InstanceOop *findMemberNameByMethodType(InstanceOop *methodTypeOop) {
@@ -48,12 +53,20 @@ namespace RexVM::Native::Core {
             panic("memberType can't be nullptr");
         }
         std::lock_guard<std::mutex> lock(MEMBER_NAME_CACHE_MAP_MUTEX);
-        const auto iter = MEMBER_NAME_CACHE_MAP.find(methodTypeOop);
-        if (iter == MEMBER_NAME_CACHE_MAP.end()) {
-            panic("can't find memberName");
+        // const auto iter = MEMBER_NAME_CACHE_MAP.find(methodTypeOop);
+        // if (iter == MEMBER_NAME_CACHE_MAP.end()) {
+        //     panic("can't find memberName");
+        // }
+        // return iter->second;
+        for (auto const &item : MEMBER_NAME_CACHE_SET) {
+            const auto type = CAST_INSTANCE_OOP(item->getFieldValue("type", "Ljava/lang/Object;").refVal);
+            if (type == methodTypeOop) {
+                return item;
+            }
         }
-        return iter->second;
+        panic("can't find memberName");
     }
+    */
 
     bool isStaticMethondHandleType(MethodHandleEnum kind) {
         return kind == MethodHandleEnum::REF_getStatic 
@@ -127,7 +140,7 @@ namespace RexVM::Native::Core {
         } else if (flags & MN_IS_TYPE) {
             panic("error");
         }
-        cacheMemberName(memberNameOop);
+        //cacheMemberName(memberNameOop);
         frame.returnRef(memberNameOop);
     }
 
@@ -142,7 +155,6 @@ namespace RexVM::Native::Core {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
             const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
             const auto methodPtr = klass->methods[slotId].get();
-            //const auto newFlags = flags | CAST_I4(methodPtr->accessFlags);
             auto newFlags = CAST_I4(methodPtr->accessFlags) | MN_IS_METHOD;
 
             if (methodPtr->isPrivate() && !methodPtr->isStatic()) {
@@ -156,17 +168,21 @@ namespace RexVM::Native::Core {
                     newFlags |= (CAST_I4(MethodHandleEnum::REF_invokeVirtual) << MN_REFERENCE_KIND_SHIFT);
                 }
             }
-
-            memberNameOop->setFieldValue("flags", "I", Slot(newFlags));
-            memberNameOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(methodPtr->klass.getMirrorOop()));
+            setMemberNameClazzAndFlags(memberNameOop, methodPtr->klass.getMirrorOop(), newFlags);
         } else if (refClassName == "java/lang/reflect/Field") {
+            const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
+            const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+            const auto fieldPtr = klass->fields[slotId].get();
+            auto newFlags = CAST_I4(fieldPtr->accessFlags) | MN_IS_FIELD;
+
+
             panic("error");
         } else if (refClassName == "java/lang/reflect/Constructor") {
             panic("error");
         } else {
             panic("error");
         }
-        cacheMemberName(memberNameOop);
+        //cacheMemberName(memberNameOop);
     }
 
     void methodHandleObjectFieldOffset(Frame &frame) {
@@ -178,51 +194,87 @@ namespace RexVM::Native::Core {
         const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
         const auto isStatic = kind == MethodHandleEnum::REF_getStatic || kind == MethodHandleEnum::REF_putStatic;
         const auto field = klass->getField(name, getDescriptorByClass(type), isStatic);
+        //cacheMemberName(memberNameOop);
         frame.returnI8(field->slotId);
     }
 
     void methodHandleGetMembers(Frame &frame) {
-        frame.returnI4(1000);
+        frame.returnI4(10);
+    }
+
+    void methodHandleInvokeHelper(Frame &frame) {
+
+    }
+
+    std::tuple<InstanceOop *, InstanceOop *> methodHandleGetMemberName(InstanceOop *self) {
+        const auto className = self->klass->name;
+        if (className == "java/lang/invoke/DirectMethodHandle") {
+            return std::make_tuple(CAST_INSTANCE_OOP(self->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal), nullptr);
+        } else if (className == "java/lang/invoke/BoundMethodHandle$Species_LL") {
+            //argL0.klass = java/lang/invoke/DirectMethodHandle
+            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
+            const auto argL1 = CAST_INSTANCE_OOP(self->getFieldValue("argL1", "Ljava/lang/Object;").refVal);
+            const auto memberName = CAST_INSTANCE_OOP(argL0->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+            return std::make_tuple(memberName, argL1);
+        }
     }
 
     void methodHandleInvoke(Frame &frame) {
         auto &classLoader = *frame.getCurrentClassLoader();
+        const auto &oopManager = frame.vm.oopManager;
         const auto self = frame.getThisInstance();
+        const auto [memberName, argL1] = methodHandleGetMemberName(self);
         const auto methodType = CAST_INSTANCE_OOP(self->getFieldValue("type", "Ljava/lang/invoke/MethodType;").refVal);
 
-        InstanceOop *mn = findMemberNameByMethodType(methodType);
-        
-
-        if (mn == nullptr) {
-            panic("Error");
+        if (memberName == nullptr) {
+            panic("error");
         }
 
-
-        const auto klass = GET_MIRROR_INSTANCE_CLASS(mn->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(mn->getFieldValue("name", "Ljava/lang/String;").refVal));
-        //const auto type = GET_MIRROR_INSTANCE_CLASS(mn->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto type = CAST_INSTANCE_OOP(mn->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto flags = mn->getFieldValue("flags", "I").i4Val;
+        const auto klass = GET_MIRROR_INSTANCE_CLASS(memberName->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberName->getFieldValue("name", "Ljava/lang/String;").refVal));
+        const auto type = CAST_INSTANCE_OOP(memberName->getFieldValue("type", "Ljava/lang/Object;").refVal);
+        const auto flags = memberName->getFieldValue("flags", "I").i4Val;
         const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
         const auto isStatic = kind == MethodHandleEnum::REF_invokeStatic;
         const auto descriptor = getDescriptor(klass, type, name);
         const auto methodPtr = klass->getMethod(name, descriptor, isStatic);
 
-        if (kind == MethodHandleEnum::REF_invokeInterface 
-            || kind == MethodHandleEnum::REF_invokeSpecial
-            || kind == MethodHandleEnum::REF_invokeVirtual) {
+        InstanceOop *newInstance = nullptr;
+        bool invokeConstructor = false;
+        if ((kind == MethodHandleEnum::REF_invokeSpecial || kind == MethodHandleEnum::REF_newInvokeSpecial) && methodPtr->name == "<init>") {
+            newInstance = oopManager->newInstance(&methodPtr->klass);
+            invokeConstructor = true;
         }
-        
 
         std::vector<Slot> params;
-        for (size_t i = 0; i < methodPtr->paramSlotSize; ++i) {
+        auto paramSlotSize = methodPtr->paramSlotSize;
+        params.reserve(paramSlotSize);
+
+        if (invokeConstructor) {
+            params.emplace_back(Slot(newInstance));
+            paramSlotSize -= 1;
+        }
+
+        for (size_t i = 0; i < paramSlotSize; ++i) {
             params.emplace_back(frame.getLocal(i + 1));
         }
 
         const auto [slotType, result] = frame.runMethodManual(*methodPtr, params);
-
-        frame.returnRef(nullptr);
-        
+        if (invokeConstructor) {
+            frame.returnRef(newInstance);
+        } else {
+            const auto returnClass = classLoader.getClass(methodPtr->returnType);
+            ref oopResult = nullptr;
+            if (slotType != SlotTypeEnum::NONE) {
+                if (returnClass->type == ClassTypeEnum::PrimitiveClass) {
+                    const auto returnPrimitiveClass = CAST_PRIMITIVE_CLASS(returnClass);
+                    oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, *oopManager);
+                } else {
+                    oopResult = result.refVal;
+                }
+            }
+            frame.returnRef(oopResult);
+        }
 
     }
 

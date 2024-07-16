@@ -36,8 +36,18 @@ namespace RexVM::Native::Core {
     }
 
     template <typename T>
+    bool simpleCompareAndSwap(T *src, T expect, T val) {
+        if (*src == expect) {
+            *src = val;
+            return true;
+        }
+        return false;
+    }
+
+    template <typename T>
     bool compareAndSwap(T *src, T expect, T val) {
         return strongCompareAndSwap(src, expect, val);
+        //return simpleCompareAndSwap(src, expect, val);
     }
 
     template<typename T>

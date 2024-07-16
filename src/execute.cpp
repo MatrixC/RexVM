@@ -121,16 +121,19 @@ namespace RexVM {
             return;
         }
 
-        // if (method.klass.name == "tt1/ConcurrentHashMap22") {
-        //     const auto priviousPc = frame.previous->pc();
-        //     const auto  priviousLineNumber __attribute__((unused)) = frame.previous->method.getLineNumber(priviousPc);
-        //     cprintln("caller {} {}{}#{}:{} {}", cstring(frame.level * 2, ' '), priviousLineNumber, frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
-        // }
-        //println("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
-        //cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
+        static bool printLog = false;
+        if (method.name == "bindTo" && printLog == false) {
+            //printLog = true;
+        } 
+        if (printLog) {
+            cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
+        }
         // if (method.name == "tabAt") {
         //     cprintln("aa");
         // }
+        if (method.name == "compareAndSwapInt") {
+            (void)0;
+        }
 
 
         if (notNativeMethod) [[likely]] {
@@ -141,6 +144,7 @@ namespace RexVM {
                 const auto pc __attribute__((unused)) = frame.pc();
                 const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
                 const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
+                const auto sourceFile __attribute__((unused)) = method.klass.sourceFile;
                 pcList.emplace_back(pc);
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markReturn) {

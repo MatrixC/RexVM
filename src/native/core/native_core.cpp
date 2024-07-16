@@ -135,6 +135,8 @@ namespace RexVM::Native::Core {
 
 
         manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NAME, "invoke", "([Ljava/lang/Object;)Ljava/lang/Object;", true, Native::Core::methodHandleInvoke);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NAME, "invokeBasic", "([Ljava/lang/Object;)Ljava/lang/Object;", true, Native::Core::methodHandleInvoke);
+        manager.regNativeMethod(JAVA_LANG_INVOKE_METHOD_HANDLE_NAME, "invokeExact", "([Ljava/lang/Object;)Ljava/lang/Object;", true, Native::Core::methodHandleInvoke);
     }
 
     void registerReflectCoreMethods(NativeManager &manager) {
