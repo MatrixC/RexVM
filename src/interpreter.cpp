@@ -1,7 +1,7 @@
 #include "interpreter.hpp"
 #include <cmath>
 
-#include "interpreter_helper.hpp"
+#include "exception_helper.hpp"
 #include "utils/byte_reader.hpp"
 #include "utils/descriptor_parser.hpp"
 #include "utils/class_utils.hpp"

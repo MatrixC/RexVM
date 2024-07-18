@@ -9,6 +9,7 @@ namespace RexVM {
 
     std::vector<cview> split_string(cview str, char delimiter);
 
+    bool startWith(cview str, cview prefix);
     bool endsWith(cview str, cview suffix);
 
     cstring concat_view(cview str1, cview str2);

@@ -68,14 +68,14 @@ namespace RexVM {
         if (slotSize > 0) {
             operandStackContext.pop(CAST_I4(slotSize));
         }
-        createFrameAndRunMethodNoPassParams(thread, runMethod, this);
+        createFrameAndRunMethodNoPassParams(thread, runMethod, this, slotSize);
     }
 
-    void Frame::runMethodInner(Method &runMethod, size_t popLength) {
-        if (popLength > 0) {
-            operandStackContext.pop(CAST_I4(popLength));
+    void Frame::runMethodInner(Method &runMethod, size_t popSlotSize) {
+        if (popSlotSize > 0) {
+            operandStackContext.pop(CAST_I4(popSlotSize));
         }
-        createFrameAndRunMethodNoPassParams(thread, runMethod, this);
+        createFrameAndRunMethodNoPassParams(thread, runMethod, this, popSlotSize);
     }
 
     //手动调用java方法用,创建新Frame,用params向其传递参数

@@ -31,6 +31,7 @@ namespace RexVM {
     struct Frame {
         Frame *previous{nullptr};
         size_t localVariableTableSize;
+        size_t methodParamSlotSize{}; //仅在MethodHandle.invoke的时候需要使用 因为method.paramSlotSize是不准确的
         Slot *localVariableTable;
         SlotTypeEnum *localVariableTableType;
         StackContext operandStackContext;
@@ -60,7 +61,7 @@ namespace RexVM {
         [[nodiscard]] ClassLoader *getCurrentClassLoader() const;
 
         void runMethodInner(Method &runMethod);
-        void runMethodInner(Method &runMethod, size_t popLength);
+        void runMethodInner(Method &runMethod, size_t popSlotSize);
         std::tuple<SlotTypeEnum, Slot> runMethodManual(Method &runMethod_, std::vector<Slot> params);
         void cleanOperandStack();
         

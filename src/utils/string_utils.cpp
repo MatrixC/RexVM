@@ -21,6 +21,13 @@ namespace RexVM {
         return result;
     }
 
+    bool startWith(cview str, cview prefix) {
+        if (prefix.size() > str.size()) {
+            return false;
+        }
+        return str.substr(0, prefix.size()) == prefix;
+    }
+
     bool endsWith(cview str, cview suffix) {
         if (suffix.size() > str.size()) {
             return false;

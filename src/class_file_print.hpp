@@ -9,34 +9,23 @@
 
 namespace RexVM {
 
-    inline void printAccessFlag(u2 accessFlag) {
+    struct Class;
+    struct ObjArrayOop;
+    struct Oop;
 
-    }
+    void printAccessFlag(u2 accessFlag);
 
-    inline void printBase(ClassFile &cf) {
+    void printBase(ClassFile &cf);
 
-    }
+    void printConstant(ClassFile &cf);
 
-    inline void printConstant(ClassFile &cf) {
-        for (auto i = 0; i < cf.constantPoolCount; ++i) {
-            const auto &constantPtr = cf.constantPool.at(i);
-            if (constantPtr != nullptr) {
-                cprintln("{:>2} = {}", i, constantPtr->toString());
-            }
-        }
-    }
+    void printMethods(ClassFile &cf);
 
-    inline void printMethods(ClassFile &cf) {
-        cprintln("method count {}", cf.methodCount);
-        for (const auto &methodInfo: cf.methods) {
-            cprintln("{}, {}, {}, {}", methodInfo->accessFlags, methodInfo->nameIndex, methodInfo->descriptorIndex,
-                    methodInfo->attributesCount);
-        }
-    }
+    void printCF(ClassFile &cf);
 
-    inline void printCF(ClassFile &cf) {
-        printMethods(cf);
-    }
+    void pClass(Class *klass);
+
+    void pObjArray(Oop *oop);
 
 }
 

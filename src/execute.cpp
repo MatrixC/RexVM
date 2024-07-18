@@ -122,11 +122,11 @@ namespace RexVM {
         }
 
         static bool printLog = false;
-        if (method.name == "bindTo" && printLog == false) {
-            //printLog = true;
+        if (method.name == "main" && printLog == false) {
+            printLog = true;
         } 
         if (printLog) {
-            cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
+            //cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
         }
         // if (method.name == "tabAt") {
         //     cprintln("aa");
@@ -138,14 +138,12 @@ namespace RexVM {
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
-            std::vector<u4> pcList;
             while (!byteReader.eof()) {
                 frame.currentByteCode = frame.reader.readU1();
                 const auto pc __attribute__((unused)) = frame.pc();
                 const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
-                const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
                 const auto sourceFile __attribute__((unused)) = method.klass.sourceFile;
-                pcList.emplace_back(pc);
+                const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markReturn) {
                     checkAndPassReturnValue(frame);
@@ -194,6 +192,7 @@ namespace RexVM {
     void createFrameAndRunMethod(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
         Frame nextFrame(thread.vm, thread, method_, previous);
         const auto slotSize = method_.paramSlotSize;
+        nextFrame.methodParamSlotSize = slotSize;
         if (slotSize != params.size()) {
             panic("createFrameAndRunMethod error: params length " + method_.name);
         }
@@ -208,8 +207,9 @@ namespace RexVM {
         thread.currentFrame = backupFrame;
     }
 
-    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous) {
+    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous, size_t paramSlotSize) {
         Frame nextFrame(thread.vm, thread, method_, previous);
+        nextFrame.methodParamSlotSize = paramSlotSize;
         const auto backupFrame = thread.currentFrame;
         thread.currentFrame = &nextFrame;
         const auto methodName = method_.klass.name + "#" + method_.name;

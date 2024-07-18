@@ -14,6 +14,7 @@
 #include "../../memory.hpp"
 #include "../../invoke_dynamic.hpp"
 #include "../../utils/class_utils.hpp"
+#include "../../exception_helper.hpp"
 
 namespace RexVM::Native::Core {
 
@@ -68,19 +69,11 @@ namespace RexVM::Native::Core {
     }
     */
 
-    bool isStaticMethondHandleType(MethodHandleEnum kind) {
-        return kind == MethodHandleEnum::REF_getStatic 
-            || kind == MethodHandleEnum::REF_putStatic 
-            || kind == MethodHandleEnum::REF_invokeStatic;
-    }
-
-    void setMemberNameClazzAndFlags(InstanceOop *memberNameOop, InstanceOop *mirrirOop, i4 newFlags) {
-        memberNameOop->setFieldValue("flags", "I", Slot(newFlags));
-        memberNameOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(mirrirOop)); 
-    }
-
-    cstring getDescriptor(Class *clazz, InstanceOop *type, const cstring &name) {
+   cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name) {
         cstring descriptor{};
+        if (name == "array") {
+            (void)0;
+        }
         if (isMethodHandleInvoke(clazz->name, name)) {
             descriptor = METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR;
         } else {
@@ -107,6 +100,35 @@ namespace RexVM::Native::Core {
         return descriptor;
     }
 
+    bool isStaticMethondHandleType(MethodHandleEnum kind) {
+        return kind == MethodHandleEnum::REF_getStatic 
+            || kind == MethodHandleEnum::REF_putStatic 
+            || kind == MethodHandleEnum::REF_invokeStatic;
+    }
+
+    void setMemberNameClazzAndFlags(InstanceOop *memberNameOop, InstanceOop *mirrirOop, i4 newFlags) {
+        memberNameOop->setFieldValue("flags", "I", Slot(newFlags));
+        memberNameOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(mirrirOop)); 
+    }
+
+    std::tuple<
+        InstanceClass *, 
+        cstring,
+        InstanceOop *,
+        i4,
+        MethodHandleEnum,
+        bool,
+        cstring> methodHandleGetFieldFromMemberName(InstanceOop *memberName) {
+        const auto klass = GET_MIRROR_INSTANCE_CLASS(memberName->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberName->getFieldValue("name", "Ljava/lang/String;").refVal));
+        const auto type = CAST_INSTANCE_OOP(memberName->getFieldValue("type", "Ljava/lang/Object;").refVal);
+        const auto flags = memberName->getFieldValue("flags", "I").i4Val;
+        const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
+        const auto isStatic = kind == MethodHandleEnum::REF_invokeStatic;
+        const auto descriptor = methodHandleGetDescriptor(klass, type, name);
+        return std::make_tuple(klass, name, type, flags, kind, isStatic, descriptor);
+    }
+
     void methodHandlerResolve(Frame &frame) {
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         if (memberNameOop == nullptr) {
@@ -127,10 +149,14 @@ namespace RexVM::Native::Core {
             clazz = classLoader.getClass(JAVA_LANG_OBJECT_NAME);
         }
         const auto instanceClass = CAST_INSTANCE_CLASS(clazz);
-        const auto descriptor = getDescriptor(clazz, type, name);
+        const auto descriptor = methodHandleGetDescriptor(clazz, type, name);
         const auto isStatic = isStaticMethondHandleType(kind);
         if ((flags & MN_IS_METHOD) || (flags & MN_IS_CONSTRUCTOR)) {
             const auto resolveMethod = instanceClass->getMethod(name, descriptor, isStatic);
+            if (resolveMethod == nullptr) {
+                throwReflectiveOperationException(frame, instanceClass->name, name, descriptor);
+                return;
+            }
             const auto newFlags = flags | CAST_I4(resolveMethod->accessFlags);
             setMemberNameClazzAndFlags(memberNameOop, resolveMethod->klass.getMirrorOop(), newFlags);
         } else if (flags & MN_IS_FIELD) {
@@ -149,7 +175,6 @@ namespace RexVM::Native::Core {
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto refOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         const auto refClassName = refOop->klass->name;
-        //const auto flags = memberNameOop->getFieldValue("flags", "I").i4Val;
 
         if (refClassName == "java/lang/reflect/Method") {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
@@ -187,28 +212,23 @@ namespace RexVM::Native::Core {
 
     void methodHandleObjectFieldOffset(Frame &frame) {
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
-        const auto klass = GET_MIRROR_INSTANCE_CLASS(memberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
-        const auto type = GET_MIRROR_INSTANCE_CLASS(memberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto flags = memberNameOop->getFieldValue("flags", "I").i4Val;
-        const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
-        const auto isStatic = kind == MethodHandleEnum::REF_getStatic || kind == MethodHandleEnum::REF_putStatic;
-        const auto field = klass->getField(name, getDescriptorByClass(type), isStatic);
-        //cacheMemberName(memberNameOop);
+        auto [klass, name, type, flags, kind, isStatic, descriptor] = methodHandleGetFieldFromMemberName(memberNameOop);
+        const auto typeClass = GET_MIRROR_INSTANCE_CLASS(type);
+        const auto field = klass->getField(name, getDescriptorByClass(typeClass), isStatic);
         frame.returnI8(field->slotId);
     }
+
+
 
     void methodHandleGetMembers(Frame &frame) {
         frame.returnI4(10);
     }
 
-    void methodHandleInvokeHelper(Frame &frame) {
-
-    }
 
     std::tuple<InstanceOop *, InstanceOop *> methodHandleGetMemberName(InstanceOop *self) {
         const auto className = self->klass->name;
-        if (className == "java/lang/invoke/DirectMethodHandle") {
+        if (startWith(className, "java/lang/invoke/DirectMethodHandle")) {
+            //DirectMethodHandle及其多个子类
             return std::make_tuple(CAST_INSTANCE_OOP(self->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal), nullptr);
         } else if (className == "java/lang/invoke/BoundMethodHandle$Species_LL") {
             //argL0.klass = java/lang/invoke/DirectMethodHandle
@@ -216,65 +236,106 @@ namespace RexVM::Native::Core {
             const auto argL1 = CAST_INSTANCE_OOP(self->getFieldValue("argL1", "Ljava/lang/Object;").refVal);
             const auto memberName = CAST_INSTANCE_OOP(argL0->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
             return std::make_tuple(memberName, argL1);
+        } else if (className == "java/lang/invoke/BoundMethodHandle$Species_L") {
+            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
+            int i = 10;
+        } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle") {
+            const auto directMethodHandle = CAST_INSTANCE_OOP(self->getFieldValue("target", "Ljava/lang/invoke/MethodHandle;").refVal);
+            return std::make_tuple(CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal), nullptr);
         }
+    }
+
+    std::vector<Slot> methodHandleBuildInvokeMethodParams(Frame &frame, Method *methodPtr, std::vector<Slot> prefixParam) {
+        std::vector<Slot> params;
+        auto paramSlotSize = methodPtr->paramSlotSize;
+        params.reserve(paramSlotSize);
+
+        params.assign(prefixParam.begin(), prefixParam.end());
+        paramSlotSize -= prefixParam.size();
+
+        for (size_t i = 0; i < paramSlotSize; ++i) {
+            //1是self
+            params.emplace_back(frame.getLocal(i + 1));
+        }
+        return params;
     }
 
     void methodHandleInvoke(Frame &frame) {
         auto &classLoader = *frame.getCurrentClassLoader();
         const auto &oopManager = frame.vm.oopManager;
         const auto self = frame.getThisInstance();
-        const auto [memberName, argL1] = methodHandleGetMemberName(self);
-        const auto methodType = CAST_INSTANCE_OOP(self->getFieldValue("type", "Ljava/lang/invoke/MethodType;").refVal);
+        const auto className = self->klass->name;
+        const auto methodParamSlotSize = frame.methodParamSlotSize;
 
-        if (memberName == nullptr) {
-            panic("error");
-        }
+        InstanceOop *memberNameOop = nullptr;
+        std::vector<Slot> prefixParam;
 
-        const auto klass = GET_MIRROR_INSTANCE_CLASS(memberName->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberName->getFieldValue("name", "Ljava/lang/String;").refVal));
-        const auto type = CAST_INSTANCE_OOP(memberName->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto flags = memberName->getFieldValue("flags", "I").i4Val;
-        const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
-        const auto isStatic = kind == MethodHandleEnum::REF_invokeStatic;
-        const auto descriptor = getDescriptor(klass, type, name);
-        const auto methodPtr = klass->getMethod(name, descriptor, isStatic);
-
-        InstanceOop *newInstance = nullptr;
-        bool invokeConstructor = false;
-        if ((kind == MethodHandleEnum::REF_invokeSpecial || kind == MethodHandleEnum::REF_newInvokeSpecial) && methodPtr->name == "<init>") {
-            newInstance = oopManager->newInstance(&methodPtr->klass);
-            invokeConstructor = true;
-        }
-
-        std::vector<Slot> params;
-        auto paramSlotSize = methodPtr->paramSlotSize;
-        params.reserve(paramSlotSize);
-
-        if (invokeConstructor) {
-            params.emplace_back(Slot(newInstance));
-            paramSlotSize -= 1;
-        }
-
-        for (size_t i = 0; i < paramSlotSize; ++i) {
-            params.emplace_back(frame.getLocal(i + 1));
-        }
-
-        const auto [slotType, result] = frame.runMethodManual(*methodPtr, params);
-        if (invokeConstructor) {
-            frame.returnRef(newInstance);
-        } else {
-            const auto returnClass = classLoader.getClass(methodPtr->returnType);
-            ref oopResult = nullptr;
-            if (slotType != SlotTypeEnum::NONE) {
-                if (returnClass->type == ClassTypeEnum::PrimitiveClass) {
-                    const auto returnPrimitiveClass = CAST_PRIMITIVE_CLASS(returnClass);
-                    oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, *oopManager);
-                } else {
-                    oopResult = result.refVal;
-                }
+        if (startWith(className, "java/lang/invoke/DirectMethodHandle")) {
+            //DirectMethodHandle及其多个子类
+            memberNameOop = CAST_INSTANCE_OOP(self->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+        } else if (className == "java/lang/invoke/BoundMethodHandle$Species_LL") {
+            //argL0.klass = java/lang/invoke/DirectMethodHandle
+            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
+            const auto argL1 = CAST_INSTANCE_OOP(self->getFieldValue("argL1", "Ljava/lang/Object;").refVal);
+            prefixParam.emplace_back(Slot(argL1));
+            memberNameOop = CAST_INSTANCE_OOP(argL0->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+        } else if (className == "java/lang/invoke/BoundMethodHandle$Species_L") {
+            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
+            if (methodParamSlotSize == 2) {
+                //只有self和Species_L两个参数
+                frame.returnRef(argL0);
+                return;
             }
-            frame.returnRef(oopResult);
+
+            const auto speciesL = CAST_INSTANCE_OOP(frame.getLocalRef(1));
+            const auto directMethodHandle = CAST_INSTANCE_OOP(speciesL->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
+            memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+
+            const auto passParams = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(2));
+            for (size_t i = 0; i < passParams->dataLength; ++i) {
+                prefixParam.emplace_back(passParams->data[i]);
+            }
+
+        } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle") {
+            const auto directMethodHandle = CAST_INSTANCE_OOP(self->getFieldValue("target", "Ljava/lang/invoke/MethodHandle;").refVal);
+            memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
         }
+
+        if (memberNameOop == nullptr) {
+            panic("error: memberName is null");
+        }
+
+        auto [klass, name, type, flags, kind, isStatic, descriptor] 
+            = methodHandleGetFieldFromMemberName(memberNameOop);
+
+        const auto methodPtr = klass->getMethod(name, descriptor, isStatic);
+        if (methodPtr == nullptr) {
+            panic("error: methodPtr is null");
+        }
+
+        if ((kind == MethodHandleEnum::REF_invokeSpecial || kind == MethodHandleEnum::REF_newInvokeSpecial) 
+                && methodPtr->name == "<init>") {
+            //Constructor
+            const auto newInstance = oopManager->newInstance(&methodPtr->klass);
+            std::vector<Slot> params = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) });
+            frame.runMethodManual(*methodPtr, params);
+            frame.returnRef(newInstance);
+            return;
+        }
+
+        std::vector<Slot> params = methodHandleBuildInvokeMethodParams(frame, methodPtr, prefixParam);
+        const auto [slotType, result] = frame.runMethodManual(*methodPtr, params);
+        const auto returnClass = classLoader.getClass(methodPtr->returnType);
+        ref oopResult = nullptr;
+        if (slotType != SlotTypeEnum::NONE) {
+            if (returnClass->type == ClassTypeEnum::PrimitiveClass) {
+                const auto returnPrimitiveClass = CAST_PRIMITIVE_CLASS(returnClass);
+                oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, *oopManager);
+            } else {
+                oopResult = result.refVal;
+            }
+        }
+        frame.returnRef(oopResult);
 
     }
 
