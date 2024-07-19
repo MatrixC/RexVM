@@ -79,22 +79,31 @@ namespace RexVM {
     }
 
     //手动调用java方法用,创建新Frame,用params向其传递参数
-    std::tuple<SlotTypeEnum, Slot> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
+    std::tuple<Slot, SlotTypeEnum> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
         createFrameAndRunMethod(thread, runMethod, std::move(params), this);
         //Method可能有返回值,需要处理返回值的pop
         if (runMethod.returnSlotType == SlotTypeEnum::NONE) {
             //void函数，无返回
-            return std::make_tuple(SlotTypeEnum::NONE, Slot(0));
+            return std::make_tuple(Slot(0), SlotTypeEnum::NONE);
         } else {
             if (runMethod.returnSlotType == SlotTypeEnum::I8) {
-                return std::make_tuple(runMethod.returnSlotType, Slot(popI8()));
+                return std::make_tuple(Slot(popI8()), runMethod.returnSlotType);
             } else if (runMethod.returnSlotType == SlotTypeEnum::F8) {
-                return std::make_tuple(runMethod.returnSlotType, Slot(popF8()));
+                return std::make_tuple(Slot(popF8()), runMethod.returnSlotType);
             } else {
                 //除了I8和F8,其他类型只需要pop一个值
-                return std::make_tuple(runMethod.returnSlotType, pop());
+                return std::make_tuple(pop(), runMethod.returnSlotType);
             }
         }
+    }
+
+    std::tuple<Slot, SlotTypeEnum> Frame::runMethodManualTypes(Method &runMethod, const std::vector<std::tuple<Slot, SlotTypeEnum>>& paramsWithType) {
+        std::vector<Slot> params;
+        params.reserve(paramsWithType.size());
+        for (const auto &item : paramsWithType) {
+            params.emplace_back(std::get<0>(item));
+        }
+        return runMethodManual(runMethod, params);
     }
 
     void Frame::cleanOperandStack() {
@@ -163,26 +172,32 @@ namespace RexVM {
 
     void Frame::pushLocal(size_t index) {
         const auto val = localVariableTable[index];
-        operandStackContext.push(val, SlotTypeEnum::I4);
+        const auto type = localVariableTableType[index];
+        operandStackContext.push(val, type);
     }
 
     void Frame::pushLocalWide(size_t index) {
         const auto val1 = localVariableTable[index];
+        const auto val1Type = localVariableTableType[index];
         const auto val2 = localVariableTable[index + 1];
-        operandStackContext.push(val1, SlotTypeEnum::I4);
-        operandStackContext.push(val2, SlotTypeEnum::I4);
+        const auto val2Type = localVariableTableType[index + 1];
+        operandStackContext.push(val1, val1Type);
+        operandStackContext.push(val2, val2Type);
     }
 
     void Frame::popLocal(size_t index) {
-        const auto val = operandStackContext.pop();
+        const auto [val, type] = operandStackContext.popWithSlotType();
         localVariableTable[index] = val;
+        localVariableTableType[index] = type;
     }
 
     void Frame::popLocalWide(size_t index) {
-        const auto val1 = operandStackContext.pop();
-        const auto val2 = operandStackContext.pop();
+        const auto [val1, val1Type] = operandStackContext.popWithSlotType();
+        const auto [val2, val2Type] = operandStackContext.popWithSlotType();
         localVariableTable[index] = val2;
+        localVariableTableType[index] = val2Type;
         localVariableTable[index + 1] = val1;
+        localVariableTableType[index + 1] = val1Type;
     }
 
     ref Frame::getLocalRef(size_t index) const {
@@ -211,6 +226,10 @@ namespace RexVM {
 
     Slot Frame::getLocal(size_t index) const {
         return localVariableTable[index];
+    }
+
+    std::tuple<Slot, SlotTypeEnum> Frame::getLocalWithType(size_t index) const {
+        return std::make_tuple(localVariableTable[index], localVariableTableType[index]);
     }
 
     void Frame::setLocalRef(size_t index, ref val) const {

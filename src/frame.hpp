@@ -62,7 +62,8 @@ namespace RexVM {
 
         void runMethodInner(Method &runMethod);
         void runMethodInner(Method &runMethod, size_t popSlotSize);
-        std::tuple<SlotTypeEnum, Slot> runMethodManual(Method &runMethod_, std::vector<Slot> params);
+        std::tuple<Slot,SlotTypeEnum> runMethodManual(Method &runMethod_, std::vector<Slot> params);
+        std::tuple<Slot, SlotTypeEnum> runMethodManualTypes(Method &runMethod, const std::vector<std::tuple<Slot, SlotTypeEnum>>& paramsWithType);
         void cleanOperandStack();
         
         [[nodiscard]] u4 pc() const;
@@ -96,6 +97,7 @@ namespace RexVM {
         [[nodiscard]] f8 getLocalF8(size_t index) const;
         [[nodiscard]] bool getLocalBoolean(size_t index) const;
         [[nodiscard]] Slot getLocal(size_t index) const;
+        [[nodiscard]] std::tuple<Slot, SlotTypeEnum> getLocalWithType(size_t index) const;
 
         void setLocalRef(size_t index, ref val) const;
         void setLocalI4(size_t index, i4 val) const;

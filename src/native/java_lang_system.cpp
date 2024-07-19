@@ -52,7 +52,7 @@ namespace RexVM::Native {
     void doPrivileged(Frame &frame) {
         const auto action = frame.getThisInstance();
         const auto runMethod = action->getInstanceClass()->getMethod("run", "()Ljava/lang/Object;", false);
-        const auto [_ ,result] = frame.runMethodManual(*runMethod, { Slot(action) });
+        const auto [result , _] = frame.runMethodManual(*runMethod, { Slot(action) });
         if (!frame.markThrow) {
             frame.returnRef(result.refVal);
         }

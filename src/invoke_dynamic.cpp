@@ -31,7 +31,7 @@ namespace RexVM {
         //TODO Opt key slot id
         const auto methodHandlesClass = vm.bootstrapClassLoader->getInstanceClass("java/lang/invoke/MethodHandles");
         const auto lookupMethod = methodHandlesClass->getMethod("lookup", "()Ljava/lang/invoke/MethodHandles$Lookup;", true);
-        const auto [_, lookupOop] = frame.runMethodManual(*lookupMethod, {});
+        const auto [lookupOop, _] = frame.runMethodManual(*lookupMethod, {});
         return CAST_INSTANCE_OOP(lookupOop.refVal);
     }
 
@@ -86,7 +86,7 @@ namespace RexVM {
         const auto refMethodDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/MethodHandle;";
 
         Method *method = nullptr;
-        std::tuple<SlotTypeEnum, Slot> result;
+        std::tuple<Slot, SlotTypeEnum> result;
         switch (kind) {
             case MethodHandleEnum::REF_getField:
                 method = lookupOopClass->getMethod("findGetter", refFieldDescriptor, false);
@@ -182,7 +182,7 @@ namespace RexVM {
                 panic("createMethodHandles error: error kind");
         }
 
-        return CAST_INSTANCE_OOP(std::get<1>(result).refVal);
+        return CAST_INSTANCE_OOP(std::get<0>(result).refVal);
     }
 
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
@@ -266,10 +266,10 @@ namespace RexVM {
         const auto invokeWithArgumentsMethod = methodHandleOop->getInstanceClass()->getMethod("invokeWithArguments", "(Ljava/util/List;)Ljava/lang/Object;", false);
 
 
-        const auto callSiteOop = CAST_INSTANCE_OOP(std::get<1>(frame.runMethodManual(*invokeWithArgumentsMethod, { Slot(methodHandleOop), Slot(arrayListOop)})).refVal);
+        const auto callSiteOop = CAST_INSTANCE_OOP(std::get<0>(frame.runMethodManual(*invokeWithArgumentsMethod, { Slot(methodHandleOop), Slot(arrayListOop)})).refVal);
         const auto [invokeParamType, _] = parseMethodDescriptor(invokeDescriptor);
         const auto dynamicInvokerMethod = callSiteOop->getInstanceClass()->getMethod("dynamicInvoker", "()Ljava/lang/invoke/MethodHandle;", false);
-        const auto invokeMethodHandleOop = CAST_INSTANCE_OOP(std::get<1>(frame.runMethodManual(*dynamicInvokerMethod, { Slot(callSiteOop) })).refVal);
+        const auto invokeMethodHandleOop = CAST_INSTANCE_OOP(std::get<0>(frame.runMethodManual(*dynamicInvokerMethod, { Slot(callSiteOop) })).refVal);
 
         const auto invokeExactMethod = invokeMethodHandleOop->getInstanceClass()->getMethod("invokeExact", "([Ljava/lang/Object;)Ljava/lang/Object;", false);
         (void)invokeExactMethod;

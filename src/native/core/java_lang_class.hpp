@@ -627,7 +627,7 @@ namespace RexVM::Native::Core {
                 params.emplace_back(Slot(val));
             }
         }
-        const auto [slotType, result] = frame.runMethodManual(*methodPtr, params);
+        const auto [result, slotType] = frame.runMethodManual(*methodPtr, params);
         const auto returnClass = classLoader.getClass(methodPtr->returnType);
 
         ref oopResult = nullptr;

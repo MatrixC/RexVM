@@ -171,7 +171,6 @@ namespace RexVM::Native::Core {
     }
 
     void methodHandlerInit(Frame &frame) {
-        auto &classLoader = *frame.getCurrentClassLoader();
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto refOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         const auto refClassName = refOop->klass->name;
@@ -200,7 +199,6 @@ namespace RexVM::Native::Core {
             const auto fieldPtr = klass->fields[slotId].get();
             auto newFlags = CAST_I4(fieldPtr->accessFlags) | MN_IS_FIELD;
 
-
             panic("error");
         } else if (refClassName == "java/lang/reflect/Constructor") {
             panic("error");
@@ -225,51 +223,10 @@ namespace RexVM::Native::Core {
     }
 
 
-    std::tuple<InstanceOop *, InstanceOop *> methodHandleGetMemberName(InstanceOop *self) {
-        const auto className = self->klass->name;
-        if (startWith(className, "java/lang/invoke/DirectMethodHandle")) {
-            //DirectMethodHandle及其多个子类
-            return std::make_tuple(CAST_INSTANCE_OOP(self->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal), nullptr);
-        } else if (className == "java/lang/invoke/BoundMethodHandle$Species_LL") {
-            //argL0.klass = java/lang/invoke/DirectMethodHandle
-            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
-            const auto argL1 = CAST_INSTANCE_OOP(self->getFieldValue("argL1", "Ljava/lang/Object;").refVal);
-            const auto memberName = CAST_INSTANCE_OOP(argL0->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
-            return std::make_tuple(memberName, argL1);
-        } else if (className == "java/lang/invoke/BoundMethodHandle$Species_L") {
-            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
-            int i = 10;
-        } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle") {
-            const auto directMethodHandle = CAST_INSTANCE_OOP(self->getFieldValue("target", "Ljava/lang/invoke/MethodHandle;").refVal);
-            return std::make_tuple(CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal), nullptr);
-        }
-    }
-
-    std::vector<Slot> methodHandleBuildInvokeMethodParams(Frame &frame, Method *methodPtr, std::vector<Slot> prefixParam) {
-        std::vector<Slot> params;
-        auto paramSlotSize = methodPtr->paramSlotSize;
-        params.reserve(paramSlotSize);
-
-        params.assign(prefixParam.begin(), prefixParam.end());
-        paramSlotSize -= prefixParam.size();
-
-        for (size_t i = 0; i < paramSlotSize; ++i) {
-            //1是self
-            params.emplace_back(frame.getLocal(i + 1));
-        }
-        return params;
-    }
-
-    void methodHandleInvoke(Frame &frame) {
-        auto &classLoader = *frame.getCurrentClassLoader();
-        const auto &oopManager = frame.vm.oopManager;
-        const auto self = frame.getThisInstance();
+    std::tuple<InstanceOop *, bool> methodHandleGetMemberName(Frame &frame, InstanceOop *self, std::vector<Slot> &prefixParam) {
         const auto className = self->klass->name;
         const auto methodParamSlotSize = frame.methodParamSlotSize;
-
         InstanceOop *memberNameOop = nullptr;
-        std::vector<Slot> prefixParam;
-
         if (startWith(className, "java/lang/invoke/DirectMethodHandle")) {
             //DirectMethodHandle及其多个子类
             memberNameOop = CAST_INSTANCE_OOP(self->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
@@ -277,14 +234,14 @@ namespace RexVM::Native::Core {
             //argL0.klass = java/lang/invoke/DirectMethodHandle
             const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
             const auto argL1 = CAST_INSTANCE_OOP(self->getFieldValue("argL1", "Ljava/lang/Object;").refVal);
-            prefixParam.emplace_back(Slot(argL1));
+            prefixParam.emplace_back(argL1);
             memberNameOop = CAST_INSTANCE_OOP(argL0->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
         } else if (className == "java/lang/invoke/BoundMethodHandle$Species_L") {
             const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
             if (methodParamSlotSize == 2) {
                 //只有self和Species_L两个参数
                 frame.returnRef(argL0);
-                return;
+                return std::make_tuple(nullptr, true);
             }
 
             const auto speciesL = CAST_INSTANCE_OOP(frame.getLocalRef(1));
@@ -295,10 +252,98 @@ namespace RexVM::Native::Core {
             for (size_t i = 0; i < passParams->dataLength; ++i) {
                 prefixParam.emplace_back(passParams->data[i]);
             }
-
         } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle") {
             const auto directMethodHandle = CAST_INSTANCE_OOP(self->getFieldValue("target", "Ljava/lang/invoke/MethodHandle;").refVal);
             memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+        } else {
+            panic("error");
+        }
+        return std::make_tuple(memberNameOop, false);
+    }
+
+    void methodHandleInvokeBoxOrUnBox(
+        Frame &frame,
+        Slot val, 
+        SlotTypeEnum type,
+        Method *methodPtr,
+        size_t index,
+        std::vector<Slot> &params
+    ) {
+        auto &classLoader = *frame.getCurrentClassLoader();
+        const auto &oopManager = frame.vm.oopManager;
+        //const auto paramSlotType = methodPtr->paramSlotType[index];
+        const auto paramType = methodPtr->paramType[index];
+        const auto paramSlotType = getSlotTypeByBasicTypeClassName(paramType);
+        if (type == paramSlotType) {
+            params.emplace_back(val);
+            if (isWideSlotType(type)) {
+                //compressParamsWithType里只保留了有值的那个 所以补一个
+                params.emplace_back(Slot(0));
+            }
+            return;
+        }
+        const auto paramClass = classLoader.getClass(paramType);
+        const auto className = paramClass->name;
+        //两种情况 传参是REF 函数需要Primitive 或者相反
+        if (type == SlotTypeEnum::REF) {
+            if (paramClass->type != ClassTypeEnum::PrimitiveClass) {
+                panic("error");
+            }
+            const auto primitiveClass = CAST_PRIMITIVE_CLASS(paramClass);
+            const auto slotVal = primitiveClass->getValueFromBoxingOop(CAST_INSTANCE_OOP(val.refVal));
+            params.emplace_back(slotVal);
+            if (primitiveClass->isWideType()) {
+                params.emplace_back(Slot(0));
+            } 
+        } else {
+            if (className == JAVA_LANG_INTEGER_NAME) {
+                params.emplace_back(oopManager->newIntegerOop(val.i4Val));
+            } else if (className == JAVA_LANG_LONG_NAME) {
+                params.emplace_back(oopManager->newLongOop(val.i8Val));
+            } else if (className == JAVA_LANG_FLOAT_NAME) {
+                params.emplace_back(oopManager->newLongOop(val.f4Val));
+            } else if (className == JAVA_LANG_DOUBLE_NAME) {
+                params.emplace_back(oopManager->newLongOop(val.f8Val));
+            } else if (className == JAVA_LANG_BOOLEAN_NAME) {
+                params.emplace_back(oopManager->newBooleanOop(val.i4Val));
+            } else if (className == JAVA_LANG_BYTE_NAME) {
+                params.emplace_back(oopManager->newByteOop(val.i4Val));
+            } else if (className == JAVA_LANG_CHARACTER_NAME) {
+                params.emplace_back(oopManager->newCharOop(val.i4Val));
+            } else if (className == JAVA_LANG_SHORT_NAME) {
+                params.emplace_back(oopManager->newShortOop(val.i4Val));
+            } else {
+                panic("error");
+            }
+        }
+    }
+
+    std::vector<std::tuple<Slot, SlotTypeEnum>> methodHandleBuildInvokeMethodParams(Frame &frame, Method *methodPtr, const std::vector<Slot>& refPrefixParam) {
+        std::vector<std::tuple<Slot, SlotTypeEnum>> params;
+        auto paramSlotSize = methodPtr->paramSlotSize;
+        params.reserve(paramSlotSize);
+
+        for (const auto &item : refPrefixParam) {
+            params.emplace_back(item, SlotTypeEnum::REF);
+        }
+        paramSlotSize -= refPrefixParam.size();
+
+        for (size_t i = 0; i < paramSlotSize; ++i) {
+            //1是self
+            params.emplace_back(frame.getLocalWithType(i + 1));
+        }
+        return params;
+    }
+
+    void methodHandleInvoke(Frame &frame) {
+        auto &classLoader = *frame.getCurrentClassLoader();
+        const auto &oopManager = frame.vm.oopManager;
+        const auto self = frame.getThisInstance();
+        
+        std::vector<Slot> prefixParam;
+        const auto [memberNameOop, exitInvoke] = methodHandleGetMemberName(frame, self, prefixParam);
+        if (exitInvoke) {
+            return;
         }
 
         if (memberNameOop == nullptr) {
@@ -317,14 +362,43 @@ namespace RexVM::Native::Core {
                 && methodPtr->name == "<init>") {
             //Constructor
             const auto newInstance = oopManager->newInstance(&methodPtr->klass);
-            std::vector<Slot> params = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) });
-            frame.runMethodManual(*methodPtr, params);
+            const auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) });
+            frame.runMethodManualTypes(*methodPtr, paramsWithType);
             frame.returnRef(newInstance);
             return;
         }
 
-        std::vector<Slot> params = methodHandleBuildInvokeMethodParams(frame, methodPtr, prefixParam);
-        const auto [slotType, result] = frame.runMethodManual(*methodPtr, params);
+
+        auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, prefixParam);
+        //box or unbox 处理
+        //这里比反射的invoke处理复杂 反射传参只会是Object数组 所以Slot和paramType的index是直接对应的
+        //但MH的传参有可能是PrimitiveType 也可能是Integer等Box类型
+        //会发生一种比较复杂的情况 假设函数是 void say(Long i); 但是传参是一个 long类型 需要box且paramSlotSize对不上 
+        std::vector<std::tuple<Slot, SlotTypeEnum>> compressParamsWithType;
+        for (size_t i = 0; i < paramsWithType.size(); ++i) {
+            const auto [val, slotType] = paramsWithType[i];
+            compressParamsWithType.emplace_back(paramsWithType[i]);
+            if (isWideSlotType(slotType)) {
+                //跳过 只保留第一个带值的Slot 这样最终的Slot数可以保证和函数的参数数量一致
+                i += i;
+            }
+        }
+
+        std::vector<Slot> params;
+        params.reserve(compressParamsWithType.size());
+        const auto methodIsStatic = methodPtr->isStatic();
+        const auto startIndex = methodIsStatic ? 0 : 1;
+        if (!methodIsStatic) {
+            params.emplace_back(std::get<0>(compressParamsWithType[0]));
+        }
+
+        for (size_t i = startIndex; i < compressParamsWithType.size(); ++i) {
+            const auto [val, slotType] = compressParamsWithType[i];
+            const auto methodIndex = methodIsStatic ? i : i - 1;
+            methodHandleInvokeBoxOrUnBox(frame, val, slotType, methodPtr, methodIndex, params);
+        }
+
+        const auto [result, slotType] = frame.runMethodManual(*methodPtr, params);
         const auto returnClass = classLoader.getClass(methodPtr->returnType);
         ref oopResult = nullptr;
         if (slotType != SlotTypeEnum::NONE) {
@@ -342,7 +416,6 @@ namespace RexVM::Native::Core {
     void methodHandlerGetConstant(Frame &frame) {
         frame.returnI4(0);
     }
-
 
 
 }
