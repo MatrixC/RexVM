@@ -185,7 +185,7 @@ namespace RexVM {
             case BasicType::T_VOID: panic("error type void");
             default:
                 panic("error basicType");
-                return Slot(0);
+                return ZERO_SLOT;
         }
     }
 
@@ -329,6 +329,18 @@ namespace RexVM {
         }
         instanceSlotCount = slotId;
         staticSlotCount = staticSlotId;
+
+        instanceDataType = std::make_unique<SlotTypeEnum[]>(instanceSlotCount);
+        staticDataType = std::make_unique<SlotTypeEnum[]>(staticSlotCount);
+        staticData = std::make_unique<Slot[]>(staticSlotCount);
+
+        for (const auto &field: fields) {
+            if (field->isStatic()) {
+                staticDataType[field->slotId] = field->getFieldSlotType();
+            } else {
+                instanceDataType[field->slotId] = field->getFieldSlotType();
+            }
+        }
     }
 
     void InstanceClass::initStaticField() {
@@ -340,6 +352,7 @@ namespace RexVM {
             if (!field->isStatic()) {
                 continue;
             }
+            const auto slotType = field->getFieldSlotType();
             if (field->isFinal() && field->constantValueIndex > 0) {
                 const auto &constValue = constantPool.at(field->constantValueIndex);
                 const auto descriptor = field->descriptor;
@@ -358,25 +371,30 @@ namespace RexVM {
                         getConstantStringFromPoolByIndexInfo(constantPool, field->constantValueIndex)
                     );
                     data = Slot(strOop);
+                } else {
+                    panic("error descriptor");
                 }
                 staticData[field->slotId] = data;
             } else {
-                const auto slotType = field->getFieldSlotType();
                 switch (slotType) {
-                    case SlotTypeEnum::REF:
-                        staticData[field->slotId] = Slot(nullptr);
+                    case SlotTypeEnum::I4:
+                        staticData[field->slotId] = Slot(CAST_I4(0));
                         break;
-
                     case SlotTypeEnum::F4:
                         staticData[field->slotId] = Slot(CAST_F4(0));
                         break;
-
+                    case SlotTypeEnum::I8:
+                        staticData[field->slotId] = Slot(CAST_I8(0));
+                        break;
                     case SlotTypeEnum::F8:
                         staticData[field->slotId] = Slot(CAST_F8(0));
                         break;
-
+                    case SlotTypeEnum::REF:
+                        staticData[field->slotId] = Slot(nullptr);
+                        break;
                     default:
-                        staticData[field->slotId] = Slot(CAST_I4(0));
+                        panic("error slotType");
+                        break;
                 }
             }
         }

@@ -277,7 +277,7 @@ namespace RexVM::Native::Core {
             params.emplace_back(val);
             if (isWideSlotType(type)) {
                 //compressParamsWithType里只保留了有值的那个 所以补一个
-                params.emplace_back(Slot(0));
+                params.emplace_back(ZERO_SLOT);
             }
             return;
         }
@@ -292,7 +292,7 @@ namespace RexVM::Native::Core {
             const auto slotVal = primitiveClass->getValueFromBoxingOop(CAST_INSTANCE_OOP(val.refVal));
             params.emplace_back(slotVal);
             if (primitiveClass->isWideType()) {
-                params.emplace_back(Slot(0));
+                params.emplace_back(ZERO_SLOT);
             } 
         } else {
             if (className == JAVA_LANG_INTEGER_NAME) {

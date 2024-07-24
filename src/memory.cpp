@@ -26,7 +26,7 @@ namespace RexVM {
 
         const auto oop = new VMThread(vm, threadClass, &method, params);
         oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
-        oop->setFieldValue("priority", "I", Slot(1));
+        oop->setFieldValue("priority", "I", Slot(CAST_I8(1)));
         allocatedOop.insert(oop);
         return oop;
     }

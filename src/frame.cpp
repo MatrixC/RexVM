@@ -84,7 +84,7 @@ namespace RexVM {
         //Method可能有返回值,需要处理返回值的pop
         if (runMethod.returnSlotType == SlotTypeEnum::NONE) {
             //void函数，无返回
-            return std::make_tuple(Slot(0), SlotTypeEnum::NONE);
+            return std::make_tuple(ZERO_SLOT, SlotTypeEnum::NONE);
         } else {
             if (runMethod.returnSlotType == SlotTypeEnum::I8) {
                 return std::make_tuple(Slot(popI8()), runMethod.returnSlotType);
@@ -142,6 +142,9 @@ namespace RexVM {
 
     void Frame::push(Slot val, SlotTypeEnum type) {
         operandStackContext.push(val, type);
+        if (isWideSlotType(type)) {
+            operandStackContext.push(Slot(CAST_I8(0)), type);
+        }
     }
 
     ref Frame::popRef() {
@@ -294,7 +297,7 @@ namespace RexVM {
     }
 
     void Frame::returnBoolean(bool val) {
-        returnSlot(Slot(val ? 1 : 0), SlotTypeEnum::I4);
+        returnSlot(Slot(val ? CAST_I8(1) : CAST_I8(0)), SlotTypeEnum::I4);
     }
 
     void Frame::throwException(InstanceOop * const val, u4 throwPc) {

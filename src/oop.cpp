@@ -25,23 +25,18 @@ namespace RexVM {
                     case SlotTypeEnum::I4:
                         oop->data[slotId] = Slot(CAST_I4(0));
                         break;
-
-                    case SlotTypeEnum::REF:
-                        oop->data[slotId] = Slot(nullptr);
-                        break;
-
                     case SlotTypeEnum::F4:
                         oop->data[slotId] = Slot(CAST_F4(0));
                         break;
-
                     case SlotTypeEnum::I8:
                         oop->data[slotId] = Slot(CAST_I8(0));
                         break;
-
                     case SlotTypeEnum::F8:
-                        oop->data[slotId] = Slot(CAST_F4(0));
+                        oop->data[slotId] = Slot(CAST_F8(0));
                         break;
-
+                    case SlotTypeEnum::REF:
+                        oop->data[slotId] = Slot(nullptr);
+                        break;
                     default:
                         panic("initInstanceField error");
                 }

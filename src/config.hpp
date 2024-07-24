@@ -55,9 +55,9 @@ namespace RexVM {
         explicit Slot(ref val) : refVal(val) {
         }
 
-        bool operator==(const Slot& other) const {
-            return i8Val == other.i8Val;
-        }
+        // bool operator==(const Slot& other) const {
+        //     return i8Val == other.i8Val;
+        // }
     };
 
     enum class SlotTypeEnum : u1 {
@@ -68,6 +68,8 @@ namespace RexVM {
         F8,
         REF,
     };
+
+    const Slot ZERO_SLOT = Slot(CAST_I8(0));
 
     inline bool isWideSlotType(SlotTypeEnum slotType) {
         return slotType == SlotTypeEnum::I8 || slotType == SlotTypeEnum::F8;

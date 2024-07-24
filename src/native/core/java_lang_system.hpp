@@ -157,6 +157,11 @@ namespace RexVM::Native::Core {
         frame.returnRef(props);
     }
 
+    void getStackAccessControlContext(Frame &frame) {
+        //TODO
+        frame.returnRef(nullptr);
+    }
+
     void doPrivileged(Frame &frame) {
         const auto action = frame.getThisInstance();
         const auto runMethod = action->getInstanceClass()->getMethod("run", "()Ljava/lang/Object;", false);
@@ -164,11 +169,6 @@ namespace RexVM::Native::Core {
         if (!frame.markThrow) {
             frame.returnRef(result.refVal);
         }
-    }
-
-    void getStackAccessControlContext(Frame &frame) {
-        //TODO
-        frame.returnRef(nullptr);
     }
 }
 

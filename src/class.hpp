@@ -109,6 +109,10 @@ namespace RexVM {
         std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
 
         std::unique_ptr<Slot[]> staticData;
+        //跟实例offset一致 查询其SlotType
+        std::unique_ptr<SlotTypeEnum[]> instanceDataType;
+        //跟类的static offset一致 查询其SlotType
+        std::unique_ptr<SlotTypeEnum[]> staticDataType;
         cstring sourceFile{};
         cstring signature{};
 

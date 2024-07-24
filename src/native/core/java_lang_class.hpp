@@ -629,7 +629,7 @@ namespace RexVM::Native::Core {
                 const auto slotVal = primitiveClass->getValueFromBoxingOop(val);
                 params.emplace_back(slotVal);
                 if (primitiveClass->isWideType()) {
-                    params.emplace_back(Slot(0));
+                    params.emplace_back(ZERO_SLOT);
                 }
             } else {
                 params.emplace_back(Slot(val));

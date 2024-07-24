@@ -999,9 +999,6 @@ namespace RexVM {
             const auto value = fieldClass.getFieldValue(fieldRef->slotId);
             const auto type = fieldRef->getFieldSlotType();
             frame.push(value, type);
-            if (fieldRef->isWideType()) {
-                frame.push(Slot(0), type);
-            }
         }
 
         void putstatic(Frame &frame) {
@@ -1024,9 +1021,6 @@ namespace RexVM {
             const auto value = instance->getFieldValue(fieldRef->slotId);
             const auto type = fieldRef->getFieldSlotType();
             frame.push(value, type);
-            if (fieldRef->isWideType()) {
-                frame.push(Slot(0), type);
-            }
         }
 
         void putfield(Frame &frame) {
