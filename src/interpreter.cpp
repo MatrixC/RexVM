@@ -410,13 +410,17 @@ namespace RexVM {
         void isub(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            frame.pushI4(val1 - val2);
+            //frame.pushI4(val1 - val2);
+            const auto result = CAST_I4(CAST_U4(val1) - CAST_U4(val2));
+            frame.pushI4(result);
         }
 
         void lsub(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            frame.pushI8(val1 - val2);
+            //frame.pushI8(val1 - val2);
+            const auto result = CAST_I8(CAST_U8(val1) - CAST_U8(val2));
+            frame.pushI8(result);
         }
 
         void fsub(Frame &frame) {

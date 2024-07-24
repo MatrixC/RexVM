@@ -10,6 +10,10 @@
 #include "java_lang_runtime.hpp"
 #include "java_lang_string.hpp"
 #include "java_lang_reflect_array.hpp"
+#include "java_lang_float.hpp"
+#include "java_lang_throwable.hpp"
+#include "java_io_file_output_stream.hpp"
+#include "java_util_concurrent_atomic.hpp"
 #include "unsafe.hpp"
 #include "define_class.hpp"
 
@@ -22,6 +26,9 @@ namespace RexVM::Native::Core {
     constexpr auto JAVA_LANG_REFLECT_ARRAY_NAME = "java/lang/reflect/Array";
     constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
+    constexpr auto JAVA_UTIL_CONCURRENT_ATOMIC = "java/util/concurrent/atomic/AtomicLong";
+    constexpr auto JAVA_SECURITY_ACCESS_CONTROLLER = "java/security/AccessController";
+    constexpr auto JAVA_IO_FILE_OUTPUT_STREAM = "java/io/FileOutputStream";
     constexpr auto SUN_REFLECT_NATIVE_METHOD_ACCESSOR_IMPL_NAME = "sun/reflect/NativeMethodAccessorImpl";
     constexpr auto SUN_REFLECT_CONSTANT_POOL_NAME = "sun/reflect/ConstantPool";
     constexpr auto SUN_REFLECT_REFLECTION = "sun/reflect/Reflection";
@@ -40,8 +47,24 @@ namespace RexVM::Native::Core {
     }
 
     void registerSystemCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "currentTimeMillis", "()J", false, Native::Core::currentTimeMillis);
         manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "nanoTime", "()J", true, Native::Core::nanoTime);
         manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "identityHashCode", "(Ljava/lang/Object;)I", true, Native::Core::identityHashCode);
+
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "arraycopy", "(Ljava/lang/Object;ILjava/lang/Object;II)V", false, Native::Core::arraycopy);
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "initProperties", "(Ljava/util/Properties;)Ljava/util/Properties;", false, Native::Core::initProperties);
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "mapLibraryName", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::Core::mapLibraryName);
+
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setIn0", "(Ljava/io/InputStream;)V", false, Native::Core::setIn0);
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setOut0", "(Ljava/io/PrintStream;)V", false, Native::Core::setOut0);
+        manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setErr0", "(Ljava/io/PrintStream;)V", false, Native::Core::setErr0);
+
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "getStackAccessControlContext", "()Ljava/security/AccessControlContext;", false, Native::Core::getStackAccessControlContext);
     }
 
     void registerThreadCoreMethods(NativeManager &manager) {
@@ -204,12 +227,12 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "freeMemory", "(J)V", false, Native::Core::cheapFreeMemory);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "reallocateMemory", "(JJ)J", false, Native::Core::cheapReallocateMemory);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "setMemory", "(Ljava/lang/Object;JJB)V", false, Native::Core::cheapSetMemory);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getByte", "(J)B", false, Native::Core::cheapGetI4);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putByte", "(JB)V", false, Native::Core::cheapPutI4);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getShort", "(J)S", false, Native::Core::cheapGetI4);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putShort", "(JS)V", false, Native::Core::cheapPutI4);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getChar", "(J)C", false, Native::Core::cheapGetI4);
-        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putChar", "(JC)V", false, Native::Core::cheapPutI4);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getByte", "(J)B", false, Native::Core::cheapGetByte);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putByte", "(JB)V", false, Native::Core::cheapPutByte);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getShort", "(J)S", false, Native::Core::cheapGetShort);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putShort", "(JS)V", false, Native::Core::cheapPutShort);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "getChar", "(J)C", false, Native::Core::cheapGetChar16);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "putChar", "(JC)V", false, Native::Core::cheapPutChar16);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getInt", "(J)I", false, Native::Core::cheapGetI4);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "putInt", "(JI)V", false, Native::Core::cheapPutI4);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getLong", "(J)J", false, Native::Core::cheapGetI8);
@@ -228,7 +251,25 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "loadFence", "()V", false, Native::Core::loadFence);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "storeFence", "()V", false, Native::Core::storeFence);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "fullFence", "()V", false, Native::Core::fullFence);
+    }
 
+    void registerFloatCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_FLOAT_NAME, "floatToRawIntBits", "(F)I", false, Native::Core::floatToRawIntBits);
+        manager.regNativeMethod(JAVA_LANG_FLOAT_NAME, "intBitsToFloat", "(I)F", false, Native::Core::intBitsToFloat);
+        manager.regNativeMethod(JAVA_LANG_DOUBLE_NAME, "doubleToRawLongBits", "(D)J", false, Native::Core::doubleToRawLongBits);
+        manager.regNativeMethod(JAVA_LANG_DOUBLE_NAME, "longBitsToDouble", "(J)D", false, Native::Core::longBitsToDouble);
+    }
+
+    void registerThrowableCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_THROWABLE_NAME, "fillInStackTrace", "(I)Ljava/lang/Throwable;", false, Native::Core::fillInStackTrace);
+    }
+
+    void registerIOCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM, "writeBytes", "([BIIZ)V", false, Native::Core::writeBytes);
+    }
+
+    void registerAtomicCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_UTIL_CONCURRENT_ATOMIC, "VMSupportsCS8", "()Z", false, Native::Core::vmSupportsCS8);
     }
 
     void registerCoreMethods(NativeManager &manager) {
@@ -242,7 +283,10 @@ namespace RexVM::Native::Core {
         registerInvokeCoreMethods(manager);
         registerReflectCoreMethods(manager);
         registerUnsafeCoreMethods(manager);
-
+        registerFloatCoreMethods(manager);
+        registerThrowableCoreMethods(manager);
+        registerIOCoreMethods(manager);
+        registerAtomicCoreMethods(manager);
     }
 
 }

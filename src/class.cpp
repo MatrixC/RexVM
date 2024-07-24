@@ -82,6 +82,25 @@ namespace RexVM {
         }
     }
 
+    bool Class::isInstanceOf(const Class *that) const {
+        //this是父类
+        //that是子类
+        if (this == that) {
+            return true;
+        }
+
+        if (this->isSubClassOf(that)) {
+            return true;
+        }
+
+        if (this->isImplements(that)) {
+            return true;
+        }
+
+        return false;
+    }
+
+
     bool Class::isSubClassOf(const Class *that) const {
         for (auto c = this->superClass; c != nullptr; c = c->superClass) {
             if (c == that) {
@@ -120,7 +139,6 @@ namespace RexVM {
         }
 
         return false;
-
     }
 
     bool Class::isSuperClassOf(const Class *that) const {

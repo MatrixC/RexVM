@@ -186,6 +186,45 @@ namespace RexVM::Native::Core {
         unsafCommon(frame, UnsafeActionTypeEnum::SET_MEMORY, SlotTypeEnum::REF);
     }
 
+    void cheapGetByte(Frame &frame) {
+        const auto addressLong = frame.getLocalI8(1);
+        const auto address = std::bit_cast<i1 *>(addressLong);
+        frame.returnI4(*address);
+    }
+
+    void cheapPutByte(Frame &frame) {
+        const auto addressLong = frame.getLocalI8(1);
+        const auto value = CAST_I1(frame.getLocalI4(3));
+        const auto address = std::bit_cast<i1 *>(addressLong);
+        *address = value;
+    }
+
+    void cheapGetShort(Frame &frame) {
+        const auto addressLong = frame.getLocalI8(1);
+        const auto address = std::bit_cast<i2 *>(addressLong);
+        frame.returnI4(*address);
+    }
+
+    void cheapPutShort(Frame &frame) {
+        const auto addressLong = frame.getLocalI8(1);
+        const auto value = CAST_I2(frame.getLocalI4(3));
+        const auto address = std::bit_cast<i2 *>(addressLong);
+        *address = value;
+    }
+
+    void cheapGetChar16(Frame &frame) {
+        const auto addressLong = frame.getLocalI8(1);
+        const auto address = std::bit_cast<cchar_16 *>(addressLong);
+        frame.returnI4(*address);
+    }
+
+    void cheapPutChar16(Frame &frame) {
+        const auto addressLong = frame.getLocalI8(1);
+        const auto value = CAST_CCHAR_16(frame.getLocalI4(3));
+        const auto address = std::bit_cast<cchar_16 *>(addressLong);
+        *address = value;
+    }
+
     void cheapGetI4(Frame &frame) {
         const auto addressLong = frame.getLocalI8(1);
         const auto address = std::bit_cast<i4 *>(addressLong);

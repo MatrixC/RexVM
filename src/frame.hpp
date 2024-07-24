@@ -37,6 +37,7 @@ namespace RexVM {
         StackContext operandStackContext;
         u1 currentByteCode{};
         u2 level{0};
+        bool printStack{false};
 
         VM &vm;
         VMThread &thread;

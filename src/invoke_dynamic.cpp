@@ -70,8 +70,13 @@ namespace RexVM {
     }
     
 
-    InstanceOop *createMethodHandle(Frame &frame, MethodHandleEnum kind
-        , const cstring &className, const cstring &methodHandleMemberName, const cstring &methodHandleMemberDescriptor) {
+    InstanceOop *createMethodHandle(
+        Frame &frame, 
+        MethodHandleEnum kind, 
+        const cstring &className, 
+        const cstring &methodHandleMemberName, 
+        const cstring &methodHandleMemberDescriptor
+    ) {
         auto &vm = frame.vm;
         const auto classLoader = vm.bootstrapClassLoader.get();
         const auto lookupOop = createLookup(vm, frame);
@@ -94,7 +99,7 @@ namespace RexVM {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
-                        Slot(classLoader->getClass(methodHandleMemberDescriptor)->getMirrorOop())
+                        Slot(classLoader->getClass(getClassNameByFieldDescriptor(methodHandleMemberDescriptor))->getMirrorOop())
                 });
                 break;
 
@@ -104,7 +109,7 @@ namespace RexVM {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
-                        Slot(classLoader->getClass(methodHandleMemberDescriptor)->getMirrorOop())
+                        Slot(classLoader->getClass(getClassNameByFieldDescriptor(methodHandleMemberDescriptor))->getMirrorOop())
                 });
             break;
 
@@ -114,7 +119,7 @@ namespace RexVM {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
-                        Slot(classLoader->getClass(methodHandleMemberDescriptor)->getMirrorOop())
+                        Slot(classLoader->getClass(getClassNameByFieldDescriptor(methodHandleMemberDescriptor))->getMirrorOop())
                 });
             break;
 
@@ -124,7 +129,7 @@ namespace RexVM {
                         lookupOopThisParam,
                         methodHandleClassParam,
                         methodHandleMemberNameParam,
-                        Slot(classLoader->getClass(methodHandleMemberDescriptor)->getMirrorOop())
+                        Slot(classLoader->getClass(getClassNameByFieldDescriptor(methodHandleMemberDescriptor))->getMirrorOop())
                 });
             break;
 

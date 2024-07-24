@@ -1,7 +1,11 @@
-#include "java_lang_float.hpp"
-#include <bit>
+#ifndef NATIVE_CORE_JAVA_LANG_FLOAT_HPP
+#define NATIVE_CORE_JAVA_LANG_FLOAT_HPP
+#include "../../config.hpp"
+#include "../../vm.hpp"
+#include "../../frame.hpp"
+#include "../../thread.hpp"
 
-namespace RexVM::Native {
+namespace RexVM::Native::Core {
 
     void floatToRawIntBits(Frame &frame) {
         const auto value = frame.getLocalF4(0);
@@ -22,4 +26,8 @@ namespace RexVM::Native {
         const auto value = frame.getLocalI8(0);
         frame.returnF8(std::bit_cast<f8>(value));
     }
+
+
 }
+
+#endif

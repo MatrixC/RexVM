@@ -1,6 +1,11 @@
-#include "java_lang_throwable.hpp"
+#ifndef NATIVE_CORE_JAVA_LANG_THROWABLE_HPP
+#define NATIVE_CORE_JAVA_LANG_THROWABLE_HPP
+#include "../../config.hpp"
+#include "../../vm.hpp"
+#include "../../frame.hpp"
+#include "../../thread.hpp"
 
-namespace RexVM::Native {
+namespace RexVM::Native::Core {
 
     void fillInStackTrace(Frame &frame) {
         //const auto thisRef = frame.getLocalVariable(0);
@@ -10,3 +15,5 @@ namespace RexVM::Native {
         frame.returnRef(thisRef);
     }
 }
+
+#endif

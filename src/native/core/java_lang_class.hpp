@@ -41,9 +41,9 @@ namespace RexVM::Native::Core {
         const auto initialize = frame.getLocalI4(1);
 
         const auto jvmClassName = getJVMClassName(className);
-        const auto klass = frame.getCurrentClassLoader()->getInstanceClass(jvmClassName);
-        if (initialize) {
-            klass->clinit(frame);
+        const auto klass = frame.getCurrentClassLoader()->getClass(jvmClassName);
+        if (initialize && klass->type == ClassTypeEnum::InstanceClass) {
+            CAST_INSTANCE_CLASS(klass)->clinit(frame);
         }
         frame.returnRef(klass->getMirrorOop());
     }
@@ -52,7 +52,7 @@ namespace RexVM::Native::Core {
     void getPrimitiveClass(Frame &frame) {
         auto classNameOop = frame.getLocalRef(0);
         const auto className = StringPool::getJavaString(CAST_INSTANCE_OOP(classNameOop));
-        const auto klass = frame.getCurrentClassLoader()->getInstanceClass(className);
+        const auto klass = frame.getCurrentClassLoader()->getClass(className);
         frame.returnRef(klass->getMirrorOop());
     }
 
@@ -87,18 +87,26 @@ namespace RexVM::Native::Core {
         frame.returnBoolean(mirrorClass->isAssignableFrom(mirrorThatClass));
     }
 
-    //native boolean isInstance(Object obj);
-    void isInstance(Frame &frame) {
-        const auto mirrorClass = getMirrorClass(frame);
-        const auto objOop = frame.getLocalRef(1);
-        frame.returnBoolean(objOop->klass->isAssignableFrom(mirrorClass));
-    }
+    // void isInstance(Frame &frame) {
+    //     const auto mirrorClass = getMirrorClass(frame);
+    //     const auto objOop = frame.getLocalRef(1);
+    //     frame.returnBoolean(objOop->klass->isAssignableFrom(mirrorClass));
+    // }
 
     //native int getModifiers();
     void getModifiers(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
         const auto removeSuper = ~CAST_I4(AccessFlagEnum::ACC_SUPER);
         frame.returnI4(CAST_I4(mirrorClass->accessFlags) & removeSuper);
+    }
+
+        //native boolean isInstance(Object obj);
+    void isInstance(Frame &frame) {
+        const auto thisClass = getMirrorClass(frame);
+        const auto objOop = frame.getLocalRef(1);
+        const auto objClass = objOop->klass;
+        const auto result = objClass->isInstanceOf(thisClass);
+        frame.returnBoolean(result);
     }
 
     //native Class<? super T> getSuperclass();

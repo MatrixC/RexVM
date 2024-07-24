@@ -54,6 +54,18 @@ namespace RexVM {
                 for (const auto &item : clazz->methods) {
                     cprintln("method name: {}, descritpro: {}", item->name, item->descriptor);
                 }
+                cprintln("");
+                if (clazz->superClass != nullptr) {
+                    cprintln("superClass: {}", clazz->superClass->name);
+                }
+
+                cprintln("");
+                if (!clazz->interfaces.empty()) {
+                    for (const auto &item : clazz->interfaces) {
+                        cprintln("interface: {}", item->name);
+                    }
+                }
+                
                 cprintln("end");
                 break;
             }

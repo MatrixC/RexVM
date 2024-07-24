@@ -121,20 +121,9 @@ namespace RexVM {
             return;
         }
 
-        static bool printLog = false;
-        if (method.name == "main" && printLog == false) {
-            printLog = true;
-        } 
-        if (printLog) {
-            //cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
+        if (frame.printStack) {
+            cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
         }
-        // if (method.name == "tabAt") {
-        //     cprintln("aa");
-        // }
-        if (method.name == "compareAndSwapInt") {
-            (void)0;
-        }
-
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;

@@ -63,6 +63,7 @@ namespace RexVM {
         [[nodiscard]] bool isSerializable() const;
 
         [[nodiscard]] bool isAssignableFrom(const Class *that) const;
+        [[nodiscard]] bool isInstanceOf(const Class *that) const;
         [[nodiscard]] bool isImplements(const Class *that) const;
         [[nodiscard]] bool isSubInterfaceOf(const Class *that) const;
         [[nodiscard]] bool isSuperClassOf(const Class *that) const;

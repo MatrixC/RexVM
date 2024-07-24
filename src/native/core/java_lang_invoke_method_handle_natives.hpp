@@ -198,6 +198,7 @@ namespace RexVM::Native::Core {
             const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
             const auto fieldPtr = klass->fields[slotId].get();
             auto newFlags = CAST_I4(fieldPtr->accessFlags) | MN_IS_FIELD;
+            (void)newFlags;
 
             panic("error");
         } else if (refClassName == "java/lang/reflect/Constructor") {
@@ -216,10 +217,8 @@ namespace RexVM::Native::Core {
         frame.returnI8(field->slotId);
     }
 
-
-
     void methodHandleGetMembers(Frame &frame) {
-        frame.returnI4(10);
+        frame.returnI4(50);
     }
 
 
@@ -318,10 +317,25 @@ namespace RexVM::Native::Core {
         }
     }
 
-    std::vector<std::tuple<Slot, SlotTypeEnum>> methodHandleBuildInvokeMethodParams(Frame &frame, Method *methodPtr, const std::vector<Slot>& refPrefixParam) {
+    std::vector<std::tuple<Slot, SlotTypeEnum>> methodHandleBuildInvokeMethodParams(
+        Frame &frame, 
+        Method *methodPtr, 
+        const std::vector<Slot>& refPrefixParam,
+        bool isConstructor
+    ) {
         std::vector<std::tuple<Slot, SlotTypeEnum>> params;
-        auto paramSlotSize = methodPtr->paramSlotSize;
-        params.reserve(paramSlotSize);
+
+        //auto paramSlotSize = methodPtr->paramSlotSize;
+        //-1是为了忽略掉MethodHandleOop
+        auto paramSlotSize = frame.methodParamSlotSize - 1;
+        if (isConstructor) {
+            paramSlotSize += 1;
+        }
+
+        //这行代码是因为在bindTo情况下 frame.methodParamSlotSize有问题 少了this
+        paramSlotSize = std::max(paramSlotSize, methodPtr->paramSlotSize);
+
+        params.reserve(paramSlotSize + refPrefixParam.size());
 
         for (const auto &item : refPrefixParam) {
             params.emplace_back(item, SlotTypeEnum::REF);
@@ -339,7 +353,7 @@ namespace RexVM::Native::Core {
         auto &classLoader = *frame.getCurrentClassLoader();
         const auto &oopManager = frame.vm.oopManager;
         const auto self = frame.getThisInstance();
-        
+
         std::vector<Slot> prefixParam;
         const auto [memberNameOop, exitInvoke] = methodHandleGetMemberName(frame, self, prefixParam);
         if (exitInvoke) {
@@ -362,14 +376,14 @@ namespace RexVM::Native::Core {
                 && methodPtr->name == "<init>") {
             //Constructor
             const auto newInstance = oopManager->newInstance(&methodPtr->klass);
-            const auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) });
+            const auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) }, true);
             frame.runMethodManualTypes(*methodPtr, paramsWithType);
             frame.returnRef(newInstance);
             return;
         }
 
 
-        auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, prefixParam);
+        auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, prefixParam, false);
         //box or unbox 处理
         //这里比反射的invoke处理复杂 反射传参只会是Object数组 所以Slot和paramType的index是直接对应的
         //但MH的传参有可能是PrimitiveType 也可能是Integer等Box类型
@@ -380,7 +394,7 @@ namespace RexVM::Native::Core {
             compressParamsWithType.emplace_back(paramsWithType[i]);
             if (isWideSlotType(slotType)) {
                 //跳过 只保留第一个带值的Slot 这样最终的Slot数可以保证和函数的参数数量一致
-                i += i;
+                i += 1;
             }
         }
 
