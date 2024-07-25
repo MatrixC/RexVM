@@ -138,6 +138,10 @@ namespace RexVM {
             cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
         }
 
+        // if (method.name == "joining" && method.descriptor == "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/util/stream/Collector;") {
+        //     int i = 10;
+        // }
+
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
@@ -146,6 +150,14 @@ namespace RexVM {
                 const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
                 const auto sourceFile __attribute__((unused)) = method.klass.sourceFile;
                 const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
+
+                if (method.name == "joining" 
+                    && method.descriptor == "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/util/stream/Collector;"
+                    && pc == 27
+                ) {
+                    int i = 10;
+                }
+
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markThrow) {
                     if (handleThrowValue(frame)) {

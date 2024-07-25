@@ -88,6 +88,7 @@ namespace RexVM {
     };
 
     struct InstanceClass : Class {
+        bool anonymous{false};
         SpecialInstanceClass specialInstanceClass{SpecialInstanceClass::NONE};
         u2 instanceSlotCount{};
         u2 staticSlotCount{};

@@ -325,6 +325,35 @@ namespace RexVM {
         return operandStackContext.getStackOffset(offset);
     }
 
+    void Frame::printStackSlot() const {
+        for (i4 offset = 0; offset <= operandStackContext.sp; ++offset) {
+            const auto index = operandStackContext.sp - offset;
+            const auto val = operandStackContext.memory[index];
+            const auto valType = operandStackContext.memoryType[index];
+            switch (valType) {
+                case SlotTypeEnum::I4:
+                    cprintln("offset: {}, type: I4, value: {}", offset, val.i4Val);
+                    break;
+                case SlotTypeEnum::I8:
+                    cprintln("offset: {}, type: I8, value: {}", offset, val.i8Val);
+                    break;
+                case SlotTypeEnum::F4:
+                    cprintln("offset: {}, type: F4, value: {}", offset, val.f4Val);
+                    break;
+                case SlotTypeEnum::F8:
+                    cprintln("offset: {}, type: F8, value: {}", offset, val.f8Val);
+                    break;
+                case SlotTypeEnum::REF:
+                    cprintln("offset: {}, type: REF, value: {}", offset, val.refVal->klass->name);
+                    break;
+                default:
+                    panic("error stack slot type");
+                    break;
+            }
+
+        }
+    }
+
     Oop *Frame::getThis() const {
         return getLocalRef(0);
     }

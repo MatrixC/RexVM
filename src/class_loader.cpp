@@ -43,9 +43,14 @@ namespace RexVM {
     InstanceClass *ClassLoader::loadInstanceClass(std::istream &is, bool notAnonymous) {
         ClassFile cf(is);
         auto instanceClass = std::make_unique<InstanceClass>(*this, cf);
+        instanceClass->anonymous = true;
         const auto rawPtr = instanceClass.get();
         initMirrorClass(rawPtr);
-        const auto className = notAnonymous ? instanceClass->name : ANONYMOUS_CLASS_NAME_PREFIX + std::to_string(anonymousClassIndex.fetch_add(1));
+        //const auto className = notAnonymous ? instanceClass->name : ANONYMOUS_CLASS_NAME_PREFIX + std::to_string(anonymousClassIndex.fetch_add(1));
+        auto className = instanceClass->name;
+        if (!notAnonymous && classMap.contains(className)) {
+            className = ANONYMOUS_CLASS_NAME_PREFIX + std::to_string(anonymousClassIndex.fetch_add(1));
+        }
         classMap.emplace(className, std::move(instanceClass));
         return rawPtr;
     }

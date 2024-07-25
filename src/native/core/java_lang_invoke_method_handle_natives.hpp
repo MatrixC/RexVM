@@ -244,6 +244,10 @@ namespace RexVM::Native::Core {
             }
 
             const auto speciesL = CAST_INSTANCE_OOP(frame.getLocalRef(1));
+            if (speciesL == nullptr) {
+                frame.returnRef(argL0);
+                return std::make_tuple(nullptr, true);
+            }
             const auto directMethodHandle = CAST_INSTANCE_OOP(speciesL->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
             memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
 

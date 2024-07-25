@@ -123,6 +123,7 @@ namespace RexVM {
         void cleanThrow();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
+        void printStackSlot() const;
 
         [[nodiscard]] Oop *getThis() const;
         [[nodiscard]] InstanceOop *getThisInstance() const;
