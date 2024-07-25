@@ -152,7 +152,7 @@ namespace RexVM::Native::Core {
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("file.separator")), Slot(stringPool->getInternString("/")) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("path.separator")), Slot(stringPool->getInternString(":")) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("line.separator")), Slot(stringPool->getInternString("\n")) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.home")), Slot(stringPool->getInternString(".")) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.home")), Slot(stringPool->getInternString(frame.vm.javaHome)) });
 
         frame.returnRef(props);
     }

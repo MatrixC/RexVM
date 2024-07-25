@@ -38,6 +38,8 @@ namespace RexVM {
 
         void addStartThread(VMThread *vmThread);
 
+        cstring javaHome{};
+
     private:
         void initClassPath();
         void initOopManager();

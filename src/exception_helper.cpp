@@ -29,4 +29,8 @@ namespace RexVM {
         const auto message = "java.lang.NoSuchMethodException: no such method: " + getJavaClassName(className) + "." + methodName + descriptor;
         throwAssignException(frame, "java/lang/NoSuchMethodException", message);
     }
+
+    void throwFileNotFoundException(Frame &frame, const cstring &message) {
+        throwAssignException(frame, "java/io/FileNotFoundException", message);
+    }
 }

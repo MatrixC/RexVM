@@ -2,6 +2,7 @@
 #include "config.hpp"
 #include "utils/format.hpp"
 #include "utils/class_utils.hpp"
+#include "utils/string_utils.hpp"
 #include "vm.hpp"
 #include "opcode.hpp"
 #include "frame.hpp"
@@ -121,6 +122,18 @@ namespace RexVM {
             return;
         }
 
+        if (method.name == "checkAccess" && startWith(frame.klass.name, "java/lang/invoke/MethodHandles")) {
+            return;
+        }
+
+        if (method.name == "<clinit>" && method.klass.name == "Rex") {
+            int i = 10;
+        }
+
+        if (method.name == "<init>" && method.klass.name == "java/lang/invoke/MethodHandles$Lookup") {
+            int i = 10;
+        }
+
         if (frame.printStack) {
             cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
         }
@@ -134,14 +147,14 @@ namespace RexVM {
                 const auto sourceFile __attribute__((unused)) = method.klass.sourceFile;
                 const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
                 OpCodeHandlers[frame.currentByteCode](frame);
-                if (frame.markReturn) {
-                    checkAndPassReturnValue(frame);
-                    return;
-                }
                 if (frame.markThrow) {
                     if (handleThrowValue(frame)) {
                         return;
                     }
+                }
+                if (frame.markReturn) {
+                    checkAndPassReturnValue(frame);
+                    return;
                 }
                 frame.reader.resetCurrentOffset();
             }
@@ -151,14 +164,14 @@ namespace RexVM {
                 panic("executeFrame error, method " + method.klass.name + "#" + method.name + ":" + method.descriptor + " nativeMethodHandler is nullptr");
             }
             nativeMethodHandler(frame);
-            if (frame.markReturn) {
-                checkAndPassReturnValue(frame);
-                return;
-            }
             if (frame.markThrow) {
                 if (handleThrowValue(frame)) {
                     return;
                 }
+            }
+            if (frame.markReturn) {
+                checkAndPassReturnValue(frame);
+                return;
             }
         }
     }

@@ -49,6 +49,7 @@ namespace RexVM::Native::SUN::MISC {
     }
 
     void newInstance0(Frame &frame) {
+        auto &classLoader = *frame.getCurrentClassLoader();
         const auto &oopManager = frame.vm.oopManager;
         const auto constructor = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto paramArray = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(1));
@@ -61,11 +62,25 @@ namespace RexVM::Native::SUN::MISC {
         const auto instance = oopManager->newInstance(srcClass);
         std::vector<Slot> constructorParams;
         constructorParams.emplace_back(instance);
+        
         if (paramArray != nullptr) {
             for (size_t i = 0; i < paramArray->dataLength; ++i) {
-                constructorParams.emplace_back(paramArray->data[i]);
+                const auto paramType = constructMethod->paramType[i];
+                const auto val = CAST_INSTANCE_OOP(paramArray->data[i]);
+                const auto paramClass = classLoader.getClass(paramType);
+                if (paramClass->type == ClassTypeEnum::PrimitiveClass) {
+                    const auto primitiveClass = CAST_PRIMITIVE_CLASS(paramClass);
+                    const auto slotVal = primitiveClass->getValueFromBoxingOop(val);
+                    constructorParams.emplace_back(slotVal);
+                    if (primitiveClass->isWideType()) {
+                        constructorParams.emplace_back(ZERO_SLOT);
+                    }
+                } else {
+                    constructorParams.emplace_back(Slot(val));
+                }
             }
         }
+
         frame.runMethodManual(*constructMethod, constructorParams);
         frame.returnRef(instance);
     }

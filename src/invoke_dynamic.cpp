@@ -1,4 +1,5 @@
 #include "invoke_dynamic.hpp"
+#include "vm.hpp"
 #include "constant_info.hpp"
 #include "class_file.hpp"
 #include "constant_pool.hpp"
@@ -24,8 +25,6 @@ namespace RexVM {
                 || memberName == "linkToVirtual"
                 || memberName == "linkToInterface"));
     }
-
-
 
     InstanceOop *createLookup(VM &vm, Frame &frame) {
         //TODO Opt key slot id
@@ -66,7 +65,6 @@ namespace RexVM {
         const auto methodHandleKind = static_cast<MethodHandleEnum>(methodHandleInfo->referenceKind);
 
         return createMethodHandle(frame, methodHandleKind, methodHandleClassName, methodHandleMemberName, methodHandleMemberDescriptor);        
-
     }
     
 
@@ -188,6 +186,44 @@ namespace RexVM {
         }
 
         return CAST_INSTANCE_OOP(std::get<0>(result).refVal);
+    }
+
+    InstanceOop *createMethodHandleNew(Frame &frame, ConstantMethodHandleInfo *methodHandleInfo) {
+        const auto &methodClass = frame.klass;
+        const auto &constantPool = methodClass.constantPool;
+        const auto classLoader = frame.getCurrentClassLoader();
+
+
+        //Key
+        const auto [methodHandleClassName, methodHandleMemberName, methodHandleMemberDescriptor] = 
+            getConstantStringFromPoolByClassNameType(constantPool, methodHandleInfo->referenceIndex);
+        //Key
+        const auto methodHandleKind = static_cast<MethodHandleEnum>(methodHandleInfo->referenceKind);
+
+        const auto runtimeMethodHandleClass = classLoader->getInstanceClass("Rex");
+        const auto createMethodHandleMethod = runtimeMethodHandleClass->getMethod("createMethodHandle", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/invoke/MethodHandle;", true);
+
+        //frame.vm.stringPool->getInternString(javaClassName);
+
+        //frame.runMethodManual(*createMethodHandleMethod, { Slot(), Slot(), Slot() })
+
+
+
+        return createMethodHandle(frame, methodHandleKind, methodHandleClassName, methodHandleMemberName, methodHandleMemberDescriptor);        
+    }
+
+    void invokeDynmicNew(Frame &frame, u2 invokeDynamicIdx) {
+        auto &vm = frame.vm;
+        const auto &oopManager = vm.oopManager;
+        const auto &methodClass = frame.klass;
+        const auto &constantPool = methodClass.constantPool;
+        const auto invokeDynamicInfo = CAST_CONSTANT_INVOKE_DYNAMIC_INFO(constantPool[invokeDynamicIdx].get());
+        //=========================================================================================================
+        //Key
+        const auto [invokeName, invokeDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, invokeDynamicInfo->nameAndTypeIndex);
+
+        const auto bootstrapMethodAttr = methodClass.getBootstrapMethodAttr()->bootstrapMethods[invokeDynamicInfo->bootstrapMethodAttrIndex].get();
+        const auto methodHandleInfo = CAST_CONSTANT_METHOD_HANDLE_INFO(constantPool[bootstrapMethodAttr->bootstrapMethodRef].get());
     }
 
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {

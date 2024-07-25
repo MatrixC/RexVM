@@ -20,8 +20,8 @@ namespace RexVM::Native::Core {
         const auto fd = CAST_INSTANCE_OOP(self->getFieldValue("fd", "Ljava/io/FileDescriptor;").refVal);
         const auto fdId = fd->getFieldValue("fd", "I").i4Val;
 
-        const auto strPtr = reinterpret_cast<const char*>(b->data.get());
-        write(fdId, strPtr + off, len);
+        const auto bytePtr = reinterpret_cast<const char*>(b->data.get());
+        write(fdId, bytePtr + off, len);
     }
 
 }

@@ -14,6 +14,7 @@
 #include "constant_pool.hpp"
 #include "memory.hpp"
 #include "invoke_dynamic.hpp"
+#include "invoke_dynamic_fix.hpp"
 
 namespace RexVM {
 
@@ -1137,7 +1138,7 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             frame.reader.readU2(); //ignore zero
 
-            invokeDynamic(frame, index);
+            invokeDynmic_(frame, index);
 
         }
 

@@ -12,7 +12,9 @@
 #include "java_lang_reflect_array.hpp"
 #include "java_lang_float.hpp"
 #include "java_lang_throwable.hpp"
+#include "java_io_file_input_stream.hpp"
 #include "java_io_file_output_stream.hpp"
+#include "java_io_unix_file_system.hpp"
 #include "java_util_concurrent_atomic.hpp"
 #include "unsafe.hpp"
 #include "define_class.hpp"
@@ -28,7 +30,9 @@ namespace RexVM::Native::Core {
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
     constexpr auto JAVA_UTIL_CONCURRENT_ATOMIC = "java/util/concurrent/atomic/AtomicLong";
     constexpr auto JAVA_SECURITY_ACCESS_CONTROLLER = "java/security/AccessController";
+    constexpr auto JAVA_IO_FILE_INPUT_STREAM_NAME = "java/io/FileInputStream";
     constexpr auto JAVA_IO_FILE_OUTPUT_STREAM = "java/io/FileOutputStream";
+    constexpr auto JAVA_IO_UNIX_FILE_SYSTEM_NAME = "java/io/UnixFileSystem";
     constexpr auto SUN_REFLECT_NATIVE_METHOD_ACCESSOR_IMPL_NAME = "sun/reflect/NativeMethodAccessorImpl";
     constexpr auto SUN_REFLECT_CONSTANT_POOL_NAME = "sun/reflect/ConstantPool";
     constexpr auto SUN_REFLECT_REFLECTION = "sun/reflect/Reflection";
@@ -265,7 +269,13 @@ namespace RexVM::Native::Core {
     }
 
     void registerIOCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "open0", "(Ljava/lang/String;)V", false, Native::Core::open0);
+        manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "readBytes", "([BII)I", false, Native::Core::readBytes);
+        manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "close0", "()V", false, Native::Core::close0);
+
         manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM, "writeBytes", "([BIIZ)V", false, Native::Core::writeBytes);
+        manager.regNativeMethod(JAVA_IO_UNIX_FILE_SYSTEM_NAME, "getBooleanAttributes0", "(Ljava/io/File;)I", false, Native::Core::getBooleanAttributes0);
+
     }
 
     void registerAtomicCoreMethods(NativeManager &manager) {

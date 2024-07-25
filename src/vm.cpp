@@ -15,13 +15,13 @@
 
 namespace RexVM {
 
-    constexpr auto ENV_KEY_JAVA_HOME = "JAVA8_HOME";
+    constexpr auto ENV_KEY_JAVA_HOME = "JRE_HOME";
     constexpr auto USER_PROGRAM_HOME = "USER_JAVA_CLASSPATH";
 
     void VM::initClassPath() {
-        const auto javaHome = cstring(std::getenv(ENV_KEY_JAVA_HOME));
-        const auto rtJarPath = javaHome + "/jre/lib/rt.jar";
-        const auto charsetsJarPath = javaHome + "/jre/lib/charsets.jar";
+        javaHome = cstring(std::getenv(ENV_KEY_JAVA_HOME));
+        const auto rtJarPath = javaHome + "/lib/rt.jar";
+        const auto charsetsJarPath = javaHome + "/lib/charsets.jar";
         const auto userClassPath = cstring(std::getenv(USER_PROGRAM_HOME));
         classPath = std::make_unique<CombineClassPath>(rtJarPath + ";" + charsetsJarPath + ";" + userClassPath);
     }
