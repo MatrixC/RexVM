@@ -28,14 +28,14 @@ namespace RexVM::Native::Core {
     constexpr auto JAVA_LANG_REFLECT_ARRAY_NAME = "java/lang/reflect/Array";
     constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
-    constexpr auto JAVA_UTIL_CONCURRENT_ATOMIC = "java/util/concurrent/atomic/AtomicLong";
-    constexpr auto JAVA_SECURITY_ACCESS_CONTROLLER = "java/security/AccessController";
+    constexpr auto JAVA_UTIL_CONCURRENT_ATOMIC_NAME = "java/util/concurrent/atomic/AtomicLong";
+    constexpr auto JAVA_SECURITY_ACCESS_CONTROLLER_NAME = "java/security/AccessController";
     constexpr auto JAVA_IO_FILE_INPUT_STREAM_NAME = "java/io/FileInputStream";
-    constexpr auto JAVA_IO_FILE_OUTPUT_STREAM = "java/io/FileOutputStream";
+    constexpr auto JAVA_IO_FILE_OUTPUT_STREAM_NAME = "java/io/FileOutputStream";
     constexpr auto JAVA_IO_UNIX_FILE_SYSTEM_NAME = "java/io/UnixFileSystem";
     constexpr auto SUN_REFLECT_NATIVE_METHOD_ACCESSOR_IMPL_NAME = "sun/reflect/NativeMethodAccessorImpl";
     constexpr auto SUN_REFLECT_CONSTANT_POOL_NAME = "sun/reflect/ConstantPool";
-    constexpr auto SUN_REFLECT_REFLECTION = "sun/reflect/Reflection";
+    constexpr auto SUN_REFLECT_REFLECTION_NAME = "sun/reflect/Reflection";
 
     void registerObjectCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "getClass", "()Ljava/lang/Class;", false, Native::Core::getClass);
@@ -63,12 +63,12 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setOut0", "(Ljava/io/PrintStream;)V", false, Native::Core::setOut0);
         manager.regNativeMethod(JAVA_LANG_SYSTEM_NAME, "setErr0", "(Ljava/io/PrintStream;)V", false, Native::Core::setErr0);
 
-        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
-        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
-        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
-        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
-        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "doPrivileged", "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
-        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER, "getStackAccessControlContext", "()Ljava/security/AccessControlContext;", false, Native::Core::getStackAccessControlContext);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER_NAME, "doPrivileged", "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER_NAME, "doPrivileged", "(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER_NAME, "doPrivileged", "(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER_NAME, "doPrivileged", "(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER_NAME, "doPrivileged", "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;", false, Native::Core::doPrivileged);
+        manager.regNativeMethod(JAVA_SECURITY_ACCESS_CONTROLLER_NAME, "getStackAccessControlContext", "()Ljava/security/AccessControlContext;", false, Native::Core::getStackAccessControlContext);
     }
 
     void registerThreadCoreMethods(NativeManager &manager) {
@@ -130,8 +130,8 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getDoubleAt0", "(Ljava/lang/Object;I)D", false, Native::Core::getDoubleAt0);
         manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getUTF8At0", "(Ljava/lang/Object;I)Ljava/lang/String;", false, Native::Core::getUTF8At0);
 
-        manager.regNativeMethod(SUN_REFLECT_REFLECTION, "getCallerClass", "()Ljava/lang/Class;", false, Native::Core::getCallerClass);
-        manager.regNativeMethod(SUN_REFLECT_REFLECTION, "getClassAccessFlags", "(Ljava/lang/Class;)I", false, Native::Core::getClassAccessFlags);
+        manager.regNativeMethod(SUN_REFLECT_REFLECTION_NAME, "getCallerClass", "()Ljava/lang/Class;", false, Native::Core::getCallerClass);
+        manager.regNativeMethod(SUN_REFLECT_REFLECTION_NAME, "getClassAccessFlags", "(Ljava/lang/Class;)I", false, Native::Core::getClassAccessFlags);
 
         manager.regNativeMethod(SUN_REFLECT_NATIVE_METHOD_ACCESSOR_IMPL_NAME, "invoke0", "(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false, Native::Core::invoke0);
     }
@@ -266,6 +266,8 @@ namespace RexVM::Native::Core {
 
     void registerThrowableCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_THROWABLE_NAME, "fillInStackTrace", "(I)Ljava/lang/Throwable;", false, Native::Core::fillInStackTrace);
+        manager.regNativeMethod(JAVA_LANG_THROWABLE_NAME, "getStackTraceDepth", "()I", false, Native::Core::getStackTraceDepth);
+        manager.regNativeMethod(JAVA_LANG_THROWABLE_NAME, "getStackTraceElement", "(I)Ljava/lang/StackTraceElement;", false, Native::Core::getStackTraceElement);
     }
 
     void registerIOCoreMethods(NativeManager &manager) {
@@ -273,13 +275,13 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "readBytes", "([BII)I", false, Native::Core::readBytes);
         manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "close0", "()V", false, Native::Core::close0);
 
-        manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM, "writeBytes", "([BIIZ)V", false, Native::Core::writeBytes);
+        manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "writeBytes", "([BIIZ)V", false, Native::Core::writeBytes);
         manager.regNativeMethod(JAVA_IO_UNIX_FILE_SYSTEM_NAME, "getBooleanAttributes0", "(Ljava/io/File;)I", false, Native::Core::getBooleanAttributes0);
 
     }
 
     void registerAtomicCoreMethods(NativeManager &manager) {
-        manager.regNativeMethod(JAVA_UTIL_CONCURRENT_ATOMIC, "VMSupportsCS8", "()Z", false, Native::Core::vmSupportsCS8);
+        manager.regNativeMethod(JAVA_UTIL_CONCURRENT_ATOMIC_NAME, "VMSupportsCS8", "()Z", false, Native::Core::vmSupportsCS8);
     }
 
     void registerCoreMethods(NativeManager &manager) {

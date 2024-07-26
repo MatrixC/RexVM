@@ -19,9 +19,9 @@ namespace RexVM {
     struct OopManager;
 
     enum class OopTypeEnum {
-        InstanceOop,
-        TypeArrayOop,
-        ObjArrayOop,
+        INSTANCE_OOP,
+        TYPE_ARRAY_OOP,
+        OBJ_ARRAY_OOP,
     };
 
     struct Oop {

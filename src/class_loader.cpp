@@ -119,7 +119,7 @@ namespace RexVM {
             }
         }
 
-        arrayClass->initStatus = ClassInitStatusEnum::Inited;
+        arrayClass->initStatus = ClassInitStatusEnum::INITED;
         arrayClass->superClass = getInstanceClass(JAVA_LANG_OBJECT_NAME);
         initMirrorClass(arrayClass.get());
         classMap.emplace(arrayClass->name, std::move(arrayClass));

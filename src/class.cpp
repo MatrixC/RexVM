@@ -21,7 +21,7 @@ namespace RexVM {
     }
 
     bool Class::isInstanceClass() const {
-        return type == ClassTypeEnum::InstanceClass;
+        return type == ClassTypeEnum::INSTANCE_CLASS;
     }
 
     bool Class::isInterface() const {
@@ -29,7 +29,7 @@ namespace RexVM {
     }
 
     bool Class::isArray() const {
-        return type == ClassTypeEnum::TypeArrayClass || type == ClassTypeEnum::ObjArrayClass;
+        return type == ClassTypeEnum::TYPE_ARRAY_CLASS || type == ClassTypeEnum::OBJ_ARRAY_CLASS;
     }
 
     bool Class::isJavaObjectClass() const {
@@ -156,7 +156,7 @@ namespace RexVM {
 
     PrimitiveClass::PrimitiveClass(BasicType basicType, ClassLoader &classLoader) :
         Class(
-            ClassTypeEnum::PrimitiveClass, 
+            ClassTypeEnum::PRIMITIVE_CLASS, 
             PRIMITIVE_CLASS_ACCESS_FLAGS, 
             basicTypeClassName(basicType), 
             classLoader
@@ -213,7 +213,7 @@ namespace RexVM {
     Class::~Class() = default;
 
     InstanceClass::InstanceClass(ClassLoader &classLoader, ClassFile &cf) :
-            Class(ClassTypeEnum::InstanceClass, cf.accessFlags, cf.getThisClassName(), classLoader) {
+            Class(ClassTypeEnum::INSTANCE_CLASS, cf.accessFlags, cf.getThisClassName(), classLoader) {
 
         sourceFile = cf.getSourceFile();
         signature = cf.getSignature();
@@ -408,7 +408,7 @@ namespace RexVM {
     }
 
     bool InstanceClass::notInitialize() const {
-        return initStatus == ClassInitStatusEnum::Loaded;
+        return initStatus == ClassInitStatusEnum::LOADED;
     }
 
     void InstanceClass::clinit(Frame &frame) {
@@ -416,7 +416,7 @@ namespace RexVM {
             return;
         }
 
-        initStatus = ClassInitStatusEnum::Init;
+        initStatus = ClassInitStatusEnum::INIT;
 
         if (superClass != nullptr) {
            superClass->clinit(frame);
@@ -429,7 +429,7 @@ namespace RexVM {
 
         initSpecialType();
 
-        initStatus = ClassInitStatusEnum::Inited;
+        initStatus = ClassInitStatusEnum::INITED;
     }
 
     BootstrapMethodsAttribute *InstanceClass::getBootstrapMethodAttr() const {
@@ -546,13 +546,13 @@ namespace RexVM {
 
     TypeArrayClass::TypeArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
                                    const BasicType elementType) :
-            ArrayClass(ClassTypeEnum::TypeArrayClass, name, classLoader, dimension),
+            ArrayClass(ClassTypeEnum::TYPE_ARRAY_CLASS, name, classLoader, dimension),
             elementType(elementType) {
     }
 
     ObjArrayClass::ObjArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
                                  const InstanceClass *elementClass) :
-            ArrayClass(ClassTypeEnum::ObjArrayClass, name, classLoader, dimension),
+            ArrayClass(ClassTypeEnum::OBJ_ARRAY_CLASS, name, classLoader, dimension),
             elementClass(elementClass) {
     }
 

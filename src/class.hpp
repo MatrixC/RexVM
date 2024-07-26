@@ -23,16 +23,16 @@ namespace RexVM {
     struct OopManager;
 
     enum class ClassInitStatusEnum {
-        Loaded,
-        Init,
-        Inited,
+        LOADED,
+        INIT,
+        INITED,
     };
 
     enum class ClassTypeEnum {
-        PrimitiveClass,
-        InstanceClass,
-        TypeArrayClass,
-        ObjArrayClass,
+        PRIMITIVE_CLASS,
+        INSTANCE_CLASS,
+        TYPE_ARRAY_CLASS,
+        OBJ_ARRAY_CLASS,
     };
 
     //标记在InstanceClass上, 用于在new指令上提升效率
@@ -48,7 +48,7 @@ namespace RexVM {
         const cstring name;
         std::unique_ptr<MirrorOop> mirror;
         ClassLoader &classLoader;
-        std::atomic<ClassInitStatusEnum> initStatus{ClassInitStatusEnum::Loaded};
+        std::atomic<ClassInitStatusEnum> initStatus{ClassInitStatusEnum::LOADED};
 
         InstanceClass *superClass{nullptr};
         std::vector<InstanceClass *> interfaces;

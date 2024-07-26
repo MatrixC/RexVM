@@ -310,7 +310,7 @@ namespace RexVM::Native::Core {
             return;
         }
 
-        if (obj->type == OopTypeEnum::InstanceOop) {
+        if (obj->type == OopTypeEnum::INSTANCE_OOP) {
             const auto instanceObj = CAST_INSTANCE_OOP(obj);
             auto dataPtr = instanceObj->data.get();
             auto dataType = instanceObj->getInstanceClass()->instanceDataType[offset];
@@ -336,7 +336,7 @@ namespace RexVM::Native::Core {
                     break;
             }
             return;
-        } else if (obj->type == OopTypeEnum::ObjArrayOop) {
+        } else if (obj->type == OopTypeEnum::OBJ_ARRAY_OOP) {
             const auto arrayObj = CAST_OBJ_ARRAY_OOP(obj);
             auto dataPtr = arrayObj->data.get();
             dataPtr += offset;

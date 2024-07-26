@@ -49,7 +49,7 @@ namespace RexVM {
     }
 
     InstanceOop::InstanceOop(InstanceClass *klass, const size_t dataLength) :
-            Oop(OopTypeEnum::InstanceOop, klass), 
+            Oop(OopTypeEnum::INSTANCE_OOP, klass), 
             dataLength(dataLength), 
             data(std::make_unique<Slot[]>(dataLength)) {
         initInstanceField(this, klass);
@@ -102,11 +102,11 @@ namespace RexVM {
     }
 
     TypeArrayOop::TypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
-            ArrayOop(OopTypeEnum::TypeArrayOop, klass, dataLength) {
+            ArrayOop(OopTypeEnum::TYPE_ARRAY_OOP, klass, dataLength) {
     }
 
     ObjArrayOop::ObjArrayOop(ObjArrayClass *klass, const size_t dataLength) :
-            ArrayOop(OopTypeEnum::ObjArrayOop, klass, dataLength), data(std::make_unique<ref[]>(dataLength)) {
+            ArrayOop(OopTypeEnum::OBJ_ARRAY_OOP, klass, dataLength), data(std::make_unique<ref[]>(dataLength)) {
             std::fill_n(data.get(), dataLength, nullptr);
     }
 

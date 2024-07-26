@@ -50,15 +50,15 @@ namespace RexVM::Native::Core {
         const auto self = frame.getThis();
         const auto klass = self->klass;
         switch (klass->type) {
-            case ClassTypeEnum::InstanceClass:
+            case ClassTypeEnum::INSTANCE_CLASS:
                 frame.returnRef((CAST_INSTANCE_OOP(self))->clone(*oopManager));
                 return;
 
-            case ClassTypeEnum::ObjArrayClass:
+            case ClassTypeEnum::OBJ_ARRAY_CLASS:
                 frame.returnRef(getObjArrayClone(oopManager.get(), CAST_OBJ_ARRAY_OOP(self)));
                 return;
 
-            case ClassTypeEnum::TypeArrayClass: {
+            case ClassTypeEnum::TYPE_ARRAY_CLASS: {
                 const auto typeArrayKlass = CAST_TYPE_ARRAY_CLASS(klass);
                 switch (typeArrayKlass->elementType) {
                     case BasicType::T_BOOLEAN:

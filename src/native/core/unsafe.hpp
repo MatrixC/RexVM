@@ -17,7 +17,7 @@ namespace RexVM::Native::Core {
     void ensureClassInitialized(Frame &frame) {
         const auto mirrorClassOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
         const auto mirrorClass = mirrorClassOop->mirrorClass;
-        if (mirrorClass->type == ClassTypeEnum::InstanceClass) {
+        if (mirrorClass->type == ClassTypeEnum::INSTANCE_CLASS) {
             (CAST_INSTANCE_CLASS(mirrorClass))->clinit(frame);
         }
     }
@@ -26,7 +26,7 @@ namespace RexVM::Native::Core {
     void shouldBeInitialized(Frame &frame) {
         const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
         const auto mirrorClass = mirrorOop->mirrorClass;
-        if (mirrorClass->type == ClassTypeEnum::InstanceClass) {
+        if (mirrorClass->type == ClassTypeEnum::INSTANCE_CLASS) {
             const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
             frame.returnBoolean(instanceMirrorClass->notInitialize());
             return;

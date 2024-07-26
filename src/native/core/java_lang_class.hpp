@@ -42,7 +42,7 @@ namespace RexVM::Native::Core {
 
         const auto jvmClassName = getJVMClassName(className);
         const auto klass = frame.getCurrentClassLoader()->getClass(jvmClassName);
-        if (initialize && klass->type == ClassTypeEnum::InstanceClass) {
+        if (initialize && klass->type == ClassTypeEnum::INSTANCE_CLASS) {
             CAST_INSTANCE_CLASS(klass)->clinit(frame);
         }
         frame.returnRef(klass->getMirrorOop());
@@ -64,7 +64,7 @@ namespace RexVM::Native::Core {
     //native boolean isPrimitive();
     void isPrimitive(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
-        frame.returnBoolean(mirrorClass->type == ClassTypeEnum::PrimitiveClass);
+        frame.returnBoolean(mirrorClass->type == ClassTypeEnum::PRIMITIVE_CLASS);
     }
 
     //native boolean isInterface();
@@ -123,7 +123,7 @@ namespace RexVM::Native::Core {
     //native Class<?> getComponentType();
     void getComponentType(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass->type != ClassTypeEnum::TypeArrayClass && mirrorClass->type != ClassTypeEnum::ObjArrayClass) {
+        if (mirrorClass->type != ClassTypeEnum::TYPE_ARRAY_CLASS && mirrorClass->type != ClassTypeEnum::OBJ_ARRAY_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -137,7 +137,7 @@ namespace RexVM::Native::Core {
     void getEnclosingMethod0(Frame &frame) {
         //Class Instance
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -166,7 +166,7 @@ namespace RexVM::Native::Core {
     //native Class<?> getDeclaringClass0();
     void getDeclaringClass0(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -202,7 +202,7 @@ namespace RexVM::Native::Core {
         const auto &stringPool = frame.vm.stringPool;
         const auto publicOnly = frame.getLocalBoolean(1);
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -249,7 +249,7 @@ namespace RexVM::Native::Core {
         const auto &oopManager = frame.vm.oopManager;
         const auto publicOnly = frame.getLocalBoolean(1);
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -359,7 +359,7 @@ namespace RexVM::Native::Core {
         auto &classLoader = *frame.getCurrentClassLoader();
         const auto &oopManager = frame.vm.oopManager;
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -392,7 +392,7 @@ namespace RexVM::Native::Core {
     //native String getGenericSignature0();
     void getGenericSignature0(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -410,7 +410,7 @@ namespace RexVM::Native::Core {
     void getRawAnnotations(Frame &frame) {
         const auto &oopManager = frame.vm.oopManager;
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -433,7 +433,7 @@ namespace RexVM::Native::Core {
     void getRawTypeAnnotations(Frame &frame) {
         const auto &oopManager = frame.vm.oopManager;
         const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -478,7 +478,7 @@ namespace RexVM::Native::Core {
     void getConstantPool(Frame &frame) {
         const auto instance = CAST_MIRROR_OOP(frame.getThisInstance());
         const auto mirrorClass = instance->klass;
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -498,7 +498,7 @@ namespace RexVM::Native::Core {
         const auto mirrorClass = getMirrorClass(frame);
         auto &classLoader = *frame.getCurrentClassLoader();
         const auto &oopManager = frame.vm.oopManager;
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::InstanceClass) {
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
@@ -624,7 +624,7 @@ namespace RexVM::Native::Core {
             const auto paramType = methodPtr->paramType[i];
             const auto val = CAST_INSTANCE_OOP(args->data[i]);
             const auto paramClass = classLoader.getClass(paramType);
-            if (paramClass->type == ClassTypeEnum::PrimitiveClass) {
+            if (paramClass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
                 const auto primitiveClass = CAST_PRIMITIVE_CLASS(paramClass);
                 const auto slotVal = primitiveClass->getValueFromBoxingOop(val);
                 params.emplace_back(slotVal);
@@ -640,7 +640,7 @@ namespace RexVM::Native::Core {
 
         ref oopResult = nullptr;
         if (slotType != SlotTypeEnum::NONE) {
-            if (returnClass->type == ClassTypeEnum::PrimitiveClass) {
+            if (returnClass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
                 const auto returnPrimitiveClass = CAST_PRIMITIVE_CLASS(returnClass);
                 oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, *oopManager);
             } else {

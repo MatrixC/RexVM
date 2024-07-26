@@ -24,6 +24,8 @@ namespace RexVM {
             JAVA_LANG_CLONEABLE_NAME,
             JAVA_IO_SERIALIZABLE_NAME,
             JAVA_LANG_RUNTIME_NAME,
+            JAVA_LANG_INVOKE_METHOD_HANDLE_NAME,
+            JAVA_LANG_STACK_TRACE_ELEMENT_NAME,
     };
 
     cstring getBasicJavaClassName(BasicJavaClassEnum classEnum) {

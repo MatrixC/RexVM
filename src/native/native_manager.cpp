@@ -45,7 +45,7 @@ namespace RexVM {
         regNativeMethod("Fto", "println", "(I)V", true, Native::selfPrintlnInt);
         
         Native::Core::registerCoreMethods(*this);
-        Native::SUN::registerSunMethods(*this);
+        Native::Sun::registerSunMethods(*this);
     }
 
 

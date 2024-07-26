@@ -18,35 +18,15 @@ namespace RexVM {
 
     //Print Exception stack on stdout
     void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
-        const auto throwInstanceClass = throwInstance->klass;
-        const auto message = CAST_INSTANCE_OOP(throwInstance->getFieldValue(throwableClassDetailMessageFieldSlotId).refVal);
-        cstring messageStr;
-        if (message != nullptr) {
-            messageStr = ": " + StringPool::getJavaString(message);
-        }
-
-        cstring outMessage = cformat(
-                "Exception in thread \"{}\" {}{}",
-                "main",
-                throwInstanceClass->name,
-                messageStr
-        );
-
-        for (const auto &item : frame.throwObject->throwPath) {
-            //example. at ExceptionTest.p(ExceptionTest.java:13)
-            const auto [pathMethod, throwPc] = item;
-            const auto className = pathMethod.klass.name;
-            const auto methodName = pathMethod.name;
-            const auto lineNumber = pathMethod.getLineNumber(throwPc);
-            const auto sourceFileName = pathMethod.klass.sourceFile;
-            outMessage += cformat("\n\tat {}.{}({}:{})", className, methodName, sourceFileName, lineNumber);
-        }
-        cprintln("{}", outMessage);
+        const auto printStackTraceMethod = 
+            throwInstance->getInstanceClass()->getMethod("printStackTrace", "()V", false);
+        frame.runMethodManual(*printStackTraceMethod, {Slot(throwInstance)});
     }
 
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
-        const auto throwInstance = frame.throwObject->throwValue;
+        //const auto throwInstance = frame.throwObject->throwValue;
+        const auto throwInstance = frame.throwObject;
         const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->klass);
         auto &method = frame.method;
         const auto handler =
@@ -123,25 +103,17 @@ namespace RexVM {
             return;
         }
 
-        if (method.name == "checkAccess" && startWith(frame.klass.name, "java/lang/invoke/MethodHandles")) {
-            return;
+        static bool printLog = false;
+        if (printLog) {
+            cprintln(
+                "{}{}#{}:{} {}", 
+                cstring(frame.level * 2, ' '), 
+                frame.klass.name, 
+                method.name, 
+                method.descriptor, 
+                !notNativeMethod ? "[Native]" : ""
+            );
         }
-
-        if (method.name == "<clinit>" && method.klass.name == "Rex") {
-            int i = 10;
-        }
-
-        if (method.name == "<init>" && method.klass.name == "java/lang/invoke/MethodHandles$Lookup") {
-            int i = 10;
-        }
-
-        if (frame.printStack) {
-            cprintln("{}{}#{}:{} {}", cstring(frame.level * 2, ' '), frame.klass.name, method.name, method.descriptor, !notNativeMethod ? "[Native]" : "");
-        }
-
-        // if (method.name == "joining" && method.descriptor == "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/util/stream/Collector;") {
-        //     int i = 10;
-        // }
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
@@ -151,13 +123,6 @@ namespace RexVM {
                 const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
                 const auto sourceFile __attribute__((unused)) = method.klass.sourceFile;
                 const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
-
-                if (method.name == "joining" 
-                    && method.descriptor == "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/util/stream/Collector;"
-                    && pc == 27
-                ) {
-                    int i = 10;
-                }
 
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markThrow) {
@@ -208,10 +173,9 @@ namespace RexVM {
         Frame nextFrame(thread.vm, thread, method_, previous);
         const auto slotSize = method_.paramSlotSize;
         nextFrame.methodParamSlotSize = slotSize;
-        //if (method_.name != "i" && slotSize != params.size()) {
-        // if (slotSize != params.size()) {
-             //panic("createFrameAndRunMethod error: params length " + method_.name);
-        //}
+        if (slotSize != params.size()) {
+             panic("createFrameAndRunMethod error: params length " + method_.name);
+        }
         for (size_t i = 0; i < params.size(); ++i) {
             const auto slotType = method_.getParamSlotType(i);
             nextFrame.setLocal(i, params.at(i), slotType);

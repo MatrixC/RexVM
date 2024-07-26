@@ -47,13 +47,13 @@ namespace RexVM::Native::Core {
 
         const auto arrayType = src->klass->type;
         const auto destArrayType = dest->klass->type;
-        if (arrayType != ClassTypeEnum::ObjArrayClass && arrayType != ClassTypeEnum::TypeArrayClass) {
+        if (arrayType != ClassTypeEnum::OBJ_ARRAY_CLASS && arrayType != ClassTypeEnum::TYPE_ARRAY_CLASS) {
             panic("obj is not array type");
         }
         if (arrayType != destArrayType) {
             panic("array type is different");
         }
-        if (arrayType == ClassTypeEnum::ObjArrayClass) {
+        if (arrayType == ClassTypeEnum::OBJ_ARRAY_CLASS) {
             const auto relSrc = CAST_OBJ_ARRAY_OOP(src);
             const auto relDest = CAST_OBJ_ARRAY_OOP(dest);
             std::copy(relSrc->data.get() + srcPos, relSrc->data.get() + srcEndPos, relDest->data.get() + destPos);

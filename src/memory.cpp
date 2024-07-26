@@ -173,15 +173,15 @@ namespace RexVM {
 
         const auto oopType = oop->type;
         switch (oopType) {
-            case OopTypeEnum::InstanceOop:
+            case OopTypeEnum::INSTANCE_OOP:
                 traceInstanceOopChild(CAST_INSTANCE_OOP(oop), tracedOop);
             break;
 
-            case OopTypeEnum::ObjArrayOop:
+            case OopTypeEnum::OBJ_ARRAY_OOP:
                 traceObjArrayOopChild(CAST_OBJ_ARRAY_OOP(oop), tracedOop);
             break;
 
-            case OopTypeEnum::TypeArrayOop:
+            case OopTypeEnum::TYPE_ARRAY_OOP:
             return;
         }
         
@@ -230,7 +230,7 @@ namespace RexVM {
 
         const auto &classMap = classLoader->classMap;
         for (const auto &[key, klass] : classMap) {
-            if (klass->type == ClassTypeEnum::InstanceClass) {
+            if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
                 auto const instanceClass = CAST_INSTANCE_CLASS(klass.get());
                 for (const auto &field : instanceClass->fields) {
                     const auto fieldType = field->getFieldSlotType();
@@ -285,7 +285,7 @@ namespace RexVM {
 
         const auto &classMap = classLoader->classMap;
         for (const auto &[key, klass] : classMap) {
-            if (klass->type == ClassTypeEnum::InstanceClass) {
+            if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
                 auto const instanceClass = CAST_INSTANCE_CLASS(klass.get());
                 for (const auto &field : instanceClass->fields) {
                     const auto fieldType = field->getFieldSlotType();

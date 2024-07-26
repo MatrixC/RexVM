@@ -13,7 +13,7 @@
 #include "../../constant_pool.hpp"
 #include "../../utils/string_utils.hpp"
 
-namespace RexVM::Native::SUN::MISC {
+namespace RexVM::Native::Sun::Msc {
 
     const std::unordered_map<cstring, i4> SIGNAL_NUMBER_MAP{
             {"INT", 2},
@@ -68,7 +68,7 @@ namespace RexVM::Native::SUN::MISC {
                 const auto paramType = constructMethod->paramType[i];
                 const auto val = CAST_INSTANCE_OOP(paramArray->data[i]);
                 const auto paramClass = classLoader.getClass(paramType);
-                if (paramClass->type == ClassTypeEnum::PrimitiveClass) {
+                if (paramClass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
                     const auto primitiveClass = CAST_PRIMITIVE_CLASS(paramClass);
                     const auto slotVal = primitiveClass->getValueFromBoxingOop(val);
                     constructorParams.emplace_back(slotVal);

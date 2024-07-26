@@ -27,6 +27,8 @@ namespace RexVM {
     inline const cstring JAVA_LANG_CLONEABLE_NAME = "java/lang/Cloneable";
     inline const cstring JAVA_IO_SERIALIZABLE_NAME = "java/io/Serializable";
     inline const cstring JAVA_LANG_RUNTIME_NAME = "java/lang/Runtime";
+    inline const cstring JAVA_LANG_INVOKE_METHOD_HANDLE_NAME = "java/lang/invoke/MethodHandle";
+    inline const cstring JAVA_LANG_STACK_TRACE_ELEMENT_NAME = "java/lang/StackTraceElement";
 
     enum class BasicJavaClassEnum : size_t {
         JAVA_LANG_OBJECT,
@@ -50,6 +52,8 @@ namespace RexVM {
         JAVA_LANG_CLONEABLE,
         JAVA_IO_SERIALIZABLE,
         JAVA_LANG_RUNTIME,
+        JAVA_LANG_INVOKE_METHOD_HANDLE,
+        JAVA_LANG_STACK_TRACE_ELEMENT,
         COUNT,
     };
     constexpr auto BASIC_JAVA_CLASS_ENUM_COUNT = CAST_SIZE_T(BasicJavaClassEnum::COUNT) + 1;

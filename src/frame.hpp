@@ -37,7 +37,6 @@ namespace RexVM {
         StackContext operandStackContext;
         u1 currentByteCode{};
         u2 level{0};
-        bool printStack{false};
 
         VM &vm;
         VMThread &thread;
@@ -54,7 +53,8 @@ namespace RexVM {
         SlotTypeEnum returnType{};
 
         bool markThrow{false};
-        std::unique_ptr<FrameThrowable> throwObject;
+        //std::unique_ptr<FrameThrowable> throwObject;
+        InstanceOop *throwObject{nullptr};
 
         explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame);
         ~Frame();
@@ -120,7 +120,8 @@ namespace RexVM {
 
         void throwException(InstanceOop * val, u4 pc);
         void throwException(InstanceOop * val);
-        void passException(std::unique_ptr<FrameThrowable> lastException);
+        //void passException(std::unique_ptr<FrameThrowable> lastException);
+        void passException(InstanceOop *lastException);
         void cleanThrow();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;

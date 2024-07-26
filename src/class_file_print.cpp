@@ -36,14 +36,14 @@ namespace RexVM {
 
     void pClass(Class *klass) {
         switch (klass->type) {
-            case ClassTypeEnum::PrimitiveClass: {
+            case ClassTypeEnum::PRIMITIVE_CLASS: {
                 const auto clazz = CAST_PRIMITIVE_CLASS(klass);
                 cprintln("className :{}", clazz->name);
                 cprintln("type: PrimitiveClass, basicType: {}", basicTypeClassName(clazz->basicType));
                 break;
             }
 
-            case ClassTypeEnum::InstanceClass: {
+            case ClassTypeEnum::INSTANCE_CLASS: {
                 const auto clazz = CAST_INSTANCE_CLASS(klass);
                 cprintln("className :{}", clazz->name);
                 cprintln("type: InstanceClass");
@@ -70,14 +70,14 @@ namespace RexVM {
                 break;
             }
 
-            case ClassTypeEnum::TypeArrayClass: {
+            case ClassTypeEnum::TYPE_ARRAY_CLASS: {
                 const auto clazz = CAST_TYPE_ARRAY_CLASS(klass);
                 cprintln("className :{}", clazz->name);
                 cprintln("type: TypeArrayClass, basicType: {}", basicTypeClassName(clazz->elementType));
                 break;
             }
 
-            case ClassTypeEnum::ObjArrayClass: {
+            case ClassTypeEnum::OBJ_ARRAY_CLASS: {
                 const auto clazz = CAST_OBJ_ARRAY_CLASS(klass);
                 cprintln("className :{}", clazz->name); 
                 cprintln("type: ObjArrayClass, elementClass: {}", clazz->elementClass->name);

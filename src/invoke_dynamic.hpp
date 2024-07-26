@@ -1,5 +1,5 @@
-#ifndef INVOKE_DYNAMIC__HPP
-#define INVOKE_DYNAMIC__HPP
+#ifndef INVOKE_DYNAMIC_HPP
+#define INVOKE_DYNAMIC_HPP
 #include "config.hpp"
 #include <vector>
 #include <memory>
@@ -26,12 +26,8 @@ namespace RexVM {
     inline const cstring METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR = "([Ljava/lang/Object;)Ljava/lang/Object;";
 
     bool isMethodHandleInvoke(const cstring &className, const cstring &memberName);
+
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
-    InstanceOop *createLookup(VM &vm, Frame &frame);
-    InstanceOop *createMethodHandle(Frame &frame, ConstantMethodHandleInfo *methodHandleInfo);
-    InstanceOop *createMethodHandle(Frame &frame, MethodHandleEnum kind, const cstring &className, const cstring &methodHandleMemberName, const cstring &methodHandleMemberDescriptor);
-
-
 }
 
 #endif

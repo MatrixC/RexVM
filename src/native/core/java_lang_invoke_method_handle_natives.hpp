@@ -18,12 +18,6 @@
 
 namespace RexVM::Native::Core {
 
-    // MemberName
-    // The JVM uses values of -2 and above for vtable indexes.
-    // Field values are simple positive offsets.
-    // Ref: src/share/vm/oops/methodOop.hpp
-    // This value is negative enough to avoid such numbers,
-    // but not too negative.
     constexpr i4 MN_IS_METHOD           = 0x00010000; // method (not constructor)
     constexpr i4 MN_IS_CONSTRUCTOR      = 0x00020000; // constructor
     constexpr i4 MN_IS_FIELD            = 0x00040000; // field
@@ -35,45 +29,8 @@ namespace RexVM::Native::Core {
     constexpr i4 MN_SEARCH_INTERFACES   = 0x00200000;
     const cstring JAVA_LANG_INVOKE_METHOD_TYPE_NAME = "java/lang/invoke/MethodType";
 
-    //gc car
-    /*
-    std::unordered_map<InstanceOop *, InstanceOop *> MEMBER_NAME_CACHE_MAP;
-    std::unordered_set<InstanceOop *> MEMBER_NAME_CACHE_SET;
-    
-    std::mutex MEMBER_NAME_CACHE_MAP_MUTEX;
-
-    void cacheMemberName(InstanceOop *memberNameOop) {
-        const auto type = CAST_INSTANCE_OOP(memberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        std::lock_guard<std::mutex> lock(MEMBER_NAME_CACHE_MAP_MUTEX);
-        MEMBER_NAME_CACHE_MAP[type] = memberNameOop;
-        MEMBER_NAME_CACHE_SET.insert(memberNameOop);
-    }
-
-    InstanceOop *findMemberNameByMethodType(InstanceOop *methodTypeOop) {
-        if (methodTypeOop == nullptr) {
-            panic("memberType can't be nullptr");
-        }
-        std::lock_guard<std::mutex> lock(MEMBER_NAME_CACHE_MAP_MUTEX);
-        // const auto iter = MEMBER_NAME_CACHE_MAP.find(methodTypeOop);
-        // if (iter == MEMBER_NAME_CACHE_MAP.end()) {
-        //     panic("can't find memberName");
-        // }
-        // return iter->second;
-        for (auto const &item : MEMBER_NAME_CACHE_SET) {
-            const auto type = CAST_INSTANCE_OOP(item->getFieldValue("type", "Ljava/lang/Object;").refVal);
-            if (type == methodTypeOop) {
-                return item;
-            }
-        }
-        panic("can't find memberName");
-    }
-    */
-
    cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name) {
         cstring descriptor{};
-        if (name == "array") {
-            (void)0;
-        }
         if (isMethodHandleInvoke(clazz->name, name)) {
             descriptor = METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR;
         } else {
@@ -145,7 +102,7 @@ namespace RexVM::Native::Core {
 
         if (clazz == nullptr) {
             panic("resolve error");
-        } else if (clazz->type == ClassTypeEnum::TypeArrayClass || clazz->type == ClassTypeEnum::ObjArrayClass) {
+        } else if (clazz->type == ClassTypeEnum::TYPE_ARRAY_CLASS || clazz->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
             clazz = classLoader.getClass(JAVA_LANG_OBJECT_NAME);
         }
         const auto instanceClass = CAST_INSTANCE_CLASS(clazz);
@@ -289,7 +246,7 @@ namespace RexVM::Native::Core {
         const auto className = paramClass->name;
         //两种情况 传参是REF 函数需要Primitive 或者相反
         if (type == SlotTypeEnum::REF) {
-            if (paramClass->type != ClassTypeEnum::PrimitiveClass) {
+            if (paramClass->type != ClassTypeEnum::PRIMITIVE_CLASS) {
                 panic("error");
             }
             const auto primitiveClass = CAST_PRIMITIVE_CLASS(paramClass);
@@ -386,7 +343,6 @@ namespace RexVM::Native::Core {
             return;
         }
 
-
         auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, prefixParam, false);
         //box or unbox 处理
         //这里比反射的invoke处理复杂 反射传参只会是Object数组 所以Slot和paramType的index是直接对应的
@@ -423,7 +379,7 @@ namespace RexVM::Native::Core {
         const auto returnClass = classLoader.getClass(methodPtr->returnType);
         ref oopResult = nullptr;
         if (slotType != SlotTypeEnum::NONE) {
-            if (returnClass->type == ClassTypeEnum::PrimitiveClass) {
+            if (returnClass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
                 const auto returnPrimitiveClass = CAST_PRIMITIVE_CLASS(returnClass);
                 oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, *oopManager);
             } else {

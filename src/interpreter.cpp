@@ -14,7 +14,6 @@
 #include "constant_pool.hpp"
 #include "memory.hpp"
 #include "invoke_dynamic.hpp"
-#include "invoke_dynamic_fix.hpp"
 
 namespace RexVM {
 
@@ -1044,7 +1043,7 @@ namespace RexVM {
         ) {
             auto &classLoader = *frame.getCurrentClassLoader();
             const auto invokeMethod = 
-                    classLoader.getInstanceClass("java/lang/invoke/MethodHandle")
+                    classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
                         ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR, false);
             const auto [paramType, _] = parseMethodDescriptor(methodDescriptor); 
             //1是因为第一个参数为MethodHandle Object
@@ -1138,7 +1137,7 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             frame.reader.readU2(); //ignore zero
 
-            invokeDynmic_(frame, index);
+            invokeDynamic(frame, index);
 
         }
 
@@ -1285,7 +1284,7 @@ namespace RexVM {
             const auto arrayLength = dimLength[currentDim];
             const auto currentArrayClass = classLoader.getArrayClass(name);
             ArrayOop *arrayOop;
-            if (currentArrayClass->type == ClassTypeEnum::TypeArrayClass) {
+            if (currentArrayClass->type == ClassTypeEnum::TYPE_ARRAY_CLASS) {
                 const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(currentArrayClass);
                 arrayOop = oopManager.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
             } else {

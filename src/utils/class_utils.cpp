@@ -29,9 +29,9 @@ namespace RexVM {
     }
 
     cstring getDescriptorByClass(Class *klass) {
-        if (klass->type == ClassTypeEnum::PrimitiveClass) {
+        if (klass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
             return PRIMITIVE_TYPE_MAP.at(klass->name);
-        } else if (klass->type == ClassTypeEnum::InstanceClass) {
+        } else if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
             return getDescriptorClassName(klass->name);
         } else {
             return klass->name;

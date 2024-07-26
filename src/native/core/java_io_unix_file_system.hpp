@@ -13,7 +13,6 @@ namespace RexVM::Native::Core {
 
     //native int getBooleanAttributes0(File f)
     void getBooleanAttributes0(Frame &frame) {
-        const auto self = CAST_INSTANCE_OOP(frame.getThis());
         const auto fileOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
 
         const auto pathOop = fileOop->getFieldValue("path", "Ljava/lang/String;");
