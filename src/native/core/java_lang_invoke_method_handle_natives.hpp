@@ -237,7 +237,7 @@ namespace RexVM::Native::Core {
             memberNameOop = CAST_INSTANCE_OOP(argL0->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
         } else if (className == "java/lang/invoke/BoundMethodHandle$Species_L") {
             const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
-            if (methodParamSlotSize == 1) {
+            if (methodParamSlotSize == 1 || methodParamSlotSize == 2) {
                 //只有self和Species_L两个参数
                 frame.returnRef(argL0);
                 return std::make_tuple(nullptr, true);

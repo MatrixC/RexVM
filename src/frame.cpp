@@ -173,6 +173,10 @@ namespace RexVM {
         return operandStackContext.pop();
     }
 
+    std::tuple<Slot, SlotTypeEnum> Frame::popWithSlotType() {
+        return operandStackContext.popWithSlotType();
+    }
+
     void Frame::pushLocal(size_t index) {
         const auto val = localVariableTable[index];
         const auto type = localVariableTableType[index];

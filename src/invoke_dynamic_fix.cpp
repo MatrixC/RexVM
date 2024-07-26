@@ -22,6 +22,32 @@ namespace RexVM {
         return lookupOop;
     }
 
+    InstanceOop *createMethodeTypeJava(Frame &frame, const cstring &methodTypeDescriptor) {
+        const auto classLoader = frame.getCurrentClassLoader();
+        const auto &stringPool = frame.vm.stringPool;
+
+        const auto runtimeMethodTypeClass = classLoader->getInstanceClass("java/lang/invoke/MethodType");
+        const auto fromMethodDescriptorStringMethod = runtimeMethodTypeClass->getMethod("fromMethodDescriptorString", "(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/invoke/MethodType;", true);
+
+        const auto [methodTypeSlot, _] = frame.runMethodManual(*fromMethodDescriptorStringMethod, { 
+            Slot(stringPool->getInternString(methodTypeDescriptor)), 
+            Slot(nullptr) 
+        });
+        if (frame.markThrow) {
+            return nullptr;
+        }
+
+        return CAST_INSTANCE_OOP(methodTypeSlot.refVal);
+    }
+
+    InstanceOop *createMethodeTypeJava(Frame &frame, ConstantMethodTypeInfo *methodTypeInfo) {
+        const auto &methodClass = frame.klass;
+        const auto &constantPool = methodClass.constantPool;
+
+        const auto methodTypeDescriptor = getConstantStringFromPool(constantPool, methodTypeInfo->descriptorIndex);
+        return createMethodeTypeJava(frame, methodTypeDescriptor);
+    }
+
     //MethodType.fromMethodDescriptorString
     InstanceOop *createMethodeType_(Frame &frame, const cstring &methodDescriptor) {
         const auto classLoader = frame.getCurrentClassLoader();
@@ -103,7 +129,7 @@ namespace RexVM {
                 break;
 
                 case ConstantTagEnum::CONSTANT_MethodType:
-                    argResult = createMethodeType_(frame, CAST_CONSTANT_METHOD_TYPE_INFO(constantInfo));
+                    argResult = createMethodeTypeJava(frame, CAST_CONSTANT_METHOD_TYPE_INFO(constantInfo));
                 break;
             }
             if (frame.markThrow) {
@@ -134,7 +160,7 @@ namespace RexVM {
         const auto classArrayOop = vm.oopManager->newObjArrayOop(classArrayClass, arraySize);
         classArrayOop->data[0] = lookupOop;
         classArrayOop->data[1] = stringPool->getInternString(invokeName);
-        classArrayOop->data[2] = createMethodeType_(frame, invokeDescriptor);
+        classArrayOop->data[2] = createMethodeTypeJava(frame, invokeDescriptor);
 
 
         for (size_t i = 0; i < bootstrapArguments.size(); ++i) {
@@ -148,7 +174,7 @@ namespace RexVM {
                 break;
 
                 case ConstantTagEnum::CONSTANT_MethodType:
-                    argResult = createMethodeType_(frame, CAST_CONSTANT_METHOD_TYPE_INFO(constantInfo));
+                    argResult = createMethodeTypeJava(frame, CAST_CONSTANT_METHOD_TYPE_INFO(constantInfo));
                 break;
             }
             if (frame.markThrow) {
@@ -217,14 +243,43 @@ namespace RexVM {
         const auto finalMethodHandOop = CAST_INSTANCE_OOP(dynamicInvokerSlot.refVal);
         const auto finalMethodHandClass = finalMethodHandOop->getInstanceClass();
         const auto invokeMethod = finalMethodHandClass->getMethod("invoke", METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR, false);
-        const auto [invokerSlot, _] = frame.runMethodManual(*invokeMethod, { 
-            Slot(finalMethodHandOop)
-        });
-        if (frame.markThrow) {
-            return nullptr;
+        const auto [paramType, _] = parseMethodDescriptor(invokeDescriptor); 
+
+        std::vector<std::tuple<Slot, SlotTypeEnum>> invokeParam;
+        size_t popLength = 0;
+        for (const auto &paramClassName : paramType) {
+            if (isWideClassName(paramClassName)) {
+                invokeParam.emplace_back(frame.popWithSlotType());
+                invokeParam.emplace_back(frame.popWithSlotType());
+            } else {
+                invokeParam.emplace_back(frame.popWithSlotType());
+            }
+        }
+        invokeParam.emplace_back(std::make_tuple(Slot(finalMethodHandOop), SlotTypeEnum::REF));
+        std::reverse(invokeParam.begin(), invokeParam.end());
+
+        for (const auto &[val, type] : invokeParam) {
+            frame.push(val, type);
         }
 
-        return CAST_INSTANCE_OOP(invokerSlot.refVal);
+        frame.runMethodInner(*invokeMethod, invokeParam.size());
+        return CAST_INSTANCE_OOP(frame.pop().refVal);
+
+
+        // frame.runMethodInner(*invokeMethod, popLength);
+
+        // return nullptr;
+
+        // const auto [invokerSlot, _] = frame.runMethodManual(*invokeMethod, { 
+        //     Slot(finalMethodHandOop)
+        // });
+
+        // const auto [invokerSlot, _] = frame.runMethodManual(*invokeMethod, invokeParam);
+        // if (frame.markThrow) {
+        //     return nullptr;
+        // }
+
+        // return CAST_INSTANCE_OOP(invokerSlot.refVal);
     }
 
     InstanceOop *createCallSite2(Frame &frame, InstanceOop *methodHandle, ObjArrayOop *bootstrapArgs, InstanceOop *lookupOop) {
@@ -265,7 +320,7 @@ namespace RexVM {
         //=========================================================================================================
         //Key
         const auto [invokeName, invokeDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, invokeDynamicInfo->nameAndTypeIndex);
-        const auto [paramType, _] = parseMethodDescriptor(invokeDescriptor); 
+        //const auto [paramType, _] = parseMethodDescriptor(invokeDescriptor); 
         //1是因为第一个参数为MethodHandle Object
         // size_t popLength = 0;
         // for (const auto &paramClassName : paramType) {
@@ -285,22 +340,22 @@ namespace RexVM {
         if (frame.markThrow) {
             return;
         }
-        const auto bootstrapArguments = createBootstrapArgs(frame, bootstrapMethodAttr->bootstrapArguments, lookupOop);
-        if (frame.markThrow) {
-            return;
-        }
-        const auto callSiteObj = createCallSite(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, bootstrapArguments, lookupOop);
-        if (frame.markThrow) {
-            return;
-        }
-        // const auto bootstrapArguments = createBootstrapArgs_(frame, bootstrapMethodAttr->bootstrapArguments, lookupOop, invokeName, invokeDescriptor);
+        // const auto bootstrapArguments = createBootstrapArgs(frame, bootstrapMethodAttr->bootstrapArguments, lookupOop);
         // if (frame.markThrow) {
         //     return;
         // }
-        // const auto callSiteObj = createCallSite_(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, bootstrapArguments, lookupOop);
+        // const auto callSiteObj = createCallSite(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, bootstrapArguments, lookupOop);
         // if (frame.markThrow) {
         //     return;
         // }
+        const auto bootstrapArguments = createBootstrapArgs_(frame, bootstrapMethodAttr->bootstrapArguments, lookupOop, invokeName, invokeDescriptor);
+        if (frame.markThrow) {
+            return;
+        }
+        const auto callSiteObj = createCallSite_(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, bootstrapArguments, lookupOop);
+        if (frame.markThrow) {
+            return;
+        }
         // const auto callSiteObj = createCallSite2(frame, bootstrapMethodHandle, bootstrapArguments, lookupOop);
         // if (frame.markThrow) {
         //     return;

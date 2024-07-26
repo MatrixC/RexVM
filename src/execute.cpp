@@ -12,6 +12,7 @@
 #include "basic_java_class.hpp"
 #include "constant_pool.hpp"
 #include "key_slot_id.hpp"
+#include "invoke_dynamic.hpp"
 
 namespace RexVM {
 
@@ -207,9 +208,10 @@ namespace RexVM {
         Frame nextFrame(thread.vm, thread, method_, previous);
         const auto slotSize = method_.paramSlotSize;
         nextFrame.methodParamSlotSize = slotSize;
-        if (slotSize != params.size()) {
-            panic("createFrameAndRunMethod error: params length " + method_.name);
-        }
+        //if (method_.name != "i" && slotSize != params.size()) {
+        // if (slotSize != params.size()) {
+             //panic("createFrameAndRunMethod error: params length " + method_.name);
+        //}
         for (size_t i = 0; i < params.size(); ++i) {
             const auto slotType = method_.getParamSlotType(i);
             nextFrame.setLocal(i, params.at(i), slotType);

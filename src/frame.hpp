@@ -84,6 +84,7 @@ namespace RexVM {
         i8 popI8();
         f8 popF8();
         Slot pop();
+        std::tuple<Slot, SlotTypeEnum> popWithSlotType();
 
         void pushLocal(size_t index);
         void pushLocalWide(size_t index);
