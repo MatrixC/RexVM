@@ -1,6 +1,4 @@
 #include "native_manager.hpp"
-#include "../basic_java_class.hpp"
-#include "self_native.hpp"
 #include "core/native_core.hpp"
 #include "sun/native_sun.hpp"
 
@@ -41,9 +39,6 @@ namespace RexVM {
     }
 
     void NativeManager::regAllMethods() {
-        regNativeMethod("Fto", "println", "(Ljava/lang/String;)V", true, Native::selfPrintln);
-        regNativeMethod("Fto", "println", "(I)V", true, Native::selfPrintlnInt);
-        
         Native::Core::registerCoreMethods(*this);
         Native::Sun::registerSunMethods(*this);
     }

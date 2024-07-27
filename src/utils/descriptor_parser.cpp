@@ -55,7 +55,7 @@ namespace RexVM {
                         cstring(typeView) :
                         concat_view(str.substr(currentIndex, arrayLength), typeView);
             if (type.size() == 1 && isBasicType(type[0])) {
-                types.emplace_back(PRIMITIVE_TYPE_REVERSE_MAP.at(type)); 
+                types.emplace_back(getPrimitiveClassNameByDescriptor(type[0]));
             } else {
                 types.emplace_back(type);
             }

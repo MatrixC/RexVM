@@ -4,6 +4,8 @@
 
 namespace RexVM {
 
+    const char FILE_SEPARATOR = std::filesystem::path::preferred_separator;
+
     cstring buildRtPath(const cstring &javaHome) {
         return javaHome + FILE_SEPARATOR + "lib" + FILE_SEPARATOR + "rt.jar";
     }

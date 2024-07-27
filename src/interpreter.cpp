@@ -11,9 +11,9 @@
 #include "class.hpp"
 #include "oop.hpp"
 #include "class_loader.hpp"
-#include "constant_pool.hpp"
+#include "string_pool.hpp"
 #include "memory.hpp"
-#include "invoke_dynamic.hpp"
+#include "method_handle.hpp"
 
 namespace RexVM {
 
@@ -1044,7 +1044,7 @@ namespace RexVM {
             auto &classLoader = *frame.getCurrentClassLoader();
             const auto invokeMethod = 
                     classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
-                        ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR, false);
+                        ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
             const auto [paramType, _] = parseMethodDescriptor(methodDescriptor); 
             //1是因为第一个参数为MethodHandle Object
             size_t popLength = 1;

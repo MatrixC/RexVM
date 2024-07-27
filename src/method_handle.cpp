@@ -1,8 +1,8 @@
-#include "invoke_dynamic.hpp"
+#include "method_handle.hpp"
 #include "memory.hpp"
 #include "constant_info.hpp"
 #include "class_file.hpp"
-#include "constant_pool.hpp"
+#include "string_pool.hpp"
 #include "oop.hpp"
 #include "class.hpp"
 #include "class_loader.hpp"
@@ -22,6 +22,12 @@ namespace RexVM {
                 || memberName == "linkToStatic"
                 || memberName == "linkToVirtual"
                 || memberName == "linkToInterface"));
+    }
+
+    bool isStaticMethodHandleType(MethodHandleEnum kind) {
+        return kind == MethodHandleEnum::REF_getStatic
+               || kind == MethodHandleEnum::REF_putStatic
+               || kind == MethodHandleEnum::REF_invokeStatic;
     }
 
     InstanceOop *createLookup(Frame &frame, const InstanceClass *targetLookupClass) {
@@ -258,7 +264,7 @@ namespace RexVM {
 
         const auto finalMethodHandOop = CAST_INSTANCE_OOP(dynamicInvokerSlot.refVal);
         const auto finalMethodHandClass = finalMethodHandOop->getInstanceClass();
-        const auto invokeMethod = finalMethodHandClass->getMethod("invoke", METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR, false);
+        const auto invokeMethod = finalMethodHandClass->getMethod("invoke", METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
         const auto [paramType, returnType] = parseMethodDescriptor(invokeDescriptor); 
 
         //在调用invokedynamic指令之前 最后一步invoke方法的参数已经被push到了操作栈上
@@ -322,6 +328,34 @@ namespace RexVM {
         }
 
         frame.pushRef(callSiteObj);
+    }
+
+    cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name) {
+        cstring descriptor{};
+        if (isMethodHandleInvoke(clazz->name, name)) {
+            descriptor = METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR;
+        } else {
+            const auto typeClass = type->klass;
+            const auto typeClassName = typeClass->name;
+            if (typeClassName == JAVA_LANG_INVOKE_METHOD_TYPE_NAME) {
+                descriptor += "(";
+                const auto ptypes = CAST_OBJ_ARRAY_OOP(type->getFieldValue("ptypes", "[Ljava/lang/Class;").refVal);
+                for (size_t i = 0; i < ptypes->dataLength; ++i) {
+                    const auto classMirrorOop = CAST_MIRROR_OOP(ptypes->data[i]);
+                    const auto mirrorClass = classMirrorOop->mirrorClass;
+                    descriptor += getDescriptorByClass(mirrorClass);
+                }
+                descriptor += ")";
+                const auto rtype = CAST_MIRROR_OOP(type->getFieldValue("rtype", "Ljava/lang/Class;").refVal);
+                descriptor += getDescriptorByClass(rtype->mirrorClass);
+            } else if (typeClassName == JAVA_LANG_CLASS_NAME) {
+                const auto mirrorClass = CAST_MIRROR_OOP(type)->mirrorClass;
+                descriptor = getDescriptorByClass(mirrorClass);
+            } else {
+                panic("error typeClassName");
+            }
+        }
+        return descriptor;
     }
 
 }

@@ -11,26 +11,10 @@
 
 namespace RexVM::Native::Core {
 
-    template<typename T>
-    bool weakCompareAndSwap(T* src, T expected, T desired) {
-        const auto atom = reinterpret_cast<std::atomic<T>*>(src);
-        bool success = false;
-        do {
-            expected = atom->load(std::memory_order_relaxed);
-            if (expected == *src) { // 额外检查，确保src值未被其他线程更改
-                success = atom->compare_exchange_weak(expected, desired, std::memory_order_seq_cst);
-                if (success) {
-                    *src = desired; // 成功后同步回原指针
-                }
-            }
-        } while (!success);
-        return success;
-    }
-
     template <typename T>
     bool strongCompareAndSwap(T *src, T expect, T val) {
         static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-        std::atomic<T>* atomSrc = reinterpret_cast<std::atomic<T>*>(src);
+        auto* atomSrc = reinterpret_cast<std::atomic<T>*>(src);
         T temp = expect;
         return std::atomic_compare_exchange_strong(atomSrc, &temp, val);
     }

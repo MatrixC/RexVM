@@ -10,9 +10,9 @@
 #include "interpreter.hpp"
 #include "thread.hpp"
 #include "basic_java_class.hpp"
-#include "constant_pool.hpp"
+#include "string_pool.hpp"
 #include "key_slot_id.hpp"
-#include "invoke_dynamic.hpp"
+#include "method_handle.hpp"
 
 namespace RexVM {
 

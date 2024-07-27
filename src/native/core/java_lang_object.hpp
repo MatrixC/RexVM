@@ -107,7 +107,7 @@ namespace RexVM::Native::Core {
         self->monitorCv.notify_one();
     }
 
-        //public final native void notifyAll();
+    //public final native void notifyAll();
     void notifyAll(Frame &frame) {
         const auto self = frame.getThis();
         self->monitorCv.notify_all();

@@ -3,7 +3,7 @@ add_rules("mode.debug", "mode.release")
 set_languages("c11", "cxx20")
 set_optimize("none")
 
-target("RexVM")
+target("rex")
     set_kind("binary")
     set_toolchains("clang")
     add_includedirs(

@@ -3,6 +3,7 @@
 #include <sstream>
 #include "string_utils.hpp"
 #include "../exception.hpp"
+#include "../file_system.hpp"
 #include <ranges>
 
 namespace RexVM {
@@ -54,12 +55,8 @@ namespace RexVM {
     }
 
     CombineClassPath::CombineClassPath(const cstring &path) : ClassPath(ClassPathTypeEnum::COMBINE, path) {
-        const static auto pathSep = ';';
-        const static auto dirSep = cstring{std::filesystem::path::preferred_separator};
-
-        //const auto paths = std::ranges::split_view(path, pathSep);
-
-        const auto paths = splitString(path, pathSep);
+        const auto fileSep = cstring{FILE_SEPARATOR};
+        const auto paths = splitString(path, PATH_SEPARATOR);
         for (const auto &pathView: paths) {
             if (pathView.empty()) {
                 continue;
@@ -73,13 +70,13 @@ namespace RexVM {
                     }
                 }
             } else if (std::filesystem::is_directory(childPath)) {
-                if (endsWith(childPath, dirSep)) {
+                if (endsWith(childPath, fileSep)) {
                     if (processedPath.find(childPath) == processedPath.end()) {
                         classPaths.push_back(std::make_unique<DirClassPath>(cstring(childPath)));
                         processedPath.insert(childPath);
                     }
                 } else {
-                    const cstring spath = childPath + dirSep;
+                    const cstring spath = childPath + fileSep;
                     if (processedPath.find(spath) == processedPath.end()) {
                         classPaths.push_back(std::make_unique<DirClassPath>(spath));
                         processedPath.insert(spath);

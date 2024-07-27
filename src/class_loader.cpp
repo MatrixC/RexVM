@@ -100,7 +100,7 @@ namespace RexVM {
 
         std::unique_ptr<ArrayClass> arrayClass;
         if (isBasicType(typeStart) && name.size() == 2) {
-            const auto basicType = getBasicType(typeStart);
+            const auto basicType = getBasicTypeByDescriptor(typeStart);
             arrayClass = std::make_unique<TypeArrayClass>(name, *this, typeIndex, basicType);
             if (typeIndex != 1) {
                 const auto subClassName = name.substr(1);
@@ -151,7 +151,7 @@ namespace RexVM {
     }
 
     TypeArrayClass *ClassLoader::getTypeArrayClass(BasicType type) {
-        const auto className = typeArrayClassName(type);
+        const auto className = getTypeArrayClassNameByBasicType(type);
         return CAST_TYPE_ARRAY_CLASS(getClass(className));
     }
 

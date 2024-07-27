@@ -15,7 +15,7 @@
 namespace RexVM::Native::Core {
 
     void availableProcessors(Frame &frame) {
-        frame.returnI4(std::thread::hardware_concurrency());
+        frame.returnI4(CAST_I4(std::thread::hardware_concurrency()));
     }
 
 }

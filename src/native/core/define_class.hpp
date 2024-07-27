@@ -10,7 +10,7 @@
 #include "../../memory.hpp"
 #include "../../constant_info.hpp"
 #include "../../class_loader.hpp"
-#include "../../constant_pool.hpp"
+#include "../../string_pool.hpp"
 #include "../../utils/string_utils.hpp"
 
 namespace RexVM::Native::Core {

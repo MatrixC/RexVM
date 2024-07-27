@@ -28,16 +28,19 @@ namespace RexVM {
     };
 
     extern const std::unordered_map<cstring, cstring> PRIMITIVE_TYPE_MAP;
-    extern const std::unordered_map<cstring, cstring> PRIMITIVE_TYPE_REVERSE_MAP;
     extern const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY;
 
-    extern cstring typeArrayClassName(BasicType type);
-    cstring basicTypeClassName(BasicType type);
-    BasicType getBasicType(cchar type);
+    cstring getPrimitiveClassNameByDescriptor(cchar descriptor);
+    cchar getDescriptorByPrimitiveClassName(const cstring &className);
+    BasicType getBasicTypeByDescriptor(cchar descriptor);
     BasicType getBasicTypeByTypeArrayClassName(const cstring &className);
+
+    extern cstring getTypeArrayClassNameByBasicType(BasicType type);
+    cstring getPrimitiveClassNameByBasicType(BasicType type);
+
     bool isBasicType(cchar type);
     bool isWideBasicType(BasicType type);
-    SlotTypeEnum getSlotTypeByBasicTypeClassName(const cstring &className);
+    SlotTypeEnum getSlotTypeByPrimitiveClassName(const cstring &className);
 
 }
 

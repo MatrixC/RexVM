@@ -2,7 +2,7 @@
 
 #include <utility>
 #include "basic_java_class.hpp"
-#include "constant_pool.hpp"
+#include "string_pool.hpp"
 #include "class_member.hpp"
 #include "constant_info.hpp"
 #include "class_file.hpp"
@@ -156,10 +156,10 @@ namespace RexVM {
 
     PrimitiveClass::PrimitiveClass(BasicType basicType, ClassLoader &classLoader) :
         Class(
-            ClassTypeEnum::PRIMITIVE_CLASS, 
-            PRIMITIVE_CLASS_ACCESS_FLAGS, 
-            basicTypeClassName(basicType), 
-            classLoader
+                ClassTypeEnum::PRIMITIVE_CLASS,
+                PRIMITIVE_CLASS_ACCESS_FLAGS,
+                getPrimitiveClassNameByBasicType(basicType),
+                classLoader
         ),
         basicType(basicType) {
     }
@@ -540,7 +540,7 @@ namespace RexVM {
                 return componentClassName.substr(1, componentClassName.size() - 2);
 
             default:
-                return PRIMITIVE_TYPE_REVERSE_MAP.at(componentClassName);
+                return getPrimitiveClassNameByDescriptor(firstChar);
         }
     }
 

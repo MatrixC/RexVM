@@ -4,7 +4,7 @@
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"
-#include "../../constant_pool.hpp"
+#include "../../string_pool.hpp"
 
 namespace RexVM::Native::Core {
 
@@ -48,7 +48,7 @@ namespace RexVM::Native::Core {
             const auto methodName = method.name;
             const auto sourceFileName = method.klass.sourceFile;
             const auto lineNumber = method.getLineNumber(currentFrame->pc());
-            stackTraceElements.emplace_back(createStackTraceElement(frame, className, methodName, sourceFileName, lineNumber));
+            stackTraceElements.emplace_back(createStackTraceElement(frame, className, methodName, sourceFileName, CAST_I4(lineNumber)));
         }
 
         const auto arrayOop = frame.vm.oopManager->newObjArrayOop(stackTraceElementArrayClass, stackTraceElements.size());
@@ -78,7 +78,7 @@ namespace RexVM::Native::Core {
             frame.returnI4(0);
             return;
         }
-        frame.returnI4(stackTraceElements->dataLength);
+        frame.returnI4(CAST_I4(stackTraceElements->dataLength));
     }
 }
 

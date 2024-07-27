@@ -3,7 +3,7 @@
 #include "../../config.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
-#include "../../constant_pool.hpp"
+#include "../../string_pool.hpp"
 
 namespace RexVM::Native::Core {
 

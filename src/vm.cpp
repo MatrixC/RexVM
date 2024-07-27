@@ -6,7 +6,7 @@
 #include "utils/class_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "class_loader.hpp"
-#include "constant_pool.hpp"
+#include "string_pool.hpp"
 #include "thread.hpp"
 #include "memory.hpp"
 #include "execute.hpp"
@@ -42,7 +42,7 @@ namespace RexVM {
             }
         }
 
-        classPath = std::make_unique<CombineClassPath>(joinString(pathList, ";"));
+        classPath = std::make_unique<CombineClassPath>(joinString(pathList, cstring{PATH_SEPARATOR}));
     }
 
     void VM::initOopManager() {

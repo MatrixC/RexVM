@@ -1,5 +1,5 @@
-#ifndef CONSTANT_POOL_HPP
-#define CONSTANT_POOL_HPP
+#ifndef STRING_POOL_HPP
+#define STRING_POOL_HPP
 
 #include <unordered_map>
 #include <memory>

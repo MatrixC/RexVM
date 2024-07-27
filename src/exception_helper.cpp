@@ -4,7 +4,7 @@
 #include "class.hpp"
 #include "vm.hpp"
 #include "memory.hpp"
-#include "constant_pool.hpp"
+#include "string_pool.hpp"
 #include "key_slot_id.hpp"
 #include "utils/class_utils.hpp"
 

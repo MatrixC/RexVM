@@ -12,56 +12,11 @@
 #include "../../class.hpp"
 #include "../../execute.hpp"
 #include "../../memory.hpp"
-#include "../../invoke_dynamic.hpp"
+#include "../../method_handle.hpp"
 #include "../../utils/class_utils.hpp"
 #include "../../exception_helper.hpp"
 
 namespace RexVM::Native::Core {
-
-    constexpr i4 MN_IS_METHOD           = 0x00010000; // method (not constructor)
-    constexpr i4 MN_IS_CONSTRUCTOR      = 0x00020000; // constructor
-    constexpr i4 MN_IS_FIELD            = 0x00040000; // field
-    constexpr i4 MN_IS_TYPE             = 0x00080000; // nested type
-    constexpr i4 MN_CALLER_SENSITIVE    = 0x00100000; // @CallerSensitive annotation detected
-    constexpr i4 MN_REFERENCE_KIND_SHIFT = 24; // refKind
-    constexpr i4 MN_REFERENCE_KIND_MASK = 0x0F000000 >> MN_REFERENCE_KIND_SHIFT;
-    constexpr i4 MN_SEARCH_SUPERCLASSES = 0x00100000;
-    constexpr i4 MN_SEARCH_INTERFACES   = 0x00200000;
-    const cstring JAVA_LANG_INVOKE_METHOD_TYPE_NAME = "java/lang/invoke/MethodType";
-
-   cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name) {
-        cstring descriptor{};
-        if (isMethodHandleInvoke(clazz->name, name)) {
-            descriptor = METHOD_HANDLE_INVOKE_ORIGIN_DESCRITPR;
-        } else {
-            const auto typeClass = type->klass;
-            const auto typeClassName = typeClass->name;
-		    if (typeClassName == JAVA_LANG_INVOKE_METHOD_TYPE_NAME) {
-			    descriptor += "(";
-                const auto ptypes = CAST_OBJ_ARRAY_OOP(type->getFieldValue("ptypes", "[Ljava/lang/Class;").refVal);
-                for (size_t i = 0; i < ptypes->dataLength; ++i) {
-                    const auto classMirrorOop = CAST_MIRROR_OOP(ptypes->data[i]);
-                    const auto mirrorClass = classMirrorOop->mirrorClass;
-                    descriptor += getDescriptorByClass(mirrorClass);
-                }
-			    descriptor += ")";
-                const auto rtype = CAST_MIRROR_OOP(type->getFieldValue("rtype", "Ljava/lang/Class;").refVal);
-			    descriptor += getDescriptorByClass(rtype->mirrorClass);
-		    } else if (typeClassName == JAVA_LANG_CLASS_NAME) {
-                const auto mirrorClass = CAST_MIRROR_OOP(type)->mirrorClass;
-                descriptor = getDescriptorByClass(mirrorClass);
-		    } else {
-                panic("error typeClassName");
-	    	}
-	    }
-        return descriptor;
-    }
-
-    bool isStaticMethondHandleType(MethodHandleEnum kind) {
-        return kind == MethodHandleEnum::REF_getStatic 
-            || kind == MethodHandleEnum::REF_putStatic 
-            || kind == MethodHandleEnum::REF_invokeStatic;
-    }
 
     void setMemberNameClazzAndFlags(InstanceOop *memberNameOop, InstanceOop *mirrirOop, i4 newFlags) {
         memberNameOop->setFieldValue("flags", "I", Slot(newFlags));
@@ -107,7 +62,7 @@ namespace RexVM::Native::Core {
         }
         const auto instanceClass = CAST_INSTANCE_CLASS(clazz);
         const auto descriptor = methodHandleGetDescriptor(clazz, type, name);
-        const auto isStatic = isStaticMethondHandleType(kind);
+        const auto isStatic = isStaticMethodHandleType(kind);
         if ((flags & MN_IS_METHOD) || (flags & MN_IS_CONSTRUCTOR)) {
             const auto resolveMethod = instanceClass->getMethod(name, descriptor, isStatic);
             if (resolveMethod == nullptr) {
@@ -123,7 +78,6 @@ namespace RexVM::Native::Core {
         } else if (flags & MN_IS_TYPE) {
             panic("error");
         }
-        //cacheMemberName(memberNameOop);
         frame.returnRef(memberNameOop);
     }
 
@@ -233,7 +187,7 @@ namespace RexVM::Native::Core {
         const auto &oopManager = frame.vm.oopManager;
         //const auto paramSlotType = methodPtr->paramSlotType[index];
         const auto paramType = methodPtr->paramType[index];
-        const auto paramSlotType = getSlotTypeByBasicTypeClassName(paramType);
+        const auto paramSlotType = getSlotTypeByPrimitiveClassName(paramType);
         if (type == paramSlotType) {
             params.emplace_back(val);
             if (isWideSlotType(type)) {
@@ -393,7 +347,6 @@ namespace RexVM::Native::Core {
     void methodHandlerGetConstant(Frame &frame) {
         frame.returnI4(0);
     }
-
 
 }
 

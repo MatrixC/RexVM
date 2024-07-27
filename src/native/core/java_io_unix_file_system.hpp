@@ -7,7 +7,7 @@
 #include "../../frame.hpp"
 #include "../../thread.hpp"
 #include "../../oop.hpp"
-#include "../../constant_pool.hpp"
+#include "../../string_pool.hpp"
 
 namespace RexVM::Native::Core {
 

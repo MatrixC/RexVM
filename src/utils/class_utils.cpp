@@ -20,17 +20,13 @@ namespace RexVM {
             return descriptor.substr(1, descriptor.size() - 2);
         }
 
-        if (auto iter = PRIMITIVE_TYPE_REVERSE_MAP.find(descriptor); iter != PRIMITIVE_TYPE_REVERSE_MAP.end()) {
-            return iter->second;
-        }
-
-        panic("error descriptor");
-        return {};
+        return getPrimitiveClassNameByDescriptor(first);
     }
 
     cstring getDescriptorByClass(Class *klass) {
         if (klass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
-            return PRIMITIVE_TYPE_MAP.at(klass->name);
+            const auto descriptor = getDescriptorByPrimitiveClassName(klass->name);
+            return cstring{CAST_CHAR(descriptor)};
         } else if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
             return getDescriptorClassName(klass->name);
         } else {

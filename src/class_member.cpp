@@ -133,7 +133,7 @@ namespace RexVM {
         for (const auto &desc: paramType) {
             paramSlotSize += 1;
 
-            SlotTypeEnum slotType = getSlotTypeByBasicTypeClassName(desc);
+            SlotTypeEnum slotType = getSlotTypeByPrimitiveClassName(desc);
             paramSlotType.emplace_back(slotType);
 
             if (isWideSlotType(slotType)) {
@@ -141,7 +141,7 @@ namespace RexVM {
                 paramSlotType.push_back(slotType);
             }
         }
-        returnSlotType = getSlotTypeByBasicTypeClassName(returnType);
+        returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
     }
 
     void Method::initAnnotations(FMBaseInfo *info) {

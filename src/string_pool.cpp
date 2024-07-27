@@ -1,4 +1,4 @@
-#include "constant_pool.hpp"
+#include "string_pool.hpp"
 #include "class_loader.hpp"
 #include "oop.hpp"
 #include "utils/string_utils.hpp"

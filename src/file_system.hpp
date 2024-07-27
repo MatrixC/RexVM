@@ -2,11 +2,12 @@
 #define REX_FILE_SYSTEM_HPP
 #include "config.hpp"
 
-#define FILE_SEPARATOR '/'
 #define PATH_SEPARATOR ':'
 #define LINE_SEPARATOR "\n"
 
 namespace RexVM {
+
+    extern const char FILE_SEPARATOR;
 
     cstring buildRtPath(const cstring &javaHome);
 

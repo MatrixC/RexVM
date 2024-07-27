@@ -9,7 +9,8 @@
 #include "../../class.hpp"
 #include "../../execute.hpp"
 #include "../../memory.hpp"
-#include "../../constant_pool.hpp"
+#include "../../string_pool.hpp"
+#include "../../file_system.hpp"
 #include <thread>
 #include <chrono>
 
@@ -149,9 +150,9 @@ namespace RexVM::Native::Core {
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.stdout.encoding")), Slot(utf8ConstString) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.stderr.encoding")), Slot(utf8ConstString) });
 
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("file.separator")), Slot(stringPool->getInternString("/")) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("path.separator")), Slot(stringPool->getInternString(":")) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("line.separator")), Slot(stringPool->getInternString("\n")) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("file.separator")), Slot(stringPool->getInternString(cstring{FILE_SEPARATOR})) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("path.separator")), Slot(stringPool->getInternString(cstring{PATH_SEPARATOR})) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("line.separator")), Slot(stringPool->getInternString(cstring{LINE_SEPARATOR})) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.home")), Slot(stringPool->getInternString(frame.vm.javaHome)) });
 
         frame.returnRef(props);
