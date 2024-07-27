@@ -1,86 +1,62 @@
 # RexVM
 
-[RexVM](https://github.com/MatrixC/RexVM) 一个简易的JVM虚拟机，使用C++编写，并使用xmake作为构建管理工具。RexVM能够在MacOS及Ubuntu操作系统上运行，支持x86_64和arm64。
+[RexVM](https://github.com/MatrixC/RexVM) 一个基于解释器的JVM虚拟机，使用C++开发。
 
-## 系统要求
+## 已验证系统及编译器
 
-- 支持的操作系统：MacOS, Ubuntu
-- 支持的架构：x86_64, arm64
-- llvm clang
-- xmake
+- MacOS(Apple silicon) + clang(18.1.6)
+- Ubuntu(amd64)
+- Ubuntu(aarch64) + clang(18.1.8) + gcc(13.2.0)
 
-## 安装与使用
+## 构建
 
 ### 1. 克隆仓库
+
 ```bash
 git clone https://github.com/MatrixC/RexVM.git
 cd RexVM
 ```
 
-### 2. 安装xmake
+### 2. 安装编译器及构建工具xmake
+
 可以通过以下命令安装xmake：
+
 ```bash
 # MacOS
+# 安装clang
+brew install llvm
+# 安装xmake
 brew install xmake
 
 # Ubuntu
+# 安装clang
+wget https://apt.llvm.org/llvm.sh
+chmod u+x llvm.sh
+sudo ./llvm.sh 18
+
+# 安装xmake
 bash <(wget https://raw.githubusercontent.com/tboox/xmake/master/scripts/get.sh -O -)
 ```
 
 ### 3. 构建项目
+
 ```bash
 xmake
+
+# 或者生成CMake项目文件后通过CMake进行构建或用Clion等IDE打开CMake工程文件
+xmake project -k cmake
 ```
 
 ### 4. 运行RexVM
-```bash
-xmake run
-```
-
----
-
-# RexVM
-
-[RexVM](https://github.com/MatrixC/RexVM) is a simple JVM virtual machine written in C++ and uses xmake as the build management tool. RexVM runs on MacOS and Ubuntu operating systems, supporting both x86_64 and arm64 architectures.
-
-## Features
-
-- **Platform**: Can run on MacOS and Ubuntu systems.
-- **Architecture Support**: Supports x86_64 and arm64 architectures.
-
-## System Requirements
-
-- Supported OS: MacOS, Ubuntu
-- Supported Architectures: x86_64, arm64
-- llvm clang
-- xmake
-
-## Installation and Usage
-
-### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/MatrixC/RexVM.git
-cd RexVM
+# 1. 安装JRE8或者JDK8环境，RexVM依赖rt.jar等openjdk lib
+# 2. 配置环境变量export JRE_HOME=$JAVA_HOME 确保JRE_HOME/lib/rt.jar存在
+# 3. 将RexVM所在的编译目录配进环境变量PATH
+# 4. 运行class文件
+RexVM Main
 ```
 
-### 2. Install xmake
 
-You can install xmake with the following commands:
-```bash
-# MacOS
-brew install xmake
 
-# Ubuntu
-bash <(wget https://raw.githubusercontent.com/tboox/xmake/master/scripts/get.sh -O -)
-```
 
-### 3. Build the Project
-```bash
-xmake
-```
-
-### 4. Run RexVM
-```bash
-xmake run
-```

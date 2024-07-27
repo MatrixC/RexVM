@@ -9,7 +9,7 @@ void printUsage() {
 }
 
 int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter) {
-    if (argc < 4) {
+    if (argc < 2) {
         printUsage();
         return 1;
     }
