@@ -59,7 +59,7 @@ namespace RexVM {
 
         //const auto paths = std::ranges::split_view(path, pathSep);
 
-        const auto paths = split_string(path, pathSep);
+        const auto paths = splitString(path, pathSep);
         for (const auto &pathView: paths) {
             if (pathView.empty()) {
                 continue;

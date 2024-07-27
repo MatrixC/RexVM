@@ -1,11 +1,10 @@
 #include "string_utils.hpp"
 #include "format.hpp"
-#include "../basic_macro.hpp"
 #include <ranges>
 #include <string>
 
 namespace RexVM {
-    std::vector<cview> split_string(cview str, char delimiter) {
+    std::vector<cview> splitString(cview str, char delimiter) {
 
         std::vector<cview> result;
         size_t start = 0;
@@ -18,6 +17,18 @@ namespace RexVM {
         }
 
         result.push_back(str.substr(start, end));
+        return result;
+    }
+
+    cstring joinString(std::vector<cstring> strs, const cstring &joiner) {
+        if (strs.empty()) {
+            return {};
+        }
+        auto result = strs[0];
+        for (size_t i = 1; i < strs.size(); ++i) {
+            result.append(joiner);
+            result.append(strs[i]);
+        }
         return result;
     }
 

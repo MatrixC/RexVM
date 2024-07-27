@@ -1,29 +1,48 @@
 #include "vm.hpp"
-#include <thread>
 #include <atomic>
+#include <filesystem>
 #include "basic_java_class.hpp"
 #include "utils/class_path.hpp"
-#include "utils/string_utils.hpp"
 #include "utils/class_utils.hpp"
-#include "attribute_info.hpp"
+#include "utils/string_utils.hpp"
 #include "class_loader.hpp"
 #include "constant_pool.hpp"
 #include "thread.hpp"
 #include "memory.hpp"
 #include "execute.hpp"
+#include "file_system.hpp"
 
 
 namespace RexVM {
 
-    constexpr auto ENV_KEY_JAVA_HOME = "JRE_HOME";
-    constexpr auto USER_PROGRAM_HOME = "USER_JAVA_CLASSPATH";
-
     void VM::initClassPath() {
-        javaHome = cstring(std::getenv(ENV_KEY_JAVA_HOME));
-        const auto rtJarPath = javaHome + "/lib/rt.jar";
-        const auto charsetsJarPath = javaHome + "/lib/charsets.jar";
-        const auto userClassPath = cstring(std::getenv(USER_PROGRAM_HOME));
-        classPath = std::make_unique<CombineClassPath>(rtJarPath + ";" + charsetsJarPath + ";" + userClassPath);
+        javaHome = initJavaHome(std::getenv("JAVA_HOME"));
+        if (javaHome.empty()) {
+            javaHome = initJavaHome(std::getenv("JAVA8_HOME"));
+            if (javaHome.empty()) {
+                panic("can't find JAVA_HOME");
+            }
+        }
+        std::vector<cstring> pathList;
+        pathList.emplace_back(".");
+        pathList.emplace_back(buildRtPath(javaHome));
+        pathList.emplace_back(buildCharsetsPath(javaHome));
+        const auto userEnvClassPath = std::getenv("CLASSPATH");
+        if (userEnvClassPath != nullptr) {
+            const auto envClassPath = cstring(userEnvClassPath);
+            const auto cps = splitString(envClassPath, PATH_SEPARATOR);
+            for (const auto &item: cps) {
+                pathList.emplace_back(item);
+            }
+        }
+        if (!params.userClassPath.empty()) {
+            const auto cps = splitString(params.userClassPath, PATH_SEPARATOR);
+            for (const auto &item: cps) {
+                pathList.emplace_back(item);
+            }
+        }
+
+        classPath = std::make_unique<CombineClassPath>(joinString(pathList, ";"));
     }
 
     void VM::initOopManager() {
@@ -72,7 +91,7 @@ namespace RexVM {
             }
         }
 
-        runStaticMethodOnMainThread(*this, *mainMethod, { Slot(stringArray) });
+        runStaticMethodOnMainThread(*this, *mainMethod, {Slot(stringArray)});
     }
 
     void VM::joinThreads() {
@@ -108,19 +127,10 @@ namespace RexVM {
         joinThreads();
     }
 
+
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();
-        //gc2(vm);
-        //vm.bootstrapClassLoader.reset(nullptr);
-
-        // int x = 10;
-        // bool s = compareAndSwapInt(&x, 11, 20);
-        // cprintln("{} {}", s, x);
-        
-
-
-
     }
 
 }

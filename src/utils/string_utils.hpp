@@ -7,7 +7,8 @@
 
 namespace RexVM {
 
-    std::vector<cview> split_string(cview str, char delimiter);
+    std::vector<cview> splitString(cview str, char delimiter);
+    cstring joinString(std::vector<cstring> strs, const cstring &joiner);
 
     bool startWith(cview str, cview prefix);
     bool endsWith(cview str, cview suffix);

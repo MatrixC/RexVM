@@ -1,5 +1,4 @@
 #include "invoke_dynamic.hpp"
-#include "vm.hpp"
 #include "memory.hpp"
 #include "constant_info.hpp"
 #include "class_file.hpp"
@@ -8,7 +7,6 @@
 #include "class.hpp"
 #include "class_loader.hpp"
 #include "frame.hpp"
-#include "memory.hpp"
 #include "utils/descriptor_parser.hpp"
 #include "utils/class_utils.hpp"
 

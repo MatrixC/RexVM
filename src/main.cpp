@@ -21,9 +21,6 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
         if (strcmp(argv[i], "-cp") == 0) {
             if (i + 1 < argc) {
                 applicationParameter.userClassPath = argv[++i];
-            } else {
-                printUsage();
-                return 1;
             }
         } else {
             params.emplace_back(argv[i]);

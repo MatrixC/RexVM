@@ -33,7 +33,10 @@ namespace RexVM::Native::Core {
         const auto stackTraceElementArrayClass = classLoader->getObjectArrayClass(JAVA_LANG_STACK_TRACE_ELEMENT_NAME);
         std::vector<InstanceOop *> stackTraceElements;
         auto notCheck = false; //用于少进行一些 isSubClassOf 检测 提升性能 跳过Exception的栈后就不用再check了
-        for (Frame *currentFrame = &frame; currentFrame != nullptr; currentFrame = currentFrame->previous) {
+        //frame is native fillInStackTrace
+        //frame->previous is public synchronized Throwable fillInStackTrace()
+        //so skip them
+        for (Frame *currentFrame = (&frame)->previous->previous; currentFrame != nullptr; currentFrame = currentFrame->previous) {
             const auto &method = currentFrame->method;
             const auto &klass = method.klass;
             if (!notCheck && (&klass == throwableClass || klass.isSubClassOf(throwableClass))) {
