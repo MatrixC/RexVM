@@ -125,13 +125,17 @@ namespace RexVM {
         void cleanThrow();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
-        void printStackSlot() const;
+        
+        
 
         [[nodiscard]] Oop *getThis() const;
         [[nodiscard]] InstanceOop *getThisInstance() const;
         [[nodiscard]] std::vector<Oop *> getLocalObjects() const;
   
         void printCallStack() const;
+        void printLocalSlot() const;
+        void printStackSlot() const;
+        void print() const;
     };
 
 }

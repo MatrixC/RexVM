@@ -5,6 +5,7 @@
 #include "thread.hpp"
 #include "vm.hpp"
 #include "execute.hpp"
+#include "print_helper.hpp"
 #include <utility>
 
 
@@ -336,34 +337,6 @@ namespace RexVM {
         return operandStackContext.getStackOffset(offset);
     }
 
-    void Frame::printStackSlot() const {
-        for (i4 offset = 0; offset <= operandStackContext.sp; ++offset) {
-            const auto index = operandStackContext.sp - offset;
-            const auto val = operandStackContext.memory[index];
-            const auto valType = operandStackContext.memoryType[index];
-            switch (valType) {
-                case SlotTypeEnum::I4:
-                    cprintln("offset: {}, type: I4, value: {}", offset, val.i4Val);
-                    break;
-                case SlotTypeEnum::I8:
-                    cprintln("offset: {}, type: I8, value: {}", offset, val.i8Val);
-                    break;
-                case SlotTypeEnum::F4:
-                    cprintln("offset: {}, type: F4, value: {}", offset, val.f4Val);
-                    break;
-                case SlotTypeEnum::F8:
-                    cprintln("offset: {}, type: F8, value: {}", offset, val.f8Val);
-                    break;
-                case SlotTypeEnum::REF:
-                    cprintln("offset: {}, type: REF, value: {}", offset, val.refVal->klass->name);
-                    break;
-                default:
-                    panic("error stack slot type");
-                    break;
-            }
-
-        }
-    }
 
     Oop *Frame::getThis() const {
         return getLocalRef(0);
@@ -389,6 +362,30 @@ namespace RexVM {
             const auto nativeMethod = method.isNative();
             cprintln("  {}#{}:{} {}", klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
         }
+    }
+
+    void Frame::printLocalSlot() const {
+        for (size_t i = 0; i < localVariableTableSize; ++i) {
+            const auto val = localVariableTable[i];
+            const auto type = localVariableTableType[i];
+            const auto slotStr = formatSlot(val, type);
+            cprintln("Local[{}]: {}", i, slotStr);
+        }
+    }
+
+    void Frame::printStackSlot() const {
+        for (i4 offset = 0; offset <= operandStackContext.sp; ++offset) {
+            const auto index = operandStackContext.sp - offset;
+            const auto val = operandStackContext.memory[index];
+            const auto valType = operandStackContext.memoryType[index];
+            const auto slotStr = formatSlot(val, valType);
+            cprintln("Stack[{}]: {}", offset, slotStr);
+        }
+    }
+
+    void Frame::print() const {
+        printLocalSlot();
+        printStackSlot();
     }
 
 }

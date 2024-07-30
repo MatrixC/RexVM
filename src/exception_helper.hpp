@@ -11,6 +11,8 @@ namespace RexVM {
     void throwReflectiveOperationException(Frame &frame, const cstring &className, const cstring &methodName, const cstring &descriptor);
 
     void throwFileNotFoundException(Frame &frame, const cstring &message);
+
+    void throwIOException(Frame &frame, const cstring &message);
 }
 
 #endif

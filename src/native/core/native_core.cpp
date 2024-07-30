@@ -12,8 +12,7 @@
 #include "java_lang_reflect_array.hpp"
 #include "java_lang_float.hpp"
 #include "java_lang_throwable.hpp"
-#include "java_io_file_input_stream.hpp"
-#include "java_io_file_output_stream.hpp"
+#include "java_io_file_input_output_stream.hpp"
 #include "java_io_unix_file_system.hpp"
 #include "java_util_concurrent_atomic.hpp"
 #include "unsafe.hpp"
@@ -271,13 +270,20 @@ namespace RexVM::Native::Core {
     }
 
     void registerIOCoreMethods(NativeManager &manager) {
-        manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "open0", "(Ljava/lang/String;)V", false, Native::Core::open0);
+        manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "open0", "(Ljava/lang/String;)V", false, Native::Core::readOpen);
         manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "readBytes", "([BII)I", false, Native::Core::readBytes);
         manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "close0", "()V", false, Native::Core::close0);
+        manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "read0", "()I", false, Native::Core::read0);
+        manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "skip0", "(J)J", false, Native::Core::skip0);
+        manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "available0", "()I", false, Native::Core::available0);
 
+
+        manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "open0", "(Ljava/lang/String;Z)V", false, Native::Core::writeOpen);
         manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "writeBytes", "([BIIZ)V", false, Native::Core::writeBytes);
-        manager.regNativeMethod(JAVA_IO_UNIX_FILE_SYSTEM_NAME, "getBooleanAttributes0", "(Ljava/io/File;)I", false, Native::Core::getBooleanAttributes0);
+        manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "write", "(IZ)V", false, Native::Core::write0);
+        manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "close0", "()V", false, Native::Core::close0);
 
+        manager.regNativeMethod(JAVA_IO_UNIX_FILE_SYSTEM_NAME, "getBooleanAttributes0", "(Ljava/io/File;)I", false, Native::Core::getBooleanAttributes0);
     }
 
     void registerAtomicCoreMethods(NativeManager &manager) {

@@ -19,7 +19,8 @@ namespace RexVM {
     cstring replace(cstring src, const cstring& search, const cstring& replace);
 
     cstring utf16ToUtf8(const char16_t *utf16, size_t utf16Size);
-    std::unique_ptr<char16_t[]> utf8ToUtf16(const char *utf8, size_t utf8Size);
+    std::vector<char16_t> utf8ToUtf16Vec(const char *utf8, size_t utf8Size);
+    size_t utf8Length(const cstring &str);
 }
 
 #endif

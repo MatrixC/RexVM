@@ -1,7 +1,9 @@
-#include "class_file_print.hpp"
+#include "print_helper.hpp"
 #include "class.hpp"
 #include "oop.hpp"
 #include "basic_type.hpp"
+#include "basic_java_class.hpp"
+#include "string_pool.hpp"
 
 namespace RexVM {
 
@@ -91,6 +93,31 @@ namespace RexVM {
         const auto arrayOop = CAST_OBJ_ARRAY_OOP(oop);
         cprintln("className :{}, dataLength: {}", clazz->name, arrayOop->dataLength); 
         cprintln("type: ObjArrayClass, elementClass: {}", clazz->elementClass->name);
+    }
+
+
+    cstring formatSlot(Slot val, SlotTypeEnum type) {
+        switch (type) {
+            case SlotTypeEnum::I4:
+                return cformat("I4({})", val.i4Val);
+            case SlotTypeEnum::I8:
+                return cformat("I8({})", val.i8Val);
+            case SlotTypeEnum::F4:
+                return cformat("F4({})", val.f4Val);
+            case SlotTypeEnum::F8:
+                return cformat("F8({})", val.f8Val);
+            case SlotTypeEnum::REF: {
+                const auto klass = val.refVal->klass;
+                if (klass->name == JAVA_LANG_STRING_NAME) {
+                    return cformat("String({})", StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal)));
+                } else {
+                    return cformat("ref class({})", val.refVal->klass->name);
+                }
+            }
+
+            default:
+                return cformat("None()", val.i8Val);
+        }
     }
 
 }

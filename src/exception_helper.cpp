@@ -33,4 +33,8 @@ namespace RexVM {
     void throwFileNotFoundException(Frame &frame, const cstring &message) {
         throwAssignException(frame, "java/io/FileNotFoundException", message);
     }
+
+    void throwIOException(Frame &frame, const cstring &message) {
+        throwAssignException(frame, "java/io/IOException", message);
+    }
 }

@@ -1,5 +1,5 @@
-#ifndef CLASS_FILE_PRINT_HPP
-#define CLASS_FILE_PRINT_HPP
+#ifndef PRINT_HELPER_HPP
+#define PRINT_HELPER_HPP
 
 #include "utils/format.hpp"
 #include "constant_info.hpp"
@@ -26,6 +26,8 @@ namespace RexVM {
     void pClass(Class *klass);
 
     void pObjArray(Oop *oop);
+
+    cstring formatSlot(Slot val, SlotTypeEnum type);
 
 }
 

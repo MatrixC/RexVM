@@ -104,6 +104,14 @@ namespace RexVM {
         }
 
         static bool printLog = false;
+
+        //CharsetDecoder replaceWith(String newReplacement)
+        if (method.name == "replaceWith") {
+            //printLog = true;
+            int i = 10;
+            (void)i;
+        }
+
         if (printLog) {
             cprintln(
                 "{}{}#{}:{} {}", 
@@ -114,6 +122,7 @@ namespace RexVM {
                 !notNativeMethod ? "[Native]" : ""
             );
         }
+
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;

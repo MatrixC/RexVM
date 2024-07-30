@@ -50,12 +50,13 @@ namespace RexVM {
     }
 
     InstanceOop *StringPool::createJavaString(const cstring &str) const {
-        const auto utf16Length = str.length();  //same as utf8
-        const auto utf16Ptr = utf8ToUtf16(str.c_str(), utf16Length);
+        const auto utf16Vec = utf8ToUtf16Vec(str.c_str(), str.size());
+        const auto utf16Ptr = utf16Vec.data();
+        const auto utf16Length = utf16Vec.size();
 
         const auto charArrayOop = vm.oopManager->newCharArrayOop(utf16Length);
         if (utf16Length > 0) [[likely]] {
-            std::memcpy(charArrayOop->data.get(), utf16Ptr.get(), sizeof(cchar_16) * utf16Length);
+            std::memcpy(charArrayOop->data.get(), utf16Ptr, sizeof(cchar_16) * utf16Length);
         }
         auto result = vm.oopManager->newInstance(stringClass);
         result->setFieldValue(stringClassValueFieldSlotId, Slot(charArrayOop));
@@ -95,14 +96,15 @@ namespace RexVM {
     }
 
     bool StringTable::find(Key key, Value &ret) {
-        const auto utf16Length = key.length(); //same as utf8
-        const auto utf16Ptr = utf8ToUtf16(key.c_str(), utf16Length);
+        const auto utf16Vec = utf8ToUtf16Vec(key.c_str(), key.size());
+        const auto utf16Ptr = utf16Vec.data();
+        const auto utf16Length = utf16Vec.size();
 
         const auto index = getKeyIndex(key);
         auto current = table[index];
         while (current != nullptr) {
             const auto oopVal = current->value;
-            if (StringPool::equalJavaString(oopVal, utf16Ptr.get(), utf16Length)) {
+            if (StringPool::equalJavaString(oopVal, utf16Ptr, utf16Length)) {
                 ret = oopVal;
                 return true;
             }

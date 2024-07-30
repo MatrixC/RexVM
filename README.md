@@ -1,21 +1,20 @@
 # RexVM
 
-[RexVM](https://github.com/MatrixC/RexVM) 一个基于解释器的Java虚拟机(JVM)，使用C++开发。
+[RexVM](https://github.com/MatrixC/RexVM) 一个基于解释器的初级Java虚拟机(JVM)，使用C++开发。
 
 ## 支持特性
-* 支持异常特性(Exception)，包括异常的throw，catch，通过fillInStackTrace爬栈等
-* 支持反射特性(Reflect)，包括类、字段、方法的Class、Field、Method对象获取以及反射执行函数等
-* 支持流处理特性(Java Stream)，包括Lambda表达式，MethodHandle特性以及invokeDynamic字节码指令
-* 支持动态创建Class，包括Proxy动态代理，ClassLoader#defineClass，Unsafe#defineClass等函数的支持
-* 支持注解(Annotation)，包括类，字段，方法上的各类Annotation获取
-* 支持多线程特性(Thread)，包括Thread#start，Thread#yield，Thread#sleep等线程函数以及Object#wait，Object#notify等同步函数
-* 支持绝大部分Unsafe函数，包括Direct Memory、CompareAndSwap相关函数，支持Atomic、ConcurrentHashMap等concurrent特性
-* 支持部分本地IO功能，包括FileInputStream，FileOutputStream
+* 异常(Exception)，包括异常的throw，catch，通过fillInStackTrace爬栈等
+* 反射(Reflect)，包括类、字段、方法的Class、Field、Method对象获取以及反射执行函数等
+* 流处理(Java Stream)，包括Lambda表达式，MethodHandle特性以及invokeDynamic字节码指令
+* 动态创建Class，包括Proxy动态代理，ClassLoader#defineClass，Unsafe#defineClass等函数的支持
+* 注解(Annotation)，包括类，字段，方法上的各类Annotation获取
+* 多线程(Thread)，包括Thread#start，Thread#yield，Thread#sleep等线程函数以及Object#wait，Object#notify等同步函数
+* 部分IO功能(IO)，FileInputStream，FileOutputStream
+* 绝大部分Unsafe函数，包括Direct Memory、CompareAndSwap相关函数，支持Atomic、ConcurrentHashMap等concurrent组件
 
 ## 计划支持的特性
 * Trace GC
-* 完整的本地IO
-* 网络能力支持
+* 加强文件、网络等IO能力
 
 ## 已测试的操作系统及编译环境
 * MacOS(Apple silicon) + clang(18.1.6)
@@ -110,5 +109,5 @@ rex Main
 * [fmtlib](https://github.com/fmtlib/fmt): 格式化输出库，用于格式化打印，代替std::cout，printf等
 
 ## 感谢
-* [wind_jvm](https://github.com/wind2412/wind_jvm): 感谢wind_jvm项目，让我了解了invokedynamic的原理以及很多native方法的实现
+* [wind_jvm](https://github.com/wind2412/wind_jvm): 感谢wind_jvm项目，帮我了解了invokedynamic的原理以及很多native方法的实现
 * [xmake](https://github.com/xmake-io/xmake): 感谢xmake提供了强大且简单易用的构建工具

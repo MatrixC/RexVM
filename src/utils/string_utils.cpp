@@ -105,11 +105,9 @@ namespace RexVM {
         return utf8;
     }
 
-    std::unique_ptr<char16_t[]> utf8ToUtf16(const char *utf8, size_t utf8Size) {
-        const auto utf16Size = utf8Size;
-        std::unique_ptr<char16_t[]> utf16Array = std::make_unique<char16_t[]>(utf16Size);
-        size_t utf16Index = 0;
-
+    std::vector<char16_t> utf8ToUtf16Vec(const char *utf8, size_t utf8Size) {
+        std::vector<char16_t> utf16Vec;
+        utf16Vec.reserve(utf8Size);
         for (size_t i = 0; i < utf8Size; ) {
             uint32_t codepoint;
             size_t extraBytesToRead = (uint8_t(utf8[i]) >> 3 == 0b11110) ? 3 :
@@ -130,14 +128,24 @@ namespace RexVM {
             }
 
             if (codepoint <= 0xFFFF) {
-                utf16Array[utf16Index++] = codepoint;
+                utf16Vec.emplace_back(codepoint);
             } else {
                 codepoint -= 0x10000;
-                utf16Array[utf16Index++] = CAST_CHAR_16_T((codepoint >> 10) + 0xD800);
-                utf16Array[utf16Index++] = CAST_CHAR_16_T((codepoint & 0x3FF) + 0xDC00);
+                utf16Vec.emplace_back(CAST_CHAR_16_T((codepoint >> 10) + 0xD800));
+                utf16Vec.emplace_back(CAST_CHAR_16_T((codepoint & 0x3FF) + 0xDC00));
             }
         }
 
-        return utf16Array;
+        return utf16Vec;
+    }
+
+    size_t utf8Length(const cstring &str) {
+        size_t len = 0;
+        for (size_t i = 0; i < str.size(); ++i) {
+            if ((str[i] & 0xC0) != 0x80) {
+                ++len;
+            }
+        }
+        return len;
     }
 }
