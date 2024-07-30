@@ -1,19 +1,13 @@
 #include "print_helper.hpp"
 #include "class.hpp"
+#include "class_loader.hpp"
 #include "oop.hpp"
+#include "frame.hpp"
 #include "basic_type.hpp"
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
 
 namespace RexVM {
-
-    void printAccessFlag(u2 accessFlag) {
-
-    }
-
-    void printBase(ClassFile &cf) {
-
-    }
 
     void printConstant(ClassFile &cf) {
         for (auto i = 0; i < cf.constantPoolCount; ++i) {
@@ -32,89 +26,101 @@ namespace RexVM {
         }
     }
 
-    void printCF(ClassFile &cf) {
-        printMethods(cf);
-    }
-
     void pClass(Class *klass) {
         switch (klass->type) {
             case ClassTypeEnum::PRIMITIVE_CLASS: {
                 const auto clazz = CAST_PRIMITIVE_CLASS(klass);
-                cprintln("className :{}", clazz->name);
-                cprintln("type: PrimitiveClass, basicType: {}", getPrimitiveClassNameByBasicType(clazz->basicType));
+                cprintln("PrimitiveClass({}): {}", getPrimitiveClassNameByBasicType(clazz->basicType), clazz->name);
                 break;
             }
 
             case ClassTypeEnum::INSTANCE_CLASS: {
                 const auto clazz = CAST_INSTANCE_CLASS(klass);
-                cprintln("className :{}", clazz->name);
-                cprintln("type: InstanceClass");
+                cprintln("InstanceClass: {}", clazz->name);
                 for (const auto& item : clazz->fields) {
-                    cprintln("field name: {}, descritpro: {}", item->name, item->descriptor);
+                    cprintln("Field: {}, descritpro: {}", item->name, item->descriptor);
                 }
                 cprintln("");
                 for (const auto &item : clazz->methods) {
-                    cprintln("method name: {}, descritpro: {}", item->name, item->descriptor);
+                    cprintln("Method: {}, descritpro: {}", item->name, item->descriptor);
                 }
                 cprintln("");
                 if (clazz->superClass != nullptr) {
-                    cprintln("superClass: {}", clazz->superClass->name);
+                    cprintln("SuperClass: {}", clazz->superClass->name);
                 }
-
                 cprintln("");
                 if (!clazz->interfaces.empty()) {
                     for (const auto &item : clazz->interfaces) {
-                        cprintln("interface: {}", item->name);
+                        cprintln("Interface: {}", item->name);
                     }
                 }
-                
-                cprintln("end");
                 break;
             }
 
             case ClassTypeEnum::TYPE_ARRAY_CLASS: {
                 const auto clazz = CAST_TYPE_ARRAY_CLASS(klass);
-                cprintln("className :{}", clazz->name);
-                cprintln("type: TypeArrayClass, basicType: {}", getPrimitiveClassNameByBasicType(clazz->elementType));
+                cprintln("TypeArrayClass({}): {}", getPrimitiveClassNameByBasicType(clazz->elementType), clazz->name);
                 break;
             }
 
             case ClassTypeEnum::OBJ_ARRAY_CLASS: {
                 const auto clazz = CAST_OBJ_ARRAY_CLASS(klass);
-                cprintln("className :{}", clazz->name); 
-                cprintln("type: ObjArrayClass, elementClass: {}", clazz->elementClass->name);
+                cprintln("TypeArrayClass({}): {}", clazz->elementClass->name, clazz->name);
                 break;
             }
         }
     }
 
-    void pObjArray(Oop *oop) {
+    void pObjArray(ref oop) {
         const auto clazz = CAST_OBJ_ARRAY_CLASS(oop->klass);
         const auto arrayOop = CAST_OBJ_ARRAY_OOP(oop);
         cprintln("className :{}, dataLength: {}", clazz->name, arrayOop->dataLength); 
         cprintln("type: ObjArrayClass, elementClass: {}", clazz->elementClass->name);
     }
 
+    cstring formatArray(Frame &frame, ref oop) {
+        const auto klass = oop->klass;
+        if (!klass->isArray()) {
+            panic("oop is not array type");
+        }
 
-    cstring formatSlot(Slot val, SlotTypeEnum type) {
+        const auto arraysClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Arrays");
+        const auto arrayClassName = 
+            klass->type == ClassTypeEnum::TYPE_ARRAY_CLASS ? 
+                cformat("({})Ljava/lang/String;", klass->name) :
+                "([Ljava/lang/Object;)Ljava/lang/String;";
+        const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);
+        auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
+        return "Array " + StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
+    }
+
+    cstring formatInstance(Frame &frame, InstanceOop *oop) {
+        const auto className = oop->klass->name;
+        const auto objectsClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Objects");
+        const auto toStringMethod = objectsClass->getMethod("toString", "(Ljava/lang/Object;)Ljava/lang/String;", true);
+        auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
+        return className + " " + StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
+    }
+
+    cstring formatSlot(Frame &frame, Slot val, SlotTypeEnum type) {
         switch (type) {
             case SlotTypeEnum::I4:
-                return cformat("I4({})", val.i4Val);
+                return cformat("I4 {}", val.i4Val);
             case SlotTypeEnum::I8:
-                return cformat("I8({})", val.i8Val);
+                return cformat("I8 {}", val.i8Val);
             case SlotTypeEnum::F4:
-                return cformat("F4({})", val.f4Val);
+                return cformat("F4 {}", val.f4Val);
             case SlotTypeEnum::F8:
-                return cformat("F8({})", val.f8Val);
+                return cformat("F8 {}", val.f8Val);
             case SlotTypeEnum::REF: {
-                const auto klass = val.refVal->klass;
-                if (klass->name == JAVA_LANG_STRING_NAME) {
-                    return cformat("String({})", StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal)));
+                const auto refVal = val.refVal;
+                const auto klass = refVal->klass;
+                if (klass->isArray()) {
+                    return formatArray(frame, refVal);
                 } else {
-                    return cformat("ref class({})", val.refVal->klass->name);
+                    return formatInstance(frame, CAST_INSTANCE_OOP(refVal));
                 }
             }
-
             default:
                 return cformat("None()", val.i8Val);
         }

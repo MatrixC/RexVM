@@ -98,7 +98,10 @@ namespace RexVM {
         }
     }
 
-    std::tuple<Slot, SlotTypeEnum> Frame::runMethodManualTypes(Method &runMethod, const std::vector<std::tuple<Slot, SlotTypeEnum>>& paramsWithType) {
+    std::tuple<Slot, SlotTypeEnum> Frame::runMethodManualTypes(
+        Method &runMethod, 
+        const std::vector<std::tuple<Slot, SlotTypeEnum>>& paramsWithType
+    ) {
         std::vector<Slot> params;
         params.reserve(paramsWithType.size());
         for (const auto &item : paramsWithType) {
@@ -357,33 +360,33 @@ namespace RexVM {
         return result;
     }
 
-    void Frame::printCallStack() const {
+    void Frame::printCallStack() {
         for (auto f = this; f != nullptr; f = f->previous) {
             const auto nativeMethod = method.isNative();
             cprintln("  {}#{}:{} {}", klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
         }
     }
 
-    void Frame::printLocalSlot() const {
+    void Frame::printLocalSlot() {
         for (size_t i = 0; i < localVariableTableSize; ++i) {
             const auto val = localVariableTable[i];
             const auto type = localVariableTableType[i];
-            const auto slotStr = formatSlot(val, type);
+            const auto slotStr = formatSlot(*this, val, type);
             cprintln("Local[{}]: {}", i, slotStr);
         }
     }
 
-    void Frame::printStackSlot() const {
+    void Frame::printStackSlot() {
         for (i4 offset = 0; offset <= operandStackContext.sp; ++offset) {
             const auto index = operandStackContext.sp - offset;
             const auto val = operandStackContext.memory[index];
             const auto valType = operandStackContext.memoryType[index];
-            const auto slotStr = formatSlot(val, valType);
+            const auto slotStr = formatSlot(*this, val, valType);
             cprintln("Stack[{}]: {}", offset, slotStr);
         }
     }
 
-    void Frame::print() const {
+    void Frame::print() {
         printLocalSlot();
         printStackSlot();
     }

@@ -13,21 +13,15 @@ namespace RexVM {
     struct ObjArrayOop;
     struct Oop;
 
-    void printAccessFlag(u2 accessFlag);
-
-    void printBase(ClassFile &cf);
-
     void printConstant(ClassFile &cf);
 
     void printMethods(ClassFile &cf);
-
-    void printCF(ClassFile &cf);
 
     void pClass(Class *klass);
 
     void pObjArray(Oop *oop);
 
-    cstring formatSlot(Slot val, SlotTypeEnum type);
+    cstring formatSlot(Frame &frame, Slot val, SlotTypeEnum type);
 
 }
 

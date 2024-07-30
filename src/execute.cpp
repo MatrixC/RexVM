@@ -106,7 +106,7 @@ namespace RexVM {
         static bool printLog = false;
 
         //CharsetDecoder replaceWith(String newReplacement)
-        if (method.name == "replaceWith") {
+        if (method.name == "kk2") {
             //printLog = true;
             int i = 10;
             (void)i;

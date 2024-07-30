@@ -132,10 +132,10 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *getThisInstance() const;
         [[nodiscard]] std::vector<Oop *> getLocalObjects() const;
   
-        void printCallStack() const;
-        void printLocalSlot() const;
-        void printStackSlot() const;
-        void print() const;
+        void printCallStack();
+        void printLocalSlot();
+        void printStackSlot();
+        void print();
     };
 
 }

@@ -93,7 +93,16 @@ namespace RexVM::Native::Core {
         bytePtr += off;
 
         const auto ret = ::read(fd, bytePtr, len);
-        frame.returnI4(ret);
+        if (ret == -1) {
+            throwIOException(frame, "read error");
+            return;
+        } else if (ret == 0) {
+            frame.returnI4(-1);
+            return;
+        } else {
+            frame.returnI4(CAST_I4(ret));
+            return;
+        }
     }
 
     //native int read0() throws IOException;
@@ -102,15 +111,14 @@ namespace RexVM::Native::Core {
         if (!inputCheckClosed(frame, self)) {
             return;
         }
-
         const auto fd = getFd(self);
 
         unsigned char buff;
-        const auto readSize = ::read(fd, &buff, 1);
-        if (readSize == -1) {
+        const auto ret = ::read(fd, &buff, 1);
+        if (ret == -1) {
             throwIOException(frame, "read error");
             return;
-        } else if (readSize == 0) {
+        } else if (ret == 0) {
             frame.returnI4(-1);
             return;
         } else {
