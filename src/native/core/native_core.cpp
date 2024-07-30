@@ -15,7 +15,9 @@
 #include "java_io_file_input_output_stream.hpp"
 #include "java_io_unix_file_system.hpp"
 #include "java_util_concurrent_atomic.hpp"
+#include "java_util_time_zone.hpp"
 #include "unsafe.hpp"
+#include "misc.hpp"
 #include "define_class.hpp"
 
 #include "java_lang_invoke_method_handle_natives.hpp"
@@ -28,6 +30,7 @@ namespace RexVM::Native::Core {
     constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
     constexpr auto JAVA_UTIL_CONCURRENT_ATOMIC_NAME = "java/util/concurrent/atomic/AtomicLong";
+    constexpr auto JAVA_UTIL_TIME_ZONE_NAME = "java/util/TimeZone";
     constexpr auto JAVA_SECURITY_ACCESS_CONTROLLER_NAME = "java/security/AccessController";
     constexpr auto JAVA_IO_FILE_INPUT_STREAM_NAME = "java/io/FileInputStream";
     constexpr auto JAVA_IO_FILE_OUTPUT_STREAM_NAME = "java/io/FileOutputStream";
@@ -261,6 +264,8 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_LANG_FLOAT_NAME, "intBitsToFloat", "(I)F", false, Native::Core::intBitsToFloat);
         manager.regNativeMethod(JAVA_LANG_DOUBLE_NAME, "doubleToRawLongBits", "(D)J", false, Native::Core::doubleToRawLongBits);
         manager.regNativeMethod(JAVA_LANG_DOUBLE_NAME, "longBitsToDouble", "(J)D", false, Native::Core::longBitsToDouble);
+
+        manager.regNativeMethod("java/lang/StrictMath", "log", "(D)D", false, Native::Core::_log);
     }
 
     void registerThrowableCoreMethods(NativeManager &manager) {
@@ -290,6 +295,11 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_UTIL_CONCURRENT_ATOMIC_NAME, "VMSupportsCS8", "()Z", false, Native::Core::vmSupportsCS8);
     }
 
+    void registerMiscCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_UTIL_TIME_ZONE_NAME, "getSystemTimeZoneID", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::Core::getSystemTimeZoneID);
+        manager.regNativeMethod("java/util/zip/CRC32", "updateBytes", "(I[BII)I", false, Native::Core::updateBytes);
+    }
+
     void registerCoreMethods(NativeManager &manager) {
         registerObjectCoreMethods(manager);
         registerStringCoreMethods(manager);
@@ -305,6 +315,7 @@ namespace RexVM::Native::Core {
         registerThrowableCoreMethods(manager);
         registerIOCoreMethods(manager);
         registerAtomicCoreMethods(manager);
+        registerMiscCoreMethods(manager);
     }
 
 }

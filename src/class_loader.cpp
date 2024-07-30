@@ -62,8 +62,7 @@ namespace RexVM {
     InstanceClass *ClassLoader::loadInstanceClass(const cstring &name) {
         auto streamPtr = classPath.getStream(name + ".class");
         if (streamPtr == nullptr) {
-            panic("Can't find class " + name);
-            //throw Class Not Found exception
+            return nullptr;
         }
         return loadInstanceClass(*streamPtr);
     }
@@ -157,11 +156,9 @@ namespace RexVM {
 
     ObjArrayClass *ClassLoader::getObjectArrayClass(const cstring &name) {
         const auto firstChar = name[0];
-        if (firstChar == '[') {
-            return CAST_OBJ_ARRAY_CLASS(getClass(name));
-        }
         const auto prefix = "[";
-        const auto arrayClassName = prefix + getDescriptorClassName(name);
+        const auto elementName = firstChar == '[' ? name : getDescriptorClassName(name);
+        const auto arrayClassName = prefix + elementName;
         return CAST_OBJ_ARRAY_CLASS(getClass(arrayClassName));
     }
 

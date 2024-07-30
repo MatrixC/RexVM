@@ -97,7 +97,7 @@ namespace RexVM::Native::Core {
 
                 case BasicType::T_LONG: {
                     const auto relSrc = CAST_LONG_TYPE_ARRAY_OOP(src);
-                    const auto relDest = CAST_INT_TYPE_ARRAY_OOP(dest);
+                    const auto relDest = CAST_LONG_TYPE_ARRAY_OOP(dest);
                     std::copy(relSrc->data.get() + srcPos, relSrc->data.get() + srcEndPos, relDest->data.get() + destPos);
                     break;
                 }

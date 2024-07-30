@@ -1,5 +1,6 @@
 #ifndef NATIVE_CORE_JAVA_LANG_FLOAT_HPP
 #define NATIVE_CORE_JAVA_LANG_FLOAT_HPP
+#include <cmath>
 #include "../../config.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
@@ -25,6 +26,12 @@ namespace RexVM::Native::Core {
     void longBitsToDouble(Frame &frame) {
         const auto value = frame.getLocalI8(0);
         frame.returnF8(std::bit_cast<f8>(value));
+    }
+
+    //static native double log(double a);
+    void _log(Frame &frame) {
+        const auto a = frame.getLocalF8(0);
+        frame.returnF8(std::log(a));
     }
 
 

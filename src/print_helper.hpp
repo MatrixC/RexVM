@@ -12,6 +12,7 @@ namespace RexVM {
     struct Class;
     struct ObjArrayOop;
     struct Oop;
+    struct InstanceOop;
 
     void printConstant(ClassFile &cf);
 
@@ -22,6 +23,8 @@ namespace RexVM {
     void pObjArray(Oop *oop);
 
     cstring formatSlot(Frame &frame, Slot val, SlotTypeEnum type);
+
+    void pio(Frame &frame, ref oop);
 
 }
 

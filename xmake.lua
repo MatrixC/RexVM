@@ -22,4 +22,4 @@ target("rex")
     set_warnings("all", "error")
 
     -- set_policy("build.sanitizer.address", true)
-    set_policy("build.sanitizer.undefined", true)
+    -- set_policy("build.sanitizer.undefined", true)

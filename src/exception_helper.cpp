@@ -37,4 +37,8 @@ namespace RexVM {
     void throwIOException(Frame &frame, const cstring &message) {
         throwAssignException(frame, "java/io/IOException", message);
     }
+
+    void throwClassNotFoundException(Frame &frame, const cstring &className) {
+        throwAssignException(frame, "java/lang/ClassNotFoundException", className);
+    }
 }

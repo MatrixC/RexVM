@@ -13,6 +13,8 @@ namespace RexVM {
     void throwFileNotFoundException(Frame &frame, const cstring &message);
 
     void throwIOException(Frame &frame, const cstring &message);
+
+    void throwClassNotFoundException(Frame &frame, const cstring &className);
 }
 
 #endif

@@ -49,6 +49,7 @@ namespace RexVM {
                 //TOP Frame
                 throwToTopFrame(frame, throwInstance);
                 frame.cleanThrow();
+                return true;
             } else {
                 previousFrame->passException(std::move(frame.throwObject));
                 return true;
@@ -106,10 +107,11 @@ namespace RexVM {
         static bool printLog = false;
 
         //CharsetDecoder replaceWith(String newReplacement)
-        if (method.name == "kk2") {
+        if (method.name == "error" && method.klass.name == "sun/reflect/generics/parser/SignatureParser") {
             //printLog = true;
             int i = 10;
             (void)i;
+            frame.print();
         }
 
         if (printLog) {

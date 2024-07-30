@@ -11,6 +11,7 @@
 #include "../../constant_info.hpp"
 #include "../../class_loader.hpp"
 #include "../../string_pool.hpp"
+#include "../../exception_helper.hpp"
 #include "../../utils/string_utils.hpp"
 #include "../../utils/class_utils.hpp"
 
@@ -42,6 +43,10 @@ namespace RexVM::Native::Core {
 
         const auto jvmClassName = getJVMClassName(className);
         const auto klass = frame.getCurrentClassLoader()->getClass(jvmClassName);
+        if (klass == nullptr) {
+            throwClassNotFoundException(frame, className);
+            return;
+        }
         if (initialize && klass->type == ClassTypeEnum::INSTANCE_CLASS) {
             CAST_INSTANCE_CLASS(klass)->clinit(frame);
         }
@@ -303,7 +308,9 @@ namespace RexVM::Native::Core {
             mirrorMethodInstance->setFieldValue("parameterTypes", "[Ljava/lang/Class;", Slot(paramClassesArrayOop));
             mirrorMethodInstance->setFieldValue("exceptionTypes", "[Ljava/lang/Class;", Slot(exceptionArrayOop));
             mirrorMethodInstance->setFieldValue("modifiers", "I", Slot(method->getModifier()));
-            mirrorMethodInstance->setFieldValue("signature", "Ljava/lang/String;", Slot(stringPool->getInternString(method->signature)));
+            if (!method->signature.empty()) {
+                mirrorMethodInstance->setFieldValue("signature", "Ljava/lang/String;", Slot(stringPool->getInternString(method->signature)));
+            }
 
             if (!isConstructor) {
                 mirrorMethodInstance->setFieldValue("name", "Ljava/lang/String;", Slot(stringPool->getInternString(method->name)));

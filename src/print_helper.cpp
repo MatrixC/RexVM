@@ -91,7 +91,8 @@ namespace RexVM {
                 "([Ljava/lang/Object;)Ljava/lang/String;";
         const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
-        return "Array " + StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
+        const auto ret = val.refVal == nullptr ? "null" : StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
+        return "Array " + ret;
     }
 
     cstring formatInstance(Frame &frame, InstanceOop *oop) {
@@ -99,7 +100,9 @@ namespace RexVM {
         const auto objectsClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Objects");
         const auto toStringMethod = objectsClass->getMethod("toString", "(Ljava/lang/Object;)Ljava/lang/String;", true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
-        return className + " " + StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
+        auto ret = val.refVal == nullptr ? "null" : StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
+        ret = ret.empty() ? "[EMPTY]" : ret;
+        return className + " " + ret;
     }
 
     cstring formatSlot(Frame &frame, Slot val, SlotTypeEnum type) {
@@ -114,6 +117,9 @@ namespace RexVM {
                 return cformat("F8 {}", val.f8Val);
             case SlotTypeEnum::REF: {
                 const auto refVal = val.refVal;
+                if (refVal == nullptr) {
+                    return "null";
+                }
                 const auto klass = refVal->klass;
                 if (klass->isArray()) {
                     return formatArray(frame, refVal);
@@ -124,6 +130,21 @@ namespace RexVM {
             default:
                 return cformat("None()", val.i8Val);
         }
+    }
+
+    void pio(Frame &frame, ref refOop) {
+        const auto oop = CAST_INSTANCE_OOP(refOop);
+        const auto klass = oop->getInstanceClass();
+        for (const auto &field : klass->fields) {
+            const auto fieldType = field->getFieldSlotType();
+            const auto fieldValue = 
+                field->isStatic() ?
+                klass->getFieldValue(field->slotId) :
+                oop->getFieldValue(field->slotId);
+            const auto formatValue = formatSlot(frame, fieldValue, fieldType);
+            cprintln("Field {}: {}", field->name, formatValue);
+        }
+
     }
 
 }

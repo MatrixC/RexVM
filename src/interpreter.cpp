@@ -544,11 +544,11 @@ namespace RexVM {
         }
 
         void ineg(Frame &frame) {
-            frame.pushI4(-frame.popI4());
+            frame.pushI4(CAST_I4(-CAST_U4(frame.popI4())));
         }
 
         void lneg(Frame &frame) {
-            frame.pushI8(-frame.popI8());
+            frame.pushI8(CAST_I8(-CAST_U8(frame.popI8())));
         }
 
         void fneg(Frame &frame) {
@@ -636,8 +636,6 @@ namespace RexVM {
             const auto val1 = frame.popI8();
             frame.pushI8(val1 ^ val2);
         }
-
-        //Mark
 
         void iinc(Frame &frame) {
             const auto index = frame.reader.readU1();
@@ -1179,6 +1177,7 @@ namespace RexVM {
             const auto length = frame.popI4();
             const auto &constantPool = frame.constantPool;
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, classIndex);
+            
             const auto array = frame.classLoader.getObjectArrayClass(className);
             frame.pushRef(oopManager->newObjArrayOop(array, length));
         }
