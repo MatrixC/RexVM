@@ -146,6 +146,9 @@ namespace RexVM::Native::Core {
         const auto &stringPool = frame.vm.stringPool;
         const auto utf8ConstString = stringPool->getInternString("UTF-8");
 
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.vm.name")), Slot(stringPool->getInternString("RexVM")) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.specification.version")), Slot(stringPool->getInternString("1.8")) });
+
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("file.encoding")), Slot(utf8ConstString) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.stdout.encoding")), Slot(utf8ConstString) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.stderr.encoding")), Slot(utf8ConstString) });

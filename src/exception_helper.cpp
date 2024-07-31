@@ -14,11 +14,20 @@ namespace RexVM {
         const auto instanceClass = frame.getCurrentClassLoader()->getInstanceClass(className);
         instanceClass->clinit(frame);
         const auto throwable = frame.vm.oopManager->newInstance(instanceClass);
-        if (message != EMPTY_STRING) {
-            const auto exceptionMessage = frame.vm.stringPool->getInternString("/ by zero");
-            throwable->setFieldValue(throwableClassDetailMessageFieldSlotId, Slot(exceptionMessage));
+        const auto hasMessage = !message.empty();
+        const auto initMethod = instanceClass->getMethod("<init>", hasMessage ? "(Ljava/lang/String;)V" : "()V", false);
+        std::vector<Slot> initParams;
+        initParams.reserve(2);
+        initParams.emplace_back(throwable);
+        if (hasMessage) {
+            initParams.emplace_back(frame.vm.stringPool->getInternString(message));
         }
+        frame.runMethodManual(*initMethod, initParams);
         frame.throwException(throwable);
+    }
+
+    void throwNullPointException(Frame &frame) {
+        throwAssignException(frame, "java/lang/NullPointerException", {});
     }
 
     void throwArithmeticExceptionDivByZero(Frame &frame) {

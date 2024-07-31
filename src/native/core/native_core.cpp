@@ -16,6 +16,7 @@
 #include "java_io_unix_file_system.hpp"
 #include "java_util_concurrent_atomic.hpp"
 #include "java_util_time_zone.hpp"
+#include "java_lang_package.hpp"
 #include "unsafe.hpp"
 #include "misc.hpp"
 #include "define_class.hpp"
@@ -29,6 +30,7 @@ namespace RexVM::Native::Core {
     constexpr auto JAVA_LANG_REFLECT_ARRAY_NAME = "java/lang/reflect/Array";
     constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
+    constexpr auto JAVA_LANG_PACKAGE_NAME = "java/lang/Package";
     constexpr auto JAVA_UTIL_CONCURRENT_ATOMIC_NAME = "java/util/concurrent/atomic/AtomicLong";
     constexpr auto JAVA_UTIL_TIME_ZONE_NAME = "java/util/TimeZone";
     constexpr auto JAVA_SECURITY_ACCESS_CONTROLLER_NAME = "java/security/AccessController";
@@ -295,6 +297,10 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_UTIL_CONCURRENT_ATOMIC_NAME, "VMSupportsCS8", "()Z", false, Native::Core::vmSupportsCS8);
     }
 
+    void registerPackageCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod(JAVA_LANG_PACKAGE_NAME, "getSystemPackage0", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::Core::getSystemPackage0);
+    }
+
     void registerMiscCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_UTIL_TIME_ZONE_NAME, "getSystemTimeZoneID", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::Core::getSystemTimeZoneID);
         manager.regNativeMethod("java/util/zip/CRC32", "updateBytes", "(I[BII)I", false, Native::Core::updateBytes);
@@ -315,6 +321,7 @@ namespace RexVM::Native::Core {
         registerThrowableCoreMethods(manager);
         registerIOCoreMethods(manager);
         registerAtomicCoreMethods(manager);
+        registerPackageCoreMethods(manager);
         registerMiscCoreMethods(manager);
     }
 

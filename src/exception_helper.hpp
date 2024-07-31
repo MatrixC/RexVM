@@ -8,6 +8,8 @@ namespace RexVM {
 
     void throwArithmeticExceptionDivByZero(Frame &frame);
 
+    void throwNullPointException(Frame &frame);
+
     void throwReflectiveOperationException(Frame &frame, const cstring &className, const cstring &methodName, const cstring &descriptor);
 
     void throwFileNotFoundException(Frame &frame, const cstring &message);

@@ -107,7 +107,7 @@ namespace RexVM {
         static bool printLog = false;
 
         //CharsetDecoder replaceWith(String newReplacement)
-        if (method.name == "error" && method.klass.name == "sun/reflect/generics/parser/SignatureParser") {
+        if (method.name == "<clinit>" && method.klass.name == "java/time/chrono/AbstractChronology") {
             //printLog = true;
             int i = 10;
             (void)i;

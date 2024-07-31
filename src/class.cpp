@@ -334,12 +334,14 @@ namespace RexVM {
         staticDataType = std::make_unique<SlotTypeEnum[]>(staticSlotCount);
         staticData = std::make_unique<Slot[]>(staticSlotCount);
 
-        for (const auto &field: fields) {
-            if (field->isStatic()) {
-                staticDataType[field->slotId] = field->getFieldSlotType();
-            } else {
-                instanceDataType[field->slotId] = field->getFieldSlotType();
-            }
+        for (auto klass = this; klass != nullptr; klass = klass->superClass) {
+            for (const auto &field: klass->fields) {
+                if (field->isStatic()) {
+                    staticDataType[field->slotId] = field->getFieldSlotType();
+                } else {
+                    instanceDataType[field->slotId] = field->getFieldSlotType();
+                }
+            } 
         }
     }
 

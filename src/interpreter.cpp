@@ -1068,6 +1068,10 @@ namespace RexVM {
 
             const auto invokeMethod = frame.klass.getRefMethod(index, false);
             const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
+            if (instance == nullptr) {
+                throwNullPointException(frame);
+                return;
+            }
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
             for (auto k = instanceClass; k != nullptr; k = k->superClass) {
                 const auto realInvokeMethod =
@@ -1119,6 +1123,10 @@ namespace RexVM {
 
             const auto invokeMethod = frame.klass.getRefMethod(index, false);
             const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
+            if (instance == nullptr) {
+                throwNullPointException(frame);
+                return;
+            }
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
             const auto realInvokeMethod = instanceClass->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
             if (realInvokeMethod != nullptr) {
@@ -1136,7 +1144,6 @@ namespace RexVM {
             frame.reader.readU2(); //ignore zero
 
             invokeDynamic(frame, index);
-
         }
 
         void new_(Frame &frame) {
