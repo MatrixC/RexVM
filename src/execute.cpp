@@ -116,6 +116,11 @@ namespace RexVM {
             );
         }
 
+        //com.alibaba.fastjson2.util.IOUtils#putLong
+        if (method.name == "putLong" && method.klass.name == "sun/misc/Unsafe") {
+            int i = 10;
+        }
+
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {

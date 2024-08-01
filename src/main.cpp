@@ -1,4 +1,5 @@
 #include "utils/format.hpp"
+#include "utils/string_utils.hpp"
 #include "vm.hpp"
 #include <vector>
 

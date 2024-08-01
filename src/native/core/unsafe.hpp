@@ -39,7 +39,25 @@ namespace RexVM::Native::Core {
     }
 
     void arrayIndexScale(Frame &frame) {
-        frame.returnI4(1);
+        const auto arrayClassOop = frame.getLocalRef(1);
+        if (arrayClassOop == nullptr) {
+            throwNullPointException(frame);
+            return;
+        }
+        if (arrayClassOop->klass->name != JAVA_LANG_CLASS_NAME) {
+            panic("not class");
+        }
+        const auto arrayClass = GET_MIRROR_INSTANCE_CLASS(arrayClassOop);
+        if (!arrayClass->isArray()) {
+            panic("is not array class");
+        }
+        if (arrayClass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
+            frame.returnI4(sizeof(ref));
+            return;
+        }
+        const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(arrayClass);
+        const auto type = typeArrayClass->elementType;
+        frame.returnI4(CAST_I4(getElementSizeByBasicType(type)));
     }
 
     void addressSize(Frame &frame) {
@@ -48,14 +66,14 @@ namespace RexVM::Native::Core {
 
     void objectFieldOffset(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto value = fieldMirror->getFieldValue("slot", "I").i4Val;
+        const auto value = fieldMirror->getFieldValue("slot", "I").i4Val * 8;
         frame.returnI8(value);
     }
 
     //native long staticFieldOffset(Field f);
     void staticFieldOffset(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto value = fieldMirror->getFieldValue("slot", "I").i4Val;
+        const auto value = fieldMirror->getFieldValue("slot", "I").i4Val * 8;
         //见unsafeCommon
         frame.returnI8(encodeStaticFieldOffset(value));
     }

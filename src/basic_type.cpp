@@ -204,4 +204,28 @@ namespace RexVM {
 
         return slotType;
     }
+
+    size_t getElementSizeByBasicType(BasicType type) {
+        switch (type) {
+            case BasicType::T_BOOLEAN:
+            case BasicType::T_BYTE:
+                return sizeof(u1);
+            case BasicType::T_CHAR:
+                return sizeof(cchar_16);
+            case BasicType::T_FLOAT:
+                return sizeof(f4);
+            case BasicType::T_DOUBLE:
+                return sizeof(f8);
+            case BasicType::T_SHORT:
+                return sizeof(i2);
+            case BasicType::T_INT:
+                return sizeof(i4);
+            case BasicType::T_LONG:
+                return sizeof(i8);
+            default:
+                panic("type error");
+                break;
+        }
+        return {};
+    }
 }

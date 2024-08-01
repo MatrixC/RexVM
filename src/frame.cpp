@@ -26,7 +26,8 @@ namespace RexVM {
 
     Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize) :
             previous(previousFrame),
-            localVariableTableSize(fixMethodParamSlotSize != 0 ? (fixMethodParamSlotSize + method.maxLocals) : (method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals)),
+            //非native函数直接取method.maxLocals native函数取method.paramSlotSize 如像MethodHandle#invoke一样的特殊函数取fixMethodParamSlotSize
+            localVariableTableSize(!method.isNative() ? method.maxLocals : std::max(method.paramSlotSize, fixMethodParamSlotSize)),
             localVariableTable(
                     previous == nullptr ?
                         thread.stackMemory.get() :
@@ -75,6 +76,7 @@ namespace RexVM {
         createFrameAndRunMethodNoPassParams(thread, runMethod, this, slotSize);
     }
 
+    //专门用于MethodHandle#invoke的调用 是一个不确定的paramSlotSize
     void Frame::runMethodInner(Method &runMethod, size_t popSlotSize) {
         if (popSlotSize > 0) {
             operandStackContext.pop(CAST_I4(popSlotSize));

@@ -41,6 +41,7 @@ namespace RexVM {
     bool isBasicType(cchar type);
     bool isWideBasicType(BasicType type);
     SlotTypeEnum getSlotTypeByPrimitiveClassName(const cstring &className);
+    size_t getElementSizeByBasicType(BasicType type);
 
 }
 

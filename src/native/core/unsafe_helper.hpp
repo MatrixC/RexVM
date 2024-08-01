@@ -11,169 +11,132 @@
 
 namespace RexVM::Native::Core {
 
-    template <typename T>
-    bool strongCompareAndSwap(T *src, T expect, T val) {
-        static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-        auto* atomSrc = reinterpret_cast<std::atomic<T>*>(src);
-        T temp = expect;
-        return std::atomic_compare_exchange_strong(atomSrc, &temp, val);
-    }
-
-    template <typename T>
-    bool simpleCompareAndSwap(T *src, T expect, T val) {
-        if (*src == expect) {
-            *src = val;
-            return true;
-        }
+    bool compareAndSwapAction(void *src, Slot expect, Slot val, SlotTypeEnum slotType) {
+        switch (slotType) {
+            case SlotTypeEnum::I4: {
+                const auto atomSrc = reinterpret_cast<std::atomic<i4>*>(src);
+                return std::atomic_compare_exchange_strong(atomSrc, &expect.i4Val, val.i4Val);
+            }
+            case SlotTypeEnum::I8: {
+                const auto atomSrc = reinterpret_cast<std::atomic<i8>*>(src);
+                return std::atomic_compare_exchange_strong(atomSrc, &expect.i8Val, val.i8Val);
+            }
+            case SlotTypeEnum::F4: {
+                const auto atomSrc = reinterpret_cast<std::atomic<f4>*>(src);
+                return std::atomic_compare_exchange_strong(atomSrc, &expect.f4Val, val.f4Val);
+            }
+            case SlotTypeEnum::F8: {
+                const auto atomSrc = reinterpret_cast<std::atomic<f8>*>(src);
+                return std::atomic_compare_exchange_strong(atomSrc, &expect.f8Val, val.f8Val);
+            }
+            case SlotTypeEnum::REF: {
+                const auto atomSrc = reinterpret_cast<std::atomic<ref>*>(src);
+                return std::atomic_compare_exchange_strong(atomSrc, &expect.refVal, val.refVal);
+            }
+            default:
+                panic("error slot type");
+        } 
         return false;
     }
 
-    template <typename T>
-    bool compareAndSwap(T *src, T expect, T val) {
-        return strongCompareAndSwap(src, expect, val);
-        //return simpleCompareAndSwap(src, expect, val);
+    void compareAndSwapAction(Frame &frame, void *dataPtr, Slot expected, Slot x, SlotTypeEnum slotType) {
+        frame.returnBoolean(compareAndSwapAction(dataPtr, expected, x, slotType));
     }
 
-    template<typename T>
-    T getObjectVolatileHelper(T *obj) {
-        std::atomic<T>& atomicObj = *reinterpret_cast<std::atomic<T>*>(obj);
-        return atomicObj.load(std::memory_order_acquire);
-    }
-
-    template<typename T>
-    void putObjectVolatileHelper(T *obj, T newValue) {
-        std::atomic<T>& atomicObj = *reinterpret_cast<std::atomic<T>*>(obj);
-        atomicObj.store(newValue, std::memory_order_release);
-    }
-
-    void compareAndSwapAction(Frame &frame, ref *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, expected.refVal, x.refVal));
-    }
-
-    void compareAndSwapAction(Frame &frame, u1 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, CAST_U1(expected.i4Val), CAST_U1(x.i4Val)));
-    }
-
-    void compareAndSwapAction(Frame &frame, cchar_16 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, CAST_CCHAR_16(expected.i4Val), CAST_CCHAR_16(x.i4Val)));
-    }
-
-    void compareAndSwapAction(Frame &frame, i2 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, CAST_I2(expected.i4Val), CAST_I2(x.i4Val)));
-    }
-
-    void compareAndSwapAction(Frame &frame, i4 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, expected.i4Val, x.i4Val));
-    }
-
-    void compareAndSwapAction(Frame &frame, i8 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, expected.i8Val, x.i8Val));
-    }
-
-    void compareAndSwapAction(Frame &frame, f4 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, expected.f4Val, x.f4Val));
-    }
-
-    void compareAndSwapAction(Frame &frame, f8 *dataPtr, Slot expected, Slot x) {
-        frame.returnBoolean(compareAndSwap(dataPtr, expected.f8Val, x.f8Val));
-    }
-
-    void putVolatileAction(Frame &frame, ref *obj) {
+    void putVolatileAction(Frame &frame, void *dataPtr, SlotTypeEnum slotType) {
         const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, x.refVal);
+        switch (slotType) {
+            case SlotTypeEnum::I4:
+                (reinterpret_cast<std::atomic<i4>*>(dataPtr))->store(x.i4Val, std::memory_order_release);
+                break;
+            case SlotTypeEnum::I8:
+                (reinterpret_cast<std::atomic<i8>*>(dataPtr))->store(x.i8Val, std::memory_order_release);
+                break;
+            case SlotTypeEnum::F4:
+                (reinterpret_cast<std::atomic<f4>*>(dataPtr))->store(x.f4Val, std::memory_order_release);
+                break;
+            case SlotTypeEnum::F8:
+                (reinterpret_cast<std::atomic<f8>*>(dataPtr))->store(x.f8Val, std::memory_order_release);
+                break;
+            case SlotTypeEnum::REF:
+                (reinterpret_cast<std::atomic<ref>*>(dataPtr))->store(x.refVal, std::memory_order_release);
+                break;
+            default:
+                panic("error slot type");
+        }
     }
 
-    void putVolatileAction(Frame &frame, u1 *obj) {
+    void putAction(Frame &frame, void *dataPtr, SlotTypeEnum slotType) {
         const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, CAST_U1(x.i4Val));
+        switch (slotType) {
+            case SlotTypeEnum::I4:
+                std::memcpy(dataPtr, &x.i4Val, sizeof(x.i4Val));
+                break;
+            case SlotTypeEnum::I8:
+                std::memcpy(dataPtr, &x.i8Val, sizeof(x.i8Val));
+                break;
+            case SlotTypeEnum::F4:
+                std::memcpy(dataPtr, &x.f4Val, sizeof(x.f4Val));
+                break;
+            case SlotTypeEnum::F8:
+                std::memcpy(dataPtr, &x.f8Val, sizeof(x.f8Val));
+                break;
+            case SlotTypeEnum::REF:
+                std::memcpy(dataPtr, &x.refVal, sizeof(x.refVal));
+                break;
+            default:
+                panic("error slot type");
+        }
     }
 
-    void putVolatileAction(Frame &frame, cchar_16 *obj) {
-        const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, CAST_CCHAR_16(x.i4Val));
+    void getVolatileAction(Frame &frame, void *dataPtr, SlotTypeEnum slotType) {
+        switch (slotType) {
+            case SlotTypeEnum::I4:
+                frame.returnSlot(Slot((reinterpret_cast<std::atomic<i4>*>(dataPtr))->load(std::memory_order_acquire)), slotType);
+                break;
+            case SlotTypeEnum::I8:
+                frame.returnSlot(Slot((reinterpret_cast<std::atomic<i8>*>(dataPtr))->load(std::memory_order_acquire)), slotType);
+                break;
+            case SlotTypeEnum::F4:
+                frame.returnSlot(Slot((reinterpret_cast<std::atomic<f4>*>(dataPtr))->load(std::memory_order_acquire)), slotType);
+                break;
+            case SlotTypeEnum::F8:
+                frame.returnSlot(Slot((reinterpret_cast<std::atomic<f8>*>(dataPtr))->load(std::memory_order_acquire)), slotType);
+                break;
+            case SlotTypeEnum::REF:
+                frame.returnSlot(Slot((reinterpret_cast<std::atomic<ref>*>(dataPtr))->load(std::memory_order_acquire)), slotType);
+                break;
+            default:
+                panic("error slot type");
+        }
     }
 
-    void putVolatileAction(Frame &frame, i2 *obj) {
-        const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, CAST_I2(x.i4Val));
+    void getAction(Frame &frame, void *dataPtr, SlotTypeEnum slotType) {
+        switch (slotType) {
+            case SlotTypeEnum::I4:
+                frame.returnSlot(Slot(* CAST_I4_PTR(dataPtr)), slotType);
+                break;
+            case SlotTypeEnum::I8:
+                frame.returnSlot(Slot(* CAST_I8_PTR(dataPtr)), slotType);
+                break;
+            case SlotTypeEnum::F4:
+                frame.returnSlot(Slot(* CAST_F4_PTR(dataPtr)), slotType);
+                break;
+            case SlotTypeEnum::F8:
+                frame.returnSlot(Slot(* CAST_F8_PTR(dataPtr)), slotType);
+                break;
+            case SlotTypeEnum::REF:
+                frame.returnSlot(Slot(* CAST_REF_PTR(dataPtr)), slotType);
+                break;
+            default:
+                panic("error slot type");
+        }
     }
 
-    void putVolatileAction(Frame &frame, i4 *obj) {
-        const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, x.i4Val);
-    }
-
-    void putVolatileAction(Frame &frame, i8 *obj) {
-        const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, x.i8Val);
-    }
-
-    void putVolatileAction(Frame &frame, f4 *obj) {
-        const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, x.f4Val);
-    }
-
-    void putVolatileAction(Frame &frame, f8 *obj) {
-        const auto x = frame.getLocal(4);
-        putObjectVolatileHelper(obj, x.f8Val);
-    }
-
-    void putAction(Frame &frame, ref *obj) {
-        const auto x = frame.getLocal(4);
-        *obj = x.refVal;
-    }
-
-    void putAction(Frame &frame, u1 *obj) {
-        const auto x = frame.getLocal(4);
-        *obj = CAST_U1(x.i4Val);
-    }
-
-    void putAction(Frame &frame, cchar_16 *obj) {
-        const auto x = frame.getLocal(4);
-        *obj = CAST_CCHAR_16(x.i4Val);
-    }
-
-    void putAction(Frame &frame, i2 *obj) {
-        const auto x = frame.getLocal(4);
-        *obj = CAST_I2(x.i4Val);
-    }
-
-    void putAction(Frame &frame, i4 *obj) {
-        const auto x = frame.getLocal(4);
-        *obj = x.i4Val;
-    }
-
-    void putAction(Frame &frame, i8 *obj) {
-        const auto x = frame.getLocal(4);
-        *obj = x.i8Val;
-    }
-
-    void putAction(Frame &frame, f4 *obj) {
-        const auto x = frame.getLocal(4);
-        *obj = x.f4Val;
-    }
-
-    void putAction(Frame &frame, f8 *obj) {
-        const auto x = frame.getLocal(4);
-        *obj = x.f8Val;
-    }
-
-    template<typename T>
-    void getVolatileAction(Frame &frame, T *dataPtr, SlotTypeEnum type) {
-        frame.returnSlot(Slot(getObjectVolatileHelper(dataPtr)), type);
-    }
-
-    template<typename T>
-    void getAction(Frame &frame, T *dataPtr, SlotTypeEnum type) {
-        frame.returnSlot(Slot(*dataPtr), type);
-    }
-
-    template<typename T>
-    void setMemoryAction(Frame &frame, T *dataPtr) {
+    void setMemoryAction(Frame &frame, void *dataPtr) {
         const auto bytes = CAST_SIZE_T(frame.getLocalI8(4));
         const auto value = CAST_U1(frame.getLocalI4(6));
-        const auto rawPtr = reinterpret_cast<void *>(dataPtr);
-        std::memset(rawPtr, value, bytes);
+        std::memset(dataPtr, value, bytes);
     }
 
     enum class UnsafeActionTypeEnum {
@@ -185,15 +148,7 @@ namespace RexVM::Native::Core {
         SET_MEMORY,
     };
 
-    template<typename T>
-    concept StreamByteType = std::is_same_v<T, u1> || std::is_same_v<T, u2> ||
-                             std::is_same_v<T, u4> || std::is_same_v<T, u8> ||
-                             std::is_same_v<T, i1> || std::is_same_v<T, i2> ||
-                             std::is_same_v<T, i4> || std::is_same_v<T, i8> ||
-                             std::is_same_v<T, f4> || std::is_same_v<T, f8> ||
-                             std::is_same_v<T, ref>|| std::is_same_v<T, cchar_16>;
-    template<StreamByteType T>
-    void actionSwitch(Frame &frame, UnsafeActionTypeEnum actionType, T *dataPtr, SlotTypeEnum slotType) {
+    void actionSwitch(Frame &frame, UnsafeActionTypeEnum actionType, void *dataPtr, SlotTypeEnum slotType) {
         switch (actionType) {
             case UnsafeActionTypeEnum::COMPARE_AND_SWAP: {
                 const auto expected = frame.getLocal(4);
@@ -201,32 +156,27 @@ namespace RexVM::Native::Core {
                     (slotType == SlotTypeEnum::I8 || slotType == SlotTypeEnum::F8) ?
                              frame.getLocal(6) : 
                              frame.getLocal(5);
-                compareAndSwapAction(frame, dataPtr, expected, x);
+                compareAndSwapAction(frame, (void *)dataPtr, expected, x, slotType);
                 break;
             }
-
             case UnsafeActionTypeEnum::GET_VOLATILE: {
-                getVolatileAction(frame, dataPtr, slotType);
+                getVolatileAction(frame, (void *)dataPtr, slotType);
                 break;
             }
-
             case UnsafeActionTypeEnum::PUT_VOLATILE: {
-                putVolatileAction(frame, dataPtr);
+                putVolatileAction(frame, (void *)dataPtr, slotType);
                 break;
             }
-
             case UnsafeActionTypeEnum::GET: {
-                getAction(frame, dataPtr, slotType);
+                getAction(frame, (void *)dataPtr, slotType);
                 break;
             }
-
             case UnsafeActionTypeEnum::PUT: {
-                putAction(frame, dataPtr);
+                putAction(frame, (void *)dataPtr, slotType);
                 break;
             }
-
             case UnsafeActionTypeEnum::SET_MEMORY:
-                setMemoryAction(frame, dataPtr);
+                setMemoryAction(frame, (void *)dataPtr);
                 break;
         }
     }
@@ -249,141 +199,57 @@ namespace RexVM::Native::Core {
         //为了区分普通offset和static字段的offset, 在生成offset的时候做了一些区分, 静态offset用负数表示
         auto obj = frame.getLocalRef(1);
         auto offset = frame.getLocalI8(2);
+        u1 *dataPtr;
         if (obj == nullptr) {
             if (actionType != UnsafeActionTypeEnum::SET_MEMORY) {
                 panic("error object");
             }
-            //offset就是address 转换成i4 *是为了适配泛型方法
-            const auto dataPtr = reinterpret_cast<i4 *>(std::bit_cast<void *>(offset));
-            actionSwitch(frame, actionType, dataPtr, slotType);
-            return;
-        }
-        
-        if (isStaticFieldOffset(offset)) {
+            dataPtr = CAST_U1_PTR(std::bit_cast<void *>(offset));
+        } else if (isStaticFieldOffset(offset)) {
             offset = decodeStaticFieldOffset(offset);
             if (obj->klass->name != JAVA_LANG_CLASS_NAME) {
                 panic("error object");
             }
             const auto mirrorClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(obj)->mirrorClass);
-            auto dataPtr = mirrorClass->staticData.get();
-            auto dataType = mirrorClass->staticDataType[offset];
-            dataPtr += offset;
-            //一定要区分到具体的指针类型 不要用Slot指针 Slot之间的比较是不准确的
-            //比如两个i4的Slot 有可能前4字节都是0 后4字节不是 所以会导致他们两个不相等
-            //但逻辑上他们是相等的 对CAS方法有很大影响
-            switch (dataType) {
-                case SlotTypeEnum::I4:
-                    actionSwitch(frame, actionType, &dataPtr->i4Val, slotType);
-                    break;
-                case SlotTypeEnum::F4:
-                    actionSwitch(frame, actionType, &dataPtr->f4Val, slotType);
-                    break;
-                case SlotTypeEnum::I8:
-                    actionSwitch(frame, actionType, &dataPtr->i8Val, slotType);
-                    break;
-                case SlotTypeEnum::F8:
-                    actionSwitch(frame, actionType, &dataPtr->f8Val, slotType);
-                    break;
-                case SlotTypeEnum::REF:
-                    actionSwitch(frame, actionType, &dataPtr->refVal, slotType);
-                    break;
-                default:
-                    panic("error type");
-                    break;
-            }
-            return;
-        }
-
-        if (obj->type == OopTypeEnum::INSTANCE_OOP) {
+            dataPtr = CAST_U1_PTR(mirrorClass->staticData.get());
+        } else if (obj->type == OopTypeEnum::INSTANCE_OOP) {
             const auto instanceObj = CAST_INSTANCE_OOP(obj);
-            auto dataPtr = instanceObj->data.get();
-            auto dataType = instanceObj->getInstanceClass()->instanceDataType[offset];
-            dataPtr += offset;
-            switch (dataType) {
-                case SlotTypeEnum::I4:
-                    actionSwitch(frame, actionType, &dataPtr->i4Val, slotType);
-                    break;
-                case SlotTypeEnum::F4:
-                    actionSwitch(frame, actionType, &dataPtr->f4Val, slotType);
-                    break;
-                case SlotTypeEnum::I8:
-                    actionSwitch(frame, actionType, &dataPtr->i8Val, slotType);
-                    break;
-                case SlotTypeEnum::F8:
-                    actionSwitch(frame, actionType, &dataPtr->f8Val, slotType);
-                    break;
-                case SlotTypeEnum::REF:
-                    actionSwitch(frame, actionType, &dataPtr->refVal, slotType);
-                    break;
-                default:
-                    panic("error type");
-                    break;
-            }
-            return;
+            dataPtr = CAST_U1_PTR(instanceObj->data.get());
         } else if (obj->type == OopTypeEnum::OBJ_ARRAY_OOP) {
             const auto arrayObj = CAST_OBJ_ARRAY_OOP(obj);
-            auto dataPtr = arrayObj->data.get();
-            dataPtr += offset;
-            actionSwitch(frame, actionType, dataPtr, slotType);
-            return;
+            dataPtr = CAST_U1_PTR(arrayObj->data.get());
         } else {
             const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(obj->klass);
             const auto basicType = getBasicTypeByTypeArrayClassName(typeArrayClass->name);
             switch (basicType) {
                 case BasicType::T_BOOLEAN:
-                case BasicType::T_BYTE: {
-                    const auto arrayObj = CAST_BYTE_TYPE_ARRAY_OOP(obj);
-                    auto dataPtr = arrayObj->data.get();
-                    dataPtr += offset;
-                    actionSwitch(frame, actionType, dataPtr, slotType);
-                    return;
-                }
-                case BasicType::T_CHAR: {
-                    const auto arrayObj = CAST_CHAR_TYPE_ARRAY_OOP(obj);
-                    auto dataPtr = arrayObj->data.get();
-                    dataPtr += offset;
-                    actionSwitch(frame, actionType, dataPtr, slotType);
-                    return;
-                }
-                case BasicType::T_SHORT: {
-                    const auto arrayObj = CAST_SHORT_TYPE_ARRAY_OOP(obj);
-                    auto dataPtr = arrayObj->data.get();
-                    dataPtr += offset;
-                    actionSwitch(frame, actionType, dataPtr, slotType);
-                    return;
-                }
-                case BasicType::T_INT: {
-                    const auto arrayObj = CAST_INT_TYPE_ARRAY_OOP(obj);
-                    auto dataPtr = arrayObj->data.get();
-                    dataPtr += offset;
-                    actionSwitch(frame, actionType, dataPtr, slotType);
-                    return;
-                }
-                case BasicType::T_FLOAT: {
-                    const auto arrayObj = CAST_FLOAT_TYPE_ARRAY_OOP(obj);
-                    auto dataPtr = arrayObj->data.get();
-                    dataPtr += offset;
-                    actionSwitch(frame, actionType, dataPtr, slotType);
-                    return;
-                }
-                case BasicType::T_LONG: {
-                    const auto arrayObj = CAST_LONG_TYPE_ARRAY_OOP(obj);
-                    auto dataPtr = arrayObj->data.get();
-                    dataPtr += offset;
-                    actionSwitch(frame, actionType, dataPtr, slotType);
-                    return;
-                }
-                case BasicType::T_DOUBLE: {
-                    const auto arrayObj = CAST_DOUBLE_TYPE_ARRAY_OOP(obj);
-                    auto dataPtr = arrayObj->data.get();
-                    dataPtr += offset;
-                    actionSwitch(frame, actionType, dataPtr, slotType);
-                    return;
-                }
+                case BasicType::T_BYTE:
+                    dataPtr = CAST_U1_PTR(CAST_BYTE_TYPE_ARRAY_OOP(obj)->data.get());
+                    break;
+                case BasicType::T_CHAR:
+                    dataPtr = CAST_U1_PTR(CAST_CHAR_TYPE_ARRAY_OOP(obj)->data.get());
+                    break;
+                case BasicType::T_SHORT:
+                    dataPtr = CAST_U1_PTR(CAST_SHORT_TYPE_ARRAY_OOP(obj)->data.get());
+                    break;
+                case BasicType::T_INT:
+                    dataPtr = CAST_U1_PTR(CAST_INT_TYPE_ARRAY_OOP(obj)->data.get());
+                    break;
+                case BasicType::T_FLOAT:
+                    dataPtr = CAST_U1_PTR(CAST_FLOAT_TYPE_ARRAY_OOP(obj)->data.get());
+                    break;
+                case BasicType::T_LONG:
+                    dataPtr = CAST_U1_PTR(CAST_LONG_TYPE_ARRAY_OOP(obj)->data.get());
+                    break;
+                case BasicType::T_DOUBLE:
+                    dataPtr = CAST_U1_PTR(CAST_DOUBLE_TYPE_ARRAY_OOP(obj)->data.get());
+                    break;
                 default:
                     panic("unsafCommon error");
             }
         }
+        dataPtr += offset;
+        actionSwitch(frame, actionType, CAST_VOID_PTR(dataPtr), slotType);
     }
 
 }

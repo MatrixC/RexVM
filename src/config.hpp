@@ -30,7 +30,7 @@ namespace RexVM {
     using cview = std::string_view;
     using ustring = std::u16string;
 
-    union Slot {
+    union alignas(8) Slot {
         i4 i4Val{0};
         i8 i8Val;
         f4 f4Val;
