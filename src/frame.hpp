@@ -56,6 +56,7 @@ namespace RexVM {
         //std::unique_ptr<FrameThrowable> throwObject;
         InstanceOop *throwObject{nullptr};
 
+        explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize);
         explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame);
         ~Frame();
 

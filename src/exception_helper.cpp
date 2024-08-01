@@ -35,7 +35,7 @@ namespace RexVM {
     }
 
     void throwReflectiveOperationException(Frame &frame, const cstring &className, const cstring &methodName, const cstring &descriptor) {
-        const auto message = "java.lang.NoSuchMethodException: no such method: " + getJavaClassName(className) + "." + methodName + descriptor;
+        const auto message = "java.lang.NoSuchMethodException: no such method: " + getJavaClassName(className) + "." + methodName + "#" + descriptor;
         throwAssignException(frame, "java/lang/NoSuchMethodException", message);
     }
 

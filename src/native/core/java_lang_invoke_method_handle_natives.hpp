@@ -30,7 +30,8 @@ namespace RexVM::Native::Core {
         i4,
         MethodHandleEnum,
         bool,
-        cstring> methodHandleGetFieldFromMemberName(InstanceOop *memberName) {
+        cstring
+    > methodHandleGetFieldFromMemberName(InstanceOop *memberName) {
         const auto klass = GET_MIRROR_INSTANCE_CLASS(memberName->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
         const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberName->getFieldValue("name", "Ljava/lang/String;").refVal));
         const auto type = CAST_INSTANCE_OOP(memberName->getFieldValue("type", "Ljava/lang/Object;").refVal);
@@ -39,46 +40,6 @@ namespace RexVM::Native::Core {
         const auto isStatic = kind == MethodHandleEnum::REF_invokeStatic;
         const auto descriptor = methodHandleGetDescriptor(klass, type, name);
         return std::make_tuple(klass, name, type, flags, kind, isStatic, descriptor);
-    }
-
-    void methodHandlerResolve(Frame &frame) {
-        const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
-        if (memberNameOop == nullptr) {
-            panic("can't be nullptr error throws");
-            return;
-        }
-        auto &classLoader = *frame.getCurrentClassLoader();
-
-        auto clazz = GET_MIRROR_CLASS(memberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
-        const auto type = CAST_INSTANCE_OOP(memberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto flags = memberNameOop->getFieldValue("flags", "I").i4Val;
-        const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
-
-        if (clazz == nullptr) {
-            panic("resolve error");
-        } else if (clazz->type == ClassTypeEnum::TYPE_ARRAY_CLASS || clazz->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
-            clazz = classLoader.getClass(JAVA_LANG_OBJECT_NAME);
-        }
-        const auto instanceClass = CAST_INSTANCE_CLASS(clazz);
-        const auto descriptor = methodHandleGetDescriptor(clazz, type, name);
-        const auto isStatic = isStaticMethodHandleType(kind);
-        if ((flags & MN_IS_METHOD) || (flags & MN_IS_CONSTRUCTOR)) {
-            const auto resolveMethod = instanceClass->getMethod(name, descriptor, isStatic);
-            if (resolveMethod == nullptr) {
-                throwReflectiveOperationException(frame, instanceClass->name, name, descriptor);
-                return;
-            }
-            const auto newFlags = flags | CAST_I4(resolveMethod->accessFlags);
-            setMemberNameClazzAndFlags(memberNameOop, resolveMethod->klass.getMirrorOop(), newFlags);
-        } else if (flags & MN_IS_FIELD) {
-            const auto resolveField = instanceClass->getField(name, descriptor, isStatic);
-            const auto newFlags = flags | CAST_I4(resolveField->accessFlags);
-            setMemberNameClazzAndFlags(memberNameOop, resolveField->klass.getMirrorOop(), newFlags);
-        } else if (flags & MN_IS_TYPE) {
-            panic("error");
-        }
-        frame.returnRef(memberNameOop);
     }
 
     void methodHandlerInit(Frame &frame) {
@@ -120,17 +81,52 @@ namespace RexVM::Native::Core {
         //cacheMemberName(memberNameOop);
     }
 
-    void methodHandleObjectFieldOffset(Frame &frame) {
+    void methodHandlerResolve(Frame &frame) {
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
-        auto [klass, name, type, flags, kind, isStatic, descriptor] = methodHandleGetFieldFromMemberName(memberNameOop);
-        const auto typeClass = GET_MIRROR_INSTANCE_CLASS(type);
-        const auto field = klass->getField(name, getDescriptorByClass(typeClass), isStatic);
-        frame.returnI8(field->slotId);
+        if (memberNameOop == nullptr) {
+            panic("can't be nullptr error throws");
+            return;
+        }
+        auto &classLoader = *frame.getCurrentClassLoader();
+
+        auto clazz = GET_MIRROR_CLASS(memberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
+        const auto type = CAST_INSTANCE_OOP(memberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
+        const auto flags = memberNameOop->getFieldValue("flags", "I").i4Val;
+        const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
+
+        if (clazz == nullptr) {
+            panic("resolve error");
+        } else if (clazz->type == ClassTypeEnum::TYPE_ARRAY_CLASS || clazz->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
+            clazz = classLoader.getClass(JAVA_LANG_OBJECT_NAME);
+        }
+        const auto instanceClass = CAST_INSTANCE_CLASS(clazz);
+        const auto descriptor = methodHandleGetDescriptor(clazz, type, name);
+        const auto isStatic = isStaticMethodHandleType(kind);
+        if ((flags & MN_IS_METHOD) || (flags & MN_IS_CONSTRUCTOR)) {
+            if (kind == MethodHandleEnum::REF_invokeInterface && !instanceClass->isInterface()) {
+                throwAssignException(frame, "java/lang/IncompatibleClassChangeError", "Found class " + instanceClass->name + " but interface was expected");
+                return;
+            }
+
+            const auto resolveMethod = instanceClass->getMethod(name, descriptor, isStatic);
+            if (resolveMethod == nullptr) {
+                throwReflectiveOperationException(frame, instanceClass->name, name, descriptor);
+                return;
+            }
+            const auto newFlags = flags | CAST_I4(resolveMethod->accessFlags);
+            setMemberNameClazzAndFlags(memberNameOop, resolveMethod->klass.getMirrorOop(), newFlags);
+        } else if (flags & MN_IS_FIELD) {
+            const auto resolveField = instanceClass->getField(name, descriptor, isStatic);
+            const auto newFlags = flags | CAST_I4(resolveField->accessFlags);
+            setMemberNameClazzAndFlags(memberNameOop, resolveField->klass.getMirrorOop(), newFlags);
+        } else if (flags & MN_IS_TYPE) {
+            panic("error");
+        }
+        frame.returnRef(memberNameOop);
     }
 
-    void methodHandleGetMembers(Frame &frame) {
-        frame.returnI4(50);
-    }
+
 
 
     std::tuple<InstanceOop *, bool> methodHandleGetMemberName(Frame &frame, InstanceOop *self, std::vector<Slot> &prefixParam) {
@@ -166,7 +162,9 @@ namespace RexVM::Native::Core {
             for (size_t i = 0; i < passParams->dataLength; ++i) {
                 prefixParam.emplace_back(passParams->data[i]);
             }
-        } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle") {
+        } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle"
+                || className == "java/lang/invoke/MethodHandleImpl$WrappedMember"
+                || className == "java/lang/invoke/MethodHandleImpl$AsVarargsCollector") {
             const auto directMethodHandle = CAST_INSTANCE_OOP(self->getFieldValue("target", "Ljava/lang/invoke/MethodHandle;").refVal);
             memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
         } else {
@@ -229,6 +227,33 @@ namespace RexVM::Native::Core {
             } else {
                 panic("error");
             }
+        }
+    }
+
+    //处理像java.lang.invoke.LambdaMetafactory#altMetafactory这样最后一个参数是Object[]的情况
+    //在它被调用是通过 bootstrapMethod.invoke(caller, name, type, argv[0], argv[1], argv[2], argv[3], argv[4]);
+    //这种方式调用的 所以要自动把最后几个参数折叠到Object[]...
+    void methodHandleProcessMethodObjectArrayParam(Frame &frame, Method *methodPtr, std::vector<Slot> &params) {
+        if (methodPtr->paramSlotSize == params.size()) {
+            return;
+        } else if (methodPtr->paramSlotSize > params.size()) {
+            panic("params length error");
+        }
+
+        const auto lastParamType = methodPtr->paramType.back();
+
+        if (lastParamType == "[Ljava/lang/Object;") {
+            //最后一个参数是数组
+            const auto foldParamSize = params.size() - methodPtr->paramSlotSize + 1;
+            const auto arrayOop = frame.vm.oopManager->newObjectObjArrayOop(foldParamSize);
+            for (size_t i = 0; i < foldParamSize; ++i) {
+                arrayOop->data[i] = params[methodPtr->paramSlotSize - 1 + i].refVal;
+            }
+            //删除要被折叠的元素
+            params.erase(params.end() - foldParamSize, params.end());
+            params.emplace_back(Slot(arrayOop));
+        } else {
+            panic("params type error");
         }
     }
 
@@ -326,6 +351,8 @@ namespace RexVM::Native::Core {
             methodHandleInvokeBoxOrUnBox(frame, val, slotType, methodPtr, methodIndex, params);
         }
 
+        methodHandleProcessMethodObjectArrayParam(frame, methodPtr, params);
+
         const auto [result, slotType] = frame.runMethodManual(*methodPtr, params);
         if (frame.markThrow) {
             return;
@@ -346,6 +373,18 @@ namespace RexVM::Native::Core {
 
     void methodHandlerGetConstant(Frame &frame) {
         frame.returnI4(0);
+    }
+
+    void methodHandleGetMembers(Frame &frame) {
+        frame.returnI4(50);
+    }
+
+    void methodHandleObjectFieldOffset(Frame &frame) {
+        const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        auto [klass, name, type, flags, kind, isStatic, descriptor] = methodHandleGetFieldFromMemberName(memberNameOop);
+        const auto typeClass = GET_MIRROR_INSTANCE_CLASS(type);
+        const auto field = klass->getField(name, getDescriptorByClass(typeClass), isStatic);
+        frame.returnI8(field->slotId);
     }
 
 }

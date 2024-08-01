@@ -23,6 +23,7 @@ namespace RexVM {
     cview descriptorNextFieldType(cview str);
     std::vector<cstring> parseDescriptor(cview str);
     std::tuple<std::vector<cstring>, cstring> parseMethodDescriptor(cview str);
+    size_t getMethodParamSlotSizeFromDescriptor(const cview descriptor, bool isStatic);
 
 }
 

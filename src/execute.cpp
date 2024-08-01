@@ -105,15 +105,6 @@ namespace RexVM {
         }
 
         static bool printLog = false;
-
-        //CharsetDecoder replaceWith(String newReplacement)
-        if (method.name == "<clinit>" && method.klass.name == "java/time/chrono/AbstractChronology") {
-            //printLog = true;
-            int i = 10;
-            (void)i;
-            frame.print();
-        }
-
         if (printLog) {
             cprintln(
                 "{}{}#{}:{} {}", 
@@ -124,7 +115,6 @@ namespace RexVM {
                 !notNativeMethod ? "[Native]" : ""
             );
         }
-
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
@@ -199,7 +189,7 @@ namespace RexVM {
     }
 
     void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous, size_t paramSlotSize) {
-        Frame nextFrame(thread.vm, thread, method_, previous);
+        Frame nextFrame(thread.vm, thread, method_, previous, paramSlotSize);
         nextFrame.methodParamSlotSize = paramSlotSize;
         const auto backupFrame = thread.currentFrame;
         thread.currentFrame = &nextFrame;

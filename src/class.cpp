@@ -337,7 +337,9 @@ namespace RexVM {
         for (auto klass = this; klass != nullptr; klass = klass->superClass) {
             for (const auto &field: klass->fields) {
                 if (field->isStatic()) {
-                    staticDataType[field->slotId] = field->getFieldSlotType();
+                    if (klass == this) {
+                        staticDataType[field->slotId] = field->getFieldSlotType();
+                    }
                 } else {
                     instanceDataType[field->slotId] = field->getFieldSlotType();
                 }
@@ -448,15 +450,25 @@ namespace RexVM {
 
 
     Field *InstanceClass::getField(const cstring &name, const cstring &descriptor, bool isStatic) const {
-        for (auto k = this; k != nullptr; k = k->superClass) {
-            for (const auto &item: k->fields) {
-                if (item->is(name, descriptor, isStatic)) {
-                    return item.get();
-                }
+        for (const auto &item : fields) {
+            if (item->is(name, descriptor, isStatic)) {
+                return item.get();
             }
         }
 
-        panic("can't find field " + name + "#" + name + ":" + descriptor);
+        if (superClass != nullptr) {
+            if (const auto field = superClass->getField(name ,descriptor, isStatic); field != nullptr) {
+                return field;
+            }
+        }
+
+        for (const auto &interface : interfaces) {
+            if (const auto interfaceField = interface->getField(name, descriptor, isStatic); 
+                    interfaceField != nullptr) {
+                return interfaceField;
+            }
+        }
+
         return nullptr;
     }
 
@@ -470,21 +482,22 @@ namespace RexVM {
     }
 
     Method *InstanceClass::getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const {
-        for (auto k = this; k != nullptr; k = k->superClass) {
-            for (const auto &item: k->methods) {
-                if (item->is(name, descriptor, isStatic)) {
-                    return item.get();
-                }
+        for (const auto &item : methods) {
+            if (item->is(name, descriptor, isStatic)) {
+                return item.get();
             }
         }
 
-        if (isInterface()) {
-            for (const auto &interface : interfaces) {
-                if (const auto interfaceMethod = interface->getMethod(name, descriptor, isStatic); 
-                        interfaceMethod != nullptr) {
-                    return interfaceMethod;
-                }
-                
+        if (superClass != nullptr) {
+            if (const auto method = superClass->getMethod(name ,descriptor, isStatic); method != nullptr) {
+                return method;
+            }
+        }
+
+        for (const auto &interface : interfaces) {
+            if (const auto interfaceMethod = interface->getMethod(name, descriptor, isStatic); 
+                    interfaceMethod != nullptr) {
+                return interfaceMethod;
             }
         }
 

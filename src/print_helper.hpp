@@ -26,6 +26,8 @@ namespace RexVM {
 
     void pio(Frame &frame, ref oop);
 
+    void pSlots(Frame &frame, std::vector<std::tuple<Slot, SlotTypeEnum>> &slots);
+
 }
 
 #endif

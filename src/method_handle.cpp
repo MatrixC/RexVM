@@ -45,8 +45,7 @@ namespace RexVM {
         const auto &oopManager = frame.vm.oopManager;
         const auto [paramType, returnTypeType] = parseMethodDescriptor(methodDescriptor);
         const auto returnTypeOop = classLoader->getClass(returnTypeType)->getMirrorOop();
-        const auto classArrayClass = classLoader->getObjectArrayClass(JAVA_LANG_CLASS_NAME);
-        const auto classArrayOop = oopManager->newObjArrayOop(classArrayClass, paramType.size());
+        const auto classArrayOop = oopManager->newClassObjArrayOop(paramType.size());
 
         size_t i = 0;
         for (const auto &className: paramType) {
@@ -95,6 +94,7 @@ namespace RexVM {
 
         const auto refFieldDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/invoke/MethodHandle;";
         const auto refMethodDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/MethodHandle;";
+        const auto refSpecialMethodDescriptor = "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/Class;)Ljava/lang/invoke/MethodHandle;";
         const auto refConstructorMethodDescriptor = "(Ljava/lang/Class;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/MethodHandle;";
 
         Method *method = nullptr;
@@ -120,7 +120,7 @@ namespace RexVM {
                 method = lookupOopClass->getMethod("findStatic", refMethodDescriptor, false);
             break;
             case MethodHandleEnum::REF_invokeSpecial:
-                method = lookupOopClass->getMethod("findSpecial", refMethodDescriptor, false);
+                method = lookupOopClass->getMethod("findSpecial", refSpecialMethodDescriptor, false);
             break;
             case MethodHandleEnum::REF_newInvokeSpecial:
                 method = lookupOopClass->getMethod("findConstructor", refConstructorMethodDescriptor, false);
@@ -150,9 +150,13 @@ namespace RexVM {
             case MethodHandleEnum::REF_invokeVirtual:
             case MethodHandleEnum::REF_invokeInterface:
             case MethodHandleEnum::REF_invokeStatic:
+                params.emplace_back(methodHandleMemberNameOop);
+                params.emplace_back(createMethodType(frame, methodHandleMemberDescriptor));
+            break;
             case MethodHandleEnum::REF_invokeSpecial:
                 params.emplace_back(methodHandleMemberNameOop);
                 params.emplace_back(createMethodType(frame, methodHandleMemberDescriptor));
+                params.emplace_back(methodHandleClassMirrorOop);
             break;
 
             case MethodHandleEnum::REF_newInvokeSpecial:
@@ -170,6 +174,57 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(std::get<0>(result).refVal);
     }
 
+    InstanceOop *createMethodHandle2(
+        Frame &frame, 
+        ConstantMethodHandleInfo *methodHandleInfo, 
+        InstanceClass *callerClass
+    ) {
+        const auto &vm = frame.vm;
+        const auto &methodClass = frame.klass;
+        const auto classLoader = frame.getCurrentClassLoader();
+        const auto &constantPool = methodClass.constantPool;
+
+        const auto methodHandleNativesClass = frame.getCurrentClassLoader()->getInstanceClass("java/lang/invoke/MethodHandleNatives");
+        const auto linkMethodHandleConstantMethod = methodHandleNativesClass->getMethod("linkMethodHandleConstant", "(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;", true);
+
+        const auto [methodHandleClassName, methodHandleMemberName, methodHandleMemberDescriptor] = 
+            getConstantStringFromPoolByClassNameType(constantPool, methodHandleInfo->referenceIndex);
+        const auto kind = static_cast<MethodHandleEnum>(methodHandleInfo->referenceKind);
+
+        const auto methodHandleClass = classLoader->getInstanceClass(methodHandleClassName);
+        const auto methodHandleClassMirrorOop = methodHandleClass->getMirrorOop();
+        const auto methodHandleMemberNameOop = vm.stringPool->getInternString(methodHandleMemberName);
+
+        Slot type;
+        switch (kind) {
+            case MethodHandleEnum::REF_getField:
+            case MethodHandleEnum::REF_getStatic:
+            case MethodHandleEnum::REF_putField:
+            case MethodHandleEnum::REF_putStatic:
+                type = Slot(classLoader->getClass(getClassNameByFieldDescriptor(methodHandleMemberDescriptor))->getMirrorOop());
+            break;
+
+            default:
+                type = Slot(createMethodType(frame, methodHandleMemberDescriptor));
+            break;
+        }
+
+        std::vector<Slot> linkMethodHandleParam;
+        linkMethodHandleParam.reserve(5);
+        linkMethodHandleParam.emplace_back(callerClass->getMirrorOop());
+        linkMethodHandleParam.emplace_back(CAST_I4(methodHandleInfo->referenceKind));
+        linkMethodHandleParam.emplace_back(methodHandleClassMirrorOop);
+        linkMethodHandleParam.emplace_back(methodHandleMemberNameOop);
+        linkMethodHandleParam.emplace_back(type);
+
+        const auto result = frame.runMethodManual(*linkMethodHandleConstantMethod, linkMethodHandleParam);
+        if (frame.markThrow) {
+            return nullptr;
+        }
+
+        return CAST_INSTANCE_OOP(std::get<0>(result).refVal);
+    }
+
     ObjArrayOop *createBootstrapArgs(
         Frame &frame, 
         const std::vector<u2> &bootstrapArguments, 
@@ -178,7 +233,6 @@ namespace RexVM {
         const cstring &invokeDescriptor
     ) {
         const auto &vm = frame.vm;
-        const auto classLoader = frame.getCurrentClassLoader();
         const auto &constantPool = frame.klass.constantPool;
         const auto &stringPool = frame.vm.stringPool;
         const auto &oopManager = vm.oopManager;
@@ -186,12 +240,11 @@ namespace RexVM {
         const auto bootstrapArgsSize = bootstrapArguments.size();
         const auto fixedArgSize = 3;
         const auto arraySize = bootstrapArgsSize + fixedArgSize;
-        const auto classArrayClass = classLoader->getObjectArrayClass(JAVA_LANG_CLASS_NAME);
-        const auto classArrayOop = vm.oopManager->newObjArrayOop(classArrayClass, arraySize);
+        const auto objArrayOop = vm.oopManager->newObjectObjArrayOop( arraySize);
         //前三个参数固定 后面的参数由class文件中对应的attribute决定
-        classArrayOop->data[0] = lookupOop;
-        classArrayOop->data[1] = stringPool->getInternString(invokeName);
-        classArrayOop->data[2] = createMethodType(frame, invokeDescriptor);
+        objArrayOop->data[0] = lookupOop;
+        objArrayOop->data[1] = stringPool->getInternString(invokeName);
+        objArrayOop->data[2] = createMethodType(frame, invokeDescriptor);
 
 
         for (size_t i = 0; i < bootstrapArguments.size(); ++i) {
@@ -235,13 +288,20 @@ namespace RexVM {
             if (frame.markThrow) {
                 return nullptr;
             }
-            classArrayOop->data[i + fixedArgSize] = argResult;
+            objArrayOop->data[i + fixedArgSize] = argResult;
         }
 
-        return classArrayOop;
+        return objArrayOop;
     }
 
-    InstanceOop *createCallSite(Frame &frame, InstanceOop *methodHandle, const cstring &invokeName, const cstring &invokeDescriptor, ObjArrayOop *bootstrapArgs, InstanceOop *lookupOop) {
+    InstanceOop *createCallSite(
+        Frame &frame, 
+        InstanceOop *methodHandle, 
+        const cstring &invokeName, 
+        const cstring &invokeDescriptor, 
+        ObjArrayOop *bootstrapArgs, 
+        InstanceOop *lookupOop
+    ) {
         const auto methodHandleClass = methodHandle->getInstanceClass();
         const auto invokeWithArgumentsMethod = methodHandleClass->getMethod("invokeWithArguments", "([Ljava/lang/Object;)Ljava/lang/Object;", false);
         const auto [invokeWithArgumentsSlot, _] = frame.runMethodManual(*invokeWithArgumentsMethod, { 
@@ -301,28 +361,160 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(frame.pop().refVal);
     }
 
+    InstanceOop *createCallSite2(
+        Frame &frame, 
+        InstanceOop *methodHandle, 
+        const cstring &invokeName, 
+        const cstring &invokeDescriptor, 
+        InstanceOop *lookupOop,
+        InstanceClass *callerClass,
+        const std::vector<u2> &bootstrapArguments
+    ) {
+        const auto &vm = frame.vm;
+        const auto classLoader = frame.getCurrentClassLoader();
+        const auto &constantPool = frame.klass.constantPool;
+        const auto &stringPool = frame.vm.stringPool;
+        const auto &oopManager = vm.oopManager;
+
+        const auto methodHandleNativesClass = frame.getCurrentClassLoader()->getInstanceClass("java/lang/invoke/MethodHandleNatives");
+        const auto linkCallSiteImplMethod = methodHandleNativesClass->getMethod("linkCallSiteImpl", "(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;", true);
+
+        const auto arraySize = bootstrapArguments.size();
+        const auto argObjArrayOop = oopManager->newObjectObjArrayOop(arraySize);
+        for (size_t i = 0; i < bootstrapArguments.size(); ++i) {
+            const auto index = bootstrapArguments[i];
+            const auto constantInfo = constantPool[index].get();
+            const auto tagEnum = CAST_CONSTANT_TAG_ENUM(constantInfo->tag);
+            ref argResult = nullptr;
+            switch (tagEnum) {
+                case ConstantTagEnum::CONSTANT_MethodHandle:
+                    //argResult = createMethodHandle(frame, CAST_CONSTANT_METHOD_HANDLE_INFO(constantInfo), lookupOop);
+                    argResult = createMethodHandle2(frame, CAST_CONSTANT_METHOD_HANDLE_INFO(constantInfo), callerClass);
+                break;
+                case ConstantTagEnum::CONSTANT_MethodType:
+                    argResult = createMethodType(frame, CAST_CONSTANT_METHOD_TYPE_INFO(constantInfo));
+                break;
+                case ConstantTagEnum::CONSTANT_String: {
+                    const auto strVal = getConstantStringFromPoolByIndexInfo(constantPool, CAST_CONSTANT_STRING_INFO(constantInfo)->index);
+                    argResult = stringPool->getInternString(strVal);
+                    break;
+                }
+                case ConstantTagEnum::CONSTANT_Class: {
+                    const auto className = getConstantStringFromPool(constantPool, CAST_CONSTANT_CLASS_INFO(constantInfo)->index);
+                    argResult = classLoader->getClass(className)->getMirrorOop();
+                    break;
+                }
+                case ConstantTagEnum::CONSTANT_Integer:
+                    argResult = oopManager->newIntegerOop((CAST_CONSTANT_INTEGER_INFO(constantInfo))->value);
+                break;
+                case ConstantTagEnum::CONSTANT_Float:
+                    argResult = oopManager->newFloatOop((CAST_CONSTANT_FLOAT_INFO(constantInfo))->value);
+                break;
+                case ConstantTagEnum::CONSTANT_Long:
+                    argResult = oopManager->newLongOop((CAST_CONSTANT_LONG_INFO(constantInfo))->value);
+                break;
+                case ConstantTagEnum::CONSTANT_Double:
+                    argResult = oopManager->newDoubleOop((CAST_CONSTANT_DOUBLE_INFO(constantInfo))->value);
+                break;
+                default:
+                    panic("error constant type");
+                break;
+            }
+            if (frame.markThrow) {
+                return nullptr;
+            }
+            argObjArrayOop->data[i] = argResult;
+        }
+
+        
+        const auto appendixResultArrayOop = oopManager->newObjectObjArrayOop(1);
+        std::vector<Slot> linkCallSiteParms;
+        linkCallSiteParms.reserve(5);
+        linkCallSiteParms.emplace_back(callerClass->getMirrorOop());
+        linkCallSiteParms.emplace_back(methodHandle);
+        linkCallSiteParms.emplace_back(frame.vm.stringPool->getInternString(invokeName));
+        linkCallSiteParms.emplace_back(createMethodType(frame, invokeDescriptor));
+        linkCallSiteParms.emplace_back(argObjArrayOop);
+        linkCallSiteParms.emplace_back(appendixResultArrayOop);
+        frame.runMethodManual(*linkCallSiteImplMethod, linkCallSiteParms);
+        if (frame.markThrow) {
+            return nullptr;
+        }
+
+
+        const auto finalMethodHandleOop = CAST_INSTANCE_OOP(appendixResultArrayOop->data[0]);
+        const auto finalMethodHandClass = finalMethodHandleOop->getInstanceClass();
+        const auto invokeMethod = finalMethodHandClass->getMethod("invoke", METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
+        const auto [paramType, returnType] = parseMethodDescriptor(invokeDescriptor); 
+
+        //在调用invokedynamic指令之前 最后一步invoke方法的参数已经被push到了操作栈上
+        //参数的Slot数量可以通过invokeDescriptor来解析得到
+        //但现在的参数栈有个问题 在调用methodHandle的invoke方法的第一个参数是一个MethodHandle对象
+        //而现在这个对象才被我们通过dynamicInvoker生成出来 而因为invoke方法的特殊性(方法descriptor和实际参数不一致)
+        //所以最好使用runMethodInner来调用 就跟解释器里的invokeMethodHandle里一样
+        //runMethodInner会直接将栈来当做Local区 所以现在需要调整好栈中数据后 直接调用 runMethodInner
+        //当前  Stack:[ x1, x2, x3, ... param1, param2, param3 ]  
+        //调整  Stack:[ x1, x2, x3, ... methodHadnleOop, param1, param2, param3 ]
+        //先把参数pop到一个vector 再将 methodHadnleOop 添加到vector 再反转vector后push回去
+        //就得到了正确的栈结构 调用runMethodInner后返回值会被push到当前frame的操作栈中 pop到结果即可
+
+        size_t paramSize = 1; //finalMethodHandleOop
+        std::vector<std::tuple<Slot, SlotTypeEnum>> invokeParam;
+        if (!paramType.empty()) {
+            for (i4 i = paramType.size() - 1; i >= 0; --i) {
+                const auto &paramClassName = paramType[i];
+                if (isWideClassName(paramClassName)) {
+                    frame.popWithSlotType();
+                    invokeParam.emplace_back(frame.popWithSlotType());
+                    paramSize += 2;
+                } else {
+                    invokeParam.emplace_back(frame.popWithSlotType());
+                    paramSize += 1;
+                }
+            }
+        }
+
+        invokeParam.emplace_back(std::make_tuple(Slot(finalMethodHandleOop), SlotTypeEnum::REF));
+        std::reverse(invokeParam.begin(), invokeParam.end());
+
+        for (const auto &[val, type] : invokeParam) {
+            frame.push(val, type);
+        }
+
+        frame.runMethodInner(*invokeMethod, paramSize);
+        if (frame.markThrow) {
+            return nullptr;
+        }
+        return CAST_INSTANCE_OOP(frame.pop().refVal);
+    }
+
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
         const auto &methodClass = frame.klass;
         const auto &constantPool = methodClass.constantPool;
-        const auto &lookupClass = frame.method.klass;
+        const auto callerClass = &frame.method.klass;
         const auto invokeDynamicInfo = CAST_CONSTANT_INVOKE_DYNAMIC_INFO(constantPool[invokeDynamicIdx].get());
 
         const auto [invokeName, invokeDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, invokeDynamicInfo->nameAndTypeIndex);
         const auto bootstrapMethodAttr = methodClass.getBootstrapMethodAttr()->bootstrapMethods[invokeDynamicInfo->bootstrapMethodAttrIndex].get();
         const auto methodHandleInfo = CAST_CONSTANT_METHOD_HANDLE_INFO(constantPool[bootstrapMethodAttr->bootstrapMethodRef].get());
 
-        const auto lookupOop = createLookup(frame, &lookupClass);
+        const auto lookupOop = createLookup(frame, callerClass);
 
-        const auto bootstrapMethodHandle = createMethodHandle(frame, methodHandleInfo, lookupOop);
+        //const auto bootstrapMethodHandle = createMethodHandle(frame, methodHandleInfo, lookupOop);
+        const auto bootstrapMethodHandle = createMethodHandle2(frame, methodHandleInfo, callerClass);
         if (frame.markThrow) {
             return;
         }
 
-        const auto bootstrapArguments = createBootstrapArgs(frame, bootstrapMethodAttr->bootstrapArguments, lookupOop, invokeName, invokeDescriptor);
-        if (frame.markThrow) {
-            return;
-        }
-        const auto callSiteObj = createCallSite(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, bootstrapArguments, lookupOop);
+        // const auto bootstrapArguments = createBootstrapArgs(frame, bootstrapMethodAttr->bootstrapArguments, lookupOop, invokeName, invokeDescriptor);
+        // if (frame.markThrow) {
+        //     return;
+        // }
+        // const auto callSiteObj = createCallSite(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, bootstrapArguments, lookupOop);
+        // if (frame.markThrow) {
+        //     return;
+        // }
+        const auto callSiteObj = createCallSite2(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, lookupOop, callerClass, bootstrapMethodAttr->bootstrapArguments);
         if (frame.markThrow) {
             return;
         }

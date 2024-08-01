@@ -105,10 +105,14 @@ namespace RexVM::Native::Core {
         frame.returnI4(CAST_I4(mirrorClass->accessFlags) & removeSuper);
     }
 
-        //native boolean isInstance(Object obj);
+    //native boolean isInstance(Object obj);
     void isInstance(Frame &frame) {
         const auto thisClass = getMirrorClass(frame);
         const auto objOop = frame.getLocalRef(1);
+        if (objOop == nullptr) {
+            frame.returnBoolean(false);
+            return;
+        }
         const auto objClass = objOop->klass;
         const auto result = objClass->isInstanceOf(thisClass);
         frame.returnBoolean(result);
@@ -154,11 +158,7 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto className = getConstantStringFromPoolByIndexInfo(constantPool, enclosingMethodAttr->classIndex);
-        const auto objArrayOop = 
-            frame.vm.oopManager->newObjArrayOop(
-                frame.classLoader.getObjectArrayClass(JAVA_LANG_OBJECT_NAME), 
-                3
-            );
+        const auto objArrayOop = frame.vm.oopManager->newObjectObjArrayOop(3);
         objArrayOop->data[0] = frame.vm.bootstrapClassLoader->getClass(className)->getMirrorOop();
 
         const auto [methodName, methodDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, enclosingMethodAttr->methodIndex);
@@ -261,7 +261,6 @@ namespace RexVM::Native::Core {
 
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
         const auto &stringPool = frame.vm.stringPool;
-        const auto classArrayClass = classLoader.getObjectArrayClass(JAVA_LANG_CLASS_NAME);
 
         const auto retTypeClassName = 
             isConstructor ? 
@@ -288,12 +287,12 @@ namespace RexVM::Native::Core {
             }
 
             const auto paramClasses = method->getParamClasses();
-            const auto paramClassesArrayOop = oopManager->newObjArrayOop(classArrayClass, paramClasses.size());
+            const auto paramClassesArrayOop = oopManager->newClassObjArrayOop(paramClasses.size());
             for (size_t i = 0; i < paramClasses.size(); ++i) {
                 paramClassesArrayOop->data[i] = paramClasses.at(i)->getMirrorOop();
             }
 
-            const auto exceptionArrayOop = oopManager->newObjArrayOop(classArrayClass, method->exceptionsIndex.size());
+            const auto exceptionArrayOop = oopManager->newClassObjArrayOop(method->exceptionsIndex.size());
             for (size_t i = 0; i <  method->exceptionsIndex.size(); ++i) {
                 const auto exceptionIdx = method->exceptionsIndex.at(i);
                 const auto exceptionClassName = 
@@ -363,7 +362,6 @@ namespace RexVM::Native::Core {
     }
 
     void getInterfaces0(Frame &frame) {
-        auto &classLoader = *frame.getCurrentClassLoader();
         const auto &oopManager = frame.vm.oopManager;
         const auto mirrorClass = getMirrorClass(frame);
         if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
@@ -371,10 +369,9 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
-        const auto classArrayClass = classLoader.getObjectArrayClass(JAVA_LANG_CLASS_NAME);
 
         const auto &interfaces = instanceMirrorClass->interfaces;
-        const auto retArrayOop = oopManager->newObjArrayOop(classArrayClass, interfaces.size());
+        const auto retArrayOop = oopManager->newClassObjArrayOop(interfaces.size());
          for (size_t i = 0; i < interfaces.size(); ++i) {
             retArrayOop->data[i] = interfaces.at(i)->getMirrorOop();
         }
@@ -512,15 +509,14 @@ namespace RexVM::Native::Core {
         const auto mirrorInstanceClass = CAST_INSTANCE_CLASS(mirrorClass);
         const auto &constantPool = mirrorInstanceClass->constantPool;
         const auto innerClassesAttr = mirrorInstanceClass->getInnerClassesAttr();
-        const auto classArrayClass = classLoader.getObjectArrayClass(JAVA_LANG_CLASS_NAME);
 
         if (innerClassesAttr == nullptr || innerClassesAttr->classes.empty()) {
-            const auto emptyOop = oopManager->newObjArrayOop(classArrayClass, 0);
+            const auto emptyOop = oopManager->newClassObjArrayOop( 0);
             frame.returnRef(emptyOop);
             return;
         }
         
-        const auto retArrayOop = oopManager->newObjArrayOop(classArrayClass, innerClassesAttr->classes.size());
+        const auto retArrayOop = oopManager->newClassObjArrayOop(innerClassesAttr->classes.size());
         for (size_t i = 0; i < innerClassesAttr->classes.size(); ++i) {
             const auto innerClassName = 
                 getConstantStringFromPoolByIndexInfo(constantPool, innerClassesAttr->classes.at(i)->innerClassInfoIndex);

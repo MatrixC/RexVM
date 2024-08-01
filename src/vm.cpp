@@ -81,9 +81,8 @@ namespace RexVM {
         if (mainMethod == nullptr) {
             panic("no main method in class " + className);
         }
-        const auto stringArrayClass = bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_STRING_NAME);
         const auto mainMethodParmSize = userParams.size() - 1;
-        const auto stringArray = oopManager->newObjArrayOop(stringArrayClass, mainMethodParmSize);
+        const auto stringArray = oopManager->newStringObjArrayOop( mainMethodParmSize);
 
         if (userParams.size() > 1) {
             for (size_t i = 1; i < userParams.size(); ++i) {
@@ -131,6 +130,7 @@ namespace RexVM {
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();
+        gc2(vm);
     }
 
 }

@@ -202,10 +202,13 @@ namespace RexVM {
                                     AttributeTagEnum::LINE_NUMBER_TABLE
                             ));
                         lineNumberTableAttribute != nullptr) {
-                    lineNumbers.reserve(lineNumberTableAttribute->lineNumberTableLength);
-                    for (const auto &attributeItem: lineNumberTableAttribute->lineNumberTables) {
-                        lineNumbers.emplace_back(
-                                std::make_unique<LineNumberItem>(attributeItem->startPC, attributeItem->lineNumber));
+
+                    if (!lineNumberTableAttribute->lineNumberTables.empty()) {
+                        lineNumbers.reserve(lineNumberTableAttribute->lineNumberTables.size());
+                        for (const auto &attributeItem: lineNumberTableAttribute->lineNumberTables) {
+                            lineNumbers.emplace_back(
+                                    std::make_unique<LineNumberItem>(attributeItem->startPC, attributeItem->lineNumber));
+                        }
                     }
                     lineNumberTableAttribute->lineNumberTables.clear();
                 }

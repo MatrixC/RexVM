@@ -18,6 +18,11 @@ namespace RexVM {
 
         [[nodiscard]] InstanceOop *newInstance(InstanceClass * klass);
         [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * klass, size_t length);
+
+        [[nodiscard]] ObjArrayOop *newObjectObjArrayOop(size_t length);
+        [[nodiscard]] ObjArrayOop *newClassObjArrayOop(size_t length);
+        [[nodiscard]] ObjArrayOop *newStringObjArrayOop(size_t length);
+
         [[nodiscard]] TypeArrayOop *newTypeArrayOop(BasicType type, size_t length);
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length);
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer);

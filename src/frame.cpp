@@ -21,9 +21,12 @@ namespace RexVM {
 
     FrameThrowable::~FrameThrowable() = default;
 
-    Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame) :
+    Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame) : Frame(vm, thread, method, previousFrame, 0) {
+    }
+
+    Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize) :
             previous(previousFrame),
-            localVariableTableSize(method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals),
+            localVariableTableSize(fixMethodParamSlotSize != 0 ? (fixMethodParamSlotSize + method.maxLocals) : (method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals)),
             localVariableTable(
                     previous == nullptr ?
                         thread.stackMemory.get() :
@@ -377,12 +380,13 @@ namespace RexVM {
     }
 
     void Frame::printStackSlot() {
-        for (i4 offset = 0; offset <= operandStackContext.sp; ++offset) {
+        for (i4 offset = operandStackContext.sp; offset >= 0; --offset) {
             const auto index = operandStackContext.sp - offset;
             const auto val = operandStackContext.memory[index];
+            const auto valPtr = operandStackContext.memory + index;
             const auto valType = operandStackContext.memoryType[index];
             const auto slotStr = formatSlot(*this, val, valType);
-            cprintln("Stack[{}]: {}", offset, slotStr);
+            cprintln("Stack[{}] {}: {}", offset, CAST_VOID_PTR(valPtr), slotStr);
         }
     }
 

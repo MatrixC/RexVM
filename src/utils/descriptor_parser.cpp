@@ -77,4 +77,17 @@ namespace RexVM {
         return std::make_tuple(parseDescriptor(param), cstring(returnType));
     }
 
+    size_t getMethodParamSlotSizeFromDescriptor(const cview descriptor, bool isStatic) {
+        size_t paramSlotSize = isStatic ? 0 : 1;
+        const auto[paramType, returnType] = parseMethodDescriptor(descriptor);
+        for (const auto &desc: paramType) {
+            paramSlotSize += 1;
+            SlotTypeEnum slotType = getSlotTypeByPrimitiveClassName(desc);
+            if (isWideSlotType(slotType)) {
+                paramSlotSize += 1;
+            }
+        }
+        return paramSlotSize;
+    }
+
 }

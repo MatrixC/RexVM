@@ -11,6 +11,7 @@
 #define CAST_I8(x) static_cast<i8>(x)
 #define CAST_F4(x) static_cast<f4>(x)
 #define CAST_F8(x) static_cast<f8>(x)
+#define CAST_VOID_PTR(x) static_cast<void *>(x)
 #define CAST_SIZE_T(x) static_cast<size_t>(x)
 #define CAST_CHAR(x) static_cast<char>(x)
 #define CAST_CHAR_16_T(x) static_cast<char16_t>(x)

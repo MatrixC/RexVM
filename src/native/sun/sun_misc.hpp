@@ -66,11 +66,11 @@ namespace RexVM::Native::Sun::Msc {
         if (paramArray != nullptr) {
             for (size_t i = 0; i < paramArray->dataLength; ++i) {
                 const auto paramType = constructMethod->paramType[i];
-                const auto val = CAST_INSTANCE_OOP(paramArray->data[i]);
+                const auto val = paramArray->data[i];
                 const auto paramClass = classLoader.getClass(paramType);
                 if (paramClass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
                     const auto primitiveClass = CAST_PRIMITIVE_CLASS(paramClass);
-                    const auto slotVal = primitiveClass->getValueFromBoxingOop(val);
+                    const auto slotVal = primitiveClass->getValueFromBoxingOop(CAST_INSTANCE_OOP(val));
                     constructorParams.emplace_back(slotVal);
                     if (primitiveClass->isWideType()) {
                         constructorParams.emplace_back(ZERO_SLOT);

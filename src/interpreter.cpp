@@ -1066,21 +1066,22 @@ namespace RexVM {
                 return;
             }
 
-            const auto invokeMethod = frame.klass.getRefMethod(index, false);
-            const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
+            const auto paramSlotSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
+
+            const auto instance = frame.getStackOffset(paramSlotSize - 1).refVal;
             if (instance == nullptr) {
                 throwNullPointException(frame);
                 return;
             }
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
             for (auto k = instanceClass; k != nullptr; k = k->superClass) {
-                const auto realInvokeMethod =
-                        k->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
+                const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
                 if (realInvokeMethod != nullptr) {
                     frame.runMethodInner(*realInvokeMethod);
                     return;
                 }
             }
+
             panic("invoke failed");
         }
 

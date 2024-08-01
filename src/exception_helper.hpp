@@ -6,6 +6,8 @@ namespace RexVM {
 
     struct Frame;
 
+    void throwAssignException(Frame &frame, const cstring &className, const cstring &message);
+
     void throwArithmeticExceptionDivByZero(Frame &frame);
 
     void throwNullPointException(Frame &frame);

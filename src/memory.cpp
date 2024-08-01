@@ -43,6 +43,21 @@ namespace RexVM {
         return oop;
     }
 
+    ObjArrayOop *OopManager::newObjectObjArrayOop(size_t length) {
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_OBJECT_NAME);
+        return newObjArrayOop(klass, length);
+    }
+
+    ObjArrayOop *OopManager::newClassObjArrayOop(size_t length) {
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_CLASS_NAME);
+        return newObjArrayOop(klass, length);
+    }
+
+    ObjArrayOop *OopManager::newStringObjArrayOop(size_t length) {
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_STRING_NAME);
+        return newObjArrayOop(klass, length);
+    }
+
     TypeArrayOop *OopManager::newTypeArrayOop(BasicType type, size_t length) {
         TypeArrayOop *oop = nullptr;
         const auto klass = vm.bootstrapClassLoader->getTypeArrayClass(type);
@@ -330,6 +345,14 @@ namespace RexVM {
     void gc2(VM &vm) {
         const auto &oopManager = vm.oopManager;
         auto &allocatedOop = oopManager->allocatedOop;
+
+        for (const auto &oop : allocatedOop) {
+            delete oop;
+            //allocatedOop.erase(oop);
+        }
+
+        return;
+
 
         const auto &gcRoots = getGCRoot(vm);
         const auto &tracedOop = startTrace(gcRoots);

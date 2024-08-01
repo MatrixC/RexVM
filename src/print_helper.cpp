@@ -144,7 +144,13 @@ namespace RexVM {
             const auto formatValue = formatSlot(frame, fieldValue, fieldType);
             cprintln("Field {}: {}", field->name, formatValue);
         }
+    }
 
+    void pSlots(Frame &frame, std::vector<std::tuple<Slot, SlotTypeEnum>> &slots) {
+        for (const auto &item : slots) {
+            const auto [val, type] = item;
+            cprintln("{}", formatSlot(frame, val, type));
+        }
     }
 
 }
