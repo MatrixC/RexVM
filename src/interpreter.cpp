@@ -1039,35 +1039,29 @@ namespace RexVM {
             const cstring &methodName, 
             const cstring &methodDescriptor
         ) {
-            auto &classLoader = *frame.getCurrentClassLoader();
-            const auto invokeMethod = 
-                    classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
+            const auto classLoader = frame.getCurrentClassLoader();
+            const auto invokeMethod = classLoader
+                        ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
                         ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
-            const auto [paramType, _] = parseMethodDescriptor(methodDescriptor); 
-            //1是因为第一个参数为MethodHandle Object
-            size_t popLength = 1;
-            for (const auto &paramClassName : paramType) {
-                if (isWideClassName(paramClassName)) {
-                    popLength += 2;
-                } else {
-                    popLength += 1;
-                }
-            }
+            //1第一个参数为MethodHandle Object
+            const auto popLength = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
             frame.runMethodInner(*invokeMethod, popLength);
         }
 
-        void invokevirtual(Frame &frame) {
+        template<bool checkMethodHandle>
+        void invokeVirtualCommon(Frame &frame, u2 index) {
             const auto &constantPool = frame.constantPool;
-            const auto index = frame.reader.readU2();
             auto [className, methodName, methodDescriptor] = 
                     getConstantStringFromPoolByClassNameType(constantPool, index);
-            if (isMethodHandleInvoke(className, methodName)) {
-                invokeMethodHandle(frame, className, methodName, methodDescriptor);
-                return;
+
+            if constexpr (checkMethodHandle == true) {
+                if (isMethodHandleInvoke(className, methodName)) {
+                    invokeMethodHandle(frame, className, methodName, methodDescriptor);
+                    return;
+                }
             }
 
             const auto paramSlotSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
-
             const auto instance = frame.getStackOffset(paramSlotSize - 1).refVal;
             if (instance == nullptr) {
                 throwNullPointException(frame);
@@ -1076,68 +1070,42 @@ namespace RexVM {
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
             for (auto k = instanceClass; k != nullptr; k = k->superClass) {
                 const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
-                if (realInvokeMethod != nullptr) {
+                if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {
                     frame.runMethodInner(*realInvokeMethod);
                     return;
                 }
             }
-
             panic("invoke failed");
         }
 
+        template<bool clinit, bool isStatic>
+        void invokeStaticCommon(Frame &frame, u2 index) {
+            const auto invokeMethod = frame.klass.getRefMethod(index, isStatic);
+            if constexpr (clinit == true) {
+                invokeMethod->klass.clinit(frame);
+            }
+            frame.runMethodInner(*invokeMethod);
+        }
 
-        /*
-        原版 invokevirtual
         void invokevirtual(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto invokeMethod = frame.klass.getRefMethod(index, false);
-            const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
-            const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
-            for (auto k = instanceClass; k != nullptr; k = k->superClass) {
-                const auto realInvokeMethod =
-                        k->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
-                if (realInvokeMethod != nullptr) {
-                    frame.runMethodInner(*realInvokeMethod);
-                    return;
-                }
-            }
-            panic("invoke failed");
+            invokeVirtualCommon<true>(frame, index);
         }
-        */
 
         void invokespecial(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto invokeMethod = frame.klass.getRefMethod(index, false);
-            frame.runMethodInner(*invokeMethod);
+            invokeStaticCommon<false, false>(frame, index);
         }
 
         void invokestatic(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto invokeMethod = frame.klass.getRefMethod(index, true);
-            invokeMethod->klass.clinit(frame);
-            frame.runMethodInner(*invokeMethod);
+            invokeStaticCommon<true, true>(frame, index);
         }
 
         void invokeinterface(Frame &frame) {
             const auto index = frame.reader.readU2();
-            frame.reader.readU2(); //ignore
-
-            const auto invokeMethod = frame.klass.getRefMethod(index, false);
-            const auto instance = frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal;
-            if (instance == nullptr) {
-                throwNullPointException(frame);
-                return;
-            }
-            const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
-            const auto realInvokeMethod = instanceClass->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
-            if (realInvokeMethod != nullptr) {
-                frame.runMethodInner(*realInvokeMethod);
-            } else if (!invokeMethod->isAbstract()) {
-                frame.runMethodInner(*invokeMethod);
-            } else {
-                //TODO
-                panic("can't find method");
-            }
+            frame.reader.readU2(); //useless
+            invokeVirtualCommon<false>(frame, index);
         }
 
         void invokedynamic(Frame &frame) {

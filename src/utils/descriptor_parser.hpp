@@ -9,22 +9,15 @@
 
 namespace RexVM {
 
-    struct DescriptorFieldType {
-        bool isBasicType{true};
-        BasicType basicType;
-        cstring className;
-    };
+    std::tuple<size_t, u1, u1> getSingleDescriptor(const cview descriptor);
 
-    struct MethodDescriptorResult {
-        std::vector<cstring> parameterFieldType;
-        cstring returnType;
-    };
-
-    cview descriptorNextFieldType(cview str);
-    std::vector<cstring> parseDescriptor(cview str);
     std::tuple<std::vector<cstring>, cstring> parseMethodDescriptor(cview str);
-    size_t getMethodParamSlotSizeFromDescriptor(const cview descriptor, bool isStatic);
 
+    std::vector<cstring> parseDescriptor(cview str);
+    
+    std::vector<cstring> parseDescriptor(const cview str, size_t start, size_t end);
+
+    size_t getMethodParamSlotSizeFromDescriptor(const cview descriptor, bool isStatic);
 }
 
 #endif

@@ -44,7 +44,7 @@ namespace RexVM::Native::Core {
                 continue;
             }
             notCheck = true;
-            const auto className = klass.name;
+            const auto className = getJavaClassName(klass.name);
             const auto methodName = method.name;
             const auto sourceFileName = method.klass.sourceFile;
             const auto lineNumber = method.getLineNumber(currentFrame->pc());

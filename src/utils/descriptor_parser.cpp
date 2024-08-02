@@ -3,91 +3,108 @@
 
 namespace RexVM {
 
-    cview descriptorNextFieldType(const cview str, bool isArray) {
-        const auto first = str[0];
-        switch(first) {
-            case 'B':
-            case 'C':
-            case 'D':
-            case 'F':
-            case 'I':
-            case 'J':
-            case 'S':
-            case 'Z':
-            case 'V':
-                return str.substr(0, 1);
-            case 'L': {
-                const auto endIndex = str.find(';');
-                if (isArray) {
-                    return str.substr(0, endIndex + 1);
-                } else {
-                    return str.substr(1, endIndex - 1);
+    //从一个descriptor中拿到第一个元素 返回它的 字符长度 Slot长度 以及类型
+    //type 0:基本类型 1: 普通引用类型 2: 数组引用类型
+    std::tuple<size_t, u1, u1> getSingleDescriptor(const cview descriptor) {
+        auto firstChar = descriptor[0];
+        const auto size = descriptor.size();
+        size_t descSize{};
+        u1 slotSize{};
+        u1 type{};
+        switch (firstChar) {
+            case 'B': case 'C': case 'S':
+            case 'F': case 'I': case 'Z': case 'V':
+                descSize = 1;
+                slotSize = 1;
+                type = 0;
+                break;
+
+            case 'J': case 'D':
+                descSize = 1;
+                slotSize = 2;
+                type = 0;
+                break;
+
+            case 'L':
+                descSize = descriptor.find(';', 2) + 1; //Ljava/lang/Object; skip Lj
+                slotSize = 1;
+                type = 1;
+                break;
+
+            case '[': {
+                decltype(firstChar) arrayElementFirstChar;
+                size_t arrayLength = 1;
+                for (size_t arrayPos = 1; arrayPos < size; ++arrayPos) {
+                    arrayElementFirstChar = descriptor[arrayPos];
+                    if (arrayElementFirstChar != '[') {
+                        break;
+                    } 
+                    arrayLength += 1;
                 }
+                if (arrayElementFirstChar == 'L') {
+                    descSize = descriptor.find(';', arrayLength) + 1;
+                } else {
+                    descSize = arrayLength + 1;
+                }
+                slotSize = 1;
+                type = 2;
+                break;
             }
 
             default:
-                panic("descriptorNextFieldType error " + cstring(str));
+                panic("error first char");
         }
-        return {};
+        return std::make_tuple(descSize, slotSize, type);
     }
 
-    //解析出descriptor中对应的类名, primitive类型也用int, long等实际类名
-    std::vector<cstring> parseDescriptor(const cview str) {
-        size_t currentIndex = 0;
-        const auto size = str.size();
+    //解析一个普通descriptor 返回其中每个元素的类名 primitive类型也用int, long等实际类名
+    std::vector<cstring> parseDescriptor(const cview str, size_t start, size_t end) {
+        size_t pos = start;
         std::vector<cstring> types;
-        while (currentIndex < size) {
-            size_t arrayLength = 0;
-            if (str[currentIndex] == '[') {
-                //is array
-                for (size_t i = currentIndex + 1; i < size; ++i) {
-                    if (str[i] != '[') {
-                        arrayLength = i - currentIndex;
-                        break;
-                    }
-                }
+        while (pos < end) {
+            const auto [descSize, slotSize, type] = getSingleDescriptor(str.substr(pos));
+            switch (type) {
+                case 0:
+                    types.emplace_back(getPrimitiveClassNameByDescriptor(str[pos]));
+                    break;
+                case 1:
+                    types.emplace_back(str.substr(pos + 1, descSize - 2));
+                    break;
+                case 2:
+                    types.emplace_back(str.substr(pos, descSize));
+                    break;
             }
-            auto isArray = arrayLength != 0;
-            const auto typeFirstChar = str[currentIndex + arrayLength];
-            const auto typeView = descriptorNextFieldType(str.substr(currentIndex + arrayLength), isArray);
-            const cstring type =
-                    arrayLength == 0 ?
-                        cstring(typeView) :
-                        concat_view(str.substr(currentIndex, arrayLength), typeView);
-            if (type.size() == 1 && isBasicType(type[0])) {
-                types.emplace_back(getPrimitiveClassNameByDescriptor(type[0]));
-            } else {
-                types.emplace_back(type);
-            }
-            currentIndex += type.size();
-            if (typeFirstChar == 'L' && !isArray) {
-                //skip Instance Class Name 'L' and ':'
-                currentIndex += 2;
-            }
+            pos += descSize;
         }
         return types;
     }
 
+    std::vector<cstring> parseDescriptor(const cview str) {
+        return parseDescriptor(str, 0, str.size());
+    }
+
+    //解析一个函数的descriptor 返回参数和返回值的类名
     std::tuple<std::vector<cstring>, cstring> parseMethodDescriptor(const cview str) {
         const auto paramBegin = str.find('(');
         const auto paramEnd = str.find(')');
-        const auto param = str.substr(paramBegin + 1, paramEnd - paramBegin - 1);
-        const auto returnTypeDesc = str.substr(paramEnd + 1);
-        const auto returnType = parseDescriptor(returnTypeDesc).at(0);
-        return std::make_tuple(parseDescriptor(param), cstring(returnType));
+        const auto returnType = parseDescriptor(str, paramEnd + 1, str.size()).at(0);
+        return std::make_tuple(parseDescriptor(str, paramBegin + 1, paramEnd), cstring(returnType));
     }
 
+    //解析一个函数descriptor 计算参数部分要占几个Slot size
     size_t getMethodParamSlotSizeFromDescriptor(const cview descriptor, bool isStatic) {
         size_t paramSlotSize = isStatic ? 0 : 1;
-        const auto[paramType, returnType] = parseMethodDescriptor(descriptor);
-        for (const auto &desc: paramType) {
-            paramSlotSize += 1;
-            SlotTypeEnum slotType = getSlotTypeByPrimitiveClassName(desc);
-            if (isWideSlotType(slotType)) {
-                paramSlotSize += 1;
-            }
+        const auto paramBegin = descriptor.find('(');
+        const auto paramEnd = descriptor.find(')');
+        size_t pos = paramBegin + 1;
+        while (pos < paramEnd) {
+            const auto [descSize, slotSize, type] = getSingleDescriptor(descriptor.substr(pos));
+            //const auto desc = descriptor.substr(pos, descSize);
+            paramSlotSize += slotSize;
+            pos += descSize;
         }
+
         return paramSlotSize;
     }
-
+    
 }

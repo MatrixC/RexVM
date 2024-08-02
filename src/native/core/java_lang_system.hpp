@@ -36,8 +36,6 @@ namespace RexVM::Native::Core {
         frame.returnI4(CAST_I4(std::bit_cast<u8>(frame.getLocalRef(0))));
     }
 
-
-
     void arraycopy(Frame &frame) {
         const auto src = CAST_ARRAY_OOP(frame.getLocalRef(0));
         const auto srcPos = frame.getLocalI4(1);
