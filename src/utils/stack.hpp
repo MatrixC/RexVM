@@ -1,7 +1,3 @@
-//
-// Created by ch on 12/31/23.
-//
-
 #ifndef STACK_HPP
 #define STACK_HPP
 

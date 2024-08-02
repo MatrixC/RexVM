@@ -448,6 +448,16 @@ namespace RexVM {
         return CAST_INNER_CLASSES_ATTRIBUTE(innerClassesAttr.get());
     }
 
+    Field *InstanceClass::getFieldSelf(const cstring &name, const cstring &descriptor, bool isStatic) const {
+        for (const auto &item : fields) {
+            if (item->is(name, descriptor, isStatic)) {
+                return item.get();
+            }
+        }
+
+        return nullptr;
+    }
+
 
     Field *InstanceClass::getField(const cstring &name, const cstring &descriptor, bool isStatic) const {
         for (const auto &item : fields) {
@@ -479,6 +489,16 @@ namespace RexVM {
 
     Method *InstanceClass::getRefMethod(size_t refIndex, bool isStatic) const {
         return static_cast<Method *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::METHOD, isStatic));
+    }
+
+    Method *InstanceClass::getMethodSelf(const cstring &name, const cstring &descriptor, bool isStatic) const {
+        for (const auto &item : methods) {
+            if (item->is(name, descriptor, isStatic)) {
+                return item.get();
+            }
+        }
+
+        return nullptr;
     }
 
     Method *InstanceClass::getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const {

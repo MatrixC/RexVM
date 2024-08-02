@@ -235,9 +235,6 @@ namespace RexVM {
         auto &allocatedOop = oopManager->allocatedOop;
 
         for (auto &oop : allocatedOop) {
-            if (oop->klass == stringClass) {
-                vm.stringPool->eraseString(CAST_INSTANCE_OOP(oop));
-            }
             delete oop;
         }
     }

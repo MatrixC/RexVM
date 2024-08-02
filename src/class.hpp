@@ -138,8 +138,10 @@ namespace RexVM {
         void clinit(Frame &frame);
 
         [[nodiscard]] ClassMember *getMemberByRefIndex(size_t refIndex, ClassMemberTypeEnum type, bool isStatic) const;
+        [[nodiscard]] Field *getFieldSelf(const cstring &name, const cstring &descriptor, bool isStatic) const;
         [[nodiscard]] Field *getField(const cstring &name, const cstring &descriptor, bool isStatic) const;
         [[nodiscard]] Field *getRefField(size_t refIndex, bool isStatic) const;
+        [[nodiscard]] Method *getMethodSelf(const cstring &name, const cstring &descriptor, bool isStatic) const;
         [[nodiscard]] Method *getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const;
         [[nodiscard]] Method *getRefMethod(size_t refIndex, bool isStatic) const;
 

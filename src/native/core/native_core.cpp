@@ -13,7 +13,8 @@
 #include "java_lang_float.hpp"
 #include "java_lang_throwable.hpp"
 #include "java_io_file_input_output_stream.hpp"
-#include "java_io_unix_file_system.hpp"
+#include "java_io_misc.hpp"
+#include "java_lang_shutdown.hpp"
 #include "java_util_concurrent_atomic.hpp"
 #include "java_util_time_zone.hpp"
 #include "java_lang_package.hpp"
@@ -38,6 +39,7 @@ namespace RexVM::Native::Core {
     constexpr auto JAVA_IO_FILE_INPUT_STREAM_NAME = "java/io/FileInputStream";
     constexpr auto JAVA_IO_FILE_OUTPUT_STREAM_NAME = "java/io/FileOutputStream";
     constexpr auto JAVA_IO_UNIX_FILE_SYSTEM_NAME = "java/io/UnixFileSystem";
+    constexpr auto JAVA_IO_OBJECT_STREAM_NAME = "java/io/ObjectStreamClass";
     constexpr auto SUN_REFLECT_NATIVE_METHOD_ACCESSOR_IMPL_NAME = "sun/reflect/NativeMethodAccessorImpl";
     constexpr auto SUN_REFLECT_CONSTANT_POOL_NAME = "sun/reflect/ConstantPool";
     constexpr auto SUN_REFLECT_REFLECTION_NAME = "sun/reflect/Reflection";
@@ -308,13 +310,16 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "skip0", "(J)J", false, Native::Core::skip0);
         manager.regNativeMethod(JAVA_IO_FILE_INPUT_STREAM_NAME, "available0", "()I", false, Native::Core::available0);
 
-
         manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "open0", "(Ljava/lang/String;Z)V", false, Native::Core::writeOpen);
         manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "writeBytes", "([BIIZ)V", false, Native::Core::writeBytes);
         manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "write", "(IZ)V", false, Native::Core::write0);
         manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "close0", "()V", false, Native::Core::close0);
 
         manager.regNativeMethod(JAVA_IO_UNIX_FILE_SYSTEM_NAME, "getBooleanAttributes0", "(Ljava/io/File;)I", false, Native::Core::getBooleanAttributes0);
+
+
+        manager.regNativeMethod(JAVA_IO_OBJECT_STREAM_NAME, "initNative", "()V", false, Native::Core::initNative);
+        manager.regNativeMethod(JAVA_IO_OBJECT_STREAM_NAME, "hasStaticInitializer", "(Ljava/lang/Class;)Z", false, Native::Core::hasStaticInitializer);
     }
 
     void registerAtomicCoreMethods(NativeManager &manager) {
@@ -328,6 +333,9 @@ namespace RexVM::Native::Core {
     void registerMiscCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_UTIL_TIME_ZONE_NAME, "getSystemTimeZoneID", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::Core::getSystemTimeZoneID);
         manager.regNativeMethod("java/util/zip/CRC32", "updateBytes", "(I[BII)I", false, Native::Core::updateBytes);
+
+        manager.regNativeMethod("java/lang/Shutdown", "beforeHalt", "()V", false, Native::Core::beforeHalt);
+        manager.regNativeMethod("java/lang/Shutdown", "halt0", "(I)V", false, Native::Core::halt0);
     }
 
     void registerCoreMethods(NativeManager &manager) {

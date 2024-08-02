@@ -1,5 +1,5 @@
-#ifndef NATIVE_CORE_JAVA_IO_UNIX_FILE_SYSTEM_HPP
-#define NATIVE_CORE_JAVA_IO_UNIX_FILE_SYSTEM_HPP
+#ifndef NATIVE_CORE_JAVA_IO_MISC_HPP
+#define NATIVE_CORE_JAVA_IO_MISC_HPP
 #include <unistd.h>
 #include <filesystem>
 #include "../../config.hpp"
@@ -37,6 +37,27 @@ namespace RexVM::Native::Core {
 
         frame.returnI4(attribute);
     }
+
+    void initNative(Frame &frame) {
+    }
+
+    //native static boolean hasStaticInitializer(Class<?> cl);
+    void hasStaticInitializer(Frame &frame) {
+        const auto cl = frame.getLocalRef(0);
+        if (cl == nullptr) {
+            throwNullPointException(frame);
+            return;
+        }
+        const auto mirrorClass = GET_MIRROR_CLASS(cl);
+        if (mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
+            frame.returnBoolean(false);
+            return;
+        }
+        const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
+        frame.returnBoolean(instanceMirrorClass->getMethodSelf("<clinit>", "()V", true) != nullptr);
+    }
+
+
 
 }
 

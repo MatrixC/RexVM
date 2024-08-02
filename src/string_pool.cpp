@@ -18,6 +18,9 @@ namespace RexVM {
     StringPool::~StringPool() = default;
 
     cstring StringPool::getJavaString(InstanceOop *oop) {
+        if (oop->klass->name != JAVA_LANG_STRING_NAME) {
+            int i = 10;
+        }
         const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
         const auto char16Ptr = charArray->data.get();
         return utf16ToUtf8(char16Ptr, charArray->dataLength);
