@@ -70,7 +70,7 @@ namespace RexVM {
     Class *ClassLoader::getClass(const cstring &name) {
         std::lock_guard<std::recursive_mutex> lock(clMutex);
 
-        if (name == EMPTY_STRING) {
+        if (name.empty()) {
             return nullptr;
         }
         if (const auto iter = classMap.find(name); iter != classMap.end()) {
@@ -190,7 +190,7 @@ namespace RexVM {
 
     InstanceClass *ClassLoader::loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous) {
         cstring buffer(length, 0);
-        auto bufferPtr = reinterpret_cast<void *>(buffer.data());
+        auto bufferPtr = CAST_VOID_PTR(buffer.data());
         std::memcpy(bufferPtr, ptr, length * sizeof(u1));
         const auto classStream = std::make_unique<std::istringstream>(buffer);
         return loadInstanceClass(*classStream, notAnonymous);

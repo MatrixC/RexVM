@@ -35,9 +35,6 @@ namespace RexVM::Native::Sun::Msc {
     }
 
     void initialize(Frame &frame) {
-        // auto systemClass = frame.classLoader.getInstanceClass("java/lang/System");
-        // auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
-        // frame.runMethod(*initMethod);
     }
 
     void findSignal(Frame &frame) {

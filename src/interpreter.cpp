@@ -1039,8 +1039,8 @@ namespace RexVM {
             const cstring &methodName, 
             const cstring &methodDescriptor
         ) {
-            const auto classLoader = frame.getCurrentClassLoader();
-            const auto invokeMethod = classLoader
+            const auto invokeMethod = 
+                    frame.getCurrentClassLoader()
                         ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
                         ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
             //1第一个参数为MethodHandle Object

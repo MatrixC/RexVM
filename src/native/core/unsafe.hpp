@@ -189,14 +189,14 @@ namespace RexVM::Native::Core {
 
     void cheapFreeMemory(Frame &frame) {
         const auto addressLong = frame.getLocalI8(1);
-        const auto address = std::bit_cast<void *>(addressLong);
+        const auto address = std::bit_cast<voidPtr>(addressLong);
         std::free(address);
     }
 
     void cheapReallocateMemory(Frame &frame) {
         const auto addressLong = frame.getLocalI8(1);
         const auto size = CAST_SIZE_T(frame.getLocalI8(3));
-        const auto address = std::bit_cast<void *>(addressLong);
+        const auto address = std::bit_cast<voidPtr>(addressLong);
         frame.returnI8(std::bit_cast<i8>(std::realloc(address, size)));
     }
 

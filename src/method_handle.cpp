@@ -92,11 +92,11 @@ namespace RexVM {
             case MethodHandleEnum::REF_putField:
             case MethodHandleEnum::REF_putStatic:
                 type = Slot(classLoader->getClass(getClassNameByFieldDescriptor(methodHandleMemberDescriptor))->getMirrorOop());
-            break;
+                break;
 
             default:
                 type = Slot(createMethodType(frame, methodHandleMemberDescriptor));
-            break;
+                break;
         }
 
         std::vector<Slot> linkMethodHandleParam;
@@ -143,10 +143,10 @@ namespace RexVM {
                 case ConstantTagEnum::CONSTANT_MethodHandle:
                     //argResult = createMethodHandle(frame, CAST_CONSTANT_METHOD_HANDLE_INFO(constantInfo), lookupOop);
                     argResult = createMethodHandle(frame, CAST_CONSTANT_METHOD_HANDLE_INFO(constantInfo), callerClass);
-                break;
+                    break;
                 case ConstantTagEnum::CONSTANT_MethodType:
                     argResult = createMethodType(frame, CAST_CONSTANT_METHOD_TYPE_INFO(constantInfo));
-                break;
+                    break;
                 case ConstantTagEnum::CONSTANT_String: {
                     const auto strVal = getConstantStringFromPoolByIndexInfo(constantPool, CAST_CONSTANT_STRING_INFO(constantInfo)->index);
                     argResult = stringPool->getInternString(strVal);
@@ -159,26 +159,25 @@ namespace RexVM {
                 }
                 case ConstantTagEnum::CONSTANT_Integer:
                     argResult = oopManager->newIntegerOop((CAST_CONSTANT_INTEGER_INFO(constantInfo))->value);
-                break;
+                    break;
                 case ConstantTagEnum::CONSTANT_Float:
                     argResult = oopManager->newFloatOop((CAST_CONSTANT_FLOAT_INFO(constantInfo))->value);
-                break;
+                    break;
                 case ConstantTagEnum::CONSTANT_Long:
                     argResult = oopManager->newLongOop((CAST_CONSTANT_LONG_INFO(constantInfo))->value);
-                break;
+                    break;
                 case ConstantTagEnum::CONSTANT_Double:
                     argResult = oopManager->newDoubleOop((CAST_CONSTANT_DOUBLE_INFO(constantInfo))->value);
-                break;
+                    break;
                 default:
                     panic("error constant type");
-                break;
+                    break;
             }
             if (frame.markThrow) {
                 return nullptr;
             }
             argObjArrayOop->data[i] = argResult;
         }
-
         
         const auto appendixResultArrayOop = oopManager->newObjectObjArrayOop(1);
         std::vector<Slot> linkCallSiteParms;

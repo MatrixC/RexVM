@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <vector>
+#include <tuple>
 #include "basic_macro.hpp"
 
 namespace RexVM {
@@ -21,7 +23,7 @@ namespace RexVM {
     using i8 = std::int64_t;
     using f4 = float;
     using f8 = double;
-    //using ref = void *;
+    using voidPtr = void *;
     using ref = Oop *;
     using size_t = std::size_t;
     using cchar = char8_t;
@@ -99,8 +101,6 @@ namespace RexVM {
     constexpr size_t THREAD_STACK_SLOT_SIZE = 16384;
     //128KB
     constexpr size_t THREAD_STACK_MEMORY_KB = THREAD_STACK_SLOT_SIZE * sizeof(Slot) / 1024;
-
-    const cstring EMPTY_STRING{};
 
     struct Frame;
     using MethodHandler = void (*)(Frame &frame);

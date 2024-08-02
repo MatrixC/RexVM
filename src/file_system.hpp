@@ -2,8 +2,13 @@
 #define REX_FILE_SYSTEM_HPP
 #include "config.hpp"
 
+#if defined(_WIN32)
+#define PATH_SEPARATOR ';'
+#define LINE_SEPARATOR "\r\n"
+#else
 #define PATH_SEPARATOR ':'
 #define LINE_SEPARATOR "\n"
+#endif
 
 namespace RexVM {
 

@@ -36,7 +36,7 @@ namespace RexVM {
         SlotTypeEnum *localVariableTableType;
         StackContext operandStackContext;
         u1 currentByteCode{};
-        u2 level{0};
+        u2 level{};
 
         VM &vm;
         VMThread &thread;

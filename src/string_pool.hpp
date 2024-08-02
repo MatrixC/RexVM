@@ -52,6 +52,7 @@ namespace RexVM {
 
         [[nodiscard]] static cstring getJavaString(InstanceOop *oop) ;
         [[nodiscard]] static bool equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t length);
+        void eraseString(InstanceOop *oop);
 
         InstanceOop *getInternString(const cstring &str);
         InstanceOop *getInternStringOld(const cstring &str);

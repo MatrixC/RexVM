@@ -47,8 +47,7 @@ namespace RexVM {
     void traceInstanceOopChild(InstanceOop * oop, std::unordered_set<Oop *> &tracedOop);
     void traceObjArrayOopChild(ObjArrayOop * oop, std::unordered_set<Oop *> &tracedOop);
 
-    void gc(VM &vm);
-    void gc2(VM &vm);
+    void collectAll(VM &vm);
 }
 
 #endif

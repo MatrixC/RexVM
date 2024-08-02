@@ -23,7 +23,7 @@
 #define CAST_F4_PTR(x) reinterpret_cast<f4 *>(x)
 #define CAST_F8_PTR(x) reinterpret_cast<f8 *>(x)
 #define CAST_REF_PTR(x) reinterpret_cast<ref *>(x)
-#define CAST_VOID_PTR(x) reinterpret_cast<void *>(x)
+#define CAST_VOID_PTR(x) reinterpret_cast<voidPtr>(x)
 #define CAST_SIZE_T(x) static_cast<size_t>(x)
 #define CAST_CHAR(x) static_cast<char>(x)
 #define CAST_CHAR_16_T(x) static_cast<char16_t>(x)

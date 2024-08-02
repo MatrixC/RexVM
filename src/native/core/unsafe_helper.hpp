@@ -11,7 +11,7 @@
 
 namespace RexVM::Native::Core {
 
-    bool compareAndSwapAction(void *src, Slot expect, Slot val, SlotTypeEnum slotType) {
+    bool compareAndSwapAction(voidPtr src, Slot expect, Slot val, SlotTypeEnum slotType) {
         switch (slotType) {
             case SlotTypeEnum::I4: {
                 const auto atomSrc = reinterpret_cast<std::atomic<i4>*>(src);
@@ -39,11 +39,11 @@ namespace RexVM::Native::Core {
         return false;
     }
 
-    void compareAndSwapAction(Frame &frame, void *dataPtr, Slot expected, Slot x, SlotTypeEnum slotType) {
+    void compareAndSwapAction(Frame &frame, voidPtr dataPtr, Slot expected, Slot x, SlotTypeEnum slotType) {
         frame.returnBoolean(compareAndSwapAction(dataPtr, expected, x, slotType));
     }
 
-    void putVolatileAction(Frame &frame, void *dataPtr, SlotTypeEnum slotType) {
+    void putVolatileAction(Frame &frame, voidPtr dataPtr, SlotTypeEnum slotType) {
         const auto x = frame.getLocal(4);
         switch (slotType) {
             case SlotTypeEnum::I4:
@@ -66,7 +66,7 @@ namespace RexVM::Native::Core {
         }
     }
 
-    void putAction(Frame &frame, void *dataPtr, SlotTypeEnum slotType) {
+    void putAction(Frame &frame, voidPtr dataPtr, SlotTypeEnum slotType) {
         const auto x = frame.getLocal(4);
         switch (slotType) {
             case SlotTypeEnum::I4:
@@ -89,7 +89,7 @@ namespace RexVM::Native::Core {
         }
     }
 
-    void getVolatileAction(Frame &frame, void *dataPtr, SlotTypeEnum slotType) {
+    void getVolatileAction(Frame &frame, voidPtr dataPtr, SlotTypeEnum slotType) {
         switch (slotType) {
             case SlotTypeEnum::I4:
                 frame.returnSlot(Slot((reinterpret_cast<std::atomic<i4>*>(dataPtr))->load(std::memory_order_acquire)), slotType);
@@ -111,7 +111,7 @@ namespace RexVM::Native::Core {
         }
     }
 
-    void getAction(Frame &frame, void *dataPtr, SlotTypeEnum slotType) {
+    void getAction(Frame &frame, voidPtr dataPtr, SlotTypeEnum slotType) {
         switch (slotType) {
             case SlotTypeEnum::I4:
                 frame.returnSlot(Slot(* CAST_I4_PTR(dataPtr)), slotType);
@@ -133,7 +133,7 @@ namespace RexVM::Native::Core {
         }
     }
 
-    void setMemoryAction(Frame &frame, void *dataPtr) {
+    void setMemoryAction(Frame &frame, voidPtr dataPtr) {
         const auto bytes = CAST_SIZE_T(frame.getLocalI8(4));
         const auto value = CAST_U1(frame.getLocalI4(6));
         std::memset(dataPtr, value, bytes);
@@ -148,7 +148,7 @@ namespace RexVM::Native::Core {
         SET_MEMORY,
     };
 
-    void actionSwitch(Frame &frame, UnsafeActionTypeEnum actionType, void *dataPtr, SlotTypeEnum slotType) {
+    void actionSwitch(Frame &frame, UnsafeActionTypeEnum actionType, voidPtr dataPtr, SlotTypeEnum slotType) {
         switch (actionType) {
             case UnsafeActionTypeEnum::COMPARE_AND_SWAP: {
                 const auto expected = frame.getLocal(4);
@@ -156,27 +156,27 @@ namespace RexVM::Native::Core {
                     (slotType == SlotTypeEnum::I8 || slotType == SlotTypeEnum::F8) ?
                              frame.getLocal(6) : 
                              frame.getLocal(5);
-                compareAndSwapAction(frame, (void *)dataPtr, expected, x, slotType);
+                compareAndSwapAction(frame, dataPtr, expected, x, slotType);
                 break;
             }
             case UnsafeActionTypeEnum::GET_VOLATILE: {
-                getVolatileAction(frame, (void *)dataPtr, slotType);
+                getVolatileAction(frame, dataPtr, slotType);
                 break;
             }
             case UnsafeActionTypeEnum::PUT_VOLATILE: {
-                putVolatileAction(frame, (void *)dataPtr, slotType);
+                putVolatileAction(frame, dataPtr, slotType);
                 break;
             }
             case UnsafeActionTypeEnum::GET: {
-                getAction(frame, (void *)dataPtr, slotType);
+                getAction(frame, dataPtr, slotType);
                 break;
             }
             case UnsafeActionTypeEnum::PUT: {
-                putAction(frame, (void *)dataPtr, slotType);
+                putAction(frame, dataPtr, slotType);
                 break;
             }
             case UnsafeActionTypeEnum::SET_MEMORY:
-                setMemoryAction(frame, (void *)dataPtr);
+                setMemoryAction(frame, dataPtr);
                 break;
         }
     }
@@ -193,18 +193,10 @@ namespace RexVM::Native::Core {
         return value < 0;
     }
 
-    void unsafCommon(Frame &frame, UnsafeActionTypeEnum actionType, SlotTypeEnum slotType) {
-        //obj 有两种情况, 一个正常类的实例或者一个Class对象: 来源于staticFieldBase方法
-        //如果要读取一个类的static字段, 则obj会传入类对应的Class对象
-        //为了区分普通offset和static字段的offset, 在生成offset的时候做了一些区分, 静态offset用负数表示
-        auto obj = frame.getLocalRef(1);
-        auto offset = frame.getLocalI8(2);
-        u1 *dataPtr;
+    voidPtr unsafeGetDataPtr(ref obj, i8 offset) {
+        u1 *dataPtr = nullptr;
         if (obj == nullptr) {
-            if (actionType != UnsafeActionTypeEnum::SET_MEMORY) {
-                panic("error object");
-            }
-            dataPtr = CAST_U1_PTR(std::bit_cast<void *>(offset));
+            dataPtr = CAST_U1_PTR(std::bit_cast<voidPtr>(offset));
         } else if (isStaticFieldOffset(offset)) {
             offset = decodeStaticFieldOffset(offset);
             if (obj->klass->name != JAVA_LANG_CLASS_NAME) {
@@ -249,7 +241,30 @@ namespace RexVM::Native::Core {
             }
         }
         dataPtr += offset;
-        actionSwitch(frame, actionType, CAST_VOID_PTR(dataPtr), slotType);
+        return CAST_VOID_PTR(dataPtr);
+    }
+
+    void unsafCommon(Frame &frame, UnsafeActionTypeEnum actionType, SlotTypeEnum slotType) {
+        //obj 有两种情况, 一个正常类的实例或者一个Class对象: 来源于staticFieldBase方法
+        //如果要读取一个类的static字段, 则obj会传入类对应的Class对象
+        //为了区分普通offset和static字段的offset, 在生成offset的时候做了一些区分, 静态offset用负数表示
+        const auto obj = frame.getLocalRef(1);
+        const auto offset = frame.getLocalI8(2);
+        const auto dataPtr = unsafeGetDataPtr(obj, offset);
+        actionSwitch(frame, actionType, dataPtr, slotType);
+    }
+
+    void copyMemory(Frame &frame) {
+        const auto obj1 = frame.getLocalRef(1);
+        const auto offset1 = frame.getLocalI8(2);
+        const auto obj2 = frame.getLocalRef(4);
+        const auto offset2 = frame.getLocalI8(5);
+        const auto bytes = frame.getLocalI8(7);
+
+        const auto srcPtr = unsafeGetDataPtr(obj1, offset1);
+        const auto destPtr = unsafeGetDataPtr(obj2, offset2);
+
+        std::memcpy(destPtr, srcPtr, CAST_SIZE_T(bytes));
     }
 
 }

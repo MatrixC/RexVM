@@ -46,13 +46,25 @@ namespace RexVM {
         return str.substr(str.size() - suffix.size()) == suffix;
     }
 
-    cstring concat_view(cview str1, cview str2) {
+    void ltrim(cstring &s) {
+        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+            return !std::isspace(ch);
+        }));
+    }
+
+    void rtrim(cstring &s) {
+        s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+            return !std::isspace(ch);
+        }).base(), s.end());
+    }
+
+    cstring concatView(cview str1, cview str2) {
         cstring result(str1);
         result += str2;
         return result;
     }
 
-    cstring concat_view(cview str1, cview str2, cview str3) {
+    cstring concatView(cview str1, cview str2, cview str3) {
         cstring result(str1);
         result += str2;
         result += str3;

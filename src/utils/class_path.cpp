@@ -48,7 +48,7 @@ namespace RexVM {
 
         const auto uncompressedSize = (size_t) fileStat.m_uncomp_size;
         cstring buffer(uncompressedSize, 0);
-        if (!mz_zip_reader_extract_to_mem(&archive, fileIndex, reinterpret_cast<void*>(buffer.data()), uncompressedSize, 0)) {
+        if (!mz_zip_reader_extract_to_mem(&archive, fileIndex, reinterpret_cast<voidPtr>(buffer.data()), uncompressedSize, 0)) {
             return nullptr;
         }
         return std::make_unique<std::istringstream>(buffer);

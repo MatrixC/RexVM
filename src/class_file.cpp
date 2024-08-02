@@ -190,7 +190,7 @@ namespace RexVM {
         const auto sourceFileAttribute = getAssignAttribute(AttributeTagEnum::SOURCE_FILE);
 
         if (sourceFileAttribute == nullptr) {
-            return EMPTY_STRING;
+            return {};
         }
 
         const auto nameIndex = (CAST_SOURCE_FILE_ATTRIBUTE(sourceFileAttribute))->sourceFileIndex;
@@ -201,7 +201,7 @@ namespace RexVM {
         const auto signatureAttribute = getAssignAttribute(AttributeTagEnum::SIGNATURE);
 
         if (signatureAttribute == nullptr) {
-            return EMPTY_STRING;
+            return {};
         }
 
         const auto nameIndex = (CAST_SIGNATURE_ATTRIBUTE(signatureAttribute))->signatureIndex;
@@ -214,8 +214,6 @@ namespace RexVM {
         if (oriAttribute == nullptr) {
             return;
         }
-
-        //const auto bootstrapMethodAttribute = CAST_BOOT_STRAP_METHODS_ATTRIBUTE(oriAttribute);
     }
 
     std::vector<cstring> ClassFile::getInterfaceNames() const {

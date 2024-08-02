@@ -20,7 +20,8 @@ namespace RexVM {
         if (javaHome.empty()) {
             javaHome = initJavaHome(std::getenv("JAVA8_HOME"));
             if (javaHome.empty()) {
-                panic("can't find JAVA_HOME");
+                cprintlnErr("Error: JAVA_HOME environment variable not found");
+                std::exit(1);
             }
         }
         std::vector<cstring> pathList;
@@ -68,21 +69,20 @@ namespace RexVM {
     void VM::runMainMethod() {
         const auto userParams = params.userParams;
 
-        if (userParams.empty()) {
-            panic("must input run class");
-        }
-
-        const auto &className = getJVMClassName(userParams.at(0));
+        const auto &className = getJVMClassName(userParams[0]);
         const auto runClass = bootstrapClassLoader->getInstanceClass(className);
         if (runClass == nullptr) {
-            panic("can't find class " + className);
+            cprintlnErr("Error: Could not find or load main class {}", userParams[0]);
+            std::exit(1);
         }
         const auto mainMethod = runClass->getMethod("main", "([Ljava/lang/String;)V", true);
         if (mainMethod == nullptr) {
-            panic("no main method in class " + className);
+            cprintlnErr("Error: Main method not found in class {}, please define the main method as:", userParams[0]);
+            cprintlnErr("   public static void main(String[] args)");
+            std::exit(1);
         }
         const auto mainMethodParmSize = userParams.size() - 1;
-        const auto stringArray = oopManager->newStringObjArrayOop( mainMethodParmSize);
+        const auto stringArray = oopManager->newStringObjArrayOop(mainMethodParmSize);
 
         if (userParams.size() > 1) {
             for (size_t i = 1; i < userParams.size(); ++i) {
@@ -126,11 +126,10 @@ namespace RexVM {
         joinThreads();
     }
 
-
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();
-        gc2(vm);
+        collectAll(vm);
     }
 
 }

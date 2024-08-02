@@ -18,7 +18,7 @@ namespace RexVM::Native::Core {
     void getSystemTimeZoneID(Frame &frame) {
         cstring timeZoneID;
     
-#if defined(_WIN32) // Windows 平台
+#if defined(_WIN32)
         TIME_ZONE_INFORMATION tzInfo;
         if (GetTimeZoneInformation(&tzInfo) != TIME_ZONE_ID_INVALID) {
             wchar_t *wTimeZoneName = tzInfo.StandardName;
@@ -26,15 +26,14 @@ namespace RexVM::Native::Core {
             wcstombs(timeZoneName, wTimeZoneName, sizeof(timeZoneName));
             timeZoneID = timeZoneName;
         }
-#else // Unix-like 平台
-        cstring command = "readlink /etc/localtime";
-        FILE* pipe = popen(command.c_str(), "r");
+#else
+        const auto pipe = popen("readlink /etc/localtime", "r");
         if (!pipe) {
             frame.returnRef(frame.vm.stringPool->getInternString("Unknown"));
             return;
         }
         char buffer[128];
-        cstring result = "";
+        cstring result{};
         while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
             result += buffer;
         }
@@ -42,7 +41,7 @@ namespace RexVM::Native::Core {
         size_t pos = result.find("/zoneinfo/");
         if (pos != cstring::npos) {
             timeZoneID = result.substr(pos + strlen("/zoneinfo/"));
-            timeZoneID.erase(timeZoneID.find_last_not_of(" \n\r\t")+1);
+            timeZoneID.erase(timeZoneID.find_last_not_of(" \n\r\t") + 1);
         }
 #endif
         frame.returnRef(frame.vm.stringPool->getInternString(timeZoneID));

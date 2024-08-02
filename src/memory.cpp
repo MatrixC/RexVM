@@ -2,6 +2,7 @@
 #include "vm.hpp"
 #include "thread.hpp"
 #include "class_loader.hpp"
+#include "string_pool.hpp"
 #include "utils/format.hpp"
 
 namespace RexVM {
@@ -227,169 +228,18 @@ namespace RexVM {
         }
     }
 
-    void gc(VM &vm) {
-        std::unordered_set<Oop *> tracedOop;
+    void collectAll(VM &vm) {
         const auto &oopManager = vm.oopManager;
-        const auto &allocatedOop = oopManager->allocatedOop;
-
-
-        //ClassLoader
-        const auto &classLoader = vm.bootstrapClassLoader;
-        // if (classLoader->classLoaderInstance != nullptr) {
-        //     tracedOop.insert(classLoader->classLoaderInstance.get());
-        // }
-        
-        //InstanceClass static field and Class Mirror
-
-        cprintln("allcated {}", allocatedOop.size());
-
-        const auto &classMap = classLoader->classMap;
-        for (const auto &[key, klass] : classMap) {
-            if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
-                auto const instanceClass = CAST_INSTANCE_CLASS(klass.get());
-                for (const auto &field : instanceClass->fields) {
-                    const auto fieldType = field->getFieldSlotType();
-                    if (fieldType == SlotTypeEnum::REF && field->isStatic()) {
-                        const auto memberOop = instanceClass->getFieldValue(field->slotId).refVal;
-                        if (memberOop != nullptr) {
-                            tracedOop.insert(memberOop);
-                        }
-                    }
-                }
-            }
-
-            const auto &classMirror = klass->mirror;
-            if (classMirror != nullptr) {
-                tracedOop.insert(classMirror.get());
-            }
-        }
-
-        cprintln("finish static and mirror {}", tracedOop.size());
-
-        //Thread gc roots
-        // const auto &threads = vm.threads;
-        // for (const auto &thread : threads) {
-        //     const auto threadGCRoots = thread->getThreadGCRoots();
-        //     if (threadGCRoots.size() > 0) {
-        //         tracedOop.insert(threadGCRoots.begin(), threadGCRoots.end());
-        //     }
-        // }
-
-        cprintln("finish thread {}", tracedOop.size());
-
-        std::unordered_set<Oop *> deleteOop;
-//        std::copy_if(allocatedOop.begin(), allocatedOop.end(), std::inserter(deleteOop, deleteOop.end()),
-//                 [&tracedOop](const auto& value) { return !tracedOop.contains(value) && !value->getNotGC(); });
-//
-
-        for (const auto &oop : deleteOop) {
-            delete oop;
-        }
-
-        cprintln("{}, {}, {}", allocatedOop.size(), tracedOop.size(), deleteOop.size());
-
-        oopManager->allocatedOop = tracedOop;
-    }
-
-    std::unordered_set<Oop *> getGCRoot(VM &vm) {
-        std::unordered_set<Oop *> gcRoots;
-
-        //From ClassLoader
-        const auto &classLoader = vm.bootstrapClassLoader;
-        if (classLoader != nullptr) {
-
-        const auto &classMap = classLoader->classMap;
-        for (const auto &[key, klass] : classMap) {
-            if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
-                auto const instanceClass = CAST_INSTANCE_CLASS(klass.get());
-                for (const auto &field : instanceClass->fields) {
-                    const auto fieldType = field->getFieldSlotType();
-                    if (fieldType == SlotTypeEnum::REF && field->isStatic()) {
-                        const auto memberOop = instanceClass->getFieldValue(field->slotId).refVal;
-                        if (memberOop != nullptr) {
-                            gcRoots.insert(memberOop);
-                        }
-                    }
-                }
-            }
-
-            const auto &classMirror = klass->mirror;
-            if (classMirror != nullptr) {
-                gcRoots.insert(classMirror.get());
-            }
-        }
-
-        }
-
-        //From Thread
-        // const auto &threads = vm.threads;
-        // for (const auto &thread : threads) {
-        //     const auto &threadGCRoots = thread->getThreadGCRoots();
-        //     if (threadGCRoots.size() > 0) {
-        //         gcRoots.insert(threadGCRoots.begin(), threadGCRoots.end());
-        //     }
-        // }
-
-        return gcRoots;
-
-    }
-
-    std::unordered_set<Oop *> startTrace(std::unordered_set<Oop *> const &gcRoots) {
-        std::unordered_set<Oop *> tracedOop;
-        for (const auto &oop : gcRoots) {
-            traceOop(oop, tracedOop);
-        }
-        return tracedOop;
-    }
-
-    void gc2(VM &vm) {
-        const auto &oopManager = vm.oopManager;
+        const auto stringClass = 
+            vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
         auto &allocatedOop = oopManager->allocatedOop;
 
-        for (const auto &oop : allocatedOop) {
+        for (auto &oop : allocatedOop) {
+            if (oop->klass == stringClass) {
+                vm.stringPool->eraseString(CAST_INSTANCE_OOP(oop));
+            }
             delete oop;
-            //allocatedOop.erase(oop);
         }
-
-        return;
-
-
-        const auto &gcRoots = getGCRoot(vm);
-        const auto &tracedOop = startTrace(gcRoots);
-
-        cprintln("allocated {}, gcRoots {}, traced {}", allocatedOop.size(), gcRoots.size(), tracedOop.size());
-
-
-        std::unordered_set<Oop *> notTracedOop;
-//        std::copy_if(allocatedOop.begin(), allocatedOop.end(), std::inserter(notTracedOop, notTracedOop.end()),
-//                 [&tracedOop](const auto& value) { return !tracedOop.contains(value) && !value->getNotGC(); });
-//
-        cprintln("notTracedOop {}", notTracedOop.size());
-        for (const auto &oop : notTracedOop) {
-            delete oop;
-            allocatedOop.erase(oop);
-        }
-
-        // for (const auto &oop : allocatedOop) {
-        //     if (oop != nullptr) {
-        //     delete oop;
-        //     }
-        // }
-
-        // for (const auto &oop : tracedOop) {
-        //     const auto klass = oop->klass;
-        //     // const auto mirrorOop = CAST_MIRROR_OOP(oop);
-        //     // const auto name = klass->name;
-        //     // const auto mklass = mirrorOop->mirrorClass;
-
-        //     //cprintln("{}", mklass->name);
-        //     // if (name != "java/lang/Class") {
-        //     //     cprintln("{}", klass->name);
-        //     //     cnt++;
-        //     // }
-        // }
-
-
     }
     
 }

@@ -31,6 +31,7 @@ namespace RexVM::Native::Core {
     constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
     constexpr auto JAVA_LANG_PACKAGE_NAME = "java/lang/Package";
+    constexpr auto JAVA_LANG_STRICT_MATH_NAME = "java/lang/StrictMath";
     constexpr auto JAVA_UTIL_CONCURRENT_ATOMIC_NAME = "java/util/concurrent/atomic/AtomicLong";
     constexpr auto JAVA_UTIL_TIME_ZONE_NAME = "java/util/TimeZone";
     constexpr auto JAVA_SECURITY_ACCESS_CONTROLLER_NAME = "java/security/AccessController";
@@ -235,6 +236,7 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "freeMemory", "(J)V", false, Native::Core::cheapFreeMemory);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "reallocateMemory", "(JJ)J", false, Native::Core::cheapReallocateMemory);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "setMemory", "(Ljava/lang/Object;JJB)V", false, Native::Core::cheapSetMemory);
+        manager.regNativeMethod(UNSAFE_CLASS_NAME, "copyMemory", "(Ljava/lang/Object;JLjava/lang/Object;JJ)V", false, Native::Core::copyMemory);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getByte", "(J)B", false, Native::Core::cheapGetByte);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "putByte", "(JB)V", false, Native::Core::cheapPutByte);
         manager.regNativeMethod(UNSAFE_CLASS_NAME, "getShort", "(J)S", false, Native::Core::cheapGetShort);
@@ -267,7 +269,29 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_LANG_DOUBLE_NAME, "doubleToRawLongBits", "(D)J", false, Native::Core::doubleToRawLongBits);
         manager.regNativeMethod(JAVA_LANG_DOUBLE_NAME, "longBitsToDouble", "(J)D", false, Native::Core::longBitsToDouble);
 
-        manager.regNativeMethod("java/lang/StrictMath", "log", "(D)D", false, Native::Core::_log);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "sin", "(D)D", false, Native::Core::_sin);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "cos", "(D)D", false, Native::Core::_cos);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "tan", "(D)D", false, Native::Core::_tan);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "asin", "(D)D", false, Native::Core::_asin);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "acos", "(D)D", false, Native::Core::_acos);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "atan", "(D)D", false, Native::Core::_atan);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "atan2", "(DD)D", false, Native::Core::_atan2);
+
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "exp", "(D)D", false, Native::Core::_exp);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "log", "(D)D", false, Native::Core::_log);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "log10", "(D)D", false, Native::Core::_log10);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "sqrt", "(D)D", false, Native::Core::_sqrt);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "pow", "(DD)D", false, Native::Core::_pow);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "cbrt", "(D)D", false, Native::Core::_cbrt);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "IEEEremainder", "(DD)D", false, Native::Core::_ieeeremainder);
+
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "sinh", "(D)D", false, Native::Core::_sinh);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "cosh", "(D)D", false, Native::Core::_cosh);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "tanh", "(D)D", false, Native::Core::_tanh);
+
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "hypot", "(DD)D", false, Native::Core::_hypot);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "expm1", "(D)D", false, Native::Core::_expm1);
+        manager.regNativeMethod(JAVA_LANG_STRICT_MATH_NAME, "log1p", "(D)D", false, Native::Core::_log1p);
     }
 
     void registerThrowableCoreMethods(NativeManager &manager) {

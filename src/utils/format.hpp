@@ -25,6 +25,11 @@ namespace RexVM {
     FMT_INLINE void cprintln(fmt::format_string<T...> fmt, T &&... args) {
         return fmt::println(fmt, std::forward<T>(args)...);
     }
+
+    template<typename... T>
+    FMT_INLINE void cprintlnErr(fmt::format_string<T...> fmt, T &&... args) {
+        return fmt::println(stderr, fmt, std::forward<T>(args)...);
+    }
 }
 
 #endif

@@ -402,7 +402,7 @@ namespace RexVM::Native::Core {
         }
         const auto &stringPool = frame.vm.stringPool;
         const auto signature = (CAST_INSTANCE_CLASS(mirrorClass))->signature;
-        if (signature != EMPTY_STRING) {
+        if (!signature.empty()) {
             frame.returnRef(stringPool->getInternString(signature));
             return;
         }

@@ -73,6 +73,10 @@ namespace RexVM {
                 );
     }
 
+    void StringPool::eraseString(InstanceOop *oop) {
+        stringTable->erase(oop);
+    }
+
     StringTable::StringTable(RexVM::size_t size)
             : tableSize(size), table(size, nullptr) {
     }
