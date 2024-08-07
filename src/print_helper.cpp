@@ -92,7 +92,7 @@ namespace RexVM {
         const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
         const auto ret = val.refVal == nullptr ? "null" : StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
-        return "Array " + ret;
+        return "Array:" + klass->name + " " + ret;
     }
 
     cstring formatInstance(Frame &frame, InstanceOop *oop) {

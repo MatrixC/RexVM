@@ -7,6 +7,7 @@
 #include "../../class.hpp"
 #include "../../execute.hpp"
 #include "../../memory.hpp"
+#include "../../exception_helper.hpp"
 #include <thread>
 
 namespace RexVM::Native::Core {
@@ -24,7 +25,11 @@ namespace RexVM::Native::Core {
     //public static native void sleep(long millis);
     void sleep(Frame &frame) {
         const auto millis = frame.getLocalI8(0);
+        const auto &vmThread = &frame.thread;
+        const auto currentStatus = vmThread->getStatus();
+        vmThread->setStatus(ThreadStatusEnum::TIMED_WAITING);
         std::this_thread::sleep_for(std::chrono::milliseconds(millis));
+        vmThread->setStatus(currentStatus);
     }
 
     //private native static Thread[] getThreads();
@@ -43,6 +48,7 @@ namespace RexVM::Native::Core {
     //public final native boolean isAlive();
     void isAlive(Frame &frame) {
         const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
+        ASSERT_IF_NULL_THROW_NPE(self);
         frame.returnBoolean(self->isAlive());
     }
 
@@ -54,6 +60,7 @@ namespace RexVM::Native::Core {
     //private native void start0();
     void start0(Frame &frame) {
         const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
+        ASSERT_IF_NULL_THROW_NPE(self);
         const auto threadClass = self->getInstanceClass();
         if (threadClass->name == "java/lang/ref/Reference$ReferenceHandler") [[unlikely]] {
             // endless loop tryHandlePending
@@ -65,6 +72,7 @@ namespace RexVM::Native::Core {
     //public native int countStackFrames();
     void countStackFrames(Frame &frame) {
         const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
+        ASSERT_IF_NULL_THROW_NPE(self);
         if (self->currentFrame == nullptr) {
             frame.returnI4(0);
             return;
@@ -75,10 +83,20 @@ namespace RexVM::Native::Core {
 
     //private native void interrupt0();
     void interrupt0(Frame &frame) {
+        const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
+        ASSERT_IF_NULL_THROW_NPE(self);
+        self->interrupted = true;
     }
 
     //private native boolean isInterrupted(boolean ClearInterrupted);
     void isInterrupted(Frame &frame) {
+        const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
+        ASSERT_IF_NULL_THROW_NPE(self);
+        const auto clear = frame.getLocalBoolean(1);
+        if (clear) {
+            self->interrupted = false;
+        }
+        frame.returnBoolean(self->interrupted); 
     }
 
     //private native void setPriority0(int newPriority);

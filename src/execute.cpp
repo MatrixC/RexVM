@@ -104,6 +104,10 @@ namespace RexVM {
             return;
         }
 
+        if (method.name == "close" && method.klass.name == "java/util/zip/ZipFile") {
+            int i = 10;
+        }
+
         static bool printLog = false;
         if (printLog) {
             cprintln(
@@ -126,6 +130,7 @@ namespace RexVM {
                 const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
 
                 OpCodeHandlers[frame.currentByteCode](frame);
+
                 if (frame.markThrow) {
                     if (handleThrowValue(frame)) {
                         return;
@@ -140,6 +145,7 @@ namespace RexVM {
         } else {
             const auto nativeMethodHandler = method.nativeMethodHandler;
             if (nativeMethodHandler == nullptr) {
+                frame.printCallStack();
                 panic("executeFrame error, method " + method.klass.name + "#" + method.name + ":" + method.descriptor + " nativeMethodHandler is nullptr");
             }
             nativeMethodHandler(frame);
@@ -153,12 +159,15 @@ namespace RexVM {
                 return;
             }
         }
+        if (method.returnSlotType != SlotTypeEnum::NONE) {
+            panic("Method stack error: " + method.name);
+        }
     }
 
     void monitorExecuteFrame(Frame &frame, const cstring &methodName) {
         bool lock = false;
         const auto &method = frame.method;
-        Oop *monitorHandler = nullptr;
+        ref monitorHandler = nullptr;
         if (method.isSynchronized()) [[unlikely]] {
             monitorHandler = method.isStatic() ? method.klass.mirror.get() : frame.getThis();
             monitorHandler->monitorMtx.lock();

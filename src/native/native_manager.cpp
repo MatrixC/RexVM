@@ -1,6 +1,7 @@
 #include "native_manager.hpp"
 #include "core/native_core.hpp"
 #include "sun/native_sun.hpp"
+#include "misc/native_misc.hpp"
 
 
 namespace RexVM {
@@ -40,6 +41,7 @@ namespace RexVM {
 
     void NativeManager::regAllMethods() {
         Native::Core::registerCoreMethods(*this);
+        Native::Misc::registerMiscMethods(*this);
         Native::Sun::registerSunMethods(*this);
     }
 

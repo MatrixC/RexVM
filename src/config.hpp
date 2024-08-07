@@ -8,6 +8,7 @@
 #include <vector>
 #include <tuple>
 #include "basic_macro.hpp"
+#include "os_platform.hpp"
 
 namespace RexVM {
 

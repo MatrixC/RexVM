@@ -13,6 +13,7 @@
 #include "../../file_system.hpp"
 #include <thread>
 #include <chrono>
+#include <filesystem>
 
 
 namespace RexVM::Native::Core {
@@ -139,7 +140,7 @@ namespace RexVM::Native::Core {
 
     void initProperties(Frame &frame) {
         const auto props = CAST_INSTANCE_OOP(frame.getLocalRef(0));
-        const auto propsClass = dynamic_cast<const InstanceClass *>(props->klass);
+        const auto propsClass = CAST_INSTANCE_CLASS(props->klass);
         const auto setPropertyMethod = propsClass->getMethod("setProperty", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", false);
         const auto &stringPool = frame.vm.stringPool;
         const auto utf8ConstString = stringPool->getInternString("UTF-8");
@@ -150,11 +151,21 @@ namespace RexVM::Native::Core {
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("file.encoding")), Slot(utf8ConstString) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.stdout.encoding")), Slot(utf8ConstString) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.stderr.encoding")), Slot(utf8ConstString) });
-
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.jnu.encoding")), Slot(utf8ConstString) });
+        
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("file.separator")), Slot(stringPool->getInternString(cstring{FILE_SEPARATOR})) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("path.separator")), Slot(stringPool->getInternString(cstring{PATH_SEPARATOR})) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("line.separator")), Slot(stringPool->getInternString(cstring{LINE_SEPARATOR})) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.home")), Slot(stringPool->getInternString(frame.vm.javaHome)) });
+
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.class.path")), Slot(stringPool->getInternString(frame.vm.javaClassPath)) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("user.dir")), Slot(stringPool->getInternString(std::filesystem::current_path())) });
+
+        //
+
+        //TODO
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.arch")), Slot(stringPool->getInternString("aarch64")) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.name")), Slot(stringPool->getInternString("OS X")) });
 
         frame.returnRef(props);
     }

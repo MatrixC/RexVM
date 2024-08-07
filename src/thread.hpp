@@ -35,6 +35,7 @@ namespace RexVM {
         std::thread nativeThread;
         Frame *currentFrame{nullptr};
         Method &runMethod;
+        std::atomic_bool interrupted{false};
         std::vector<Slot> params;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;

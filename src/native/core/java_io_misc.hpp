@@ -2,6 +2,9 @@
 #define NATIVE_CORE_JAVA_IO_MISC_HPP
 #include <unistd.h>
 #include <filesystem>
+#include <limits.h>
+#include <stdlib.h>
+#include <chrono>
 #include "../../config.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
@@ -57,8 +60,43 @@ namespace RexVM::Native::Core {
         frame.returnBoolean(instanceMirrorClass->getMethodSelf("<clinit>", "()V", true) != nullptr);
     }
 
+    //native String canonicalize0(String path) throws IOException;
+    void canonicalize0(Frame &frame) {
+        const auto pathOop = frame.getLocalRef(1);
+        if (pathOop == nullptr) {
+            throwNullPointException(frame);
+            return;
+        }
 
+        const auto path = StringPool::getJavaString(CAST_INSTANCE_OOP(pathOop));
+        char resolvedPath[PATH_MAX];
+        if (realpath(path.c_str(), resolvedPath) == nullptr) {
+            throwNullPointException(frame);
+        }
+        frame.returnRef(frame.vm.stringPool->getInternString(cstring{resolvedPath}));
+    }
 
+    //public native long getLastModifiedTime(File f);
+    void getLastModifiedTime(Frame &frame) {
+        const auto fileOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
+        ASSERT_IF_NULL_THROW_NPE(fileOop);
+
+        const auto pathOop = fileOop->getFieldValue("path", "Ljava/lang/String;").refVal;
+        ASSERT_IF_NULL_THROW_NPE(pathOop);
+
+        const auto path = StringPool::getJavaString(CAST_INSTANCE_OOP(pathOop));
+        std::filesystem::path fsPath(path);
+    
+        if (std::filesystem::exists(fsPath)) {
+            const auto lastWriteTime = std::filesystem::last_write_time(fsPath);
+            const auto systemTime = std::chrono::file_clock::to_sys(lastWriteTime);
+            const auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(systemTime).time_since_epoch().count();
+            frame.returnI8(CAST_I8(ms));
+        } else {
+            throwFileNotFoundException(frame, path);
+            return;
+        }
+    }
 }
 
 #endif

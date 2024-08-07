@@ -38,6 +38,14 @@ namespace RexVM {
         return oop;
     }
 
+    VMThread *OopManager::newVMThread() {
+        const auto threadClass = 
+            vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+        const auto oop = new VMThread(vm, threadClass, nullptr, {});
+        allocatedOop.insert(oop);
+        return oop;
+    }
+
     ObjArrayOop *OopManager::newObjArrayOop(ObjArrayClass * const klass, size_t length) {
         const auto oop = new ObjArrayOop(klass, length);
         allocatedOop.insert(oop);
@@ -228,13 +236,23 @@ namespace RexVM {
         }
     }
 
+    void collectOop(ref oop) {
+        const auto klass = oop->klass;
+        if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
+            const auto instanceClass = CAST_INSTANCE_CLASS(klass);
+            const auto finalizeMethod = instanceClass->getMethodSelf("finalize", "()V", false);
+            if (finalizeMethod != nullptr) {
+                
+            }
+        }
+    }
+
     void collectAll(VM &vm) {
         const auto &oopManager = vm.oopManager;
-        const auto stringClass = 
-            vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
         auto &allocatedOop = oopManager->allocatedOop;
 
         for (auto &oop : allocatedOop) {
+            const auto klass = oop->klass;
             delete oop;
         }
     }

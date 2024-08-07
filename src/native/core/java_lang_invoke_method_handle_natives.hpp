@@ -112,7 +112,9 @@ namespace RexVM::Native::Core {
 
             const auto resolveMethod = instanceClass->getMethod(name, descriptor, isStatic);
             if (resolveMethod == nullptr) {
-                throwReflectiveOperationException(frame, instanceClass->name, name, descriptor);
+                //throwReflectiveOperationException(frame, instanceClass->name, name, descriptor);
+                const auto message = cformat("{}.{}{}", getJavaClassName(instanceClass->name), name, descriptor);
+                throwAssignException(frame, "java/lang/NoSuchMethodError", message);
                 return;
             }
             const auto newFlags = flags | CAST_I4(resolveMethod->accessFlags);
@@ -126,8 +128,6 @@ namespace RexVM::Native::Core {
         }
         frame.returnRef(memberNameOop);
     }
-
-
 
 
     std::tuple<InstanceOop *, bool> methodHandleGetMemberName(Frame &frame, InstanceOop *self, std::vector<Slot> &prefixParam) {

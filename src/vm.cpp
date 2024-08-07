@@ -44,6 +44,7 @@ namespace RexVM {
         }
 
         classPath = std::make_unique<CombineClassPath>(joinString(pathList, cstring{PATH_SEPARATOR}));
+        javaClassPath = classPath->getVMClassPath();
     }
 
     void VM::initOopManager() {

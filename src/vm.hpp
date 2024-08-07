@@ -39,6 +39,7 @@ namespace RexVM {
         void addStartThread(VMThread *vmThread);
 
         cstring javaHome{};
+        cstring javaClassPath{};
 
     private:
         void initClassPath();

@@ -1,5 +1,6 @@
 #ifndef NATIVE_SUN_MISC_HPP
 #define NATIVE_SUN_MISC_HPP
+#include <unistd.h>
 #include "../../config.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
@@ -13,7 +14,7 @@
 #include "../../string_pool.hpp"
 #include "../../utils/string_utils.hpp"
 
-namespace RexVM::Native::Sun::Msc {
+namespace RexVM::Native::Sun::Misc {
 
     const std::unordered_map<cstring, i4> SIGNAL_NUMBER_MAP{
             {"INT", 2},
@@ -80,6 +81,29 @@ namespace RexVM::Native::Sun::Msc {
 
         frame.runMethodManual(*constructMethod, constructorParams);
         frame.returnRef(instance);
+    }
+
+
+    //native ByteBuffer createLong(String name, int variability, int units, long value);
+    void createLong(Frame &frame) {
+        //java.nio.ByteBuffer#allocateDirect
+        const auto byteBufferClass = frame.getCurrentClassLoader()->getInstanceClass("java/nio/ByteBuffer");
+        const auto allocateDirectMethod = byteBufferClass->getMethod("allocateDirect", "(I)Ljava/nio/ByteBuffer;", true);
+        const auto [byteBufferOopSlot, slotType] = frame.runMethodManual(*allocateDirectMethod, { Slot(8) });
+        frame.returnRef(byteBufferOopSlot.refVal);
+    }
+
+    //private static native int init();
+    void undInit(Frame &frame) {
+        frame.returnI4(0);
+    }
+
+    //static native byte[] getcwd();
+    void undGetCwd(Frame &frame) {
+        // std::array<char, 512> buffer;
+        // getcwd(buffer.data(), sizeof(buffer));
+        const auto buteArrayOop = frame.vm.oopManager->newByteArrayOop(0);
+        frame.returnRef(buteArrayOop);
     }
 
 

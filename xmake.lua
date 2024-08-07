@@ -15,6 +15,7 @@ target("rex")
         "src/utils/*.cpp",
         "src/native/*.cpp",
         "src/native/core/*.cpp",
+        "src/native/misc/*.cpp",
         "src/native/sun/*.cpp",
 
         "third_party/miniz/miniz.c"

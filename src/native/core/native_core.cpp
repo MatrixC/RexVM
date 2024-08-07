@@ -31,6 +31,7 @@ namespace RexVM::Native::Core {
     constexpr auto JAVA_LANG_REFLECT_ARRAY_NAME = "java/lang/reflect/Array";
     constexpr auto JAVA_LANG_REFLECT_PROXY_NAME = "java/lang/reflect/Proxy";
     constexpr auto JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
+    constexpr auto JAVA_LANG_REFLECT_EXECUTEABLE_NAME = "java/lang/reflect/Executable";
     constexpr auto JAVA_LANG_PACKAGE_NAME = "java/lang/Package";
     constexpr auto JAVA_LANG_STRICT_MATH_NAME = "java/lang/StrictMath";
     constexpr auto JAVA_UTIL_CONCURRENT_ATOMIC_NAME = "java/util/concurrent/atomic/AtomicLong";
@@ -129,6 +130,7 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_LANG_CLASS_NAME, "getDeclaredClasses0", "()[Ljava/lang/Class;", false, Native::Core::getDeclaredClasses0);
 
         manager.regNativeMethod(JAVA_LANG_REFLECT_FIELD_NAME, "getTypeAnnotationBytes0", "()[B", false, Native::Core::fieldGetTypeAnnotationBytes0);
+        manager.regNativeMethod(JAVA_LANG_REFLECT_EXECUTEABLE_NAME, "getParameters0", "()[Ljava/lang/reflect/Parameter;", false, Native::Core::getParameters0);
 
         manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getClassAt0", "(Ljava/lang/Object;I)Ljava/lang/Class;", false, Native::Core::getClassAt0);
         manager.regNativeMethod(SUN_REFLECT_CONSTANT_POOL_NAME, "getIntAt0", "(Ljava/lang/Object;I)I", false, Native::Core::getIntAt0);
@@ -316,7 +318,8 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod(JAVA_IO_FILE_OUTPUT_STREAM_NAME, "close0", "()V", false, Native::Core::close0);
 
         manager.regNativeMethod(JAVA_IO_UNIX_FILE_SYSTEM_NAME, "getBooleanAttributes0", "(Ljava/io/File;)I", false, Native::Core::getBooleanAttributes0);
-
+        manager.regNativeMethod(JAVA_IO_UNIX_FILE_SYSTEM_NAME, "getLastModifiedTime", "(Ljava/io/File;)J", false, Native::Core::getLastModifiedTime);
+        manager.regNativeMethod(JAVA_IO_UNIX_FILE_SYSTEM_NAME, "canonicalize0", "(Ljava/lang/String;)Ljava/lang/String;", false, Native::Core::canonicalize0);
 
         manager.regNativeMethod(JAVA_IO_OBJECT_STREAM_NAME, "initNative", "()V", false, Native::Core::initNative);
         manager.regNativeMethod(JAVA_IO_OBJECT_STREAM_NAME, "hasStaticInitializer", "(Ljava/lang/Class;)Z", false, Native::Core::hasStaticInitializer);

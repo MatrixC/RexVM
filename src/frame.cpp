@@ -346,7 +346,7 @@ namespace RexVM {
     }
 
 
-    Oop *Frame::getThis() const {
+    ref Frame::getThis() const {
         return getLocalRef(0);
     }
 
@@ -367,8 +367,8 @@ namespace RexVM {
 
     void Frame::printCallStack() {
         for (auto f = this; f != nullptr; f = f->previous) {
-            const auto nativeMethod = method.isNative();
-            cprintln("  {}#{}:{} {}", klass.name, method.name, method.descriptor, nativeMethod ? "[Native]" : "");
+            const auto nativeMethod = f->method.isNative();
+            cprintln("  {}#{}:{} {}", f->klass.name, f->method.name, f->method.descriptor, nativeMethod ? "[Native]" : "");
         }
     }
 
@@ -392,9 +392,17 @@ namespace RexVM {
         }
     }
 
+    void Frame::printReturn() {
+        if (markReturn && existReturnValue) {
+            cprintln("Return {}", formatSlot(*this, returnValue, returnType));
+        }
+    }
+
     void Frame::print() {
+        cprintln("Method: {}.{}#{}", method.klass.name, method.name, method.descriptor);
         printLocalSlot();
         printStackSlot();
+        printReturn();
     }
 
 }

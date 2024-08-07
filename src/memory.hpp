@@ -39,6 +39,7 @@ namespace RexVM {
 
 
         VMThread *newVMThread(InstanceClass * const klass);
+        VMThread *newVMThread();
         VMThread *newMainVMThread(Method &method, std::vector<Slot> params);
 
     };

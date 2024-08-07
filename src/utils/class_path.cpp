@@ -8,6 +8,10 @@
 
 namespace RexVM {
 
+    cstring ClassPath::getVMClassPath() const {
+        return path;
+    }
+
     std::unique_ptr<std::istream> DirClassPath::getStream(const cstring &filePath) {
         const auto fullPath = path + filePath;
         if (std::filesystem::exists(fullPath)) {
@@ -46,7 +50,7 @@ namespace RexVM {
         }
 
 
-        const auto uncompressedSize = (size_t) fileStat.m_uncomp_size;
+        const auto uncompressedSize = CAST_SIZE_T(fileStat.m_uncomp_size);
         cstring buffer(uncompressedSize, 0);
         if (!mz_zip_reader_extract_to_mem(&archive, fileIndex, reinterpret_cast<voidPtr>(buffer.data()), uncompressedSize, 0)) {
             return nullptr;
@@ -97,4 +101,7 @@ namespace RexVM {
         return nullptr;
     }
 
+    cstring CombineClassPath::getVMClassPath() const {
+        return joinString(processedPath, {PATH_SEPARATOR});
+    }
 }

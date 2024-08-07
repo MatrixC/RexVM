@@ -197,6 +197,7 @@ namespace RexVM::Native::Core {
         u1 *dataPtr = nullptr;
         if (obj == nullptr) {
             dataPtr = CAST_U1_PTR(std::bit_cast<voidPtr>(offset));
+            return CAST_VOID_PTR(dataPtr);
         } else if (isStaticFieldOffset(offset)) {
             offset = decodeStaticFieldOffset(offset);
             if (obj->klass->name != JAVA_LANG_CLASS_NAME) {

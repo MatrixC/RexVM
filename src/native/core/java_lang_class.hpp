@@ -145,6 +145,7 @@ namespace RexVM::Native::Core {
     //native Object[] getEnclosingMethod0();
     void getEnclosingMethod0(Frame &frame) {
         //Class Instance
+        const auto classLoader = frame.getCurrentClassLoader();
         const auto mirrorClass = getMirrorClass(frame);
         if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
@@ -158,12 +159,21 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto className = getConstantStringFromPoolByIndexInfo(constantPool, enclosingMethodAttr->classIndex);
-        const auto objArrayOop = frame.vm.oopManager->newObjectObjArrayOop(3);
-        objArrayOop->data[0] = frame.vm.bootstrapClassLoader->getClass(className)->getMirrorOop();
+        const auto targetClass = classLoader->getClass(className);
+        if (targetClass == nullptr || targetClass->type != ClassTypeEnum::INSTANCE_CLASS) {
+            frame.returnRef(nullptr);
+            return;
+        }
+        const auto targetInstanceClass = CAST_INSTANCE_CLASS(targetClass);
 
-        const auto [methodName, methodDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, enclosingMethodAttr->methodIndex);
-        objArrayOop->data[1] = frame.vm.stringPool->getInternString(methodName);
-        objArrayOop->data[2] = frame.vm.stringPool->getInternString(methodDescriptor);
+        const auto objArrayOop = frame.vm.oopManager->newObjectObjArrayOop(3);
+        objArrayOop->data[0] = targetInstanceClass->getMirrorOop();
+
+        if (enclosingMethodAttr->methodIndex != 0) {
+            const auto [methodName, methodDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, enclosingMethodAttr->methodIndex);
+            objArrayOop->data[1] = frame.vm.stringPool->getInternString(methodName);
+            objArrayOop->data[2] = frame.vm.stringPool->getInternString(methodDescriptor);
+        }
 
         frame.returnRef(objArrayOop);
     }
@@ -526,6 +536,29 @@ namespace RexVM::Native::Core {
         frame.returnRef(retArrayOop);
     }
 
+    //private native Parameter[] getParameters0();
+    void getParameters0(Frame &frame) {
+        const auto classLoader = frame.getCurrentClassLoader();
+        const auto method = frame.getThisInstance();
+        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->mirrorClass);
+        const auto slotId = method->getFieldValue("slot", "I").i4Val;
+        const auto methodPtr = methodClass->methods[slotId].get();
+        const auto parameterClass = classLoader->getInstanceClass("java/lang/reflect/Parameter");
+        const auto result = frame.vm.oopManager->newObjArrayOop(classLoader->getObjectArrayClass("java/lang/reflect/Parameter"), methodPtr->paramType.size());
+
+        for (size_t i = 0; i < methodPtr->paramType.size(); ++i) {
+            const auto parameter = frame.vm.oopManager->newInstance(parameterClass);
+            const auto name = cformat("arg{}", i);
+            parameter->setFieldValue("name", "Ljava/lang/String;", Slot(frame.vm.stringPool->getInternString(name)));
+            parameter->setFieldValue("modifiers", "I", Slot(CAST_I4(0)));
+            parameter->setFieldValue("executable", "Ljava/lang/reflect/Executable;", Slot(method));
+            parameter->setFieldValue("index", "I", Slot(CAST_I4(i)));
+            result->data[i] = parameter;
+        }
+        
+        frame.returnRef(result);
+    }
+
     
     //native Class<?> getClassAt0         (Object constantPoolOop, int index);
     void getClassAt0(Frame &frame) {
@@ -612,7 +645,7 @@ namespace RexVM::Native::Core {
         }
 
         const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->mirrorClass);
-        const auto methodName = StringPool::getJavaString(CAST_INSTANCE_OOP(method->getFieldValue("name", "Ljava/lang/String;").refVal));
+        //const auto methodName = StringPool::getJavaString(CAST_INSTANCE_OOP(method->getFieldValue("name", "Ljava/lang/String;").refVal));
         const auto slotId = method->getFieldValue("slot", "I").i4Val;
         const auto methodPtr = methodClass->methods[slotId].get();
 

@@ -32,6 +32,19 @@ namespace RexVM {
         return result;
     }
 
+    cstring joinString(std::unordered_set<cstring> strs, const cstring &joiner) {
+        if (strs.empty()) {
+            return {};
+        }
+        auto first = true;
+        cstring result{};
+        for (const auto &item : strs) {
+            result += first ? item : (joiner + item);
+            first = false;
+        }
+        return result;
+    }
+
     bool startWith(cview str, cview prefix) {
         if (prefix.size() > str.size()) {
             return false;

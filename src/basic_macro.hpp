@@ -78,4 +78,10 @@
 #define GET_MIRROR_CLASS(x) CAST_MIRROR_OOP(x)->mirrorClass
 #define GET_MIRROR_INSTANCE_CLASS(x) CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(x)->mirrorClass)
 
+#define ASSERT_IF_NULL_THROW_NPE(x) \
+  if ((x) == nullptr) { \
+    throwNullPointException(frame); \
+    return; \
+  }
+
 #endif
