@@ -126,7 +126,7 @@ namespace RexVM {
                 }
 
                 default:
-                   panic(cformat("ldc error {}", valPtr->tag));
+                   panic(cformat("ldc error tag{}", valPtr->tag));
             }
         }
 
@@ -193,48 +193,56 @@ namespace RexVM {
         void iaload(Frame &frame) {
             const auto index = frame.popI4();
             const auto array = CAST_INT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI4(array->data[index]);
         }
 
         void laload(Frame &frame) {
             const auto index = frame.popI4();
             const auto array = CAST_LONG_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI8(array->data[index]);
         }
 
         void faload(Frame &frame) {
             const auto index = frame.popI4();
             const auto array = CAST_FLOAT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushF4(array->data[index]);
         }
 
         void daload(Frame &frame) {
             const auto index = frame.popI4();
             const auto array = CAST_DOUBLE_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushF8(array->data[index]);
         }
 
         void aaload(Frame &frame) {
             const auto index = frame.popI4();
             const auto array = CAST_OBJ_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushRef(array->data[index]);
         }
 
         void baload(Frame &frame) {
             const auto index = frame.popI4();
             const auto array = CAST_BYTE_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI4(array->data[index]);
         }
 
         void caload(Frame &frame) {
             const auto index = frame.popI4();
             const auto array = CAST_CHAR_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI4(array->data[index]);
         }
 
         void saload(Frame &frame) {
             const auto index = frame.popI4();
             const auto array = CAST_SHORT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI4(array->data[index]);
         }
 
@@ -292,6 +300,7 @@ namespace RexVM {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
             const auto array = CAST_INT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -299,6 +308,7 @@ namespace RexVM {
             const auto val = frame.popI8();
             const auto index = frame.popI4();
             const auto array = CAST_LONG_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -306,6 +316,7 @@ namespace RexVM {
             const auto val = frame.popF4();
             const auto index = frame.popI4();
             const auto array = CAST_FLOAT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -313,6 +324,7 @@ namespace RexVM {
             const auto val = frame.popF8();
             const auto index = frame.popI4();
             const auto array = CAST_DOUBLE_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -320,6 +332,7 @@ namespace RexVM {
             const auto val = frame.popRef();
             const auto index = frame.popI4();
             const auto array = CAST_OBJ_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -327,6 +340,7 @@ namespace RexVM {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
             const auto array = CAST_BYTE_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -334,6 +348,7 @@ namespace RexVM {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
             const auto array = CAST_CHAR_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -341,6 +356,7 @@ namespace RexVM {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
             const auto array = CAST_SHORT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -410,7 +426,6 @@ namespace RexVM {
         void isub(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            //frame.pushI4(val1 - val2);
             const auto result = CAST_I4(CAST_U4(val1) - CAST_U4(val2));
             frame.pushI4(result);
         }
@@ -418,7 +433,6 @@ namespace RexVM {
         void lsub(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            //frame.pushI8(val1 - val2);
             const auto result = CAST_I8(CAST_U8(val1) - CAST_U8(val2));
             frame.pushI8(result);
         }
@@ -464,70 +478,49 @@ namespace RexVM {
         void idiv(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            if (val2 == 0) {
-                throwArithmeticExceptionDivByZero(frame);
-                return;
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushI4(val1 / val2);
         }
 
         void ldiv(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            if (val2 == 0) {
-                throwArithmeticExceptionDivByZero(frame);
-                return;
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushI8(val1 / val2);
         }
 
         void fdiv(Frame &frame) {
             const auto val2 = frame.popF4();   
             const auto val1 = frame.popF4();
-            if (val2 == 0) {
-                throwArithmeticExceptionDivByZero(frame);
-                return;
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushF4(val1 / val2);
         }
 
         void ddiv(Frame &frame) {
             const auto val2 = frame.popF8();   
             const auto val1 = frame.popF8();
-            if (val2 == 0) {
-                throwArithmeticExceptionDivByZero(frame);
-                return;
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushF8(val1 / val2);
         }
 
         void irem(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            if (val2 == 0) {
-                throwArithmeticExceptionDivByZero(frame);
-                return;
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushI4(val1 % val2);
         }
 
         void lrem(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            if (val2 == 0) {
-                throwArithmeticExceptionDivByZero(frame);
-                return;
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushI8(val1 % val2);
         }
 
          void frem(Frame &frame) {
             const auto val2 = frame.popF4();   
             const auto val1 = frame.popF4();
-            if (val2 == 0) {
-                throwArithmeticExceptionDivByZero(frame);
-                return;
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             const auto result = std::fmod(val1, val2);
             frame.pushF4(result);
         }
@@ -535,10 +528,7 @@ namespace RexVM {
         void drem(Frame &frame) {
             const auto val2 = frame.popF8();   
             const auto val1 = frame.popF8();
-            if (val2 == 0) {
-                throwArithmeticExceptionDivByZero(frame);
-                return;
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             const auto result = std::fmod(val1, val2);
             frame.pushF8(result);
         }
@@ -1016,6 +1006,7 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             const auto fieldRef = frame.klass.getRefField(index, false);
             const auto instance = CAST_INSTANCE_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(instance);
             const auto value = instance->getFieldValue(fieldRef->slotId);
             const auto type = fieldRef->getFieldSlotType();
             frame.push(value, type);
@@ -1029,6 +1020,7 @@ namespace RexVM {
             }
             const auto value = frame.pop();
             const auto instance = CAST_INSTANCE_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(instance);
 
             instance->setFieldValue(fieldRef->slotId, value);
         }
@@ -1054,7 +1046,7 @@ namespace RexVM {
             auto [className, methodName, methodDescriptor] = 
                     getConstantStringFromPoolByClassNameType(constantPool, index);
 
-            if constexpr (checkMethodHandle == true) {
+            if constexpr (checkMethodHandle) {
                 if (isMethodHandleInvoke(className, methodName)) {
                     invokeMethodHandle(frame, className, methodName, methodDescriptor);
                     return;
@@ -1063,10 +1055,7 @@ namespace RexVM {
 
             const auto paramSlotSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
             const auto instance = frame.getStackOffset(paramSlotSize - 1).refVal;
-            if (instance == nullptr) {
-                throwNullPointException(frame);
-                return;
-            }
+            ASSERT_IF_NULL_THROW_NPE(instance);
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
             for (auto k = instanceClass; k != nullptr; k = k->superClass) {
                 const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
@@ -1160,19 +1149,20 @@ namespace RexVM {
 
         void arraylength(Frame &frame) {
             const auto array = CAST_ARRAY_OOP(frame.popRef());
-            frame.pushI4(array->dataLength);
+            ASSERT_IF_NULL_THROW_NPE(array);
+            frame.pushI4(CAST_I4(array->dataLength));
         }
 
         void athrow(Frame &frame) {
             const auto ex = frame.popRef();
+            ASSERT_IF_NULL_THROW_NPE(ex);
             const auto exOop = CAST_INSTANCE_OOP(ex);
             frame.throwException(exOop);
         }
 
         void checkcast(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto ref = frame.pop().refVal;
-            frame.pushRef(ref);
+            const auto ref = frame.operandStackContext.top().refVal;
             if (ref == nullptr) {
                 return;
             }
@@ -1180,8 +1170,8 @@ namespace RexVM {
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto checkClass = frame.classLoader.getClass(className);
             if (!ref->isInstanceOf(checkClass)) {
-                //TODO frameThrow
-                panic("checkcast error");
+                throwClassCastException(frame, ref->klass->name, className);
+                return;
             }
         }
 
@@ -1204,11 +1194,13 @@ namespace RexVM {
 
         void monitorenter(Frame &frame) {
             const auto oop = frame.popRef();
+            ASSERT_IF_NULL_THROW_NPE(oop);
             oop->monitorMtx.lock();
         }
 
         void monitorexit(Frame &frame) {
             const auto oop = frame.popRef();
+            ASSERT_IF_NULL_THROW_NPE(oop);
             oop->monitorMtx.unlock();
         }
 

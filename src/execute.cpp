@@ -16,6 +16,8 @@
 
 namespace RexVM {
 
+    bool printExecuteLog{false};
+
     //Print Exception stack on stdout
     void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
         const auto printStackTraceMethod = 
@@ -100,41 +102,22 @@ namespace RexVM {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
 
-        if (method.name == "loadLibrary" && frame.klass.name == JAVA_LANG_SYSTEM_NAME) {
-            return;
-        }
-
-        if (method.name == "close" && method.klass.name == "java/util/zip/ZipFile") {
-            int i = 10;
-        }
-
-        static bool printLog = false;
-        if (printLog) {
-            cprintln(
-                "{}{}#{}:{} {}", 
-                cstring(frame.level * 2, ' '), 
-                frame.klass.name, 
-                method.name, 
-                method.descriptor, 
-                !notNativeMethod ? "[Native]" : ""
-            );
-        }
+        PRINT_EXECUTE_LOG(printExecuteLog, frame)
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
                 frame.currentByteCode = frame.reader.readU1();
-                const auto pc __attribute__((unused)) = frame.pc();
-                const auto opCode __attribute__((unused)) = static_cast<OpCodeEnum>(frame.currentByteCode);
-                const auto sourceFile __attribute__((unused)) = method.klass.sourceFile;
-                const auto lineNumber __attribute__((unused)) = method.getLineNumber(pc);
+                #ifdef DEBUG
+                ATTR_UNUSED const auto pc = frame.pc();
+                ATTR_UNUSED const auto opCode = static_cast<OpCodeEnum>(frame.currentByteCode);
+                ATTR_UNUSED const auto sourceFile = method.klass.sourceFile;
+                ATTR_UNUSED const auto lineNumber = method.getLineNumber(pc);
+                #endif
 
                 OpCodeHandlers[frame.currentByteCode](frame);
-
-                if (frame.markThrow) {
-                    if (handleThrowValue(frame)) {
-                        return;
-                    }
+                if (frame.markThrow && handleThrowValue(frame)) {
+                    return;
                 }
                 if (frame.markReturn) {
                     checkAndPassReturnValue(frame);
@@ -149,10 +132,8 @@ namespace RexVM {
                 panic("executeFrame error, method " + method.klass.name + "#" + method.name + ":" + method.descriptor + " nativeMethodHandler is nullptr");
             }
             nativeMethodHandler(frame);
-            if (frame.markThrow) {
-                if (handleThrowValue(frame)) {
-                    return;
-                }
+            if (frame.markThrow && handleThrowValue(frame)) {
+                return;
             }
             if (frame.markReturn) {
                 checkAndPassReturnValue(frame);
@@ -165,11 +146,12 @@ namespace RexVM {
     }
 
     void monitorExecuteFrame(Frame &frame, const cstring &methodName) {
-        bool lock = false;
         const auto &method = frame.method;
+        EXCLUDE_EXECUTE_METHODS(method)
+        auto lock = false;
         ref monitorHandler = nullptr;
         if (method.isSynchronized()) [[unlikely]] {
-            monitorHandler = method.isStatic() ? method.klass.mirror.get() : frame.getThis();
+            monitorHandler = method.isStatic() ? method.klass.getMirrorOop() : frame.getThis();
             monitorHandler->monitorMtx.lock();
             lock = true;
         }

@@ -1,7 +1,8 @@
 .xmake/
 .idea/
 .vscode/
+*xcodeproj/
 build/
-cmake-build-debug/
-CMakeLists.txt
+cmake*
+CMake*
 .DS_Store

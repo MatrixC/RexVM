@@ -161,17 +161,13 @@ namespace RexVM::Native::Core {
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.class.path")), Slot(stringPool->getInternString(frame.vm.javaClassPath)) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("user.dir")), Slot(stringPool->getInternString(std::filesystem::current_path())) });
 
-        //
-
-        //TODO
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.arch")), Slot(stringPool->getInternString("aarch64")) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.name")), Slot(stringPool->getInternString("OS X")) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.arch")), Slot(stringPool->getInternString(OS_ARCH_IMPL)) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.name")), Slot(stringPool->getInternString(OS_NAME)) });
 
         frame.returnRef(props);
     }
 
     void getStackAccessControlContext(Frame &frame) {
-        //TODO
         frame.returnRef(nullptr);
     }
 

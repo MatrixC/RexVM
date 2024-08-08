@@ -252,7 +252,6 @@ namespace RexVM {
         auto &allocatedOop = oopManager->allocatedOop;
 
         for (auto &oop : allocatedOop) {
-            const auto klass = oop->klass;
             delete oop;
         }
     }

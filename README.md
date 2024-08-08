@@ -1,9 +1,9 @@
 # RexVM
 
-[RexVM](https://github.com/MatrixC/RexVM) 一个基于解释器的初级Java虚拟机(JVM)，使用C++开发。
+[RexVM](https://github.com/MatrixC/RexVM) 一个基于解释器的Java虚拟机(JVM)，使用C++开发。
 
 ## 支持特性
-* 异常(Exception)，包括异常的throw，catch，通过fillInStackTrace爬栈等
+* 异常(Exception)，包括异常的throw，catch，fillInStackTrace等
 * 反射(Reflect)，包括类、字段、方法的Class、Field、Method对象获取以及反射执行函数等
 * 流处理(Java Stream)，包括Lambda表达式，MethodHandle特性以及invokeDynamic字节码指令
 * 动态创建Class，包括Proxy动态代理，ClassLoader#defineClass，Unsafe#defineClass等函数的支持
@@ -11,18 +11,19 @@
 * 多线程(Thread)，包括Thread#start，Thread#yield，Thread#sleep等线程函数以及Object#wait，Object#notify等同步函数
 * 部分IO功能(IO)，FileInputStream，FileOutputStream
 * 绝大部分Unsafe函数，包括Direct Memory、CompareAndSwap相关函数，支持Atomic、ConcurrentHashMap等concurrent组件
+* java.util.ServiceLoader
 
 ## 计划支持的特性
+* 支持Windows
 * Trace GC
 * 加强文件、网络等IO能力
 
 ## 已测试的操作系统及编译环境
-* MacOS(Apple silicon) + clang(18.1.6)
-* Ubuntu(amd64) + clang(17.0.6) or gcc(11.4.0)
-* Ubuntu(aarch64) + clang(18.1.8) or gcc(13.2.0)
+* 操作系统: Mac OS(aarch64), Ubuntu(amd64, aarch64)
+* 编译器: clang(17.0.6), gcc(11.4.0)
 
 ## 构建
-需要C++编译器支持C++20
+需要C++编译器支持C++20特性
 
 ### 1. 克隆仓库
 ```bash

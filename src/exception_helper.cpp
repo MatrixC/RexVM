@@ -50,4 +50,8 @@ namespace RexVM {
     void throwClassNotFoundException(Frame &frame, const cstring &className) {
         throwAssignException(frame, "java/lang/ClassNotFoundException", className);
     }
+
+    void throwClassCastException(Frame &frame, const cstring &className1, const cstring &className2) {
+        throwAssignException(frame, "java/lang/ClassCastException", getJavaClassName(className1) + " cannot be cast to " + getJavaClassName(className2));
+    }
 }

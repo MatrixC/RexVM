@@ -1,6 +1,5 @@
 #ifndef NATIVE_SUN_MISC_HPP
 #define NATIVE_SUN_MISC_HPP
-#include <unistd.h>
 #include "../../config.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"

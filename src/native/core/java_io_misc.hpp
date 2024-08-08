@@ -1,6 +1,5 @@
 #ifndef NATIVE_CORE_JAVA_IO_MISC_HPP
 #define NATIVE_CORE_JAVA_IO_MISC_HPP
-#include <unistd.h>
 #include <filesystem>
 #include <limits.h>
 #include <stdlib.h>

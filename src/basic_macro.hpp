@@ -84,4 +84,10 @@
     return; \
   }
 
+#define ASSERT_IF_ZERO_THROW_DIV_ZERO(x) \
+  if ((x) == static_cast<decltype((x))>(0)) { \
+    throwArithmeticExceptionDivByZero(frame); \
+    return; \
+  }
+
 #endif

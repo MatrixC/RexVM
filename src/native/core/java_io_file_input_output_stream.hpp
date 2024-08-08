@@ -1,11 +1,14 @@
 #ifndef NATIVE_CORE_JAVA_IO_FILE_INPUT_STREAM_HPP
 #define NATIVE_CORE_JAVA_IO_FILE_INPUT_STREAM_HPP
-#include <unistd.h>
-#include <cstdio>
 #include <fcntl.h>
 #include <filesystem>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 #include "../../config.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
@@ -38,13 +41,22 @@ namespace RexVM::Native::Core {
     void openCommon(Frame &frame, FileOpenTypeEnum type, bool append) {
         const auto self = CAST_INSTANCE_OOP(frame.getThisInstance());
         const auto pathStr = StringPool::getJavaString(CAST_INSTANCE_OOP(frame.getLocalRef(1)));
+        std::filesystem::path filePath(pathStr);
+        if (!std::filesystem::exists(filePath)) {
+            throwFileNotFoundException(frame, pathStr);
+            return;
+        }
+        if (std::filesystem::is_directory(filePath)) {
+            throwFileNotFoundException(frame, pathStr + " : is directory");
+            return;
+        }
 
         const auto fd = 
             type == FileOpenTypeEnum::READ ? 
                 open(pathStr.c_str(), O_RDONLY) :
                 open(pathStr.c_str(), append ? (O_WRONLY | O_CREAT | O_APPEND) : (O_WRONLY | O_CREAT | O_TRUNC), 0644);
         if (fd == -1) {
-            throwFileNotFoundException(frame, pathStr);
+            throwFileNotFoundException(frame, pathStr + " open failed");
             return;
         }
 
@@ -54,12 +66,6 @@ namespace RexVM::Native::Core {
             throwFileNotFoundException(frame, pathStr + " : get stat error");
             return;
         }
-
-        if (S_ISDIR(statbuf.st_mode)) {
-            close(fd);
-            throwFileNotFoundException(frame, pathStr + " : is dir");
-            return;
-        } 
 
         const auto fdOop = CAST_INSTANCE_OOP(self->getFieldValue("fd", "Ljava/io/FileDescriptor;").refVal);
         fdOop->setFieldValue("fd", "I", Slot(CAST_I4(fd)));
@@ -176,7 +182,7 @@ namespace RexVM::Native::Core {
             return;
         }
 
-        frame.returnI4(endPosition - currentPosition);
+        frame.returnI4(CAST_I4(endPosition - currentPosition));
     }
 
     //native void close0() throws IOException;

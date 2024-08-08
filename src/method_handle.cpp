@@ -212,7 +212,7 @@ namespace RexVM {
         size_t paramSize = 1; //finalMethodHandleOop
         std::vector<std::tuple<Slot, SlotTypeEnum>> invokeParam;
         if (!paramType.empty()) {
-            for (i4 i = paramType.size() - 1; i >= 0; --i) {
+            for (i4 i = CAST_I4(paramType.size()) - 1; i >= 0; --i) {
                 const auto &paramClassName = paramType[i];
                 if (isWideClassName(paramClassName)) {
                     frame.popWithSlotType();

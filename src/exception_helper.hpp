@@ -19,6 +19,8 @@ namespace RexVM {
     void throwIOException(Frame &frame, const cstring &message);
 
     void throwClassNotFoundException(Frame &frame, const cstring &className);
+
+    void throwClassCastException(Frame &frame, const cstring &className1, const cstring &className2);
 }
 
 #endif

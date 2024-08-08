@@ -267,7 +267,7 @@ namespace RexVM::Native::Misc {
         const auto pathStr = StringPool::getJavaString(nameOop);
 
         const auto archive = new mz_zip_archive();
-        cprintln("open {:p}\t{}", (void*)archive, pathStr);
+        //cprintln("open {:p}\t{}", (void*)archive, pathStr);
         std::memset(archive, 0, sizeof(mz_zip_archive));
         if (!mz_zip_reader_init_file(archive, pathStr.c_str(), 0)) {
             //throwIOException(frame, "open zip file failed"); 
@@ -281,7 +281,7 @@ namespace RexVM::Native::Misc {
     void zipClose(Frame &frame) {
         const auto jzFile = frame.getLocalI8(0);
         const auto archive = zipGetArchive(jzFile);
-        cprintln("close {}", (void*)archive);
+        //cprintln("close {}", (void*)archive);
         mz_zip_reader_end(archive);
         delete archive;
     }

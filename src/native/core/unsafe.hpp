@@ -1,7 +1,6 @@
 #ifndef NATIVE_CORE_UNSAFE_HPP
 #define NATIVE_CORE_UNSAFE_HPP
 #include <atomic>
-#include <unistd.h>
 #include "unsafe_helper.hpp"
 #include "../../config.hpp"
 #include "../../vm.hpp"
@@ -314,22 +313,16 @@ namespace RexVM::Native::Core {
     }
 
     void loadFence(Frame &frame) {
-        __atomic_signal_fence(__ATOMIC_ACQUIRE);
+        std::atomic_thread_fence(std::memory_order_acquire);
     }
 
     void storeFence(Frame &frame) {
-        __atomic_signal_fence(__ATOMIC_RELEASE);
+        std::atomic_thread_fence(std::memory_order_release);
     }
 
     void fullFence(Frame &frame) {
-        __atomic_thread_fence(__ATOMIC_SEQ_CST);
+        std::atomic_thread_fence(std::memory_order_seq_cst);
     }
-
-    
-
-
-
-
 }
 
 #endif
