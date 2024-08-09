@@ -26,8 +26,7 @@ namespace RexVM::Native::Core {
 
     //java/lang/System#nanoTime:()J
     void nanoTime(Frame &frame) {
-        const auto now = std::chrono::high_resolution_clock::now();
-        const auto duration = now.time_since_epoch();
+        const auto duration = frame.vm.startTime.time_since_epoch();
         const auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
         frame.returnI8(nanos);
     }
@@ -159,7 +158,7 @@ namespace RexVM::Native::Core {
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.home")), Slot(stringPool->getInternString(frame.vm.javaHome)) });
 
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.class.path")), Slot(stringPool->getInternString(frame.vm.javaClassPath)) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("user.dir")), Slot(stringPool->getInternString(std::filesystem::current_path())) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("user.dir")), Slot(stringPool->getInternString(std::filesystem::current_path().string())) });
 
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.arch")), Slot(stringPool->getInternString(OS_ARCH_IMPL)) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.name")), Slot(stringPool->getInternString(OS_NAME)) });

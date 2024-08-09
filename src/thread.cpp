@@ -6,8 +6,8 @@
 #include "memory.hpp"
 #include "execute.hpp"
 #include "class_loader.hpp"
-#include "basic_java_class.hpp"
 #include "key_slot_id.hpp"
+#include "exception_helper.hpp"
 
 namespace RexVM {
 
@@ -31,10 +31,9 @@ namespace RexVM {
         monitorCv.notify_all();
     }
 
-    void VMThread::start() {
+    void VMThread::start(Frame *frame) {
         if (getStatus() != ThreadStatusEnum::NEW) {
-            panic("Thread status is not NEW");
-            //TODO to java exception
+            throwIllegalThreadStateException(*frame);
         }
         if (isMainThread) [[unlikely]] {
             vm.addStartThread(this);

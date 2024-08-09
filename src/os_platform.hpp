@@ -17,13 +17,19 @@
 #error not support system
 #endif
 
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(_M_X64)
 #include "platform/arch_amd64.hpp"
-#elif __aarch64__
+#elif defined(__aarch64__) || defined(_M_ARM64)
 #include "platform/arch_arm64.hpp"
 #else
 #error not support arch
 #endif
 
+#include <string>
+
+namespace RexVM {
+    std::size_t getSystemPageSize();
+    std::string getSystemTimeZoneId();
+}
 
 #endif

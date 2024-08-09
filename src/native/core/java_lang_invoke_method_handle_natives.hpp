@@ -214,9 +214,9 @@ namespace RexVM::Native::Core {
             } else if (className == JAVA_LANG_LONG_NAME) {
                 params.emplace_back(oopManager->newLongOop(val.i8Val));
             } else if (className == JAVA_LANG_FLOAT_NAME) {
-                params.emplace_back(oopManager->newLongOop(val.f4Val));
+                params.emplace_back(oopManager->newFloatOop(val.f4Val));
             } else if (className == JAVA_LANG_DOUBLE_NAME) {
-                params.emplace_back(oopManager->newLongOop(val.f8Val));
+                params.emplace_back(oopManager->newDoubleOop(val.f8Val));
             } else if (className == JAVA_LANG_BOOLEAN_NAME) {
                 params.emplace_back(oopManager->newBooleanOop(val.i4Val));
             } else if (className == JAVA_LANG_BYTE_NAME) {
@@ -252,7 +252,7 @@ namespace RexVM::Native::Core {
             }
             //删除要被折叠的元素
             params.erase(params.end() - foldParamSize, params.end());
-            params.emplace_back(Slot(arrayOop));
+            params.emplace_back(arrayOop);
         } else {
             panic("params type error");
         }

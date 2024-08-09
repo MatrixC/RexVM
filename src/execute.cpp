@@ -11,7 +11,6 @@
 #include "thread.hpp"
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
-#include "key_slot_id.hpp"
 #include "method_handle.hpp"
 
 namespace RexVM {
@@ -53,7 +52,7 @@ namespace RexVM {
                 frame.cleanThrow();
                 return true;
             } else {
-                previousFrame->passException(std::move(frame.throwObject));
+                previousFrame->passException(frame.throwObject);
                 return true;
             }
         }
@@ -191,7 +190,7 @@ namespace RexVM {
 
     void runStaticMethodOnMainThread(VM &vm, Method &method, std::vector<Slot> params) {
         const auto vmThread = vm.oopManager->newMainVMThread(method, std::move(params));
-        vmThread->start();
+        vmThread->start(nullptr);
         vmThread->join();
     }
 

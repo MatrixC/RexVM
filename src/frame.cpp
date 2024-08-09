@@ -120,11 +120,11 @@ namespace RexVM {
     }
 
     u4 Frame::pc() const {
-        return reader.ptr - method.code.get() - 1;
+        return nextPc() - 1;
     }
 
     u4 Frame::nextPc() const {
-        return reader.ptr - method.code.get();
+        return CAST_U4(reader.ptr - method.code.get());
     }
 
     void Frame::pushRef(ref ref) {

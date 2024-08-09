@@ -17,6 +17,7 @@ namespace RexVM {
     Oop::~Oop() = default;
 
     void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
+        //std::memset(oop->data.get(), 0, sizeof(Slot) * oop->dataLength);
         for (const auto &field: klass->fields) {
             if (!field->isStatic()) {
                 const auto slotType = field->getFieldSlotType();
@@ -42,7 +43,6 @@ namespace RexVM {
                 }
             }
         }
-
         if (klass->superClass != nullptr) {
             initInstanceField(oop, klass->superClass);
         }
@@ -68,7 +68,7 @@ namespace RexVM {
         data[index] = value;
     }
 
-    void InstanceOop::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) {
+    void InstanceOop::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const {
         auto instanceClass = getInstanceClass();
         auto field = instanceClass->getField(name, descriptor, false);
         data[field->slotId] = value;

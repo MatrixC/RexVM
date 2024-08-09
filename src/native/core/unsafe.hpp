@@ -86,97 +86,97 @@ namespace RexVM::Native::Core {
 
     //native boolean compareAndSwapObject(Object o, long offset, Object expected, Object x);
     void compareAndSwapObject(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::COMPARE_AND_SWAP, SlotTypeEnum::REF);
+        unsafeCommon(frame, UnsafeActionTypeEnum::COMPARE_AND_SWAP, SlotTypeEnum::REF);
     }
 
     //native boolean compareAndSwapInt(Object o, long offset, int expected, int x);
     void compareAndSwapInt(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::COMPARE_AND_SWAP, SlotTypeEnum::I4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::COMPARE_AND_SWAP, SlotTypeEnum::I4);
     }
 
     //native boolean compareAndSwapLong(Object o, long offset, long expected, long x);
     void compareAndSwapLong(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::COMPARE_AND_SWAP, SlotTypeEnum::I8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::COMPARE_AND_SWAP, SlotTypeEnum::I8);
     }
 
     void getObjectVolatile(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::REF);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::REF);
     }
 
     void putObjectVolatile(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::REF);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::REF);
     }
 
     void getVolatileI4(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::I4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::I4);
     }
 
     void putVolatileI4(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::I4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::I4);
     }
 
     void getLongVolatile(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::I8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::I8);
     }
 
     void putLongVolatile(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::I8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::I8);
     }
 
     void getFloatVolatile(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::F4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::F4);
     }
 
     void putFloatVolatile(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::F4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::F4);
     }
 
     void getDoubleVolatile(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::F8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET_VOLATILE, SlotTypeEnum::F8);
     }
 
     void putDoubleVolatile(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::F8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT_VOLATILE, SlotTypeEnum::F8);
     }
 
     void getObject(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::REF);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::REF);
     }
 
     void putObject(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::REF);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::REF);
     }
 
     void getI4(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::I4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::I4);
     }
 
     void putI4(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::I4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::I4);
     }
 
     void getLong(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::I8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::I8);
     }
 
     void putLong(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::I8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::I8);
     }
 
     void getFloat(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::F4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::F4);
     }
 
     void putFloat(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::F4);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::F4);
     }
 
     void getDouble(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::F8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::GET, SlotTypeEnum::F8);
     }
 
     void putDouble(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::F8);
+        unsafeCommon(frame, UnsafeActionTypeEnum::PUT, SlotTypeEnum::F8);
     }
 
     //C heap function
@@ -200,7 +200,7 @@ namespace RexVM::Native::Core {
     }
 
     void cheapSetMemory(Frame &frame) {
-        unsafCommon(frame, UnsafeActionTypeEnum::SET_MEMORY, SlotTypeEnum::REF);
+        unsafeCommon(frame, UnsafeActionTypeEnum::SET_MEMORY, SlotTypeEnum::REF);
     }
 
     void cheapGetByte(Frame &frame) {
@@ -295,7 +295,7 @@ namespace RexVM::Native::Core {
     }
 
     void pageSize(Frame &frame) {
-        const auto pageSize = CAST_I4(getpagesize());
+        const auto pageSize = CAST_I4(getSystemPageSize());
         frame.returnI4(pageSize);
     }
 

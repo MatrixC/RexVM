@@ -60,13 +60,6 @@ namespace RexVM::Native::Core {
             return;
         }
 
-        struct stat statbuf;
-        if (fstat(fd, &statbuf) == -1) {
-            close(fd);
-            throwFileNotFoundException(frame, pathStr + " : get stat error");
-            return;
-        }
-
         const auto fdOop = CAST_INSTANCE_OOP(self->getFieldValue("fd", "Ljava/io/FileDescriptor;").refVal);
         fdOop->setFieldValue("fd", "I", Slot(CAST_I4(fd)));
     }
@@ -148,7 +141,7 @@ namespace RexVM::Native::Core {
             return;
         }
     
-        auto newPosition = lseek(fd, n, SEEK_CUR);
+        auto newPosition = lseek(fd, static_cast<off_t>(n), SEEK_CUR);
         if (newPosition == -1) {
             throwIOException(frame, "Error skipping bytes");
             return;
@@ -189,7 +182,7 @@ namespace RexVM::Native::Core {
     void close0(Frame &frame) {
         const auto self = CAST_INSTANCE_OOP(frame.getThis());
         const auto fdId = getFd(self);
-        ::close(fdId);
+        close(fdId);
     }
 
     //void writeBytes(byte b[], int off, int len, boolean append)
@@ -202,7 +195,10 @@ namespace RexVM::Native::Core {
 
         const auto fdId = getFd(self);
         const auto bytePtr = reinterpret_cast<const char*>(b->data.get());
-        ::write(fdId, bytePtr + off, len);
+        if (write(fdId, bytePtr + off, len) == -1) {
+            throwRuntimeException(frame, "write error");
+            return;
+        }
     }
 
     //native void write(int b, boolean append) throws IOException;
@@ -212,7 +208,10 @@ namespace RexVM::Native::Core {
         //const auto append = frame.getLocalBoolean(2);
 
         const auto fd = getFd(self);
-        ::write(fd, &b, sizeof(b));
+        if (write(fd, &b, sizeof(b)) == -1) {
+            throwRuntimeException(frame, "write error");
+            return;
+        }
     }
 
 

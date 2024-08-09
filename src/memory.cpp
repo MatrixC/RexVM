@@ -1,4 +1,6 @@
 #include "memory.hpp"
+
+#include <utility>
 #include "vm.hpp"
 #include "thread.hpp"
 #include "class_loader.hpp"
@@ -25,7 +27,7 @@ namespace RexVM {
             vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
         const auto vmThreadGroup = newInstance(threadGroupClass);
 
-        const auto oop = new VMThread(vm, threadClass, &method, params);
+        const auto oop = new VMThread(vm, threadClass, &method, std::move(params));
         oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
         oop->setFieldValue("priority", "I", Slot(CAST_I8(1)));
         allocatedOop.insert(oop);

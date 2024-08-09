@@ -6,6 +6,7 @@
 #include <mutex>
 #include <thread>
 #include <deque>
+#include <chrono>
 #include "config.hpp"
 
 namespace RexVM {
@@ -38,6 +39,7 @@ namespace RexVM {
 
         void addStartThread(VMThread *vmThread);
 
+        std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
         cstring javaHome{};
         cstring javaClassPath{};
 

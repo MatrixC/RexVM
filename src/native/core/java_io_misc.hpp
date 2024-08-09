@@ -88,9 +88,12 @@ namespace RexVM::Native::Core {
     
         if (std::filesystem::exists(fsPath)) {
             const auto lastWriteTime = std::filesystem::last_write_time(fsPath);
-            const auto systemTime = std::chrono::file_clock::to_sys(lastWriteTime);
-            const auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(systemTime).time_since_epoch().count();
-            frame.returnI8(CAST_I8(ms));
+            const auto sctp = 
+                std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                    lastWriteTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now()
+                );
+            const auto timestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(sctp).time_since_epoch().count();
+            frame.returnI8(CAST_I8(timestamp));
         } else {
             throwFileNotFoundException(frame, path);
             return;

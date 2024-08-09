@@ -78,6 +78,10 @@
 #define GET_MIRROR_CLASS(x) CAST_MIRROR_OOP(x)->mirrorClass
 #define GET_MIRROR_INSTANCE_CLASS(x) CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(x)->mirrorClass)
 
+#define FOR_FROM(f, x) for (decltype(x) i = static_cast<decltype(x)>(f); i < (x); ++i)
+#define FOR_FROM_ZERO(x) FOR_FROM(0, x)
+#define FOR_FROM_ONE(x)  FOR_FROM(1, x)
+
 #define ASSERT_IF_NULL_THROW_NPE(x) \
   if ((x) == nullptr) { \
     throwNullPointException(frame); \

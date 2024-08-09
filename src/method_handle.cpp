@@ -225,7 +225,7 @@ namespace RexVM {
             }
         }
 
-        invokeParam.emplace_back(std::make_tuple(Slot(finalMethodHandleOop), SlotTypeEnum::REF));
+        invokeParam.emplace_back(Slot(finalMethodHandleOop), SlotTypeEnum::REF);
         std::reverse(invokeParam.begin(), invokeParam.end());
 
         for (const auto &[val, type] : invokeParam) {

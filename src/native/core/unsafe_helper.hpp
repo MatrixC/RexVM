@@ -238,14 +238,14 @@ namespace RexVM::Native::Core {
                     dataPtr = CAST_U1_PTR(CAST_DOUBLE_TYPE_ARRAY_OOP(obj)->data.get());
                     break;
                 default:
-                    panic("unsafCommon error");
+                    panic("unsafeCommon error");
             }
         }
         dataPtr += offset;
         return CAST_VOID_PTR(dataPtr);
     }
 
-    void unsafCommon(Frame &frame, UnsafeActionTypeEnum actionType, SlotTypeEnum slotType) {
+    void unsafeCommon(Frame &frame, UnsafeActionTypeEnum actionType, SlotTypeEnum slotType) {
         //obj 有两种情况, 一个正常类的实例或者一个Class对象: 来源于staticFieldBase方法
         //如果要读取一个类的static字段, 则obj会传入类对应的Class对象
         //为了区分普通offset和static字段的offset, 在生成offset的时候做了一些区分, 静态offset用负数表示

@@ -54,4 +54,12 @@ namespace RexVM {
     void throwClassCastException(Frame &frame, const cstring &className1, const cstring &className2) {
         throwAssignException(frame, "java/lang/ClassCastException", getJavaClassName(className1) + " cannot be cast to " + getJavaClassName(className2));
     }
+
+    void throwRuntimeException(Frame &frame, const cstring &message) {
+        throwAssignException(frame, "java/lang/RuntimeException", message);
+    }
+
+    void throwIllegalThreadStateException(Frame &frame) {
+        throwAssignException(frame, "java/lang/IllegalThreadStateException", {});
+    }
 }

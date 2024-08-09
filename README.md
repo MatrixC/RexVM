@@ -10,17 +10,18 @@
 * 注解(Annotation)，包括类，字段，方法上的各类Annotation获取
 * 多线程(Thread)，包括Thread#start，Thread#yield，Thread#sleep等线程函数以及Object#wait，Object#notify等同步函数
 * 部分IO功能(IO)，FileInputStream，FileOutputStream
-* 绝大部分Unsafe函数，包括Direct Memory、CompareAndSwap相关函数，支持Atomic、ConcurrentHashMap等concurrent组件
+* 绝大部分Unsafe函数，包括Direct Memory、CompareAndSwap相关函数，支持Atomic、ConcurrentHashMap等concurrent类
 * java.util.ServiceLoader
 
-## 计划支持的特性
-* 支持Windows
-* Trace GC
-* 加强文件、网络等IO能力
-
-## 已测试的操作系统及编译环境
-* 操作系统: Mac OS(aarch64), Ubuntu(amd64, aarch64)
-* 编译器: clang(17.0.6), gcc(11.4.0)
+## 已验证的操作系统及编译环境
+### 操作系统及CPU架构
+* Mac OS(aarch64)
+* Ubuntu(amd64, aarch64)
+* Windows(amd64)
+### 编译环境
+* clang(17.0)
+* gcc(11.4)
+* msvc(v19.40)
 
 ## 构建
 需要C++编译器支持C++20特性
@@ -109,6 +110,6 @@ rex Main
 * [miniz](https://github.com/richgel999/miniz): zlib库，用于zip、jar包解压
 * [fmtlib](https://github.com/fmtlib/fmt): 格式化输出库，用于格式化打印，代替std::cout，printf等
 
-## 感谢
+## 致谢
 * [wind_jvm](https://github.com/wind2412/wind_jvm): 感谢wind_jvm项目，帮我了解了invokedynamic的原理以及很多native方法的实现
 * [xmake](https://github.com/xmake-io/xmake): 感谢xmake提供了强大且简单易用的构建工具

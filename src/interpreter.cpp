@@ -534,11 +534,11 @@ namespace RexVM {
         }
 
         void ineg(Frame &frame) {
-            frame.pushI4(CAST_I4(-CAST_U4(frame.popI4())));
+            frame.pushI4(-frame.popI4());
         }
 
         void lneg(Frame &frame) {
-            frame.pushI8(CAST_I8(-CAST_U8(frame.popI8())));
+            frame.pushI8(-frame.popI8());
         }
 
         void fneg(Frame &frame) {

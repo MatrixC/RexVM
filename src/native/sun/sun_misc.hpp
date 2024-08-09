@@ -101,8 +101,8 @@ namespace RexVM::Native::Sun::Misc {
     void undGetCwd(Frame &frame) {
         // std::array<char, 512> buffer;
         // getcwd(buffer.data(), sizeof(buffer));
-        const auto buteArrayOop = frame.vm.oopManager->newByteArrayOop(0);
-        frame.returnRef(buteArrayOop);
+        const auto byteArrayOop = frame.vm.oopManager->newByteArrayOop(0);
+        frame.returnRef(byteArrayOop);
     }
 
 

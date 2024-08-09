@@ -1,9 +1,5 @@
-//
-// Created by ch on 12/31/23.
-//
-
-#ifndef RUNTIME_HPP
-#define RUNTIME_HPP
+#ifndef THREAD_HPP
+#define THREAD_HPP
 
 #include <vector>
 #include <memory>
@@ -40,18 +36,18 @@ namespace RexVM {
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
 
-        explicit VMThread(VM &vm, InstanceClass * const klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
-        ~VMThread();
+        explicit VMThread(VM &vm, InstanceClass * klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
+        ~VMThread() override;
 
         
-        void start();
+        void start(Frame *frame);
         void join();
 
-        cstring getName() const;
+        [[nodiscard]] cstring getName() const;
         void setStatus(ThreadStatusEnum status);
-        ThreadStatusEnum getStatus() const;
-        bool isAlive() const;
-        std::vector<Oop *> getThreadGCRoots() const;
+        [[nodiscard]] ThreadStatusEnum getStatus() const;
+        [[nodiscard]] bool isAlive() const;
+        [[nodiscard]] std::vector<Oop *> getThreadGCRoots() const;
 
         private:
             void run();

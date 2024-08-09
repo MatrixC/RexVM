@@ -73,6 +73,8 @@ namespace RexVM {
                 case 2:
                     types.emplace_back(str.substr(pos, descSize));
                     break;
+                default:
+                    panic("error type");
             }
             pos += descSize;
         }

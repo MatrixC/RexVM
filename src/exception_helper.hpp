@@ -21,6 +21,10 @@ namespace RexVM {
     void throwClassNotFoundException(Frame &frame, const cstring &className);
 
     void throwClassCastException(Frame &frame, const cstring &className1, const cstring &className2);
+
+    void throwRuntimeException(Frame &frame, const cstring &message);
+
+    void throwIllegalThreadStateException(Frame &frame);
 }
 
 #endif

@@ -38,7 +38,7 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *newDoubleOop(f8 value);
 
 
-        VMThread *newVMThread(InstanceClass * const klass);
+        VMThread *newVMThread(InstanceClass * klass);
         VMThread *newVMThread();
         VMThread *newMainVMThread(Method &method, std::vector<Slot> params);
 
