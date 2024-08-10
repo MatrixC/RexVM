@@ -185,7 +185,14 @@ namespace RexVM::Native::Core {
         auto &classLoader = *frame.getCurrentClassLoader();
         const auto &oopManager = frame.vm.oopManager;
         //const auto paramSlotType = methodPtr->paramSlotType[index];
-        const auto paramType = methodPtr->paramType[index];
+
+        const auto &methodParamType = methodPtr->paramType;
+        if (index >= methodParamType.size()) {
+            //like java.lang.invoke.LambdaMetafactory#altMetafactory
+            //fold last param
+            index = methodParamType.size() - 1;
+        }
+        const auto paramType = methodParamType[index];
         const auto paramSlotType = getSlotTypeByPrimitiveClassName(paramType);
         if (type == paramSlotType) {
             params.emplace_back(val);
@@ -199,6 +206,7 @@ namespace RexVM::Native::Core {
         const auto className = paramClass->name;
         //两种情况 传参是REF 函数需要Primitive 或者相反
         if (type == SlotTypeEnum::REF) {
+            //Unbox
             if (paramClass->type != ClassTypeEnum::PRIMITIVE_CLASS) {
                 panic("error");
             }
@@ -209,6 +217,7 @@ namespace RexVM::Native::Core {
                 params.emplace_back(ZERO_SLOT);
             } 
         } else {
+            //Box
             if (className == JAVA_LANG_INTEGER_NAME) {
                 params.emplace_back(oopManager->newIntegerOop(val.i4Val));
             } else if (className == JAVA_LANG_LONG_NAME) {

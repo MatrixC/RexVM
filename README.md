@@ -35,20 +35,17 @@ cd RexVM
 ### 2. 安装编译器及构建工具xmake
 #### MacOS
 ```bash
-# 安装clang
-brew install llvm
-# 安装xmake
 brew install xmake
 ```
 
 #### Ubuntu
 ```bash
-# 安装clang
-wget https://apt.llvm.org/llvm.sh
-chmod u+x llvm.sh
-sudo ./llvm.sh 18
-# 安装xmake
 bash <(wget https://raw.githubusercontent.com/tboox/xmake/master/scripts/get.sh -O -)
+```
+
+#### Windows
+```bash
+Invoke-Expression (Invoke-Webrequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
 ```
 
 ### 3. 构建配置
@@ -84,19 +81,27 @@ set_optimize("fastest")
 xmake
 ```
 
-### 5. 生成CMake工程文件，通过make或IDE构建
+### 5. 或生成CMake工程文件，通过make或IDE构建
 ```bash
+# 生成cmake工程 (clion)
 xmake project -k cmake
+
+# 生成Visual Studio工程
+xmake project -k vsxmake
+
+# 生成Xcode工程
+xmake project -k xcode
 ```
 
 ## 运行RexVM
 
-RexVM运行依赖JRE中的rt.jar文件，所以运行RexVM需要安装JRE8或者JDK8环境，如openjdk8。
+RexVM运行依赖JRE中的rt.jar文件，所以需要安装JRE8或者JDK8环境，如openjdk8。
 <br>
 安装完成后请配置环境变量JAVA_HOME，也可以配置环境变量CLASSPATH来指定class文件搜索路径。
 <br>
 ```bash
 # 执行CLASSPATH环境变量下的Main.class
+cd RexVM
 xmake run rex Main
 ```
 
@@ -105,6 +110,208 @@ xmake run rex Main
 # 执行当前目录或者CLASSPATH环境变量下的Main.class
 rex Main
 ```
+
+## 演示
+### LambdaExample
+```java
+package rex.example;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class LambdaExample {
+
+    public static void main(String[] args) {
+        final List<String> wordList =
+                Arrays.asList("apple", "banana", "avocado", "cherry", "blueberry", "apricot", "strawberry");
+
+        final String result =
+                wordList.stream()
+                        .filter(item -> item.startsWith("a"))
+                        .map(String::toUpperCase)
+                        .map(item -> item + "(" + item.length() + ")")
+                        .collect(Collectors.groupingBy(String::length, Collectors.joining(",")))
+                        .entrySet()
+                        .stream()
+                        .map(item -> "Length" + item.getKey() + ": " + item.getValue())
+                        .collect(Collectors.joining("\n"));
+
+        System.out.println(result);
+    }
+}
+```
+![image](https://github.com/MatrixC/RexVM/blob/improve_mh/example/LambdaExample.gif)
+
+### Fastjson2Example
+```java
+package rex.example;
+
+//import ...
+
+public class Fastjson2Example {
+
+    @Getter
+    @Setter
+    @ToString
+    static class Pojo {
+        private String str;
+        private boolean bool;
+        private int integer;
+        private double dob;
+        private Long nullValue;
+        private Map<String, Object> map;
+    }
+
+    public static void main(String[] args) {
+        final Pojo pojo = new Pojo();
+        pojo.setStr("Hello RexVM");
+        pojo.setBool(true);
+        pojo.setInteger(123456);
+        pojo.setDob(Math.PI);
+        final Map<String, Object> map = new HashMap<>();
+        map.put("key1", "value1");
+        map.put("key2", Arrays.asList(100, 200, 300));
+        pojo.setMap(map);
+
+        final String jsonString = JSON.toJSONString(pojo, JSONWriter.Feature.PrettyFormat);
+        System.out.println("Serialize");
+        System.out.println(jsonString);
+
+        final Pojo fromJSON = JSON.parseObject(jsonString, Pojo.class);
+        System.out.println();
+        System.out.println("Deserialize");
+        System.out.println(fromJSON.toString());
+    }
+}
+```
+![image](https://github.com/MatrixC/RexVM/blob/improve_mh/example/Fastjson2Example.gif)
+
+### Junit5Example
+```java
+package rex.example;
+
+//import ...
+
+public class Junit5Example {
+
+    @Test
+    public void test1() {
+        Assertions.assertEquals(1 + 2 > 3, "Error");
+    }
+
+    @Test
+    public void test2() {
+        int sum = 0;
+        for (int i = 0; i <= 100; i++) {
+            sum += i;
+        }
+        Assertions.assertEquals(sum , 5050);
+    }
+
+    public static void main(String[] args) {
+        final LauncherDiscoveryRequest request =
+                LauncherDiscoveryRequestBuilder
+                        .request()
+                        .selectors(DiscoverySelectors.selectClass(Junit5Example.class))
+                        .build();
+
+        final Launcher launcher = LauncherFactory.create();
+        final SummaryGeneratingListener listener = new SummaryGeneratingListener();
+        launcher.registerTestExecutionListeners(listener);
+        launcher.execute(request);
+
+        final TestExecutionSummary summary = listener.getSummary();
+        summary.printTo(new PrintWriter(System.out));
+    }
+}
+```
+![image](https://github.com/MatrixC/RexVM/blob/improve_mh/example/Junit5Example.gif)
+
+### ThreadExample
+```java
+package rex.example;
+
+import java.util.Random;
+
+public class ThreadExample {
+
+    static final Random random = new Random();
+
+    static void sleepRandom() {
+        try {
+            Thread.sleep(random.nextInt(50));
+        } catch (Exception ignored) {
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        final Thread t1 = new Thread(() -> {
+            for (int i = 0; i < 20; i++) {
+                System.out.println("Thread1 " + i);
+                sleepRandom();
+            }
+        });
+        final Thread t2 = new Thread(() -> {
+            for (int i = 0; i < 20; i++) {
+                System.out.println("Thread2 " + i);
+                sleepRandom();
+            }
+        });
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+
+        System.out.println("End");
+    }
+}
+```
+![image](https://github.com/MatrixC/RexVM/blob/improve_mh/example/ThreadExample.gif)
+
+### AtomicExample
+```java
+package rex.example;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class AtomicExample {
+
+    static int normalInteger = 0;
+    static AtomicInteger atomicInteger = new AtomicInteger(0);
+
+    public static void main(String[] args) throws Exception {
+        final Thread t1 = new Thread(() -> {
+            for (int i = 0; i < 100000; i++) {
+                normalInteger++;
+                atomicInteger.incrementAndGet();
+            }
+        });
+        final Thread t2 = new Thread(() -> {
+            for (int i = 0; i < 100000; i++) {
+                normalInteger++;
+                atomicInteger.incrementAndGet();
+            }
+        });
+        final Thread t3 = new Thread(() -> {
+            for (int i = 0; i < 100000; i++) {
+                normalInteger++;
+                atomicInteger.incrementAndGet();
+            }
+        });
+
+        t1.start();
+        t2.start();
+        t3.start();
+        t1.join();
+        t2.join();
+        t3.join();
+        System.out.println("Normal Integer: " + normalInteger);
+        System.out.println("Atomic Integer: " + atomicInteger);
+    }
+}
+```
+![image](https://github.com/MatrixC/RexVM/blob/improve_mh/example/AtomicExample.gif)
 
 ## 第三方依赖
 * [miniz](https://github.com/richgel999/miniz): zlib库，用于zip、jar包解压
