@@ -29,7 +29,7 @@ namespace RexVM {
     }
 
     i1 ByteReader::readI1() {
-        const auto val = static_cast<i1>(*ptr);
+        const auto val = CAST_I1(*ptr);
         ptr += 1;
         cycleOffset += 1;
         return val;
@@ -69,7 +69,7 @@ namespace RexVM {
     }
 
     u4 ByteReader::pc() const {
-        return static_cast<u4>(ptr - begin);
+        return CAST_U4(ptr - begin);
     }
 
 }

@@ -1,35 +1,50 @@
 #include "vm.hpp"
+#include <atomic>
+#include <filesystem>
+#include "basic_java_class.hpp"
 #include "utils/class_path.hpp"
-#include "constantInfo.hpp"
-#include "attribute_info.hpp"
+#include "utils/class_utils.hpp"
+#include "utils/string_utils.hpp"
 #include "class_loader.hpp"
-#include "constant_pool.hpp"
-#include "class.hpp"
-#include "runtime.hpp"
-#include "frame.hpp"
-#include "oop.hpp"
+#include "string_pool.hpp"
+#include "thread.hpp"
 #include "memory.hpp"
-#include "native/native_manager.hpp"
-
-#include "utils/format.hpp"
-#include "class_file.hpp"
-#include "class_file_print.hpp"
-#include "utils/descriptor_parser.hpp"
-#include "memory.hpp"
-#include <ranges>
+#include "execute.hpp"
+#include "file_system.hpp"
 
 
 namespace RexVM {
 
-    constexpr auto ENV_KEY_JAVA_HOME = "JAVA8_HOME";
-    constexpr auto USER_PROGRAM_HOME = "USER_JAVA_CLASSPATH";
-
     void VM::initClassPath() {
-        const auto javaHome = cstring(std::getenv(ENV_KEY_JAVA_HOME));
-        const auto rtJarPath = javaHome + "/jre/lib/rt.jar";
-        const auto charsetsJarPath = javaHome + "/jre/lib/charsets.jar";
-        const auto userClassPath = cstring(std::getenv(USER_PROGRAM_HOME));
-        classPath = std::make_unique<CombineClassPath>(rtJarPath + ";" + charsetsJarPath + ";" + userClassPath);
+        javaHome = initJavaHome(std::getenv("JAVA_HOME"));
+        if (javaHome.empty()) {
+            javaHome = initJavaHome(std::getenv("JAVA8_HOME"));
+            if (javaHome.empty()) {
+                cprintlnErr("Error: JAVA_HOME environment variable not found");
+                std::exit(1);
+            }
+        }
+        std::vector<cstring> pathList;
+        pathList.emplace_back(".");
+        pathList.emplace_back(buildRtPath(javaHome));
+        pathList.emplace_back(buildCharsetsPath(javaHome));
+        const auto userEnvClassPath = std::getenv("CLASSPATH");
+        if (userEnvClassPath != nullptr) {
+            const auto envClassPath = cstring(userEnvClassPath);
+            const auto cps = splitString(envClassPath, PATH_SEPARATOR);
+            for (const auto &item: cps) {
+                pathList.emplace_back(item);
+            }
+        }
+        if (!params.userClassPath.empty()) {
+            const auto cps = splitString(params.userClassPath, PATH_SEPARATOR);
+            for (const auto &item: cps) {
+                pathList.emplace_back(item);
+            }
+        }
+
+        classPath = std::make_unique<CombineClassPath>(joinString(pathList, cstring{PATH_SEPARATOR}));
+        javaClassPath = classPath->getVMClassPath();
     }
 
     void VM::initOopManager() {
@@ -42,64 +57,80 @@ namespace RexVM {
 
     void VM::initStringPool() {
         stringPool = std::make_unique<StringPool>(*this, *bootstrapClassLoader);
+        //String Pool初始化完成后才可以初始化全部基础类 否则有些类会因为没有String Pool初始化时报npe
+        bootstrapClassLoader->initBasicJavaClass();
     }
 
-    void VM::initExecutor() {
-        executor = std::make_unique<Executor>(*this);
-    }
-
-    void VM::initJavaSystemClass() const {
-        const auto systemClass = bootstrapClassLoader->getInstanceClass("java/lang/System");
+    void VM::initJavaSystemClass() {
+        const auto systemClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM);
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
-        executor->runStaticMethodOnNewThread(*initMethod, {});
+        runStaticMethodOnMainThread(*this, *initMethod, {});
     }
 
-    void VM::runMainMethod() const {
+    void VM::runMainMethod() {
         const auto userParams = params.userParams;
 
-        if (userParams.empty()) {
-            panic("must input run class");
-        }
-
-        const auto &className = userParams.at(0);
+        const auto &className = getJVMClassName(userParams[0]);
         const auto runClass = bootstrapClassLoader->getInstanceClass(className);
         if (runClass == nullptr) {
-            panic("can't find class " + className);
+            cprintlnErr("Error: Could not find or load main class {}", userParams[0]);
+            std::exit(1);
         }
         const auto mainMethod = runClass->getMethod("main", "([Ljava/lang/String;)V", true);
         if (mainMethod == nullptr) {
-            panic("no main method in class " + className);
+            cprintlnErr("Error: Main method not found in class {}, please define the main method as:", userParams[0]);
+            cprintlnErr("   public static void main(String[] args)");
+            std::exit(1);
         }
-        const auto stringArrayClass = bootstrapClassLoader->getObjectArrayClass("java/lang/String");
         const auto mainMethodParmSize = userParams.size() - 1;
-        const auto stringArray = oopManager->newObjArrayOop(stringArrayClass, mainMethodParmSize);
+        const auto stringArray = oopManager->newStringObjArrayOop(mainMethodParmSize);
 
         if (userParams.size() > 1) {
-            for (auto i = 1; i < userParams.size(); ++i) {
+            for (size_t i = 1; i < userParams.size(); ++i) {
                 stringArray->data[i - 1] = stringPool->getInternString(userParams.at(i));
             }
         }
 
-        executor->runStaticMethodOnNewThread(*mainMethod, std::vector{ Slot(stringArray) });
+        runStaticMethodOnMainThread(*this, *mainMethod, {Slot(stringArray)});
     }
 
+    void VM::joinThreads() {
+        while (true) {
+            VMThread *vmThread;
+            {
+                std::lock_guard<std::mutex> lock(vmThreadMtx);
+                if (vmThreadDeque.empty()) {
+                    break;
+                }
+                vmThread = vmThreadDeque.front();
+                vmThreadDeque.pop_front();
+            }
+            vmThread->join();
+        }
+    }
 
+    void VM::addStartThread(VMThread *thread) {
+        std::lock_guard<std::mutex> lock(vmThreadMtx);
+        vmThreadDeque.emplace_back(thread);
+    }
 
     VM::VM(ApplicationParameter &params) : params(params) {
+    }
+
+    void VM::start() {
         initClassPath();
         initOopManager();
         initBootstrapClassLoader();
         initStringPool();
-        initExecutor();
         initJavaSystemClass();
         runMainMethod();
+        joinThreads();
     }
 
-  
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
-        vm.bootstrapClassLoader.reset(nullptr);
-        gc2(vm);
+        vm.start();
+        collectAll(vm);
     }
 
 }

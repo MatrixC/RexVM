@@ -3,9 +3,14 @@
 #include <sstream>
 #include "string_utils.hpp"
 #include "../exception.hpp"
+#include "../file_system.hpp"
 #include <ranges>
 
 namespace RexVM {
+
+    cstring ClassPath::getVMClassPath() const {
+        return path;
+    }
 
     std::unique_ptr<std::istream> DirClassPath::getStream(const cstring &filePath) {
         const auto fullPath = path + filePath;
@@ -45,23 +50,19 @@ namespace RexVM {
         }
 
 
-        const auto uncompressedSize = (size_t) fileStat.m_uncomp_size;
+        const auto uncompressedSize = CAST_SIZE_T(fileStat.m_uncomp_size);
         cstring buffer(uncompressedSize, 0);
-        if (!mz_zip_reader_extract_to_mem(&archive, fileIndex, (void *) buffer.c_str(), uncompressedSize, 0)) {
+        if (!mz_zip_reader_extract_to_mem(&archive, fileIndex, reinterpret_cast<voidPtr>(buffer.data()), uncompressedSize, 0)) {
             return nullptr;
         }
         return std::make_unique<std::istringstream>(buffer);
     }
 
     CombineClassPath::CombineClassPath(const cstring &path) : ClassPath(ClassPathTypeEnum::COMBINE, path) {
-        const static auto pathSep = ';';
-        const static auto dirSep = cstring{std::filesystem::path::preferred_separator};
-
-        //const auto paths = std::ranges::split_view(path, pathSep);
-
-        const auto paths = split_string(path, pathSep);
+        const auto fileSep = cstring{FILE_SEPARATOR};
+        const auto paths = splitString(path, PATH_SEPARATOR);
         for (const auto &pathView: paths) {
-            if (pathView.size() == 0) {
+            if (pathView.empty()) {
                 continue;
             }
             const cstring childPath{pathView};
@@ -73,13 +74,13 @@ namespace RexVM {
                     }
                 }
             } else if (std::filesystem::is_directory(childPath)) {
-                if (endsWith(childPath, dirSep)) {
+                if (endsWith(childPath, fileSep)) {
                     if (processedPath.find(childPath) == processedPath.end()) {
                         classPaths.push_back(std::make_unique<DirClassPath>(cstring(childPath)));
                         processedPath.insert(childPath);
                     }
                 } else {
-                    const cstring spath = childPath + dirSep;
+                    const cstring spath = childPath + fileSep;
                     if (processedPath.find(spath) == processedPath.end()) {
                         classPaths.push_back(std::make_unique<DirClassPath>(spath));
                         processedPath.insert(spath);
@@ -100,4 +101,7 @@ namespace RexVM {
         return nullptr;
     }
 
+    cstring CombineClassPath::getVMClassPath() const {
+        return joinString(processedPath, {PATH_SEPARATOR});
+    }
 }

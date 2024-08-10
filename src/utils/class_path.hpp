@@ -27,6 +27,7 @@ namespace RexVM {
         virtual ~ClassPath() = default;
 
         virtual std::unique_ptr<std::istream> getStream(const cstring &filePath) = 0;
+        virtual cstring getVMClassPath() const;
 
         bool operator==(const ClassPath &other) const {
             return path == other.path;
@@ -57,6 +58,7 @@ namespace RexVM {
         std::unordered_set<cstring> processedPath;
 
         explicit CombineClassPath(const cstring &path);
+        cstring getVMClassPath() const override;
 
         std::unique_ptr<std::istream> getStream(const cstring &filePath) override;
     };

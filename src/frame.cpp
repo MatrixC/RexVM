@@ -1,34 +1,52 @@
 #include "frame.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "class_member.hpp"
-#include "class.hpp"
 #include "oop.hpp"
-#include "runtime.hpp"
+#include "thread.hpp"
 #include "vm.hpp"
-#include <algorithm>
+#include "execute.hpp"
+#include "print_helper.hpp"
+#include <utility>
 
 
 namespace RexVM {
 
-    Frame::Frame(VM &vm, Thread &thread, Executor &executor, Method &method, Frame *previous) :
-        localVariableTableSize(method.maxLocals == 0 ? method.paramSlotSize : method.maxLocals),
-        localVariableTable(std::make_unique<Slot[]>(localVariableTableSize)),
-        localVariableTableType(std::make_unique<SlotTypeEnum[]>(localVariableTableSize)),
-        //In the current design, because parameter passing relies on the stack, the length of the stack cannot be zero. 
-        //If the method stack length recorded in the class file is 0, then it is treated as if it has a parameter length of 0. 
-        //If it is a native method and is non-static, then it needs to default to passing in a non-zero value.
-        //operandStack(std::make_unique<Slot[]>(method.maxLocals == 0 ? 10 /*TODO*/ : method.maxStack)),
-        //operandStackContext(operandStack.get(), -1),
-        operandStackContext(method.maxLocals == 0 ? 10 /*TODO*/ : method.maxStack, -1),
-        vm(vm),
-        thread(thread),
-        executor(executor),
-        method(method),
-        klass(method.klass),
-        previous(previous),
-        constantPool(klass.constantPool),
-        classLoader(klass.classLoader) 
-    {
+    FrameThrowable::FrameThrowable(InstanceOop *throwValue, Method &method, u4 throwPc) : throwValue(throwValue) {
+        addPath(method, throwPc);
+    }
+
+    void FrameThrowable::addPath(Method &method, u4 throwPc) {
+        throwPath.emplace_back(method, throwPc);
+    }
+
+    FrameThrowable::~FrameThrowable() = default;
+
+    Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame) : Frame(vm, thread, method, previousFrame, 0) {
+    }
+
+    Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize) :
+            previous(previousFrame),
+            //非native函数直接取method.maxLocals native函数取method.paramSlotSize 如像MethodHandle#invoke一样的特殊函数取fixMethodParamSlotSize
+            localVariableTableSize(!method.isNative() ? method.maxLocals : std::max(method.paramSlotSize, fixMethodParamSlotSize)),
+            localVariableTable(
+                    previous == nullptr ?
+                        thread.stackMemory.get() :
+                        previous->operandStackContext.getCurrentSlotPtr() + 1), //Previous last operand slot + 1
+            localVariableTableType(
+                    previous == nullptr ?
+                        thread.stackMemoryType.get() :
+                        previous->operandStackContext.getCurrentSlotTypePtr() + 1), //Previous last operand slot + 1
+            operandStackContext(
+                    localVariableTable + localVariableTableSize,
+                    localVariableTableType + localVariableTableSize,
+                    -1
+            ),
+            vm(vm),
+            thread(thread),
+            method(method),
+            klass(method.klass),
+            constantPool(klass.constantPool),
+            classLoader(klass.classLoader) {
         const auto nativeMethod = method.isNative();
         if (!nativeMethod) {
             auto codePtr = method.code.get();
@@ -42,33 +60,71 @@ namespace RexVM {
 
     Frame::~Frame() = default;
 
-    void Frame::runMethod(Method &runMethod_) {
-        const auto slotSize = runMethod_.paramSlotSize;
-        std::vector<Slot> params(slotSize);
-        if (slotSize > 0) {
-            for (i4 i = static_cast<i4>(slotSize) - 1; i >= 0; --i) {
-                const auto value = pop();
-                params[i] = value;
-            }
-        }
-        runMethod(runMethod_, params);
+    ClassLoader *Frame::getCurrentClassLoader() const {
+        //TODO: This klass's class loader
+        return vm.bootstrapClassLoader.get();
     }
 
-    void Frame::runMethod(Method &runMethod_, std::vector<Slot> params) {
-        Executor::createFrameAndRunMethod(thread, runMethod_, params, this);
+    //java方法执行过程中用,被invoke系列指令调用,参数都是字节码提前push好的
+    //先pop上一个Frame, 移动其sp.因为新Frame的Top是根据上一个Frame的操作数栈sp来计算的
+    //所以可以直接将新Frame的Local区对齐到上个Frame push的参数起点,用来减少一次参数写入
+    void Frame::runMethodInner(Method &runMethod) {
+        const auto slotSize = runMethod.paramSlotSize;
+        if (slotSize > 0) {
+            operandStackContext.pop(CAST_I4(slotSize));
+        }
+        createFrameAndRunMethodNoPassParams(thread, runMethod, this, slotSize);
+    }
+
+    //专门用于MethodHandle#invoke的调用 是一个不确定的paramSlotSize
+    void Frame::runMethodInner(Method &runMethod, size_t popSlotSize) {
+        if (popSlotSize > 0) {
+            operandStackContext.pop(CAST_I4(popSlotSize));
+        }
+        createFrameAndRunMethodNoPassParams(thread, runMethod, this, popSlotSize);
+    }
+
+    //手动调用java方法用,创建新Frame,用params向其传递参数
+    std::tuple<Slot, SlotTypeEnum> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
+        createFrameAndRunMethod(thread, runMethod, std::move(params), this);
+        //Method可能有返回值,需要处理返回值的pop
+        if (runMethod.returnSlotType == SlotTypeEnum::NONE) {
+            //void函数，无返回
+            return std::make_tuple(ZERO_SLOT, SlotTypeEnum::NONE);
+        } else {
+            if (runMethod.returnSlotType == SlotTypeEnum::I8) {
+                return std::make_tuple(Slot(popI8()), runMethod.returnSlotType);
+            } else if (runMethod.returnSlotType == SlotTypeEnum::F8) {
+                return std::make_tuple(Slot(popF8()), runMethod.returnSlotType);
+            } else {
+                //除了I8和F8,其他类型只需要pop一个值
+                return std::make_tuple(pop(), runMethod.returnSlotType);
+            }
+        }
+    }
+
+    std::tuple<Slot, SlotTypeEnum> Frame::runMethodManualTypes(
+        Method &runMethod, 
+        const std::vector<std::tuple<Slot, SlotTypeEnum>>& paramsWithType
+    ) {
+        std::vector<Slot> params;
+        params.reserve(paramsWithType.size());
+        for (const auto &item : paramsWithType) {
+            params.emplace_back(std::get<0>(item));
+        }
+        return runMethodManual(runMethod, params);
     }
 
     void Frame::cleanOperandStack() {
         operandStackContext.reset();
     }
 
-
     u4 Frame::pc() const {
-        return reader.ptr - method.code.get() - 1;
+        return nextPc() - 1;
     }
 
     u4 Frame::nextPc() const {
-        return reader.ptr - method.code.get();
+        return CAST_U4(reader.ptr - method.code.get());
     }
 
     void Frame::pushRef(ref ref) {
@@ -85,19 +141,22 @@ namespace RexVM {
     
     void Frame::pushI8(i8 val) {
         operandStackContext.push(Slot(val), SlotTypeEnum::I8);
-        operandStackContext.push(Slot(static_cast<i8>(0)), SlotTypeEnum::I8);
+        operandStackContext.push(Slot(CAST_I8(0)), SlotTypeEnum::I8);
     }
     
     void Frame::pushF8(f8 val) {
         operandStackContext.push(Slot(val), SlotTypeEnum::F8);
-        operandStackContext.push(Slot(static_cast<f8>(0)), SlotTypeEnum::F8);
+        operandStackContext.push(Slot(CAST_F8(0)), SlotTypeEnum::F8);
     }
 
-    void Frame::push(Slot val) {
-        operandStackContext.push(val, SlotTypeEnum::I4);
+    void Frame::push(Slot val, SlotTypeEnum type) {
+        operandStackContext.push(val, type);
+        if (isWideSlotType(type)) {
+            operandStackContext.push(Slot(CAST_I8(0)), type);
+        }
     }
 
-    void *Frame::popRef() {
+    ref Frame::popRef() {
         return operandStackContext.pop().refVal;
     }
     
@@ -123,28 +182,38 @@ namespace RexVM {
         return operandStackContext.pop();
     }
 
+    std::tuple<Slot, SlotTypeEnum> Frame::popWithSlotType() {
+        return operandStackContext.popWithSlotType();
+    }
+
     void Frame::pushLocal(size_t index) {
         const auto val = localVariableTable[index];
-        operandStackContext.push(val, SlotTypeEnum::I4);
+        const auto type = localVariableTableType[index];
+        operandStackContext.push(val, type);
     }
 
     void Frame::pushLocalWide(size_t index) {
         const auto val1 = localVariableTable[index];
+        const auto val1Type = localVariableTableType[index];
         const auto val2 = localVariableTable[index + 1];
-        operandStackContext.push(val1, SlotTypeEnum::I4);
-        operandStackContext.push(val2, SlotTypeEnum::I4);
+        const auto val2Type = localVariableTableType[index + 1];
+        operandStackContext.push(val1, val1Type);
+        operandStackContext.push(val2, val2Type);
     }
 
     void Frame::popLocal(size_t index) {
-        const auto val = operandStackContext.pop();
+        const auto [val, type] = operandStackContext.popWithSlotType();
         localVariableTable[index] = val;
+        localVariableTableType[index] = type;
     }
 
     void Frame::popLocalWide(size_t index) {
-        const auto val1 = operandStackContext.pop();
-        const auto val2 = operandStackContext.pop();
+        const auto [val1, val1Type] = operandStackContext.popWithSlotType();
+        const auto [val2, val2Type] = operandStackContext.popWithSlotType();
         localVariableTable[index] = val2;
+        localVariableTableType[index] = val2Type;
         localVariableTable[index + 1] = val1;
+        localVariableTableType[index + 1] = val1Type;
     }
 
     ref Frame::getLocalRef(size_t index) const {
@@ -173,6 +242,10 @@ namespace RexVM {
 
     Slot Frame::getLocal(size_t index) const {
         return localVariableTable[index];
+    }
+
+    std::tuple<Slot, SlotTypeEnum> Frame::getLocalWithType(size_t index) const {
+        return std::make_tuple(localVariableTable[index], localVariableTableType[index]);
     }
 
     void Frame::setLocalRef(size_t index, ref val) const {
@@ -209,57 +282,62 @@ namespace RexVM {
         existReturnValue = false;
     }
 
-    void Frame::returnRef(ref val) {
+    void Frame::returnSlot(Slot val, SlotTypeEnum type) {
         markReturn = true;
         existReturnValue = true;
-        returnType = SlotTypeEnum::REF;
-        returnValue = Slot(val);
+        returnType = type;
+        returnValue = val;
+    }
+
+    void Frame::returnRef(ref val) {
+        returnSlot(Slot(val), SlotTypeEnum::REF);
     }
 
     void Frame::returnI4(i4 val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::I4;
-        returnValue = Slot(val);
+        returnSlot(Slot(val), SlotTypeEnum::I4);
     }
 
     void Frame::returnI8(i8 val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::I8;
-        returnValue = Slot(val);
+        returnSlot(Slot(val), SlotTypeEnum::I8);
     }
 
     void Frame::returnF4(f4 val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::F4;
-        returnValue = Slot(val);
+        returnSlot(Slot(val), SlotTypeEnum::F4);
     }
 
     void Frame::returnF8(f8 val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::F8;
-        returnValue = Slot(val);
+        returnSlot(Slot(val), SlotTypeEnum::F8);
     }
 
     void Frame::returnBoolean(bool val) {
-        markReturn = true;
-        existReturnValue = true;
-        returnType = SlotTypeEnum::I4;
-        returnValue = Slot(val ? 1 : 0);
+        returnSlot(Slot(val ? CAST_I8(1) : CAST_I8(0)), SlotTypeEnum::I4);
     }
 
-    void Frame::throwException(ref val, u4 pc) {
+    void Frame::throwException(InstanceOop * const val, u4 throwPc) {
         markThrow = true;
-        throwValue = val;
-        throwPc = pc;
+        //throwObject = std::make_unique<FrameThrowable>(val, method, throwPc);
+        throwObject = val;
     }
 
-    void Frame::throwException(ref val) {
+    void Frame::throwException(InstanceOop * const val) {
+        throwException(val, pc());
+    }
+
+    // void Frame::passException(std::unique_ptr<FrameThrowable> lastException) {
+    //     markThrow = true;
+    //     throwObject = std::move(lastException);
+    //     throwObject->addPath(method, pc());
+    // }
+
+    void Frame::passException(InstanceOop *lastException) {
         markThrow = true;
-        throwValue = val;
+        throwObject = lastException;
+    }
+
+    void Frame::cleanThrow() {
+        markThrow = false;
+        //throwObject.reset();
+        throwObject = nullptr;
     }
 
 
@@ -267,19 +345,64 @@ namespace RexVM {
         return operandStackContext.getStackOffset(offset);
     }
 
-    Oop *Frame::getThis() const {
-        return static_cast<InstanceOop *>(getLocalRef(0));
+
+    ref Frame::getThis() const {
+        return getLocalRef(0);
+    }
+
+    InstanceOop *Frame::getThisInstance() const {
+        return CAST_INSTANCE_OOP(getThis());
     }
 
     std::vector<Oop *> Frame::getLocalObjects() const {
         std::vector<Oop *> result;
-        for (auto i = 0; i < localVariableTableSize; ++i) {
+        for (size_t i = 0; i < localVariableTableSize; ++i) {
             const auto value = localVariableTable[i];
             if (localVariableTableType[i] == SlotTypeEnum::REF && value.refVal != nullptr) {
-                 result.push_back(static_cast<Oop *>(value.refVal));
+                 result.emplace_back(value.refVal);
             }
         }
         return result;
+    }
+
+    void Frame::printCallStack() {
+        for (auto f = this; f != nullptr; f = f->previous) {
+            const auto nativeMethod = f->method.isNative();
+            cprintln("  {}#{}:{} {}", f->klass.name, f->method.name, f->method.descriptor, nativeMethod ? "[Native]" : "");
+        }
+    }
+
+    void Frame::printLocalSlot() {
+        for (size_t i = 0; i < localVariableTableSize; ++i) {
+            const auto val = localVariableTable[i];
+            const auto type = localVariableTableType[i];
+            const auto slotStr = formatSlot(*this, val, type);
+            cprintln("Local[{}]: {}", i, slotStr);
+        }
+    }
+
+    void Frame::printStackSlot() {
+        for (i4 offset = operandStackContext.sp; offset >= 0; --offset) {
+            const auto index = operandStackContext.sp - offset;
+            const auto val = operandStackContext.memory[index];
+            const auto valPtr = operandStackContext.memory + index;
+            const auto valType = operandStackContext.memoryType[index];
+            const auto slotStr = formatSlot(*this, val, valType);
+            cprintln("Stack[{}] {}: {}", offset, CAST_VOID_PTR(valPtr), slotStr);
+        }
+    }
+
+    void Frame::printReturn() {
+        if (markReturn && existReturnValue) {
+            cprintln("Return {}", formatSlot(*this, returnValue, returnType));
+        }
+    }
+
+    void Frame::print() {
+        cprintln("Method: {}.{}#{}", method.klass.name, method.name, method.descriptor);
+        printLocalSlot();
+        printStackSlot();
+        printReturn();
     }
 
 }

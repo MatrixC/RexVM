@@ -1,45 +1,47 @@
-//
-// Created by ch on 12/31/23.
-//
-
 #ifndef STACK_HPP
 #define STACK_HPP
 
-#include <memory>
 #include <vector>
-#include <stack>
-#include <memory>
+#include <tuple>
 #include "../config.hpp"
 #include "../basic_type.hpp"
 
 namespace RexVM {
 
-    struct SlotWithType {
-        Slot slot{0};
-        SlotTypeEnum type;
-    };
-
     struct Oop;
 
     struct StackContext {
-        Slot *memory;
-        i4 size;
         i4 sp;
-        bool useSelfMemory{false};
 
-        std::unique_ptr<SlotWithType[]> selfMemory;
+        Slot *memory;
+        SlotTypeEnum *memoryType;
 
-        explicit StackContext(Slot *memory, i4 pos);
-        explicit StackContext(i4 size, i4 pos);
+        explicit StackContext(Slot *memory, SlotTypeEnum *memoryType, i4 pos);
 
         void push(Slot val, SlotTypeEnum slotType);
+        void push(std::tuple<Slot, SlotTypeEnum> valWithType);
 
         Slot pop();
+        [[nodiscard]] Slot top() const;
+        std::tuple<Slot, SlotTypeEnum> popWithSlotType();
+        [[nodiscard]] std::tuple<Slot, SlotTypeEnum> topWithSlotType() const;
+        void pop(i4 size);
 
         void reset();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
-        std::vector<Oop *> getObjects() const;
+        [[nodiscard]] std::vector<Oop *> getObjects() const;
+
+        [[nodiscard]] Slot *getCurrentSlotPtr() const;
+        [[nodiscard]] SlotTypeEnum *getCurrentSlotTypePtr() const;
+
+        void dup();
+        void dup_x1();
+        void dup_x2();
+        void dup2();
+        void dup2_x1();
+        void dup2_x2();
+        void swapTop();
     };
 }
 

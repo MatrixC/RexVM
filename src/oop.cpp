@@ -14,54 +14,51 @@ namespace RexVM {
         return checkClass->isAssignableFrom(this->klass);
     }
 
-    void Oop::setNotGC() {
-        notGC = true;
-    }
-
-    bool Oop::getNotGC() const {
-        return notGC;
-    }
-
     Oop::~Oop() = default;
 
     void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
+        //std::memset(oop->data.get(), 0, sizeof(Slot) * oop->dataLength);
         for (const auto &field: klass->fields) {
             if (!field->isStatic()) {
                 const auto slotType = field->getFieldSlotType();
+                const auto slotId = field->slotId;
                 switch (slotType) {
-                    case SlotTypeEnum::REF:
-                        oop->data[field->slotId] = Slot(nullptr);
+                    case SlotTypeEnum::I4:
+                        oop->data[slotId] = Slot(CAST_I4(0));
                         break;
-
                     case SlotTypeEnum::F4:
-                        oop->data[field->slotId] = Slot(static_cast<f4>(0));
+                        oop->data[slotId] = Slot(CAST_F4(0));
                         break;
-
+                    case SlotTypeEnum::I8:
+                        oop->data[slotId] = Slot(CAST_I8(0));
+                        break;
                     case SlotTypeEnum::F8:
-                        oop->data[field->slotId] = Slot(static_cast<f8>(0));
+                        oop->data[slotId] = Slot(CAST_F8(0));
                         break;
-
+                    case SlotTypeEnum::REF:
+                        oop->data[slotId] = Slot(nullptr);
+                        break;
                     default:
-                        oop->data[field->slotId] = Slot(static_cast<i4>(0));
-                        break;
+                        panic("initInstanceField error");
                 }
             }
         }
-
         if (klass->superClass != nullptr) {
             initInstanceField(oop, klass->superClass);
         }
     }
 
     InstanceOop::InstanceOop(InstanceClass *klass, const size_t dataLength) :
-            Oop(OopTypeEnum::InstanceOop, klass), 
+            Oop(OopTypeEnum::INSTANCE_OOP, klass), 
             dataLength(dataLength), 
             data(std::make_unique<Slot[]>(dataLength)) {
         initInstanceField(this, klass);
     }
 
-    InstanceOop::~InstanceOop() {
+    InstanceOop::InstanceOop(InstanceClass *klass) : InstanceOop(klass, klass->instanceSlotCount) {
     }
+
+    InstanceOop::~InstanceOop() = default;
 
     Slot InstanceOop::getFieldValue(size_t index) const {
         return data[index];
@@ -71,24 +68,28 @@ namespace RexVM {
         data[index] = value;
     }
 
-    void InstanceOop::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) {
-        auto instanceClass = dynamic_cast<InstanceClass *>(klass);
+    void InstanceOop::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const {
+        auto instanceClass = getInstanceClass();
         auto field = instanceClass->getField(name, descriptor, false);
         data[field->slotId] = value;
     }
 
     Slot InstanceOop::getFieldValue(const cstring &name, const cstring &descriptor) const {
-        auto instanceClass = dynamic_cast<InstanceClass *>(klass);
+        auto instanceClass = getInstanceClass();
         auto field = instanceClass->getField(name, descriptor, false);
         return data[field->slotId];
     }
 
     InstanceOop *InstanceOop::clone(OopManager &manager) const {
-        auto newInstance = manager.newInstance(static_cast<InstanceClass *>(klass));
-        for (auto i = 0; i < dataLength; ++i) {
-            newInstance->data[i] = this->data[i];
-        }
+        auto newInstance = manager.newInstance(getInstanceClass());
+        const auto from = this->data.get();
+        const auto to = newInstance->data.get();
+        std::copy(from, from + dataLength, to);
         return newInstance;
+    }
+
+    InstanceClass *InstanceOop::getInstanceClass() const {
+        return CAST_INSTANCE_CLASS(klass);
     }
 
     MirrorOop::MirrorOop(InstanceClass *klass, Class *mirrorClass) :
@@ -96,43 +97,37 @@ namespace RexVM {
         mirrorClass(mirrorClass) {
     }
 
-    ThreadOop::ThreadOop(InstanceClass *klass, Thread *thread) :
-        InstanceOop(klass, klass->instanceSlotCount),
-        thread(thread) {
-    }
-
-
     ArrayOop::ArrayOop(const OopTypeEnum type, ArrayClass *klass, const size_t dataLength) :
             Oop(type, klass), dataLength(dataLength) {
     }
 
     TypeArrayOop::TypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
-            ArrayOop(OopTypeEnum::TypeArrayOop, klass, dataLength) {
+            ArrayOop(OopTypeEnum::TYPE_ARRAY_OOP, klass, dataLength) {
     }
 
     ObjArrayOop::ObjArrayOop(ObjArrayClass *klass, const size_t dataLength) :
-            ArrayOop(OopTypeEnum::ObjArrayOop, klass, dataLength), data(std::make_unique<ref[]>(dataLength)) {
+            ArrayOop(OopTypeEnum::OBJ_ARRAY_OOP, klass, dataLength), data(std::make_unique<ref[]>(dataLength)) {
             std::fill_n(data.get(), dataLength, nullptr);
     }
 
     ByteTypeArrayOop::ByteTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<u1[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<u1>(0));
+            std::fill_n(data.get(), dataLength, CAST_U1(0));
     }
 
     ShortTypeArrayOop::ShortTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<i2[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<i2>(0));
+            std::fill_n(data.get(), dataLength, CAST_I2(0));
     }
 
     IntTypeArrayOop::IntTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<i4[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<i4>(0));
+            std::fill_n(data.get(), dataLength, CAST_I4(0));
     }
 
     LongTypeArrayOop::LongTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<i8[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<i8>(0));
+            std::fill_n(data.get(), dataLength, CAST_I8(0));
     }
 
     CharTypeArrayOop::CharTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
@@ -142,12 +137,12 @@ namespace RexVM {
 
     FloatTypeArrayOop::FloatTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<f4[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<f4>(0));
+            std::fill_n(data.get(), dataLength, CAST_F4(0));
     }
 
     DoubleTypeArrayOop::DoubleTypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :
         TypeArrayOop(klass, dataLength), data(std::make_unique<f8[]>(dataLength)) {
-            std::fill_n(data.get(), dataLength, static_cast<f8>(0));
+            std::fill_n(data.get(), dataLength, CAST_F8(0));
     }
 
 

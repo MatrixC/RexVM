@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include "class.hpp"
 #include "oop.hpp"
+#include "thread.hpp"
 
 namespace RexVM {
 
@@ -15,23 +16,39 @@ namespace RexVM {
         explicit OopManager(VM &vm);
         std::unordered_set<Oop *> allocatedOop;
 
-        [[nodiscard]] InstanceOop *newInstance(InstanceClass * const klass);
-        [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * const klass, size_t length);
+        [[nodiscard]] InstanceOop *newInstance(InstanceClass * klass);
+        [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * klass, size_t length);
+
+        [[nodiscard]] ObjArrayOop *newObjectObjArrayOop(size_t length);
+        [[nodiscard]] ObjArrayOop *newClassObjArrayOop(size_t length);
+        [[nodiscard]] ObjArrayOop *newStringObjArrayOop(size_t length);
+
         [[nodiscard]] TypeArrayOop *newTypeArrayOop(BasicType type, size_t length);
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length);
-        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, u1 *initBuffer);
+        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer);
         [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length);
 
-        ThreadOop *newThreadOop(Thread *thread);
+        [[nodiscard]] InstanceOop *newBooleanOop(i4 value);
+        [[nodiscard]] InstanceOop *newByteOop(i4 value);
+        [[nodiscard]] InstanceOop *newCharOop(i4 value);
+        [[nodiscard]] InstanceOop *newShortOop(i4 value);
+        [[nodiscard]] InstanceOop *newIntegerOop(i4 value);
+        [[nodiscard]] InstanceOop *newFloatOop(f4 value);
+        [[nodiscard]] InstanceOop *newLongOop(i8 value);
+        [[nodiscard]] InstanceOop *newDoubleOop(f8 value);
+
+
+        VMThread *newVMThread(InstanceClass * klass);
+        VMThread *newVMThread();
+        VMThread *newMainVMThread(Method &method, std::vector<Slot> params);
 
     };
 
-    void traceOop(Oop * const root, std::unordered_set<Oop *> &tracedOop);
-    void traceInstanceOop(InstanceOop * const oop, std::unordered_set<Oop *> &tracedOop);
-    void traceObjArrayOop(ObjArrayOop * const oop, std::unordered_set<Oop *> &tracedOop);
+    void traceOop(Oop * root, std::unordered_set<Oop *> &tracedOop);
+    void traceInstanceOopChild(InstanceOop * oop, std::unordered_set<Oop *> &tracedOop);
+    void traceObjArrayOopChild(ObjArrayOop * oop, std::unordered_set<Oop *> &tracedOop);
 
-    void gc(VM &vm);
-    void gc2(VM &vm);
+    void collectAll(VM &vm);
 }
 
 #endif

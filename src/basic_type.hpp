@@ -2,6 +2,7 @@
 #define BASIC_TYPE_HPP
 
 #include <unordered_map>
+#include <array>
 #include "config.hpp"
 #include "exception.hpp"
 
@@ -26,13 +27,21 @@ namespace RexVM {
         T_ILLEGAL = 255,
     };
 
-    extern const std::unordered_map<cchar, BasicType> DESCRIPTOR_BASIC_TYPE_MAP;
     extern const std::unordered_map<cstring, cstring> PRIMITIVE_TYPE_MAP;
-    extern const std::unordered_map<cstring, cstring> PRIMITIVE_TYPE_REVERSE_MAP;
+    extern const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY;
 
-    extern cstring typeArrayClassName(BasicType type);
-    BasicType getBasicType(cchar type);
+    cstring getPrimitiveClassNameByDescriptor(cchar descriptor);
+    cchar getDescriptorByPrimitiveClassName(const cstring &className);
+    BasicType getBasicTypeByDescriptor(cchar descriptor);
+    BasicType getBasicTypeByTypeArrayClassName(const cstring &className);
+
+    extern cstring getTypeArrayClassNameByBasicType(BasicType type);
+    cstring getPrimitiveClassNameByBasicType(BasicType type);
+
     bool isBasicType(cchar type);
+    bool isWideBasicType(BasicType type);
+    SlotTypeEnum getSlotTypeByPrimitiveClassName(const cstring &className);
+    size_t getElementSizeByBasicType(BasicType type);
 
 }
 

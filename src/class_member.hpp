@@ -33,6 +33,9 @@ namespace RexVM {
         size_t runtimeVisibleAnnotationLength{};
         std::unique_ptr<u1[]> runtimeVisibleAnnotation;
 
+        size_t runtimeVisibleTypeAnnotationLength{};
+        std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
+
         explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
                              InstanceClass &klass);
 
@@ -41,6 +44,7 @@ namespace RexVM {
         [[nodiscard]] bool isStatic() const;
         [[nodiscard]] bool isFinal() const;
         [[nodiscard]] bool isPublic() const;
+        [[nodiscard]] bool isPrivate() const;
         [[nodiscard]] i4 getModifier() const;
 
         [[nodiscard]] bool is(const cstring &name, const cstring &descriptor) const;
@@ -52,16 +56,17 @@ namespace RexVM {
     struct Field : ClassMember {
         u2 constantValueIndex{};
         u2 slotId{};
+        SlotTypeEnum slotType{SlotTypeEnum::NONE};
  
         explicit Field(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
 
-        [[nodiscard]] SlotTypeEnum getFieldSlotType() const;
+        [[nodiscard]] SlotTypeEnum getFieldSlotType();
 
         [[nodiscard]] cstring getTypeName() const;
         [[nodiscard]] Class *getTypeClass() const;
 
         //Long or Double
-        bool isWideType();
+        [[nodiscard]] bool isWideType() const;
     };
 
     struct ExceptionCatchItem {
@@ -82,39 +87,53 @@ namespace RexVM {
     };
 
     struct Method : ClassMember {
+        u2 index{};
         u2 maxStack{};
         u2 maxLocals{};
         u4 codeLength{};
         std::unique_ptr<u1[]> code;
         std::vector<std::unique_ptr<ExceptionCatchItem>> exceptionCatches;
         std::vector<std::unique_ptr<LineNumberItem>> lineNumbers;
+        std::vector<u2> exceptionsIndex;
 
-        size_t runtimeVisibleParameterAnnotationLength;
+        size_t runtimeVisibleParameterAnnotationLength{};
         std::unique_ptr<u1[]> runtimeVisibleParameterAnnotation;
 
-        size_t runtimeVisibleTypeAnnotationLength;
-        std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
+        size_t annotationDefaultLength{};
+        std::unique_ptr<u1[]> annotationDefault;
 
-        std::vector<cstring> paramDesc;
-        cstring returnTypeDesc;
+        std::vector<cstring> paramType;
+        cstring returnType;
         size_t paramSize{0};
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
+        SlotTypeEnum returnSlotType{SlotTypeEnum::NONE};
 
-        std::vector<Class *> getParamClasses() const;
+        [[nodiscard]] std::vector<Class *> getParamClasses() const;
 
         NativeMethodHandler nativeMethodHandler{};
 
-        explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
+        explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index);
 
         [[nodiscard]] bool isNative() const;
         [[nodiscard]] bool isAbstract() const;
+        [[nodiscard]] bool isSynchronized() const;
 
         [[nodiscard]] SlotTypeEnum getParamSlotType(size_t slotIdx) const;
 
-        std::optional<i4>  findExceptionHandler(const InstanceClass *exClass, u4 pc);
+        std::optional<i4> findExceptionHandler(const InstanceClass *exClass, u4 pc);
+        [[nodiscard]] u4 getLineNumber(u4 pc) const;
 
         ~Method() override;
+
+
+        private:
+        void initParamSlotSize();
+        void initAnnotations(FMBaseInfo *info);
+        void initCode(FMBaseInfo *info);
+        void initExceptions(FMBaseInfo *info);
+
+
     };
 
 

@@ -1,21 +1,22 @@
-#include "config.hpp"
 #include "utils/format.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/descriptor_parser.hpp"
 #include "vm.hpp"
 #include <vector>
-#include <variant>
+#include <filesystem>
 
 using namespace RexVM;
 
 void printUsage() {
-    println("Usage: RexVM -cp <classpath> <MainClass> [params...]");
+    cprintln("Usage: rex [-cp <classpath>] <MainClass> [params...]");
 }
 
 int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter) {
-    if (argc < 4) {
+    if (argc < 2) {
         printUsage();
         return 1;
     }
-    
+
     cstring classpath;
     std::vector<cstring> params;
 
@@ -23,9 +24,6 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
         if (strcmp(argv[i], "-cp") == 0) {
             if (i + 1 < argc) {
                 applicationParameter.userClassPath = argv[++i];
-            } else {
-                printUsage();
-                return 1;
             }
         } else {
             params.emplace_back(argv[i]);
@@ -36,11 +34,12 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
     return 0;
 }
 
+
 int main(int argc, char *argv[]) {
     ApplicationParameter applicationParameter;
     if (parseArgs(argc, argv, applicationParameter) == 0) {
         vmMain(applicationParameter);
     }
 
-    return 1;
+    return 0;
 }

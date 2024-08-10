@@ -5,8 +5,10 @@
 #include <unordered_map>
 #include <vector>
 #include <mutex>
+#include <atomic>
 #include "basic_type.hpp"
 #include "config.hpp"
+#include "basic_java_class.hpp"
 
 namespace RexVM {
 
@@ -25,36 +27,37 @@ namespace RexVM {
         VM &vm;
         ClassPath &classPath;
         std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
-        //std::unique_ptr<InstanceOop> classLoaderInstance; //no use
-        static InstanceClass *mirrorClass; // java/lang/Class
-        static InstanceClass *mirrorClassLoader;
+        std::recursive_mutex clMutex;
+        InstanceClass *mirrorClass{nullptr}; // java/lang/Class
+        InstanceClass *mirrorClassLoader{nullptr};
+        std::vector<InstanceClass *> basicJavaClass;
+        std::atomic_int anonymousClassIndex{0};
 
         Class *getClass(const cstring &name);
-
         InstanceClass *getInstanceClass(const cstring &name);
-
         ArrayClass *getArrayClass(const cstring &name);
-
         TypeArrayClass *getTypeArrayClass(BasicType type);
-
         ObjArrayClass *getObjectArrayClass(const cstring &name);
 
-        void initMirrorClass(Class *klass) const;
-
+        InstanceClass *loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous);
+        
+        void initBasicJavaClass();
+        void initKeySlotId() const;
+        InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
         explicit ClassLoader(VM &vm, ClassPath &classPath);
-
         ~ClassLoader();
+
 
     private:
         void loadBasicClass();
 
-        void loadPrimitiveClass();
-
         void loadArrayClass(const cstring &name);
 
-        void loadInstanceClass(const cstring &name);
+        InstanceClass *loadInstanceClass(const cstring &name);
+        InstanceClass *loadInstanceClass(std::istream &is, bool notAnonymous);
+        InstanceClass *loadInstanceClass(std::istream &is);
 
-        void loadInstanceClass(std::istream &is);
+        void initMirrorClass(Class *klass);
     };
 
 

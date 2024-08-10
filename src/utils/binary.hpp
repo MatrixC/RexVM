@@ -4,6 +4,7 @@
 #include <bit>
 #include <type_traits>
 #include <fstream>
+#include <memory>
 #include "format.hpp"
 #include "../config.hpp"
 
@@ -108,9 +109,9 @@ namespace RexVM {
                 [&]<std::size_t n> {
                     constexpr auto rn = size - n - 1;
                     const u1 v = (t >> (rn * 8)) & 0xFF;
-                    print("{:02X}", v & 0xFF);
+                    cprint("{:02X}", v & 0xFF);
                     if constexpr (n != size - 1) {
-                        print(" ");
+                        cprint(" ");
                     }
                 }
         );
@@ -120,7 +121,7 @@ namespace RexVM {
     void printStreamBytes(const T &firstArg, const Args &...args) {
         printHex(firstArg);
         if constexpr (sizeof...(args) > 0) {
-            print(" ");
+            cprint(" ");
             printStreamBytes(args...);
         }
     }

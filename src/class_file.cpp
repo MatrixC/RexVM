@@ -3,7 +3,7 @@
 //
 #include "utils/format.hpp"
 #include "attribute_info.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "class_file.hpp"
 
 namespace RexVM {
@@ -29,7 +29,7 @@ namespace RexVM {
     }
 
     AttributeInfo *FMBaseInfo::getAssignAttribute(AttributeTagEnum tagEnum) const {
-        return ::RexVM::getAssignAttribute(cf.constantPool, attributes, tagEnum);
+        return getAssignAttributeByConstantPool(cf.constantPool, attributes, tagEnum);
     }
 
     ClassFile::ClassFile(std::istream &is) {
@@ -51,7 +51,7 @@ namespace RexVM {
         constantPool.emplace_back(nullptr);
         for (auto i = 1; i < constantPoolCount; ++i) {
             const StreamByteType auto tag = peek<u1>(is);
-            const auto constantTagEnum = static_cast<ConstantTagEnum>(tag);
+            const auto constantTagEnum = CAST_CONSTANT_TAG_ENUM(tag);
             switch (constantTagEnum) {
                 case ConstantTagEnum::CONSTANT_Class:
                     constantPool.emplace_back(std::make_unique<ConstantClassInfo>(is));
@@ -114,7 +114,7 @@ namespace RexVM {
                     break;
 
                 default:
-                    panic(format("parseConstantPool error tag {}", tag));
+                    panic(cformat("parseConstantPool error tag {}", tag));
                     break;
             }
         }
@@ -166,8 +166,12 @@ namespace RexVM {
         parseClassAttributes(is);
     }
 
+    AttributeInfo *ClassFile::getAssignAttribute(AttributeTagEnum tagEnum) const {
+        return getAssignAttributeByConstantPool(constantPool, attributes, tagEnum);
+    }
+
     cstring ClassFile::getClassName(u2 classIndex) const {
-        auto classInfo = dynamic_cast<ConstantClassInfo *>(constantPool.at(classIndex).get());
+        auto classInfo = CAST_CONSTANT_CLASS_INFO(constantPool.at(classIndex).get());
         return getConstantStringFromPool(constantPool, classInfo->index);
     }
 
@@ -180,6 +184,36 @@ namespace RexVM {
             return {};
         }
         return getClassName(superClass);
+    }
+
+    cstring ClassFile::getSourceFile() const {
+        const auto sourceFileAttribute = getAssignAttribute(AttributeTagEnum::SOURCE_FILE);
+
+        if (sourceFileAttribute == nullptr) {
+            return {};
+        }
+
+        const auto nameIndex = (CAST_SOURCE_FILE_ATTRIBUTE(sourceFileAttribute))->sourceFileIndex;
+        return getConstantStringFromPool(constantPool, nameIndex);
+    }
+
+    cstring ClassFile::getSignature() const {
+        const auto signatureAttribute = getAssignAttribute(AttributeTagEnum::SIGNATURE);
+
+        if (signatureAttribute == nullptr) {
+            return {};
+        }
+
+        const auto nameIndex = (CAST_SIGNATURE_ATTRIBUTE(signatureAttribute))->signatureIndex;
+        return getConstantStringFromPool(constantPool, nameIndex);    
+    }
+
+    void ClassFile::getBootstrapMethods() const {
+        const auto oriAttribute = getAssignAttribute(AttributeTagEnum::BOOTSTRAP_METHODS);
+
+        if (oriAttribute == nullptr) {
+            return;
+        }
     }
 
     std::vector<cstring> ClassFile::getInterfaceNames() const {

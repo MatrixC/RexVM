@@ -3,6 +3,10 @@
 
 #include <memory>
 #include <vector>
+#include <mutex>
+#include <thread>
+#include <deque>
+#include <chrono>
 #include "config.hpp"
 
 namespace RexVM {
@@ -10,8 +14,8 @@ namespace RexVM {
     struct ClassPath;
     struct ClassLoader;
     struct StringPool;
-    struct Executor;
     struct NativeManager;
+    struct VMThread;
     struct OopManager;
 
     struct ApplicationParameter {
@@ -24,19 +28,29 @@ namespace RexVM {
         std::unique_ptr<ClassPath> classPath;
         std::unique_ptr<OopManager> oopManager;
         std::unique_ptr<StringPool> stringPool;
-        std::unique_ptr<Executor> executor;
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
+
+        std::mutex vmThreadMtx;
+        std::deque<VMThread *> vmThreadDeque;
+
         explicit VM(ApplicationParameter &params);
+
+        void start();
+
+        void addStartThread(VMThread *vmThread);
+
+        std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
+        cstring javaHome{};
+        cstring javaClassPath{};
 
     private:
         void initClassPath();
         void initOopManager();
         void initBootstrapClassLoader();
         void initStringPool();
-        void initExecutor();
-        void initJavaSystemClass() const;
-        void runMainMethod() const;
-
+        void initJavaSystemClass();
+        void runMainMethod();
+        void joinThreads();
     };
 
     void vmMain(ApplicationParameter &param);

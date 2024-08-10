@@ -2,25 +2,30 @@
 #define STRING_UTILS_HPP
 
 #include <vector>
+#include <unordered_set>
+#include <memory>
 #include "../config.hpp"
 
 namespace RexVM {
 
-    std::vector<cview> split_string(cview str, char delimiter);
+    std::vector<cview> splitString(cview str, char delimiter);
+    cstring joinString(std::vector<cstring> strs, const cstring &joiner);
+    cstring joinString(std::unordered_set<cstring> strs, const cstring &joiner);
 
+    bool startWith(cview str, cview prefix);
     bool endsWith(cview str, cview suffix);
 
-    bool endsWith(cview str, char suffix);
+    void ltrim(cstring &s);
+    void rtrim(cstring &s);
 
-    ustring convert16(const cstring &str);
+    cstring concatView(cview str1, cview str2);
+    cstring concatView(cview str1, cview str2, cview str3);
 
-    ustring convert16(const char *str, size_t length);
+    cstring replace(cstring src, const cstring& search, const cstring& replace);
 
-    cstring concat_view(cview str1, cview str2);
-
-    cstring u16charsToString(const cchar_16 *str, size_t length);
-
-    cstring replace(cstring src, cstring search, cstring replace);
+    cstring utf16ToUtf8(const char16_t *utf16, size_t utf16Size);
+    std::vector<char16_t> utf8ToUtf16Vec(const char *utf8, size_t utf8Size);
+    size_t utf8Length(const cstring &str);
 }
 
 #endif

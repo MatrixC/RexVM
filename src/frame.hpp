@@ -2,7 +2,7 @@
 #define FRAME_HPP
 #include <memory>
 #include <vector>
-#include <cstdint>
+#include <tuple>
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "utils/stack.hpp"
@@ -11,8 +11,7 @@
 namespace RexVM {
 
     struct VM;
-    struct Thread;
-    struct Executor;
+    struct VMThread;
     struct ClassLoader;
     struct ConstantInfo;
     struct InstanceClass;
@@ -20,22 +19,30 @@ namespace RexVM {
     struct Oop;
     struct InstanceOop;
 
+    struct FrameThrowable {
+        InstanceOop *throwValue{nullptr};
+        std::vector<std::tuple<Method&, u4>> throwPath;
+
+        explicit FrameThrowable(InstanceOop *throwValue, Method &method, u4 throwPc);
+        void addPath(Method &method, u4 throwPc);
+        ~FrameThrowable();
+    };
+
     struct Frame {
+        Frame *previous{nullptr};
         size_t localVariableTableSize;
-        std::unique_ptr<Slot[]> localVariableTable;
-        std::unique_ptr<SlotTypeEnum[]> localVariableTableType;
-        //std::unique_ptr<Slot[]> operandStack;
+        size_t methodParamSlotSize{}; //仅在MethodHandle.invoke的时候需要使用 因为method.paramSlotSize是不准确的
+        Slot *localVariableTable;
+        SlotTypeEnum *localVariableTableType;
         StackContext operandStackContext;
         u1 currentByteCode{};
-        u2 level{0};
+        u2 level{};
 
         VM &vm;
-        Thread &thread;
-        Executor &executor;
+        VMThread &thread;
         Method &method;
         InstanceClass &klass;
         ByteReader reader{};
-        Frame *previous{nullptr};
 
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
         ClassLoader &classLoader;
@@ -46,38 +53,46 @@ namespace RexVM {
         SlotTypeEnum returnType{};
 
         bool markThrow{false};
-        u4 throwPc{0};
-        ref throwValue{nullptr};
+        //std::unique_ptr<FrameThrowable> throwObject;
+        InstanceOop *throwObject{nullptr};
 
-        explicit Frame(VM &vm, Thread &thread, Executor &executor, Method &method, Frame *previous);
+        explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize);
+        explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame);
         ~Frame();
 
-        void runMethod(Method &runMethod_);
-        void runMethod(Method &runMethod_, std::vector<Slot> params);
+        [[nodiscard]] ClassLoader *getCurrentClassLoader() const;
+
+        void runMethodInner(Method &runMethod);
+        void runMethodInner(Method &runMethod, size_t popSlotSize);
+        std::tuple<Slot,SlotTypeEnum> runMethodManual(Method &runMethod_, std::vector<Slot> params);
+        std::tuple<Slot, SlotTypeEnum> runMethodManualTypes(Method &runMethod, const std::vector<std::tuple<Slot, SlotTypeEnum>>& paramsWithType);
         void cleanOperandStack();
         
         [[nodiscard]] u4 pc() const;
         [[nodiscard]] u4 nextPc() const;
 
-        void pushRef(void *ref);
+        //OperandStack Method
+        void pushRef(ref ref);
         void pushI4(i4 val);
         void pushF4(f4 val);
         void pushI8(i8 val);
         void pushF8(f8 val);
-        void push(Slot val);
+        void push(Slot val, SlotTypeEnum type);
 
-        void *popRef();
+        ref popRef();
         i4 popI4();
         f4 popF4();
         i8 popI8();
         f8 popF8();
         Slot pop();
+        std::tuple<Slot, SlotTypeEnum> popWithSlotType();
 
         void pushLocal(size_t index);
         void pushLocalWide(size_t index);
         void popLocal(size_t index);
         void popLocalWide(size_t index);
 
+        //LocalVariableTable Method
         [[nodiscard]] ref getLocalRef(size_t index) const;
         [[nodiscard]] i4 getLocalI4(size_t index) const;
         [[nodiscard]] i8 getLocalI8(size_t index) const;
@@ -85,6 +100,7 @@ namespace RexVM {
         [[nodiscard]] f8 getLocalF8(size_t index) const;
         [[nodiscard]] bool getLocalBoolean(size_t index) const;
         [[nodiscard]] Slot getLocal(size_t index) const;
+        [[nodiscard]] std::tuple<Slot, SlotTypeEnum> getLocalWithType(size_t index) const;
 
         void setLocalRef(size_t index, ref val) const;
         void setLocalI4(size_t index, i4 val) const;
@@ -95,6 +111,7 @@ namespace RexVM {
         void setLocal(size_t index, Slot val, SlotTypeEnum type) const;
 
         void returnVoid();
+        void returnSlot(Slot val, SlotTypeEnum type);
         void returnRef(ref val);
         void returnI4(i4 val);
         void returnI8(i8 val);
@@ -102,14 +119,25 @@ namespace RexVM {
         void returnF8(f8 val);
         void returnBoolean(bool val);
 
-        void throwException(ref val, u4 pc);
-        void throwException(ref val);
+        void throwException(InstanceOop * val, u4 pc);
+        void throwException(InstanceOop * val);
+        //void passException(std::unique_ptr<FrameThrowable> lastException);
+        void passException(InstanceOop *lastException);
+        void cleanThrow();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
+        
+        
 
-        [[nodiscard]] Oop *getThis() const;
+        [[nodiscard]] ref getThis() const;
+        [[nodiscard]] InstanceOop *getThisInstance() const;
         [[nodiscard]] std::vector<Oop *> getLocalObjects() const;
   
+        void printCallStack();
+        void printLocalSlot();
+        void printStackSlot();
+        void printReturn();
+        void print();
     };
 
 }

@@ -1,21 +1,24 @@
 #include "interpreter.hpp"
 #include <cmath>
+
+#include "exception_helper.hpp"
 #include "utils/byte_reader.hpp"
+#include "utils/descriptor_parser.hpp"
+#include "utils/class_utils.hpp"
 #include "opcode.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "frame.hpp"
 #include "class.hpp"
 #include "oop.hpp"
 #include "class_loader.hpp"
-#include "vm.hpp"
-#include "constant_pool.hpp"
-#include "utils/class_utils.hpp"
+#include "string_pool.hpp"
 #include "memory.hpp"
+#include "method_handle.hpp"
 
 namespace RexVM {
 
     namespace ByteHandler {
-        void nop(Frame &frame) {}
+        void nop([[maybe_unused]] Frame &frame) {}
 
         void aconst_null(Frame &frame) {
             frame.pushRef(nullptr);
@@ -88,34 +91,34 @@ namespace RexVM {
         void ldc_(Frame &frame, u2 index) {
             const auto &constantPool = frame.constantPool;
             const auto valPtr = constantPool.at(index).get();
-            const auto constantTagEnum = static_cast<ConstantTagEnum>(valPtr->tag);
+            const auto constantTagEnum = CAST_CONSTANT_TAG_ENUM(valPtr->tag);
 
             switch (constantTagEnum) {
                 case ConstantTagEnum::CONSTANT_Integer:
-                    frame.pushI4((dynamic_cast<ConstantIntegerInfo *>(valPtr))->value);
+                    frame.pushI4((CAST_CONSTANT_INTEGER_INFO(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_Float:
-                    frame.pushF4((dynamic_cast<ConstantFloatInfo *>(valPtr))->value);
+                    frame.pushF4((CAST_CONSTANT_FLOAT_INFO(valPtr))->value);
                     break;
                 
                 case ConstantTagEnum::CONSTANT_Long:
-                    frame.pushI8((dynamic_cast<ConstantLongInfo *>(valPtr))->value);
+                    frame.pushI8((CAST_CONSTANT_LONG_INFO(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_Double:
-                    frame.pushF8((dynamic_cast<ConstantDoubleInfo *>(valPtr))->value);
+                    frame.pushF8((CAST_CONSTANT_DOUBLE_INFO(valPtr))->value);
                     break;
 
                 case ConstantTagEnum::CONSTANT_String: {
-                    const auto stringConstInfo = dynamic_cast<ConstantStringInfo *>(valPtr);
+                    const auto stringConstInfo = CAST_CONSTANT_STRING_INFO(valPtr);
                     const auto strValue = getConstantStringFromPool(constantPool, stringConstInfo->index);
                     frame.pushRef(frame.vm.stringPool->getInternString(strValue));
                     break;
                 }
 
                 case ConstantTagEnum::CONSTANT_Class: {
-                    const auto classConstInfo = dynamic_cast<ConstantClassInfo *>(valPtr);
+                    const auto classConstInfo = CAST_CONSTANT_CLASS_INFO(valPtr);
                     const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
                     const auto value = frame.classLoader.getClass(className);
                     frame.pushRef(value->mirror.get());
@@ -123,7 +126,7 @@ namespace RexVM {
                 }
 
                 default:
-                   panic(format("ldc error {}", valPtr->tag));
+                   panic(cformat("ldc error tag{}", valPtr->tag));
             }
         }
 
@@ -163,75 +166,83 @@ namespace RexVM {
         }
 
         void iload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::ILOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::ILOAD_0);
             frame.pushLocal(index);
         }
 
         void lload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::LLOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::LLOAD_0);
             frame.pushLocalWide(index);
         }
 
         void fload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::FLOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::FLOAD_0);
             frame.pushLocal(index);
         }
 
         void dload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::DLOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::DLOAD_0);
             frame.pushLocalWide(index);
         }
 
         void aload_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::ALOAD_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::ALOAD_0);
             frame.pushLocal(index);
         }
 
         void iaload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<IntTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_INT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI4(array->data[index]);
         }
 
         void laload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<LongTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_LONG_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI8(array->data[index]);
         }
 
         void faload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<FloatTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_FLOAT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushF4(array->data[index]);
         }
 
         void daload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<DoubleTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_DOUBLE_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushF8(array->data[index]);
         }
 
         void aaload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<ObjArrayOop *>(frame.popRef());
+            const auto array = CAST_OBJ_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushRef(array->data[index]);
         }
 
         void baload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<ByteTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_BYTE_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI4(array->data[index]);
         }
 
         void caload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<CharTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_CHAR_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI4(array->data[index]);
         }
 
         void saload(Frame &frame) {
             const auto index = frame.popI4();
-            const auto array = static_cast<ShortTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_SHORT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             frame.pushI4(array->data[index]);
         }
 
@@ -261,86 +272,91 @@ namespace RexVM {
         }
 
         void istorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::ISTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::ISTORE_0);
             frame.popLocal(index);
         }
 
         void lstorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::LSTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::LSTORE_0);
             frame.popLocalWide(index);
         }
 
         void fstorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::FSTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::FSTORE_0);
             frame.popLocal(index);
         }
 
         void dstorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::DSTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::DSTORE_0);
             frame.popLocalWide(index);
         }
 
         void astorn_n(Frame &frame) {
-            const auto index = frame.currentByteCode - static_cast<u1>(OpCodeEnum::ASTORE_0);
+            const auto index = frame.currentByteCode - CAST_U1(OpCodeEnum::ASTORE_0);
             frame.popLocal(index);
         }
 
         void iastore(Frame &frame) {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
-            const auto array = static_cast<IntTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_INT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
         void lastore(Frame &frame) {
             const auto val = frame.popI8();
             const auto index = frame.popI4();
-            const auto array = static_cast<LongTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_LONG_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
         void fastore(Frame &frame) {
             const auto val = frame.popF4();
             const auto index = frame.popI4();
-            const auto array = static_cast<FloatTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_FLOAT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
         void dastore(Frame &frame) {
             const auto val = frame.popF8();
             const auto index = frame.popI4();
-            const auto array = static_cast<DoubleTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_DOUBLE_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
         void aastore(Frame &frame) {
             const auto val = frame.popRef();
             const auto index = frame.popI4();
-            const auto array = static_cast<ObjArrayOop *>(frame.popRef());
-
-            //refHelper(static_cast<Oop *>(array->data[index]), static_cast<Oop *>(val));
-
+            const auto array = CAST_OBJ_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
         void bastore(Frame &frame) {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
-            const auto array = static_cast<ByteTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_BYTE_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
         void castore(Frame &frame) {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
-            const auto array = static_cast<CharTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_CHAR_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
         void sastore(Frame &frame) {
             const auto val = frame.popI4();
             const auto index = frame.popI4();
-            const auto array = static_cast<ShortTypeArrayOop *>(frame.popRef());
+            const auto array = CAST_SHORT_TYPE_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
             array->data[index] = val;
         }
 
@@ -354,83 +370,45 @@ namespace RexVM {
         }
 
         void dup(Frame &frame) {
-            const auto val = frame.pop();
-            frame.push(val);
-            frame.push(val);
+            frame.operandStackContext.dup();
         }
 
         void dup_x1(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            frame.push(val1);
-            frame.push(val2);
-            frame.push(val1);
+            frame.operandStackContext.dup_x1();
         }
 
         void dup_x2(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            const auto val3 = frame.pop();
-            frame.push(val1);
-            frame.push(val3);
-            frame.push(val2);
-            frame.push(val1);
+            frame.operandStackContext.dup_x2();
         }
 
         void dup2(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            frame.push(val2);
-            frame.push(val1);
-            frame.push(val2);
-            frame.push(val1);
+            frame.operandStackContext.dup2();
         }
 
         void dup2_x1(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            const auto val3 = frame.pop();
-            frame.push(val2);
-            frame.push(val1);
-            frame.push(val3);
-            frame.push(val2);
-            frame.push(val1); 
+            frame.operandStackContext.dup2_x1();
         }
 
         void dup2_x2(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            const auto val3 = frame.pop();
-            const auto val4 = frame.pop();
-            frame.push(val2);
-            frame.push(val1);
-            frame.push(val4);
-            frame.push(val3);
-            frame.push(val2);
-            frame.push(val1); 
+            frame.operandStackContext.dup2_x2();
         }
 
         void swap(Frame &frame) {
-            const auto val1 = frame.pop();
-            const auto val2 = frame.pop();
-            frame.push(val1);
-            frame.push(val2);
+            frame.operandStackContext.swapTop();
         }
 
         void iadd(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto result = static_cast<i4>(static_cast<u4>(val1) + static_cast<u4>(val2));
+            const auto result = CAST_I4(CAST_U4(val1) + CAST_U4(val2));
             frame.pushI4(result);
-            //frame.pushI4(val1 + val2);
         }
 
         void ladd(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            const auto result = static_cast<i8>(static_cast<u8>(val1) + static_cast<u8>(val2));
+            const auto result = CAST_I8(CAST_U8(val1) + CAST_U8(val2));
             frame.pushI8(result);
-            //frame.pushI8(val1 + val2);
         }
 
         void fadd(Frame &frame) {
@@ -448,13 +426,15 @@ namespace RexVM {
         void isub(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            frame.pushI4(val1 - val2);
+            const auto result = CAST_I4(CAST_U4(val1) - CAST_U4(val2));
+            frame.pushI4(result);
         }
 
         void lsub(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            frame.pushI8(val1 - val2);
+            const auto result = CAST_I8(CAST_U8(val1) - CAST_U8(val2));
+            frame.pushI8(result);
         }
 
         void fsub(Frame &frame) {
@@ -472,17 +452,15 @@ namespace RexVM {
         void imul(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto result = static_cast<i4>(static_cast<u4>(val1) * static_cast<u4>(val2));
+            const auto result = CAST_I4(CAST_U4(val1) * CAST_U4(val2));
             frame.pushI4(result);
-            //frame.pushI4(val1 * val2);
         }
 
         void lmul(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            const auto result = static_cast<i8>(static_cast<u8>(val1) * static_cast<u8>(val2));
+            const auto result = CAST_I8(CAST_U8(val1) * CAST_U8(val2));
             frame.pushI8(result);
-            //frame.pushI8(val1 * val2);
         }
 
         void fmul(Frame &frame) {
@@ -500,63 +478,49 @@ namespace RexVM {
         void idiv(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            if (val2 == 0) {
-                //TODO throw Exception
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushI4(val1 / val2);
         }
 
         void ldiv(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            if (val2 == 0) {
-                //TODO throw Exception
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushI8(val1 / val2);
         }
 
         void fdiv(Frame &frame) {
             const auto val2 = frame.popF4();   
             const auto val1 = frame.popF4();
-            if (val2 == 0) {
-                //TODO throw Exception
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushF4(val1 / val2);
         }
 
         void ddiv(Frame &frame) {
             const auto val2 = frame.popF8();   
             const auto val1 = frame.popF8();
-            if (val2 == 0) {
-                //TODO throw Exception
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushF8(val1 / val2);
         }
 
         void irem(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            if (val2 == 0) {
-                //TODO throw Exception java.lang.ArithmeticException: / by zero
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushI4(val1 % val2);
         }
 
         void lrem(Frame &frame) {
             const auto val2 = frame.popI8();   
             const auto val1 = frame.popI8();
-            if (val2 == 0) {
-                //TODO throw Exception java.lang.ArithmeticException: / by zero
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushI8(val1 % val2);
         }
 
          void frem(Frame &frame) {
             const auto val2 = frame.popF4();   
             const auto val1 = frame.popF4();
-            if (val2 == 0) {
-                //TODO throw Exception java.lang.ArithmeticException: / by zero
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             const auto result = std::fmod(val1, val2);
             frame.pushF4(result);
         }
@@ -564,9 +528,7 @@ namespace RexVM {
         void drem(Frame &frame) {
             const auto val2 = frame.popF8();   
             const auto val1 = frame.popF8();
-            if (val2 == 0) {
-                //TODO throw Exception java.lang.ArithmeticException: / by zero
-            }
+            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             const auto result = std::fmod(val1, val2);
             frame.pushF8(result);
         }
@@ -590,43 +552,43 @@ namespace RexVM {
         void ishl(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto s = (static_cast<u4>(val2)) & 0x1F;
+            const auto s = (CAST_U4(val2)) & 0x1F;
             frame.pushI4(val1 << s);
         }
 
         void lshl(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI8();
-            const auto s = (static_cast<u4>(val2)) & 0x3F;
+            const auto s = (CAST_U4(val2)) & 0x3F;
             frame.pushI8(val1 << s);
         }
 
         void ishr(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto s = (static_cast<u4>(val2)) & 0x1F;
+            const auto s = (CAST_U4(val2)) & 0x1F;
             frame.pushI4(val1 >> s);
         }
 
         void lshr(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI8();
-            const auto s = (static_cast<u4>(val2)) & 0x3F;
+            const auto s = (CAST_U4(val2)) & 0x3F;
             frame.pushI8(val1 >> s);
         }
 
         void iushr(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI4();
-            const auto s = (static_cast<u4>(val2)) & 0x1F;
-            frame.pushI4(static_cast<u4>(val1) >> s);
+            const auto s = (CAST_U4(val2)) & 0x1F;
+            frame.pushI4(CAST_U4(val1) >> s);
         }
 
         void lushr(Frame &frame) {
             const auto val2 = frame.popI4();   
             const auto val1 = frame.popI8();
-            const auto s = (static_cast<u4>(val2)) & 0x3F;
-            frame.pushI8(static_cast<u8>(val1) >> s);
+            const auto s = (CAST_U4(val2)) & 0x3F;
+            frame.pushI8(CAST_U8(val1) >> s);
         }
 
         void iand(Frame &frame) {
@@ -665,8 +627,6 @@ namespace RexVM {
             frame.pushI8(val1 ^ val2);
         }
 
-        //Mark
-
         void iinc(Frame &frame) {
             const auto index = frame.reader.readU1();
             const auto value = frame.reader.readI1();
@@ -675,77 +635,77 @@ namespace RexVM {
 
         void i2l(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushI8(static_cast<i8>(val));
+            frame.pushI8(CAST_I8(val));
         }
         
         void i2f(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushF4(static_cast<f4>(val));
+            frame.pushF4(CAST_F4(val));
         }
 
         void i2d(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushF8(static_cast<f8>(val));
+            frame.pushF8(CAST_F8(val));
         }
 
         void l2i(Frame &frame) {
             const auto val = frame.popI8();
-            frame.pushI4(static_cast<i4>(val));
+            frame.pushI4(CAST_I4(val));
         }
 
         void l2f(Frame &frame) {
             const auto val = frame.popI8();
-            frame.pushF4(static_cast<f4>(val));
+            frame.pushF4(CAST_F4(val));
         }
 
         void l2d(Frame &frame) {
             const auto val = frame.popI8();
-            frame.pushF8(static_cast<f8>(val));
+            frame.pushF8(CAST_F8(val));
         }
 
         void f2i(Frame &frame) {
             const auto val = frame.popF4();
-            frame.pushI4(static_cast<i4>(val));
+            frame.pushI4(CAST_I4(val));
         }
 
         void f2l(Frame &frame) {
             const auto val = frame.popF4();
-            frame.pushI8(static_cast<i8>(val));
+            frame.pushI8(CAST_I8(val));
         }
 
         void f2d(Frame &frame) {
             const auto val = frame.popF4();
-            frame.pushF8(static_cast<f8>(val));
+            frame.pushF8(CAST_F8(val));
         }
 
         void d2i(Frame &frame) {
             const auto val = frame.popF8();
-            frame.pushI4(static_cast<i4>(val));
+            frame.pushI4(CAST_I4(val));
         }
 
         void d2l(Frame &frame) {
             const auto val = frame.popF8();
-            frame.pushI8(static_cast<i8>(val));
+            frame.pushI8(CAST_I8(val));
         }
 
         void d2f(Frame &frame) {
             const auto val = frame.popF8();
-            frame.pushF4(static_cast<f4>(val));
+            frame.pushF4(CAST_F4(val));
         }
 
         void i2b(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushI4(static_cast<i1>(val));
+            frame.pushI4(CAST_I1(val));
         }
 
         void i2c(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushI4(static_cast<u2>(val));
+            frame.pushI4(CAST_U2(val));
         }
 
         void i2s(Frame &frame) {
             const auto val = frame.popI4();
-            frame.pushI4(static_cast<i2>(val));
+            frame.pushI4(CAST_I2(val));
         }
 
         void lcmp(Frame &frame) {
@@ -950,16 +910,16 @@ namespace RexVM {
 	        const auto high = frame.reader.readI4();
 	        const auto jumpOffsetsCount = high - low + 1;
             auto jumpOffsets = std::make_unique<i4[]>(jumpOffsetsCount);
-            for (size_t i = 0; i < jumpOffsetsCount; ++i) {
+            for (i4 i = 0; i < jumpOffsetsCount; ++i) {
                 jumpOffsets[i] = frame.reader.readI4();
             }
 
             const auto index = frame.popI4();
             i4 offset = 0;
 	        if (index >= low && index <= high) {
-		        offset = static_cast<i4>(jumpOffsets[index-low]);
+		        offset = CAST_I4(jumpOffsets[index-low]);
 	        } else {
-		        offset = static_cast<i4>(defaultOffset);
+		        offset = CAST_I4(defaultOffset);
 	        }
 
             frame.reader.relativeOffset(offset);
@@ -974,12 +934,12 @@ namespace RexVM {
             const auto count = npairs * 2;
             auto matchOffsets = std::make_unique<i4[]>(count);
 
-            for (size_t i = 0; i < count; ++i) {
+            for (i4 i = 0; i < count; ++i) {
                 matchOffsets[i] = frame.reader.readI4();
             }
 
             const auto key = frame.popI4();
-            for (size_t i = 0; i < count; i += 2) {
+            for (i4 i = 0; i < count; i += 2) {
                 if (matchOffsets[i] == key) {
 			        const auto offset = matchOffsets[i+1];
                     frame.reader.relativeOffset(offset);
@@ -1025,10 +985,8 @@ namespace RexVM {
             auto &fieldClass = fieldRef->klass;
             fieldClass.clinit(frame);
             const auto value = fieldClass.getFieldValue(fieldRef->slotId);
-            frame.push(value);
-            if (fieldRef->isWideType()) {
-                frame.push(Slot(0));
-            }
+            const auto type = fieldRef->getFieldSlotType();
+            frame.push(value, type);
         }
 
         void putstatic(Frame &frame) {
@@ -1041,25 +999,17 @@ namespace RexVM {
             }
 
             const auto value = frame.pop();
-            //const auto oldValue = fieldClass.getFieldValue(fieldRef->slotId);
-
             fieldClass.setFieldValue(fieldRef->slotId, value);
-
-            // if (fieldRef->getFieldSlotType() == SlotTypeEnum::REF) {
-            //     //GC
-            //     refHelper(oldValue, value);
-            // }
         }
 
         void getfield(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto fieldRef = frame.klass.getRefField(index, false);
-            const auto instance = static_cast<InstanceOop *>(frame.popRef());
+            const auto instance = CAST_INSTANCE_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(instance);
             const auto value = instance->getFieldValue(fieldRef->slotId);
-            frame.push(value);
-            if (fieldRef->isWideType()) {
-                frame.push(Slot(0));
-            }
+            const auto type = fieldRef->getFieldSlotType();
+            frame.push(value, type);
         }
 
         void putfield(Frame &frame) {
@@ -1069,74 +1019,113 @@ namespace RexVM {
                 frame.pop();
             }
             const auto value = frame.pop();
-            const auto instance = static_cast<InstanceOop *>(frame.popRef());
+            const auto instance = CAST_INSTANCE_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(instance);
 
-            //const auto oldValue = instance->getFieldValue(fieldRef->slotId);
             instance->setFieldValue(fieldRef->slotId, value);
-
-            // if (fieldRef->getFieldSlotType() == SlotTypeEnum::REF) {
-            //     //GC
-            //     refHelper(oldValue, value);
-            // }
-            
+        }
+        
+        void invokeMethodHandle(
+            Frame &frame, 
+            const cstring &className, 
+            const cstring &methodName, 
+            const cstring &methodDescriptor
+        ) {
+            const auto invokeMethod = 
+                    frame.getCurrentClassLoader()
+                        ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
+                        ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
+            //1第一个参数为MethodHandle Object
+            const auto popLength = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
+            frame.runMethodInner(*invokeMethod, popLength);
         }
 
-        void invokevirtual(Frame &frame) {
-            const auto index = frame.reader.readU2();
-            const auto invokeMethod = frame.klass.getRefMethod(index, false);
-            const auto instance = static_cast<Oop *>(frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal);
-            auto instanceClass = dynamic_cast<InstanceClass *>(instance->klass);
+        template<bool checkMethodHandle>
+        void invokeVirtualCommon(Frame &frame, u2 index) {
+            const auto &constantPool = frame.constantPool;
+            auto [className, methodName, methodDescriptor] = 
+                    getConstantStringFromPoolByClassNameType(constantPool, index);
+
+            if constexpr (checkMethodHandle) {
+                if (isMethodHandleInvoke(className, methodName)) {
+                    invokeMethodHandle(frame, className, methodName, methodDescriptor);
+                    return;
+                }
+            }
+
+            const auto paramSlotSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
+            const auto instance = frame.getStackOffset(paramSlotSize - 1).refVal;
+            ASSERT_IF_NULL_THROW_NPE(instance);
+            const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
             for (auto k = instanceClass; k != nullptr; k = k->superClass) {
-                const auto realInvokeMethod =
-                        k->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
-                if (realInvokeMethod != nullptr) {
-                    frame.runMethod(*realInvokeMethod);
+                const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
+                if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {
+                    frame.runMethodInner(*realInvokeMethod);
                     return;
                 }
             }
             panic("invoke failed");
         }
 
+        template<bool clinit, bool isStatic>
+        void invokeStaticCommon(Frame &frame, u2 index) {
+            const auto invokeMethod = frame.klass.getRefMethod(index, isStatic);
+            if constexpr (clinit == true) {
+                invokeMethod->klass.clinit(frame);
+            }
+            frame.runMethodInner(*invokeMethod);
+        }
+
+        void invokevirtual(Frame &frame) {
+            const auto index = frame.reader.readU2();
+            invokeVirtualCommon<true>(frame, index);
+        }
+
         void invokespecial(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto invokeMethod = frame.klass.getRefMethod(index, false);
-            frame.runMethod(*invokeMethod);
+            invokeStaticCommon<false, false>(frame, index);
         }
 
         void invokestatic(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto invokeMethod = frame.klass.getRefMethod(index, true);
-            invokeMethod->klass.clinit(frame);
-            frame.runMethod(*invokeMethod);
+            invokeStaticCommon<true, true>(frame, index);
         }
 
         void invokeinterface(Frame &frame) {
             const auto index = frame.reader.readU2();
-            frame.reader.readU2(); //ignore
+            frame.reader.readU2(); //useless
+            invokeVirtualCommon<false>(frame, index);
+        }
 
-            const auto invokeMethod = frame.klass.getRefMethod(index, false);
-            const auto instance = static_cast<InstanceOop *>(frame.getStackOffset(invokeMethod->paramSlotSize - 1).refVal);
-            const auto instanceClass = dynamic_cast<const InstanceClass *>(instance->klass);
-            const auto realInvokeMethod = instanceClass->getMethod(invokeMethod->name, invokeMethod->descriptor, invokeMethod->isStatic());
-            if (realInvokeMethod != nullptr) {
-                frame.runMethod(*realInvokeMethod);
-            } else if (!invokeMethod->isAbstract()) {
-                frame.runMethod(*invokeMethod);
-            } else {
-                //TODO
-                panic("can't find method");
-            }
+        void invokedynamic(Frame &frame) {
+            const auto index = frame.reader.readU2();
+            frame.reader.readU2(); //ignore zero
+
+            invokeDynamic(frame, index);
         }
 
         void new_(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto &constantPool = frame.constantPool;
-            const auto classInfo = dynamic_cast<ConstantClassInfo *>(constantPool.at(index).get());
-            const auto className = getConstantStringFromPool(constantPool, classInfo->index);
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto instanceClass = frame.classLoader.getInstanceClass(className);
             instanceClass->clinit(frame);
             const auto &oopManager = frame.vm.oopManager;
-            frame.pushRef(oopManager->newInstance(instanceClass));
+
+            const auto specialType = instanceClass->specialInstanceClass;
+            switch (specialType) {
+                case SpecialInstanceClass::NONE:
+                    frame.pushRef(oopManager->newInstance(instanceClass));
+                    break;
+                
+                case SpecialInstanceClass::THREAD_CLASS:
+                    frame.pushRef(oopManager->newVMThread(instanceClass));
+                    break;
+                
+                case SpecialInstanceClass::CLASS_LOADER_CLASS:
+                    panic("not implement");
+                    break;
+            }
         }
 
         void newarray(Frame &frame) {
@@ -1152,71 +1141,51 @@ namespace RexVM {
             const auto classIndex = frame.reader.readU2();
             const auto length = frame.popI4();
             const auto &constantPool = frame.constantPool;
-            const auto classConstInfo = dynamic_cast<ConstantClassInfo *>(constantPool.at(classIndex).get());
-            const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, classIndex);
+            
             const auto array = frame.classLoader.getObjectArrayClass(className);
             frame.pushRef(oopManager->newObjArrayOop(array, length));
         }
 
         void arraylength(Frame &frame) {
-            const auto array = static_cast<ArrayOop *>(frame.popRef());
-            frame.pushI4(array->dataLength);
+            const auto array = CAST_ARRAY_OOP(frame.popRef());
+            ASSERT_IF_NULL_THROW_NPE(array);
+            frame.pushI4(CAST_I4(array->dataLength));
         }
 
         void athrow(Frame &frame) {
             const auto ex = frame.popRef();
-            const auto exOop = static_cast<InstanceOop *>(ex);
-            //println("method {} {} throw Exception on {}", frame.method.name, frame.method.klass->name, frame.pc());
-            //auto i = 1;
-            //for (auto pf = frame.previous; pf != nullptr; pf = pf->previous) {
-                //println("caller {} {}#{}:{}", i, pf->klass->name, pf->method.name, pf->method.descriptor);
-            //    i++;
-            //}
-            //println("caller end");
-            //println("caller1 {}, clller2 {}", frame.previous->method.name, frame.previous->previous->method.name);
-            const auto message = static_cast<Oop *>(exOop->getFieldValue("detailMessage", "Ljava/lang/String;").refVal);
-            if (message != nullptr) {
-                const auto messageStr = getStringNativeValue(message);
-                //println("exception message {}", messageStr);
-            }
-            frame.throwException(ex, frame.pc());
+            ASSERT_IF_NULL_THROW_NPE(ex);
+            const auto exOop = CAST_INSTANCE_OOP(ex);
+            frame.throwException(exOop);
         }
 
         void checkcast(Frame &frame) {
-            const auto index = frame.reader.readI2();
-            const auto ref = frame.pop().refVal;
-            frame.pushRef(ref);
+            const auto index = frame.reader.readU2();
+            const auto ref = frame.operandStackContext.top().refVal;
             if (ref == nullptr) {
                 return;
             }
-            const auto refOop = static_cast<Oop *>(ref);
-
             const auto &constantPool = frame.constantPool;
-            const auto valPtr = constantPool.at(index).get();
-            const auto classConstInfo = dynamic_cast<ConstantClassInfo *>(valPtr);
-            const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto checkClass = frame.classLoader.getClass(className);
-            if (!refOop->isInstanceOf(checkClass)) {
-                //TODO frameThrow
-                panic("checkcast error");
+            if (!ref->isInstanceOf(checkClass)) {
+                throwClassCastException(frame, ref->klass->name, className);
+                return;
             }
         }
 
         void instanceof(Frame &frame) {
-            const auto index = frame.reader.readI2();
+            const auto index = frame.reader.readU2();
             const auto ref = frame.pop().refVal;
             if (ref == nullptr) {
                 frame.pushI4(0);
                 return;
             }
-            const auto refOop = static_cast<Oop *>(ref);
-
             const auto &constantPool = frame.constantPool;
-            const auto valPtr = constantPool.at(index).get();
-            const auto classConstInfo = dynamic_cast<ConstantClassInfo *>(valPtr);
-            const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto checkClass = frame.classLoader.getClass(className);
-            if (refOop->isInstanceOf(checkClass)) {
+            if (ref->isInstanceOf(checkClass)) {
                 frame.pushI4(1);
             } else {
                 frame.pushI4(0);
@@ -1224,30 +1193,69 @@ namespace RexVM {
         }
 
         void monitorenter(Frame &frame) {
-            frame.popRef();
-            //TODO
+            const auto oop = frame.popRef();
+            ASSERT_IF_NULL_THROW_NPE(oop);
+            oop->monitorMtx.lock();
         }
 
         void monitorexit(Frame &frame) {
-            frame.popRef();
-            //TODO
+            const auto oop = frame.popRef();
+            ASSERT_IF_NULL_THROW_NPE(oop);
+            oop->monitorMtx.unlock();
         }
 
         void wide(Frame &frame) {
-            //const auto opCode = frame.reader.readU1();
-            //TODO
-            panic("not support wide");
+            const auto opCode = static_cast<OpCodeEnum>(frame.reader.readU1());
+            const auto index = frame.reader.readU2();
+
+            switch (opCode) {
+                case OpCodeEnum::ILOAD:
+                case OpCodeEnum::FLOAD:
+                case OpCodeEnum::ALOAD:
+                    frame.pushLocal(index);
+                break;
+
+                case OpCodeEnum::LLOAD:
+                case OpCodeEnum::DLOAD:
+                    frame.pushLocalWide(index);
+                break;
+                
+
+                case OpCodeEnum::ISTORE:
+                case OpCodeEnum::FSTORE:
+                case OpCodeEnum::ASTORE:
+                    frame.popLocal(index);
+                break;
+
+                case OpCodeEnum::LSTORE:
+                case OpCodeEnum::DSTORE:
+                    frame.popLocalWide(index);
+                break;
+
+                case OpCodeEnum::IINC: {
+                    const auto value = frame.reader.readI2();
+                    frame.setLocalI4(index, frame.getLocalI4(index) + value);
+                    break;
+                }
+
+                case OpCodeEnum::RET:
+                    panic("ret not implement!");
+                break;
+
+                default:
+                    panic("wide error");
+            }
         }
 
         ref multiArrayHelper(OopManager &oopManager, ClassLoader &classLoader, std::unique_ptr<i4[]> &dimLength, i4 dimCount, const cstring& name, i4 currentDim) {
             const auto arrayLength = dimLength[currentDim];
             const auto currentArrayClass = classLoader.getArrayClass(name);
-            ArrayOop *arrayOop = nullptr;
-            if (currentArrayClass->type == ClassTypeEnum::TypeArrayClass) {
-                const auto typeArrayClass = static_cast<TypeArrayClass *>(currentArrayClass);
+            ArrayOop *arrayOop;
+            if (currentArrayClass->type == ClassTypeEnum::TYPE_ARRAY_CLASS) {
+                const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(currentArrayClass);
                 arrayOop = oopManager.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
             } else {
-                const auto objArrayClass = static_cast<ObjArrayClass *>(currentArrayClass);
+                const auto objArrayClass = CAST_OBJ_ARRAY_CLASS(currentArrayClass);
                 arrayOop = oopManager.newObjArrayOop(objArrayClass, arrayLength);
             }
 
@@ -1255,7 +1263,7 @@ namespace RexVM {
                 return arrayOop;
             }
 
-            auto objArrayOop = static_cast<ObjArrayOop *>(arrayOop);
+            auto objArrayOop = CAST_OBJ_ARRAY_OOP(arrayOop);
             if (currentDim < dimCount - 1) {
                 const auto childName = name.substr(1);
                 for (auto i = 0; i < arrayLength; ++i) {
@@ -1271,10 +1279,7 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             const auto dimension = frame.reader.readU1();
             const auto &constantPool = frame.constantPool;
-            const auto infoPtr = constantPool.at(index).get(); 
-            const auto classConstInfo = dynamic_cast<ConstantClassInfo *>(infoPtr);
-            const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
-
+            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             auto dimLength = std::make_unique<i4[]>(dimension);
             for (i4 i = dimension - 1; i >= 0; --i) {
                 dimLength[i] = frame.popI4();
@@ -1306,7 +1311,6 @@ namespace RexVM {
             const auto offset = frame.reader.readI4();
             frame.reader.relativeOffset(offset);
         }
-
         
     }
 
@@ -1497,7 +1501,7 @@ namespace RexVM {
         ByteHandler::invokespecial, // = 183:  invokespecial
         ByteHandler::invokestatic, // = 184:  invokestatic
         ByteHandler::invokeinterface, // = 185:  invokeinterface
-        nullptr,// ByteHandler::invokedynamic, // = 186:  invokedynamic
+        ByteHandler::invokedynamic, // = 186:  invokedynamic
         ByteHandler::new_, // = 187:  new
         ByteHandler::newarray, // = 188:  newarray
         ByteHandler::anewarray, // = 189:  anewarray

@@ -7,12 +7,14 @@ namespace RexVM {
     struct Oop;
     struct ClassLoader;
     struct ByteTypeArrayOop;
+    struct Class;
 
     cstring getDescriptorClassName(const cstring &className);
-
     cstring getClassNameByFieldDescriptor(const cstring &descriptor);
-
-    cstring getStringNativeValue(const Oop *stringOop);
+    cstring getDescriptorByClass(Class *klass);
+    cstring getJVMClassName(const cstring &javaClassName);
+    cstring getJavaClassName(const cstring &jvmClassName);
+    bool isWideClassName(const cstring &className);
 }
 
 #endif

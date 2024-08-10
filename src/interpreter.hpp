@@ -1,5 +1,5 @@
-#ifndef INTERPRETER_FIX_HPP
-#define INTERPRETER_FIX_HPP
+#ifndef INTERPRETER_HPP
+#define INTERPRETER_HPP
 #include <array>
 #include "config.hpp"
 

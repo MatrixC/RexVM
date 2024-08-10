@@ -3,7 +3,6 @@
 #include "../class.hpp"
 #include "../oop.hpp"
 #include "../class_loader.hpp"
-#include "../basic_type.hpp"
 
 namespace RexVM {
 
@@ -21,19 +20,30 @@ namespace RexVM {
             return descriptor.substr(1, descriptor.size() - 2);
         }
 
-        if (auto iter = PRIMITIVE_TYPE_REVERSE_MAP.find(descriptor); iter != PRIMITIVE_TYPE_REVERSE_MAP.end()) {
-            return iter->second;
-        }
-
-        panic("error descriptor");
-        return {};
+        return getPrimitiveClassNameByDescriptor(first);
     }
 
-    cstring getStringNativeValue(const Oop *stringOop) {
-        const auto oop = dynamic_cast<const InstanceOop *>(stringOop);
-        const auto charArray = static_cast<CharTypeArrayOop *>(oop->getFieldValue("value", "[C").refVal);
-        const auto char16Ptr = charArray->data.get();
-        return u16charsToString(char16Ptr, charArray->dataLength);
+    cstring getDescriptorByClass(Class *klass) {
+        if (klass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
+            const auto descriptor = getDescriptorByPrimitiveClassName(klass->name);
+            return cstring{CAST_CHAR(descriptor)};
+        } else if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
+            return getDescriptorClassName(klass->name);
+        } else {
+            return klass->name;
+        }
+    }
+
+    cstring getJVMClassName(const cstring &javaClassName) {
+        return replace(javaClassName, ".", "/");
+    }
+
+    cstring getJavaClassName(const cstring &jvmClassName) {
+        return replace(jvmClassName, "/", ".");
+    }
+
+    bool isWideClassName(const cstring &className) {
+        return className == "long" || className == "double";
     }
 
 }

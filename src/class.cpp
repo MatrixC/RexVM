@@ -1,17 +1,18 @@
 #include "class.hpp"
 
 #include <utility>
-#include "constant_pool.hpp"
+#include "basic_java_class.hpp"
+#include "string_pool.hpp"
 #include "class_member.hpp"
-#include "constantInfo.hpp"
+#include "constant_info.hpp"
 #include "class_file.hpp"
 #include "class_loader.hpp"
 #include "oop.hpp"
 #include "vm.hpp"
-#include "runtime.hpp"
+#include "thread.hpp"
 #include "frame.hpp"
 #include "exception.hpp"
-#include "utils/format.hpp"
+#include "memory.hpp"
 
 namespace RexVM {
 
@@ -20,32 +21,32 @@ namespace RexVM {
     }
 
     bool Class::isInstanceClass() const {
-        return type == ClassTypeEnum::InstanceClass;
+        return type == ClassTypeEnum::INSTANCE_CLASS;
     }
 
     bool Class::isInterface() const {
-        return (accessFlags & static_cast<u2>(AccessFlagEnum::ACC_INTERFACE)) != 0;
+        return (accessFlags & CAST_U2(AccessFlagEnum::ACC_INTERFACE)) != 0;
     }
 
     bool Class::isArray() const {
-        return type == ClassTypeEnum::TypeArrayClass || type == ClassTypeEnum::ObjArrayClass;
+        return type == ClassTypeEnum::TYPE_ARRAY_CLASS || type == ClassTypeEnum::OBJ_ARRAY_CLASS;
     }
 
     bool Class::isJavaObjectClass() const {
-        return name == "java/lang/Object";
+        return name == JAVA_LANG_OBJECT_NAME;
     }
 
     bool Class::isJavaCloneable() const {
-        return name == "java/lang/Cloneable";
+        return name == JAVA_LANG_CLONEABLE_NAME;
     }
 
     bool Class::isSerializable() const {
-        return name == "java/io/Serializable";
+        return name == JAVA_IO_SERIALIZABLE_NAME;
     }
 
     bool Class::isAssignableFrom(const Class *that) const {
-        const auto s = that;
-        const auto t = this;
+        auto s = that;
+        auto t = this;
 
         if (s == t) {
             return true;
@@ -73,13 +74,32 @@ namespace RexVM {
                     return t->isJavaCloneable() || t->isSerializable();
                 }
             } else {
-                const auto sName = (dynamic_cast<const ArrayClass *>(s))->getComponentClassName();
-                const auto tName = (dynamic_cast<const ArrayClass *>(s))->getComponentClassName();
+                const auto sName = (static_cast<const ArrayClass *>(s))->getComponentClassName();
+                const auto tName = (static_cast<const ArrayClass *>(s))->getComponentClassName();
                 return sName == tName ||
                        classLoader.getClass(tName)->isAssignableFrom(classLoader.getClass(sName));
             }
         }
     }
+
+    bool Class::isInstanceOf(const Class *that) const {
+        //this是父类
+        //that是子类
+        if (this == that) {
+            return true;
+        }
+
+        if (this->isSubClassOf(that)) {
+            return true;
+        }
+
+        if (this->isImplements(that)) {
+            return true;
+        }
+
+        return false;
+    }
+
 
     bool Class::isSubClassOf(const Class *that) const {
         for (auto c = this->superClass; c != nullptr; c = c->superClass) {
@@ -94,8 +114,8 @@ namespace RexVM {
         if (!isInstanceClass() || !that->isInstanceClass()) {
             return false;
         }
-        auto self = dynamic_cast<const InstanceClass *>(this);
-        auto interface = dynamic_cast<const InstanceClass *>(that);
+        auto self = static_cast<const InstanceClass *>(this);
+        auto interface = static_cast<const InstanceClass *>(that);
         for (auto c = self; c != nullptr; c = c->superClass) {
             for (const auto &item: c->interfaces) {
                 if (item == interface || item->isSubInterfaceOf(interface)) {
@@ -110,36 +130,142 @@ namespace RexVM {
         if (!isInstanceClass() || !that->isInstanceClass()) {
             return false;
         }
-        auto self = dynamic_cast<const InstanceClass *>(this);
-        auto interface = dynamic_cast<const InstanceClass *>(that);
+        auto self = static_cast<const InstanceClass *>(this);
+        auto interface = static_cast<const InstanceClass *>(that);
         for (const auto &item: self->interfaces) {
             if (item == interface || item->isSubInterfaceOf(interface)) {
                 return true;
             }
         }
-        return false;
 
+        return false;
     }
 
     bool Class::isSuperClassOf(const Class *that) const {
         return that->isSubClassOf(this);
-
     }
 
     bool Class::isSuperInterfaceOf(const Class *that) const {
         return that->isSubInterfaceOf(this);
     }
 
+    constexpr auto PRIMITIVE_CLASS_ACCESS_FLAGS = 
+        CAST_U2(AccessFlagEnum::ACC_PUBLIC) |
+        CAST_U2(AccessFlagEnum::ACC_FINAL) |
+        CAST_U2(AccessFlagEnum::ACC_ABSTRACT);
+
+    PrimitiveClass::PrimitiveClass(BasicType basicType, ClassLoader &classLoader) :
+        Class(
+                ClassTypeEnum::PRIMITIVE_CLASS,
+                PRIMITIVE_CLASS_ACCESS_FLAGS,
+                getPrimitiveClassNameByBasicType(basicType),
+                classLoader
+        ),
+        basicType(basicType) {
+    }
+
+    BasicType PrimitiveClass::getBasicType() const {
+        return basicType;
+    }
+
+    bool PrimitiveClass::isWideType() const {
+        return isWideBasicType(basicType);
+    }
+
+    Slot PrimitiveClass::getValueFromBoxingOop(InstanceOop *oop) const {
+        switch (basicType) {
+            case BasicType::T_BOOLEAN: return oop->getFieldValue("value", "Z");
+            case BasicType::T_CHAR: return oop->getFieldValue("value", "C");
+            case BasicType::T_FLOAT: return oop->getFieldValue("value", "F");
+            case BasicType::T_DOUBLE: return oop->getFieldValue("value", "D");
+            case BasicType::T_BYTE: return oop->getFieldValue("value", "B");
+            case BasicType::T_SHORT: return oop->getFieldValue("value", "S");
+            case BasicType::T_INT: return oop->getFieldValue("value", "I");
+            case BasicType::T_LONG: return oop->getFieldValue("value", "J");
+            case BasicType::T_VOID: panic("error type void");
+            default:
+                panic("error basicType");
+                return ZERO_SLOT;
+        }
+    }
+
+    InstanceOop *PrimitiveClass::getBoxingOopFromValue(Slot value, OopManager &oopManager) const {
+        switch (basicType) {
+            case BasicType::T_BOOLEAN: return oopManager.newBooleanOop(value.i4Val);
+            case BasicType::T_CHAR: return oopManager.newCharOop(value.i4Val);
+            case BasicType::T_FLOAT: return oopManager.newFloatOop(value.f4Val);
+            case BasicType::T_DOUBLE: return oopManager.newDoubleOop(value.f8Val);
+            case BasicType::T_BYTE: return oopManager.newByteOop(value.i4Val);
+            case BasicType::T_SHORT: return oopManager.newShortOop(value.i4Val);
+            case BasicType::T_INT: return oopManager.newIntegerOop(value.i4Val);
+            case BasicType::T_LONG: return oopManager.newLongOop(value.i4Val);
+            case BasicType::T_VOID: panic("error type void");
+            default:
+                panic("error basicType");
+                return nullptr;
+        }
+    }
+
     MirrorOop * Class::getMirrorOop() const {
         return mirror.get();
     }
 
-
     Class::~Class() = default;
 
     InstanceClass::InstanceClass(ClassLoader &classLoader, ClassFile &cf) :
-            Class(ClassTypeEnum::InstanceClass, cf.accessFlags, cf.getThisClassName(), classLoader) {
+            Class(ClassTypeEnum::INSTANCE_CLASS, cf.accessFlags, cf.getThisClassName(), classLoader) {
 
+        sourceFile = cf.getSourceFile();
+        signature = cf.getSignature();
+        initAttributes(cf);
+        initFields(cf);
+        initMethods(cf);
+        initInterfaceAndSuperClass(cf);
+        moveConstantPool(cf);
+        calcFieldSlotId();
+        initStaticField();
+
+
+    }
+
+    void InstanceClass::initAttributes(ClassFile &cf) {
+        for (auto &attribute: cf.attributes) {
+            const auto attributeName = getConstantStringFromPool(cf.constantPool, (const size_t) attribute->attributeNameIndex);
+            const auto attributeTypeEnum = ATTRIBUTE_NAME_TAG_MAP.at(attributeName);
+            switch (attributeTypeEnum) {
+                case AttributeTagEnum::BOOTSTRAP_METHODS:
+                    bootstrapMethodsAttr = std::move(attribute);
+                break;
+
+                case AttributeTagEnum::ENCLOSING_METHOD:
+                    enclosingMethodAttr = std::move(attribute);
+                break;
+
+                case AttributeTagEnum::INNER_CLASSES:
+                    innerClassesAttr = std::move(attribute);
+                break;
+
+                case AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS: {
+                    const auto runtimeVisibleAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
+                    runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
+                    runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes); 
+                    break;
+                }
+
+                case AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS: {
+                    const auto runtimeVisibleTypeAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
+                    runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
+                    runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
+                    break;
+                }
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    void InstanceClass::initFields(ClassFile &cf) {
         fields.reserve(cf.fieldCount);
         for (const auto &fieldInfo: cf.fields) {
             auto field = 
@@ -150,29 +276,38 @@ namespace RexVM {
                 );
             fields.emplace_back(std::move(field));
         }
+    }
 
+    void InstanceClass::initMethods(ClassFile &cf) {
         methods.reserve(cf.methodCount);
+        u2 index = 0;
         for (const auto &methodInfo: cf.methods) {
             auto method =
                     std::make_unique<Method>(
                             *this,
                             methodInfo.get(),
-                            cf
+                            cf,
+                            index++
                     );
             methods.emplace_back(std::move(method));
         }
+    }
 
+    void InstanceClass::initInterfaceAndSuperClass(ClassFile &cf) {
         interfaces.reserve(cf.interfaceCount);
         for (const auto &interfaceName: cf.getInterfaceNames()) {
             interfaces.emplace_back(classLoader.getInstanceClass(interfaceName));
         }
 
-        superClass = classLoader.getInstanceClass(cf.getSuperClassName());
+        if (!isInterface()) {
+            //OpenJDK实现, Interface没有SuperClass
+            superClass = classLoader.getInstanceClass(cf.getSuperClassName());
+        }
+    }
+
+    void InstanceClass::moveConstantPool(ClassFile &cf) {
         constantPool.reserve(cf.constantPool.size());
         std::move(cf.constantPool.begin(), cf.constantPool.end(), std::back_inserter(constantPool));
-
-        calcFieldSlotId();
-        initStaticField();
     }
 
     void InstanceClass::calcFieldSlotId() {
@@ -195,29 +330,21 @@ namespace RexVM {
         instanceSlotCount = slotId;
         staticSlotCount = staticSlotId;
 
-    }
+        instanceDataType = std::make_unique<SlotTypeEnum[]>(instanceSlotCount);
+        staticDataType = std::make_unique<SlotTypeEnum[]>(staticSlotCount);
+        staticData = std::make_unique<Slot[]>(staticSlotCount);
 
-    bool InstanceClass::notInitialize() const {
-        return initStatus == ClassInitStatusEnum::Loaded;
-    }
-
-    void InstanceClass::clinit(Frame &frame) {
-        if (!notInitialize()) {
-            return;
+        for (auto klass = this; klass != nullptr; klass = klass->superClass) {
+            for (const auto &field: klass->fields) {
+                if (field->isStatic()) {
+                    if (klass == this) {
+                        staticDataType[field->slotId] = field->getFieldSlotType();
+                    }
+                } else {
+                    instanceDataType[field->slotId] = field->getFieldSlotType();
+                }
+            } 
         }
-        
-        initStatus = ClassInitStatusEnum::Init;
-
-        if (superClass != nullptr) {
-           superClass->clinit(frame);
-        }
-
-        const auto clinitMethod = getMethod("<clinit>", "()V", true);
-        if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
-            frame.runMethod(*clinitMethod);
-        }
-
-        initStatus = ClassInitStatusEnum::Inited;
     }
 
     void InstanceClass::initStaticField() {
@@ -229,98 +356,181 @@ namespace RexVM {
             if (!field->isStatic()) {
                 continue;
             }
+            const auto slotType = field->getFieldSlotType();
             if (field->isFinal() && field->constantValueIndex > 0) {
                 const auto &constValue = constantPool.at(field->constantValueIndex);
                 const auto descriptor = field->descriptor;
                 Slot data;
                 if (descriptor == "Z" || descriptor == "B" || descriptor == "C" ||
                     descriptor == "S" || descriptor == "I") {
-                    data = Slot(dynamic_cast<ConstantIntegerInfo *>(constValue.get())->value);
+                    data = Slot(CAST_CONSTANT_INTEGER_INFO(constValue.get())->value);
                 } else if (descriptor == "J") {
-                    data = Slot(dynamic_cast<ConstantLongInfo *>(constValue.get())->value);
+                    data = Slot(CAST_CONSTANT_LONG_INFO(constValue.get())->value);
                 } else if (descriptor == "F") {
-                    data = Slot(dynamic_cast<ConstantFloatInfo *>(constValue.get())->value);
+                    data = Slot(CAST_CONSTANT_FLOAT_INFO(constValue.get())->value);
                 } else if (descriptor == "D") {
-                    data = Slot(dynamic_cast<ConstantDoubleInfo *>(constValue.get())->value);
+                    data = Slot(CAST_CONSTANT_DOUBLE_INFO(constValue.get())->value);
                 } else if (descriptor == "Ljava/lang/String;") {
-                    auto stringConstInfo = dynamic_cast<ConstantStringInfo *>(constValue.get());
-                    const auto &utf8Value = constantPool.at(stringConstInfo->index);
                     auto strOop = classLoader.vm.stringPool->getInternString(
-                            dynamic_cast<ConstantUTF8Info *>(utf8Value.get())->str
+                        getConstantStringFromPoolByIndexInfo(constantPool, field->constantValueIndex)
                     );
                     data = Slot(strOop);
+                } else {
+                    panic("error descriptor");
                 }
                 staticData[field->slotId] = data;
             } else {
-                const auto slotType = field->getFieldSlotType();
                 switch (slotType) {
+                    case SlotTypeEnum::I4:
+                        staticData[field->slotId] = Slot(CAST_I4(0));
+                        break;
+                    case SlotTypeEnum::F4:
+                        staticData[field->slotId] = Slot(CAST_F4(0));
+                        break;
+                    case SlotTypeEnum::I8:
+                        staticData[field->slotId] = Slot(CAST_I8(0));
+                        break;
+                    case SlotTypeEnum::F8:
+                        staticData[field->slotId] = Slot(CAST_F8(0));
+                        break;
                     case SlotTypeEnum::REF:
                         staticData[field->slotId] = Slot(nullptr);
                         break;
-
-                    case SlotTypeEnum::F4:
-                        staticData[field->slotId] = Slot(static_cast<f4>(0));
-                        break;
-
-                    case SlotTypeEnum::F8:
-                        staticData[field->slotId] = Slot(static_cast<f8>(0));
-                        break;
-
                     default:
-                        staticData[field->slotId] = Slot(static_cast<i4>(0));
+                        panic("error slotType");
+                        break;
                 }
             }
         }
     }
+    
+    void InstanceClass::initSpecialType() {
+        const auto threadClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+        if (this == threadClass || this->isSubClassOf(threadClass)) {
+            specialInstanceClass = SpecialInstanceClass::THREAD_CLASS;
+        }
+    }
 
+    bool InstanceClass::notInitialize() const {
+        return initStatus == ClassInitStatusEnum::LOADED;
+    }
 
-    Field *InstanceClass::getField(const cstring &name, const cstring &descriptor, bool isStatic) const {
-        for (auto k = this; k != nullptr; k = k->superClass) {
-            for (const auto &item: k->fields) {
-                if (item->is(name, descriptor, isStatic)) {
-                    return item.get();
-                }
+    void InstanceClass::clinit(Frame &frame) {
+        if (!notInitialize()) {
+            return;
+        }
+
+        initStatus = ClassInitStatusEnum::INIT;
+
+        if (superClass != nullptr) {
+           superClass->clinit(frame);
+        }
+
+        const auto clinitMethod = getMethod("<clinit>", "()V", true);
+        if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
+            frame.runMethodManual(*clinitMethod, {});
+        }
+
+        initSpecialType();
+
+        initStatus = ClassInitStatusEnum::INITED;
+    }
+
+    BootstrapMethodsAttribute *InstanceClass::getBootstrapMethodAttr() const {
+        return CAST_BOOT_STRAP_METHODS_ATTRIBUTE(bootstrapMethodsAttr.get());
+    }
+
+    EnclosingMethodAttribute *InstanceClass::getEnclosingMethodAttr() const {
+        return CAST_ENCLOSING_METHOD_ATTRIBUTE(enclosingMethodAttr.get());
+    }
+
+    InnerClassesAttribute *InstanceClass::getInnerClassesAttr() const {
+        return CAST_INNER_CLASSES_ATTRIBUTE(innerClassesAttr.get());
+    }
+
+    Field *InstanceClass::getFieldSelf(const cstring &name, const cstring &descriptor, bool isStatic) const {
+        for (const auto &item : fields) {
+            if (item->is(name, descriptor, isStatic)) {
+                return item.get();
             }
         }
 
-        panic("can't find field " + name + "#" + name + ":" + descriptor);
+        return nullptr;
+    }
+
+
+    Field *InstanceClass::getField(const cstring &name, const cstring &descriptor, bool isStatic) const {
+        for (const auto &item : fields) {
+            if (item->is(name, descriptor, isStatic)) {
+                return item.get();
+            }
+        }
+
+        if (superClass != nullptr) {
+            if (const auto field = superClass->getField(name ,descriptor, isStatic); field != nullptr) {
+                return field;
+            }
+        }
+
+        for (const auto &interface : interfaces) {
+            if (const auto interfaceField = interface->getField(name, descriptor, isStatic); 
+                    interfaceField != nullptr) {
+                return interfaceField;
+            }
+        }
+
         return nullptr;
     }
 
 
     Field *InstanceClass::getRefField(size_t refIndex, bool isStatic) const {
-        return dynamic_cast<Field *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::FIELD, isStatic));
+        return static_cast<Field *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::FIELD, isStatic));
     }
 
     Method *InstanceClass::getRefMethod(size_t refIndex, bool isStatic) const {
-        return dynamic_cast<Method *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::METHOD, isStatic));
+        return static_cast<Method *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::METHOD, isStatic));
+    }
+
+    Method *InstanceClass::getMethodSelf(const cstring &name, const cstring &descriptor, bool isStatic) const {
+        for (const auto &item : methods) {
+            if (item->is(name, descriptor, isStatic)) {
+                return item.get();
+            }
+        }
+
+        return nullptr;
     }
 
     Method *InstanceClass::getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const {
-        for (auto k = this; k != nullptr; k = k->superClass) {
-            for (const auto &item: k->methods) {
-                if (item->is(name, descriptor, isStatic)) {
-                    return item.get();
-                }
+        for (const auto &item : methods) {
+            if (item->is(name, descriptor, isStatic)) {
+                return item.get();
             }
         }
-            
+
+        if (superClass != nullptr) {
+            if (const auto method = superClass->getMethod(name ,descriptor, isStatic); method != nullptr) {
+                return method;
+            }
+        }
+
+        for (const auto &interface : interfaces) {
+            if (const auto interfaceMethod = interface->getMethod(name, descriptor, isStatic); 
+                    interfaceMethod != nullptr) {
+                return interfaceMethod;
+            }
+        }
+
         return nullptr;
     }
 
     ClassMember *InstanceClass::getMemberByRefIndex(size_t refIndex, ClassMemberTypeEnum type, bool isStatic) const {
-        const auto memberInfo = dynamic_cast<ConstantClassNameTypeIndexInfo *>(constantPool.at(refIndex).get());
-        const auto classInfo = dynamic_cast<ConstantClassInfo *>(constantPool.at(memberInfo->classIndex).get());
-        const auto className = getConstantStringFromPool(constantPool, classInfo->index);
-        const auto nameAndTypeInfo = dynamic_cast<ConstantNameAndTypeInfo *>(constantPool.at(
-                memberInfo->nameAndTypeIndex).get());
-        const auto memberName = getConstantStringFromPool(constantPool, nameAndTypeInfo->nameIndex);
-        const auto memberDescriptor = getConstantStringFromPool(constantPool, nameAndTypeInfo->descriptorIndex);
+        const auto [className, memberName, memberDescriptor] = getConstantStringFromPoolByClassNameType(constantPool, refIndex);
         const auto memberClass = classLoader.getClass(className);
         const auto memberInstanceClass = 
             memberClass->isArray() ? 
-                classLoader.getInstanceClass("java/lang/Object") : 
-                classLoader.getInstanceClass(className);
+                classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT) :
+                CAST_INSTANCE_CLASS(memberClass);
             
         if (type == ClassMemberTypeEnum::FIELD) {
             return memberInstanceClass->getField(memberName, memberDescriptor, isStatic);
@@ -351,7 +561,7 @@ namespace RexVM {
 
     ArrayClass::ArrayClass(const ClassTypeEnum type, const cstring &name,
                            ClassLoader &classLoader, size_t dimension) :
-            InstanceClass(type, static_cast<u2>(AccessFlagEnum::ACC_PUBLIC), name, classLoader), dimension(dimension) {
+            InstanceClass(type, CAST_U2(AccessFlagEnum::ACC_PUBLIC), name, classLoader), dimension(dimension) {
     }
 
     cstring ArrayClass::getComponentClassName() const {
@@ -362,22 +572,22 @@ namespace RexVM {
                 return componentClassName;
 
             case 'L':
-                return componentClassName.substr(1, componentClassName.size() - 1);
+                return componentClassName.substr(1, componentClassName.size() - 2);
 
             default:
-                return PRIMITIVE_TYPE_REVERSE_MAP.at(componentClassName);
+                return getPrimitiveClassNameByDescriptor(firstChar);
         }
     }
 
     TypeArrayClass::TypeArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
                                    const BasicType elementType) :
-            ArrayClass(ClassTypeEnum::TypeArrayClass, name, classLoader, dimension),
+            ArrayClass(ClassTypeEnum::TYPE_ARRAY_CLASS, name, classLoader, dimension),
             elementType(elementType) {
     }
 
     ObjArrayClass::ObjArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
                                  const InstanceClass *elementClass) :
-            ArrayClass(ClassTypeEnum::ObjArrayClass, name, classLoader, dimension),
+            ArrayClass(ClassTypeEnum::OBJ_ARRAY_CLASS, name, classLoader, dimension),
             elementClass(elementClass) {
     }
 
