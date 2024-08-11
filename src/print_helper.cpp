@@ -72,14 +72,14 @@ namespace RexVM {
     }
 
     void pObjArray(ref oop) {
-        const auto clazz = CAST_OBJ_ARRAY_CLASS(oop->klass);
+        const auto clazz = CAST_OBJ_ARRAY_CLASS(oop->getClass());
         const auto arrayOop = CAST_OBJ_ARRAY_OOP(oop);
-        cprintln("className :{}, dataLength: {}", clazz->name, arrayOop->dataLength); 
+        cprintln("className :{}, dataLength: {}", clazz->name, arrayOop->getDataLength());
         cprintln("type: ObjArrayClass, elementClass: {}", clazz->elementClass->name);
     }
 
     cstring formatArray(Frame &frame, ref oop) {
-        const auto klass = oop->klass;
+        const auto klass = oop->getClass();
         if (!klass->isArray()) {
             panic("oop is not array type");
         }
@@ -96,7 +96,7 @@ namespace RexVM {
     }
 
     cstring formatInstance(Frame &frame, InstanceOop *oop) {
-        const auto className = oop->klass->name;
+        const auto className = oop->getClass()->name;
         const auto objectsClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Objects");
         const auto toStringMethod = objectsClass->getMethod("toString", "(Ljava/lang/Object;)Ljava/lang/String;", true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
@@ -120,7 +120,7 @@ namespace RexVM {
                 if (refVal == nullptr) {
                     return "null";
                 }
-                const auto klass = refVal->klass;
+                const auto klass = refVal->getClass();
                 if (klass->isArray()) {
                     return formatArray(frame, refVal);
                 } else {

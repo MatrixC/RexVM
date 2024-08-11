@@ -2,22 +2,95 @@
 #include "class.hpp"
 #include "class_member.hpp"
 #include "memory.hpp"
-#include "utils/format.hpp"
 #include <algorithm>
 
 namespace RexVM {
 
-    Oop::Oop(const OopTypeEnum type, Class *klass) : type(type), klass(klass) {
+    SpinLock Oop::monitorLock;
+
+    Oop::Oop(Class *klass, size_t dataLength) :
+            mark1((std::bit_cast<u8>(klass) & OOP_MARK_PTR_MASK) | (dataLength << OOP_MARK_PTR_LENGTH_BIT)) {
+        if (dataLength >= 65535) {
+            panic("not support");
+        }
     }
 
     bool Oop::isInstanceOf(Class *checkClass) const {
-        return checkClass->isAssignableFrom(this->klass);
+        return checkClass->isAssignableFrom(this->getClass());
     }
 
-    Oop::~Oop() = default;
+    Oop::~Oop() {
+        delete getMonitor();
+    }
+
+    Class *Oop::getClass() const {
+        return std::bit_cast<Class *>(mark1 & OOP_MARK_PTR_MASK);
+    }
+
+    OopMonitor *Oop::getMonitor() const {
+        return std::bit_cast<OopMonitor *>(mark2 & OOP_MARK_PTR_MASK);
+    }
+
+    size_t Oop::getDataLength() const {
+         return (mark1 >> OOP_MARK_PTR_LENGTH_BIT) & OOP_MARK1_DATA_LENGTH_MASK;
+    }
+
+    OopTypeEnum Oop::getType() const {
+        switch (getClass()->type) {
+            case ClassTypeEnum::INSTANCE_CLASS:
+                return OopTypeEnum::INSTANCE_OOP;
+            case ClassTypeEnum::OBJ_ARRAY_CLASS:
+                return OopTypeEnum::OBJ_ARRAY_OOP;
+            case ClassTypeEnum::TYPE_ARRAY_CLASS:
+                return OopTypeEnum::TYPE_ARRAY_OOP;
+            default:
+                panic("error oop");
+                return OopTypeEnum::INSTANCE_OOP;
+        }
+    }
+
+    OopMonitor *Oop::getAndInitMonitor() {
+        if (getMonitor() == nullptr) [[unlikely]] {
+            Oop::monitorLock.lock();
+            if (getMonitor() == nullptr) {
+                mark2 = std::bit_cast<u8>(new OopMonitor) & OOP_MARK_PTR_MASK;
+            }
+            Oop::monitorLock.unlock();
+        }
+        return getMonitor();
+    }
+
+    void Oop::lock() {
+        getAndInitMonitor()->monitorMtx.lock();
+    }
+
+    void Oop::unlock() {
+        getAndInitMonitor()->monitorMtx.unlock();
+    }
+
+    void Oop::wait(VMThread &currentThread, size_t timeout) {
+        const auto selfMonitor = getAndInitMonitor();
+        std::unique_lock<std::recursive_mutex> lock(selfMonitor->monitorMtx, std::adopt_lock);
+        const auto backupStatus = currentThread.getStatus();
+        currentThread.setStatus(ThreadStatusEnum::WAITING);
+        if (timeout == 0) [[likely]] {
+            selfMonitor->monitorCv.wait(lock);
+        } else {
+            selfMonitor->monitorCv.wait_for(lock, std::chrono::microseconds(timeout));
+        }
+        currentThread.setStatus(backupStatus);
+    }
+
+    void Oop::notify_one() {
+        getAndInitMonitor()->monitorCv.notify_one();
+    }
+
+    void Oop::notify_all() {
+        getAndInitMonitor()->monitorCv.notify_all();
+    }
 
     void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
-        //std::memset(oop->data.get(), 0, sizeof(Slot) * oop->dataLength);
+        //std::memset(oop->data.get(), 0, sizeof(Slot) * oop->getDataLength());
         for (const auto &field: klass->fields) {
             if (!field->isStatic()) {
                 const auto slotType = field->getFieldSlotType();
@@ -49,8 +122,7 @@ namespace RexVM {
     }
 
     InstanceOop::InstanceOop(InstanceClass *klass, const size_t dataLength) :
-            Oop(OopTypeEnum::INSTANCE_OOP, klass), 
-            dataLength(dataLength), 
+            Oop(klass, dataLength),
             data(std::make_unique<Slot[]>(dataLength)) {
         initInstanceField(this, klass);
     }
@@ -84,12 +156,12 @@ namespace RexVM {
         auto newInstance = manager.newInstance(getInstanceClass());
         const auto from = this->data.get();
         const auto to = newInstance->data.get();
-        std::copy(from, from + dataLength, to);
+        std::copy(from, from + getDataLength(), to);
         return newInstance;
     }
 
     InstanceClass *InstanceOop::getInstanceClass() const {
-        return CAST_INSTANCE_CLASS(klass);
+        return CAST_INSTANCE_CLASS(getClass());
     }
 
     MirrorOop::MirrorOop(InstanceClass *klass, Class *mirrorClass) :
@@ -98,7 +170,7 @@ namespace RexVM {
     }
 
     ArrayOop::ArrayOop(const OopTypeEnum type, ArrayClass *klass, const size_t dataLength) :
-            Oop(type, klass), dataLength(dataLength) {
+            Oop(klass, dataLength) {
     }
 
     TypeArrayOop::TypeArrayOop(TypeArrayClass *klass, const size_t dataLength) :

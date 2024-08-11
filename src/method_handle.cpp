@@ -267,12 +267,12 @@ namespace RexVM {
         if (isMethodHandleInvoke(clazz->name, name)) {
             descriptor = METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR;
         } else {
-            const auto typeClass = type->klass;
+            const auto typeClass = type->getClass();
             const auto typeClassName = typeClass->name;
             if (typeClassName == JAVA_LANG_INVOKE_METHOD_TYPE_NAME) {
                 descriptor += "(";
                 const auto ptypes = CAST_OBJ_ARRAY_OOP(type->getFieldValue("ptypes", "[Ljava/lang/Class;").refVal);
-                for (size_t i = 0; i < ptypes->dataLength; ++i) {
+                for (size_t i = 0; i < ptypes->getDataLength(); ++i) {
                     const auto classMirrorOop = CAST_MIRROR_OOP(ptypes->data[i]);
                     const auto mirrorClass = classMirrorOop->mirrorClass;
                     descriptor += getDescriptorByClass(mirrorClass);

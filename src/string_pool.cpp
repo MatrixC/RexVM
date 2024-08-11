@@ -19,11 +19,11 @@ namespace RexVM {
 
     cstring StringPool::getJavaString(InstanceOop *oop) {
         const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
-        if (charArray->dataLength == 0) {
+        if (charArray->getDataLength() == 0) {
             return {};
         }
         const auto char16Ptr = charArray->data.get();
-        return utf16ToUtf8(char16Ptr, charArray->dataLength);
+        return utf16ToUtf8(char16Ptr, charArray->getDataLength());
     }
 
     InstanceOop *StringPool::getInternString(const RexVM::cstring &str) {
@@ -69,7 +69,7 @@ namespace RexVM {
     bool StringPool::equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t arrayLength) {
         const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
         const auto charArrayPtr = charArray->data.get();
-        const auto charArrayLength = charArray->dataLength;
+        const auto charArrayLength = charArray->getDataLength();
         return arrayLength == charArrayLength
             && (arrayLength == 0 //empty String
                 or std::memcmp(rawPtr, charArrayPtr, sizeof(cchar_16) * charArrayLength) == 0

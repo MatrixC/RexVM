@@ -37,7 +37,7 @@ namespace RexVM {
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
 
         explicit VMThread(VM &vm, InstanceClass * klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
-        ~VMThread() override;
+        ~VMThread();
 
         
         void start(Frame *frame);

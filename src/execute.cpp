@@ -28,7 +28,7 @@ namespace RexVM {
     bool handleThrowValue(Frame &frame) {
         //const auto throwInstance = frame.throwObject->throwValue;
         const auto throwInstance = frame.throwObject;
-        const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->klass);
+        const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->getClass());
         auto &method = frame.method;
         const auto handler =
             method.findExceptionHandler(
@@ -151,12 +151,14 @@ namespace RexVM {
         ref monitorHandler = nullptr;
         if (method.isSynchronized()) [[unlikely]] {
             monitorHandler = method.isStatic() ? method.klass.getMirrorOop() : frame.getThis();
-            monitorHandler->monitorMtx.lock();
+            //monitorHandler->monitorMtx.lock();
+            monitorHandler->lock();
             lock = true;
         }
         executeFrame(frame, methodName);
         if (lock) {
-            monitorHandler->monitorMtx.unlock();
+            //monitorHandler->monitorMtx.unlock();
+            monitorHandler->unlock();
         }
     }
 

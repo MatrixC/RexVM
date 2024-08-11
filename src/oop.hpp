@@ -8,6 +8,7 @@
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "class.hpp"
+#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 
@@ -17,47 +18,80 @@ namespace RexVM {
     struct TypeArrayClass;
     struct ObjArrayClass;
     struct OopManager;
+    struct VMThread;
 
-    enum class OopTypeEnum {
-        INSTANCE_OOP,
-        TYPE_ARRAY_OOP,
-        OBJ_ARRAY_OOP,
+    enum class OopTypeEnum : u1 {
+        INSTANCE_OOP = 0,
+        TYPE_ARRAY_OOP = 1,
+        OBJ_ARRAY_OOP = 2,
     };
 
+    struct OopMonitor {
+        std::recursive_mutex monitorMtx;
+        std::condition_variable_any monitorCv;
+    };
+
+    constexpr u8 OOP_MARK_PTR_LENGTH_BIT = 48;
+    constexpr u8 OOP_MARK_PTR_MASK = 0xffffffffffff;
+    constexpr u8 OOP_MARK1_DATA_LENGTH_BIT = 16;
+    constexpr u8 OOP_MARK1_DATA_LENGTH_MASK = 0xffff;
+
     struct Oop {
+        static SpinLock monitorLock;
+    private:
         //finalize可直接根据有没有实现对应函数而初始化
-        //markword1: low[ classPtr(48) dataLength(16) ]high
-        //markword2: low[ mutexPtr(48) remain(14) finalize(1) type(2) waitFlag(1) ]high
         //data部分可改用32bit的Slot 进一步减少占用 或依然使用64slot 但进行一次field slotId重计算 在取数时做处理
         //data指针考虑使用弹性数组
 
-        const OopTypeEnum type;
-        Class *klass;
+        //low[ classPtr(48) dataLength(16) ]high
+        u8 mark1{0};
+        //low[ mutexPtr(48) finalize(1) ]high
+        volatile u8 mark2{0};
 
-        bool waitFlag{false};
-        std::recursive_mutex monitorMtx;
-        std::condition_variable_any monitorCv;
+        [[nodiscard]] OopMonitor *getMonitor() const;
 
-        explicit Oop(OopTypeEnum type, Class *klass);
+    public:
+        explicit Oop(Class *klass, size_t dataLength);
+
+        ~Oop();
+
+        [[nodiscard]] Class *getClass() const;
+
+        [[nodiscard]] size_t getDataLength() const;
+
+        [[nodiscard]] OopTypeEnum getType() const;
+
+        [[nodiscard]] OopMonitor *getAndInitMonitor();
 
         [[nodiscard]] bool isInstanceOf(Class *checkClass) const;
 
-        virtual ~Oop();
+        void lock();
+
+        void unlock();
+
+        void wait(VMThread &currentThread, size_t timeout);
+
+        void notify_one();
+
+        void notify_all();
 
     };
 
     struct InstanceOop : Oop {
-        size_t dataLength;
         std::unique_ptr<Slot[]> data;
 
         explicit InstanceOop(InstanceClass *klass, size_t dataLength);
+
         explicit InstanceOop(InstanceClass *klass);
-        ~InstanceOop() override;
+
+        ~InstanceOop();
 
         void setFieldValue(size_t index, Slot value) const;
+
         [[nodiscard]] Slot getFieldValue(size_t index) const;
 
         void setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const;
+
         [[nodiscard]] Slot getFieldValue(const cstring &name, const cstring &descriptor) const;
 
         [[nodiscard]] InstanceOop *clone(OopManager &oopManager) const;
@@ -75,8 +109,6 @@ namespace RexVM {
     };
 
     struct ArrayOop : Oop {
-        size_t dataLength;
-        
         explicit ArrayOop(OopTypeEnum type, ArrayClass *klass, size_t dataLength);
     };
 
@@ -86,6 +118,7 @@ namespace RexVM {
 
     struct ObjArrayOop : ArrayOop {
         std::unique_ptr<ref[]> data;
+
         explicit ObjArrayOop(ObjArrayClass *klass, size_t dataLength);
 
     };
@@ -93,36 +126,43 @@ namespace RexVM {
     //BooleanTypeArrayOop same as ByteTypeArrayOop
     struct ByteTypeArrayOop : TypeArrayOop {
         std::unique_ptr<u1[]> data;
+
         explicit ByteTypeArrayOop(TypeArrayClass *klass, size_t dataLength);
     };
 
     struct ShortTypeArrayOop : TypeArrayOop {
         std::unique_ptr<i2[]> data;
+
         explicit ShortTypeArrayOop(TypeArrayClass *klass, size_t dataLength);
     };
 
     struct IntTypeArrayOop : TypeArrayOop {
         std::unique_ptr<i4[]> data;
+
         explicit IntTypeArrayOop(TypeArrayClass *klass, size_t dataLength);
     };
 
     struct LongTypeArrayOop : TypeArrayOop {
         std::unique_ptr<i8[]> data;
+
         explicit LongTypeArrayOop(TypeArrayClass *klass, size_t dataLength);
     };
 
     struct CharTypeArrayOop : TypeArrayOop {
         std::unique_ptr<cchar_16[]> data;
+
         explicit CharTypeArrayOop(TypeArrayClass *klass, size_t dataLength);
     };
 
     struct FloatTypeArrayOop : TypeArrayOop {
         std::unique_ptr<f4[]> data;
+
         explicit FloatTypeArrayOop(TypeArrayClass *klass, size_t dataLength);
     };
 
     struct DoubleTypeArrayOop : TypeArrayOop {
         std::unique_ptr<f8[]> data;
+
         explicit DoubleTypeArrayOop(TypeArrayClass *klass, size_t dataLength);
     };
 

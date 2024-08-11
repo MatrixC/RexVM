@@ -131,6 +131,8 @@ namespace RexVM {
         VM vm(param);
         vm.start();
         collectAll(vm);
+
+        cprintln("{}", sizeof(Oop));
     }
 
 }

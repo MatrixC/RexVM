@@ -27,8 +27,9 @@ namespace RexVM {
         setStatus(ThreadStatusEnum::RUNNABLE);
         createFrameAndRunMethod(*this, runMethod, params, nullptr);
         setStatus(ThreadStatusEnum::TERMINATED);
-        std::lock_guard<std::recursive_mutex> lock(monitorMtx);
-        monitorCv.notify_all();
+        //std::lock_guard<std::recursive_mutex> lock(monitorMtx);
+        std::lock_guard<std::recursive_mutex> lock(getAndInitMonitor()->monitorMtx);
+        notify_all();
     }
 
     void VMThread::start(Frame *frame) {

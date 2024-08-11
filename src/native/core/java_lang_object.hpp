@@ -8,6 +8,7 @@
 #include "../../class.hpp"
 #include "../../execute.hpp"
 #include "../../memory.hpp"
+#include "../../exception_helper.hpp"
 #include <thread>
 #include <bit>
 
@@ -15,7 +16,7 @@
 namespace RexVM::Native::Core {
 
     void getClass(Frame &frame) {
-        frame.returnRef(frame.getThis()->klass->getMirrorOop());
+        frame.returnRef(frame.getThis()->getClass()->getMirrorOop());
     }
 
     void hashCode(Frame &frame) {
@@ -24,21 +25,21 @@ namespace RexVM::Native::Core {
 
     template<typename T>
     T *getTypeArrayClone(OopManager *oopManager, T *src) {
-        const auto klass = CAST_TYPE_ARRAY_CLASS(src->klass);
-        const auto newOop = oopManager->newTypeArrayOop(klass->elementType, src->dataLength);
+        const auto klass = CAST_TYPE_ARRAY_CLASS(src->getClass());
+        const auto newOop = oopManager->newTypeArrayOop(klass->elementType, src->getDataLength());
         auto newArray = static_cast<T *>(newOop);
-        std::copy(src->data.get(), src->data.get() + src->dataLength, newArray->data.get());
+        std::copy(src->data.get(), src->data.get() + src->getDataLength(), newArray->data.get());
 
-        for (size_t i = 0; i < src->dataLength; ++i) {
+        FOR_FROM_ZERO(src->getDataLength()) {
             newArray->data[i] = src->data[i];
         }
         return newArray;
     }
 
     ObjArrayOop *getObjArrayClone(OopManager *oopManager, ObjArrayOop *src) {
-        const auto klass = CAST_OBJ_ARRAY_CLASS(src->klass);
-        const auto newOop = oopManager->newObjArrayOop(klass, src->dataLength);
-        for (size_t i = 0; i < src->dataLength; ++i) {
+        const auto klass = CAST_OBJ_ARRAY_CLASS(src->getClass());
+        const auto newOop = oopManager->newObjArrayOop(klass, src->getDataLength());
+        for (size_t i = 0; i < src->getDataLength(); ++i) {
             newOop->data[i] = src->data[i];
         }
         return newOop;
@@ -48,7 +49,7 @@ namespace RexVM::Native::Core {
     void clone(Frame &frame) {
         const auto &oopManager = frame.vm.oopManager;
         const auto self = frame.getThis();
-        const auto klass = self->klass;
+        const auto klass = self->getClass();
         switch (klass->type) {
             case ClassTypeEnum::INSTANCE_CLASS:
                 frame.returnRef((CAST_INSTANCE_OOP(self))->clone(*oopManager));
@@ -104,29 +105,24 @@ namespace RexVM::Native::Core {
     //public final native void notify();
     void notify(Frame &frame) {
         const auto self = frame.getThis();
-        self->monitorCv.notify_one();
+        ASSERT_IF_NULL_THROW_NPE(self);
+        self->notify_one();
     }
 
     //public final native void notifyAll();
     void notifyAll(Frame &frame) {
         const auto self = frame.getThis();
-        self->monitorCv.notify_all();
+        ASSERT_IF_NULL_THROW_NPE(self);
+        self->notify_all();
     }
 
     //public final native void wait(long timeout) throws InterruptedException;
     void wait(Frame &frame) {
         auto &currentThread = frame.thread;
         const auto self = frame.getThis(); //called Thread
+        ASSERT_IF_NULL_THROW_NPE(self);
         const auto timeout = frame.getLocalI8(1);
-        std::unique_lock<std::recursive_mutex> lock(self->monitorMtx, std::adopt_lock);
-        const auto backupStatus = currentThread.getStatus();
-        currentThread.setStatus(ThreadStatusEnum::WAITING);
-        if (timeout == 0) [[likely]] {
-            self->monitorCv.wait(lock);
-        } else {
-            self->monitorCv.wait_for(lock, std::chrono::microseconds(timeout));
-        }
-        currentThread.setStatus(backupStatus);
+        self->wait(currentThread, CAST_SIZE_T(timeout));
     }
 
 }

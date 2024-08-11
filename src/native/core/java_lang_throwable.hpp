@@ -78,7 +78,7 @@ namespace RexVM::Native::Core {
             frame.returnI4(0);
             return;
         }
-        frame.returnI4(CAST_I4(stackTraceElements->dataLength));
+        frame.returnI4(CAST_I4(stackTraceElements->getDataLength()));
     }
 }
 

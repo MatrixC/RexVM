@@ -46,7 +46,7 @@ namespace RexVM::Native::Core {
     void methodHandlerInit(Frame &frame) {
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto refOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto refClassName = refOop->klass->name;
+        const auto refClassName = refOop->getClass()->name;
 
         if (refClassName == "java/lang/reflect/Method") {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
@@ -131,7 +131,7 @@ namespace RexVM::Native::Core {
 
 
     std::tuple<InstanceOop *, bool> methodHandleGetMemberName(Frame &frame, InstanceOop *self, std::vector<Slot> &prefixParam) {
-        const auto className = self->klass->name;
+        const auto className = self->getClass()->name;
         const auto methodParamSlotSize = frame.methodParamSlotSize;
         InstanceOop *memberNameOop = nullptr;
         if (startWith(className, "java/lang/invoke/DirectMethodHandle")) {
@@ -160,7 +160,7 @@ namespace RexVM::Native::Core {
             memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
 
             const auto passParams = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(2));
-            for (size_t i = 0; i < passParams->dataLength; ++i) {
+            for (size_t i = 0; i < passParams->getDataLength(); ++i) {
                 prefixParam.emplace_back(passParams->data[i]);
             }
         } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle"

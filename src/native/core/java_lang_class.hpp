@@ -95,7 +95,7 @@ namespace RexVM::Native::Core {
     // void isInstance(Frame &frame) {
     //     const auto mirrorClass = getMirrorClass(frame);
     //     const auto objOop = frame.getLocalRef(1);
-    //     frame.returnBoolean(objOop->klass->isAssignableFrom(mirrorClass));
+    //     frame.returnBoolean(objOop->getClass()->isAssignableFrom(mirrorClass));
     // }
 
     //native int getModifiers();
@@ -113,7 +113,7 @@ namespace RexVM::Native::Core {
             frame.returnBoolean(false);
             return;
         }
-        const auto objClass = objOop->klass;
+        const auto objClass = objOop->getClass();
         const auto result = objClass->isInstanceOf(thisClass);
         frame.returnBoolean(result);
     }
@@ -491,20 +491,21 @@ namespace RexVM::Native::Core {
     //native ConstantPool getConstantPool();
     void getConstantPool(Frame &frame) {
         const auto instance = CAST_MIRROR_OOP(frame.getThisInstance());
-        const auto mirrorClass = instance->klass;
+        const auto mirrorClass = instance->getClass();
         if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
         auto constantPoolPtr = instance->constantPoolOop.get();
         if (constantPoolPtr == nullptr) {
+            //TODO Thread unsafe
             auto &classLoader = *frame.getCurrentClassLoader();
             const auto constantPoolClass = classLoader.getInstanceClass("sun/reflect/ConstantPool");
             instance->constantPoolOop = std::make_unique<InstanceOop>(constantPoolClass);
             instance->constantPoolOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(instance));
             constantPoolPtr = instance->constantPoolOop.get();
         }
-        frame.returnRef(instance->constantPoolOop.get());
+        frame.returnRef(constantPoolPtr);
     }
 
     //private native Class<?>[] getDeclaredClasses0();
@@ -656,7 +657,7 @@ namespace RexVM::Native::Core {
             }
             params.emplace_back(Slot(obj));
         }
-        for (size_t i = 0; i < args->dataLength; ++i) {
+        for (size_t i = 0; i < args->getDataLength(); ++i) {
             const auto paramType = methodPtr->paramType[i];
             const auto val = CAST_INSTANCE_OOP(args->data[i]);
             const auto paramClass = classLoader.getClass(paramType);

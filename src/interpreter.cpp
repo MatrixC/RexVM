@@ -1056,7 +1056,7 @@ namespace RexVM {
             const auto paramSlotSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
             const auto instance = frame.getStackOffset(paramSlotSize - 1).refVal;
             ASSERT_IF_NULL_THROW_NPE(instance);
-            const auto instanceClass = CAST_INSTANCE_CLASS(instance->klass);
+            const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
             for (auto k = instanceClass; k != nullptr; k = k->superClass) {
                 const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
                 if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {
@@ -1150,7 +1150,7 @@ namespace RexVM {
         void arraylength(Frame &frame) {
             const auto array = CAST_ARRAY_OOP(frame.popRef());
             ASSERT_IF_NULL_THROW_NPE(array);
-            frame.pushI4(CAST_I4(array->dataLength));
+            frame.pushI4(CAST_I4(array->getDataLength()));
         }
 
         void athrow(Frame &frame) {
@@ -1170,7 +1170,7 @@ namespace RexVM {
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto checkClass = frame.classLoader.getClass(className);
             if (!ref->isInstanceOf(checkClass)) {
-                throwClassCastException(frame, ref->klass->name, className);
+                throwClassCastException(frame, ref->getClass()->name, className);
                 return;
             }
         }
@@ -1195,13 +1195,15 @@ namespace RexVM {
         void monitorenter(Frame &frame) {
             const auto oop = frame.popRef();
             ASSERT_IF_NULL_THROW_NPE(oop);
-            oop->monitorMtx.lock();
+            //oop->monitorMtx.lock();
+            oop->lock();
         }
 
         void monitorexit(Frame &frame) {
             const auto oop = frame.popRef();
             ASSERT_IF_NULL_THROW_NPE(oop);
-            oop->monitorMtx.unlock();
+            //oop->monitorMtx.unlock();
+            oop->unlock();
         }
 
         void wide(Frame &frame) {

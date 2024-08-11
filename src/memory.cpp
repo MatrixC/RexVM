@@ -197,7 +197,7 @@ namespace RexVM {
         }
         tracedOop.insert(oop);
 
-        const auto oopType = oop->type;
+        const auto oopType = oop->getType();
         switch (oopType) {
             case OopTypeEnum::INSTANCE_OOP:
                 traceInstanceOopChild(CAST_INSTANCE_OOP(oop), tracedOop);
@@ -227,7 +227,7 @@ namespace RexVM {
     }
 
     void traceObjArrayOopChild(ObjArrayOop * const oop, std::unordered_set<Oop *> &tracedOop) {
-        const auto arrayLength = oop->dataLength;
+        const auto arrayLength = oop->getDataLength();
         if (arrayLength > 0) {
             for (size_t i = 0; i < arrayLength; ++i) {
                 const auto element = oop->data[i];
@@ -239,7 +239,7 @@ namespace RexVM {
     }
 
     void collectOop(ref oop) {
-        const auto klass = oop->klass;
+        const auto klass = oop->getClass();
         if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
             const auto instanceClass = CAST_INSTANCE_CLASS(klass);
             const auto finalizeMethod = instanceClass->getMethodSelf("finalize", "()V", false);

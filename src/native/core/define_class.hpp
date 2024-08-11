@@ -22,7 +22,7 @@ namespace RexVM::Native::Core {
 
         const auto buffer = CAST_BYTE_TYPE_ARRAY_OOP(bufferOop);
         if (useArrayLength) [[unlikely]] {
-            len = buffer->dataLength;
+            len = buffer->getDataLength();
         }
         const auto bufferPtr = buffer->data.get() + off;
 

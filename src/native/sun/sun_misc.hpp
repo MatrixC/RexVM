@@ -61,7 +61,7 @@ namespace RexVM::Native::Sun::Misc {
         constructorParams.emplace_back(instance);
         
         if (paramArray != nullptr) {
-            for (size_t i = 0; i < paramArray->dataLength; ++i) {
+            for (size_t i = 0; i < paramArray->getDataLength(); ++i) {
                 const auto paramType = constructMethod->paramType[i];
                 const auto val = paramArray->data[i];
                 const auto paramClass = classLoader.getClass(paramType);

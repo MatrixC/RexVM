@@ -44,8 +44,8 @@ namespace RexVM::Native::Core {
         const auto length = frame.getLocalI4(4);
         const auto srcEndPos = srcPos + length;
 
-        const auto arrayType = src->klass->type;
-        const auto destArrayType = dest->klass->type;
+        const auto arrayType = src->getClass()->type;
+        const auto destArrayType = dest->getClass()->type;
         if (arrayType != ClassTypeEnum::OBJ_ARRAY_CLASS && arrayType != ClassTypeEnum::TYPE_ARRAY_CLASS) {
             panic("obj is not array type");
         }
@@ -58,9 +58,9 @@ namespace RexVM::Native::Core {
             std::copy(relSrc->data.get() + srcPos, relSrc->data.get() + srcEndPos, relDest->data.get() + destPos);
         } else {
             const auto basicTypeArray = CAST_TYPE_ARRAY_OOP(src);
-            const auto basicTypeArrayClass = CAST_TYPE_ARRAY_CLASS(basicTypeArray->klass);
+            const auto basicTypeArrayClass = CAST_TYPE_ARRAY_CLASS(basicTypeArray->getClass());
             const auto basicType = basicTypeArrayClass->elementType;
-            if (basicType != CAST_TYPE_ARRAY_CLASS(dest->klass)->elementType) {
+            if (basicType != CAST_TYPE_ARRAY_CLASS(dest->getClass())->elementType) {
                 panic("type array is different");
             }
             switch (basicType) {
@@ -139,7 +139,7 @@ namespace RexVM::Native::Core {
 
     void initProperties(Frame &frame) {
         const auto props = CAST_INSTANCE_OOP(frame.getLocalRef(0));
-        const auto propsClass = CAST_INSTANCE_CLASS(props->klass);
+        const auto propsClass = CAST_INSTANCE_CLASS(props->getClass());
         const auto setPropertyMethod = propsClass->getMethod("setProperty", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", false);
         const auto &stringPool = frame.vm.stringPool;
         const auto utf8ConstString = stringPool->getInternString("UTF-8");
