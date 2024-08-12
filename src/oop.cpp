@@ -9,7 +9,7 @@ namespace RexVM {
     SpinLock Oop::monitorLock;
 
     Oop::Oop(Class *klass, size_t dataLength) :
-            mark1(createPS(klass, dataLength)) {
+            klass(createPA(klass, dataLength)) {
         if (dataLength >= 65535) {
             panic("not support");
         }
@@ -24,15 +24,15 @@ namespace RexVM {
     }
 
     Class *Oop::getClass() const {
-        return getPtrPS<Class *>(mark1);
-    }
-
-    OopMonitor *Oop::getMonitor() const {
-        return getPtrPS<OopMonitor *>(mark2);
+        return getPtrPA<Class *>(klass);
     }
 
     size_t Oop::getDataLength() const {
-        return getSizePS(mark1);
+        return getAdditionPA(klass);
+    }
+
+    OopMonitor *Oop::getMonitor() const {
+        return getPtrPA<OopMonitor *>(flags);
     }
 
     OopTypeEnum Oop::getType() const {
@@ -53,7 +53,7 @@ namespace RexVM {
         if (getMonitor() == nullptr) [[unlikely]] {
             Oop::monitorLock.lock();
             if (getMonitor() == nullptr) {
-                mark2 = createPS(new OopMonitor, 0);
+                flags = createPA(new OopMonitor, 0);
             }
             Oop::monitorLock.unlock();
         }
@@ -152,8 +152,7 @@ namespace RexVM {
         return data[field->slotId];
     }
 
-    InstanceOop *InstanceOop::clone(OopManager &manager) const {
-        auto newInstance = manager.newInstance(getInstanceClass());
+    InstanceOop *InstanceOop::clone(InstanceOop *newInstance) const {
         const auto from = this->data.get();
         const auto to = newInstance->data.get();
         std::copy(from, from + getDataLength(), to);

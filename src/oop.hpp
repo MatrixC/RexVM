@@ -31,18 +31,15 @@ namespace RexVM {
         std::condition_variable_any monitorCv;
     };
 
-    struct Oop {
+    class Oop {
         static SpinLock monitorLock;
     private:
-        //finalize可直接根据有没有实现对应函数而初始化
-        //data部分可改用32bit的Slot 进一步减少占用 或依然使用64slot 但进行一次field slotId重计算 在取数时做处理
-        //data指针考虑使用弹性数组
-
 
         //low[ classPtr(48) dataLength(16) ]high
-        ptr_size mark1{0};
+        ptr_addtition klass{0};
+
         //low[ mutexPtr(48) finalize(1) ]high
-        volatile ptr_size mark2{0};
+        volatile ptr_addtition flags{0};
 
         [[nodiscard]] OopMonitor *getMonitor() const;
 
@@ -90,7 +87,7 @@ namespace RexVM {
 
         [[nodiscard]] Slot getFieldValue(const cstring &name, const cstring &descriptor) const;
 
-        [[nodiscard]] InstanceOop *clone(OopManager &oopManager) const;
+        [[nodiscard]] InstanceOop *clone(InstanceOop *newInstance) const;
 
         [[nodiscard]] InstanceClass *getInstanceClass() const;
 

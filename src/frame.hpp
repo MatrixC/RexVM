@@ -7,6 +7,7 @@
 #include "basic_type.hpp"
 #include "utils/stack.hpp"
 #include "utils/byte_reader.hpp"
+#include "frame_memory_handler.hpp"
 
 namespace RexVM {
 
@@ -15,9 +16,15 @@ namespace RexVM {
     struct ClassLoader;
     struct ConstantInfo;
     struct InstanceClass;
+    struct ObjArrayClass;
     struct Method;
     struct Oop;
     struct InstanceOop;
+    struct FrameMemoryHandler;
+    struct ObjArrayOop;
+    struct TypeArrayOop;
+    struct CharTypeArrayOop;
+    struct OopManager;
 
     struct FrameThrowable {
         InstanceOop *throwValue{nullptr};
@@ -42,6 +49,7 @@ namespace RexVM {
         VMThread &thread;
         Method &method;
         InstanceClass &klass;
+        FrameMemoryHandler mem;
         ByteReader reader{};
 
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
@@ -127,8 +135,6 @@ namespace RexVM {
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
         
-        
-
         [[nodiscard]] ref getThis() const;
         [[nodiscard]] InstanceOop *getThisInstance() const;
         [[nodiscard]] std::vector<Oop *> getLocalObjects() const;

@@ -33,6 +33,7 @@ namespace RexVM {
     }
 
     void VMThread::start(Frame *frame) {
+        /*
         if (getStatus() != ThreadStatusEnum::NEW) {
             throwIllegalThreadStateException(*frame);
         }
@@ -43,6 +44,13 @@ namespace RexVM {
             nativeThread = std::thread([this]() {
                 run();
             }); 
+            vm.addStartThread(this);
+        }
+        */
+        nativeThread = std::thread([this]() {
+            run();
+        }); 
+        if (!isMainThread) {
             vm.addStartThread(this);
         }
     }
@@ -65,7 +73,8 @@ namespace RexVM {
     }
 
     void VMThread::join() {
-        if (!isMainThread && nativeThread.joinable()) {
+        //if (!isMainThread && nativeThread.joinable()) {
+        if (nativeThread.joinable()) {
             nativeThread.join();
         }
     }

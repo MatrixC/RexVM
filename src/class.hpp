@@ -21,6 +21,7 @@ namespace RexVM {
     struct InstanceClass;
     struct Frame;
     struct OopManager;
+    struct VMThread;
 
     enum class ClassInitStatusEnum : u1 {
         LOADED,
@@ -45,9 +46,9 @@ namespace RexVM {
     struct Class {
         const cstring name;
         std::vector<InstanceClass *> interfaces;
+        //ptr_size interfaces;
         InstanceClass *superClass{nullptr};
         std::unique_ptr<MirrorOop> mirror;
-
 
         const ClassTypeEnum type;
         const u2 accessFlags{};
@@ -55,10 +56,8 @@ namespace RexVM {
         ClassLoader &classLoader;
         std::atomic<ClassInitStatusEnum> initStatus{ClassInitStatusEnum::LOADED};
 
-
         //flags: low[accessFlags(16), type(2), anonymous(1), special(3), dimension, basicType(elementType) ]high
 
-        
         explicit Class(ClassTypeEnum type, u2 accessFlags, cstring name, ClassLoader &classLoader);
 
         [[nodiscard]] ClassTypeEnum getType() const;
@@ -96,7 +95,7 @@ namespace RexVM {
         [[nodiscard]] BasicType getBasicType() const;
         [[nodiscard]] bool isWideType() const;
         [[nodiscard]] Slot getValueFromBoxingOop(InstanceOop *oop) const;
-        [[nodiscard]] InstanceOop *getBoxingOopFromValue(Slot value, OopManager &oopManager) const;
+        [[nodiscard]] InstanceOop *getBoxingOopFromValue(Slot value, Frame &frame) const;
     };
 
     struct InstanceClass : Class {

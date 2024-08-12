@@ -15,6 +15,8 @@ namespace RexVM {
     struct InstanceOop;
     struct ClassLoader;
     struct ConstantUTF8Info;
+    struct Frame;
+    struct VMThread;
 
     struct StringTable {
         using Key = const cstring &;
@@ -55,7 +57,8 @@ namespace RexVM {
         void eraseString(InstanceOop *oop);
 
         InstanceOop *getInternString(const cstring &str);
-        InstanceOop *getInternStringOld(const cstring &str);
+        InstanceOop *getInternString(VMThread *thread, const cstring &str);
+        //InstanceOop *getInternStringOld(const cstring &str);
         void gcStringOop(InstanceOop *oop);
 
         explicit StringPool(VM &vm, ClassLoader &classLoader);
@@ -64,7 +67,7 @@ namespace RexVM {
 
     private:
         InstanceClass *stringClass;
-        [[nodiscard]] InstanceOop *createJavaString(const cstring &str) const;
+        [[nodiscard]] InstanceOop *createJavaString(VMThread *thread, const cstring &str) const;
     };
 
 

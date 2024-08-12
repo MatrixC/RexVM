@@ -17,6 +17,7 @@ namespace RexVM {
     struct NativeManager;
     struct VMThread;
     struct OopManager;
+    struct Collector;
 
     struct ApplicationParameter {
         cstring userClassPath;
@@ -29,6 +30,7 @@ namespace RexVM {
         std::unique_ptr<OopManager> oopManager;
         std::unique_ptr<StringPool> stringPool;
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
+        std::unique_ptr<Collector> collector;
 
         std::mutex vmThreadMtx;
         std::deque<VMThread *> vmThreadDeque;
@@ -38,6 +40,7 @@ namespace RexVM {
         void start();
 
         void addStartThread(VMThread *vmThread);
+        size_t getActiveThreadCount();
 
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
         cstring javaHome{};
@@ -49,6 +52,7 @@ namespace RexVM {
         void initBootstrapClassLoader();
         void initStringPool();
         void initJavaSystemClass();
+        void initCollector();
         void runMainMethod();
         void joinThreads();
     };

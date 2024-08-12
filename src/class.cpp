@@ -17,7 +17,7 @@
 namespace RexVM {
 
     Class::Class(const ClassTypeEnum type, const u2 accessFlags, cstring name, ClassLoader &classLoader) :
-            type(type), accessFlags(accessFlags), name(std::move(name)), classLoader(classLoader) {
+            name(std::move(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
     }
 
     ClassTypeEnum Class::getType() const {
@@ -211,16 +211,16 @@ namespace RexVM {
         }
     }
 
-    InstanceOop *PrimitiveClass::getBoxingOopFromValue(Slot value, OopManager &oopManager) const {
+    InstanceOop *PrimitiveClass::getBoxingOopFromValue(Slot value, Frame &frame) const {
         switch (basicType) {
-            case BasicType::T_BOOLEAN: return oopManager.newBooleanOop(value.i4Val);
-            case BasicType::T_CHAR: return oopManager.newCharOop(value.i4Val);
-            case BasicType::T_FLOAT: return oopManager.newFloatOop(value.f4Val);
-            case BasicType::T_DOUBLE: return oopManager.newDoubleOop(value.f8Val);
-            case BasicType::T_BYTE: return oopManager.newByteOop(value.i4Val);
-            case BasicType::T_SHORT: return oopManager.newShortOop(value.i4Val);
-            case BasicType::T_INT: return oopManager.newIntegerOop(value.i4Val);
-            case BasicType::T_LONG: return oopManager.newLongOop(value.i4Val);
+            case BasicType::T_BOOLEAN: return frame.mem.newBooleanOop(value.i4Val);
+            case BasicType::T_CHAR: return frame.mem.newCharOop(value.i4Val);
+            case BasicType::T_FLOAT: return frame.mem.newFloatOop(value.f4Val);
+            case BasicType::T_DOUBLE: return frame.mem.newDoubleOop(value.f8Val);
+            case BasicType::T_BYTE: return frame.mem.newByteOop(value.i4Val);
+            case BasicType::T_SHORT: return frame.mem.newShortOop(value.i4Val);
+            case BasicType::T_INT: return frame.mem.newIntegerOop(value.i4Val);
+            case BasicType::T_LONG: return frame.mem.newLongOop(value.i4Val);
             case BasicType::T_VOID: panic("error type void");
             default:
                 panic("error basicType");
@@ -314,6 +314,13 @@ namespace RexVM {
     }
 
     void InstanceClass::initInterfaceAndSuperClass(ClassFile &cf) {
+        // using InstanceClassPtr = InstanceClass *;
+        // auto interfaceArray = new InstanceClassPtr[cf.interfaceCount];
+        // const auto &interfaceNames = cf.getInterfaceNames();
+        // FOR_FROM_ZERO(interfaceNames.size()) {
+        //     interfaceArray[i] = classLoader.getInstanceClass(interfaceNames[i]);
+        // }
+
         interfaces.reserve(cf.interfaceCount);
         for (const auto &interfaceName: cf.getInterfaceNames()) {
             interfaces.emplace_back(classLoader.getInstanceClass(interfaceName));

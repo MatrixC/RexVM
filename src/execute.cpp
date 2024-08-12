@@ -4,6 +4,7 @@
 #include "utils/class_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "vm.hpp"
+#include "finalize.hpp"
 #include "opcode.hpp"
 #include "frame.hpp"
 #include "memory.hpp"
@@ -102,6 +103,8 @@ namespace RexVM {
         const auto notNativeMethod = !method.isNative();
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
+
+        frame.vm.collector->checkStop();
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;

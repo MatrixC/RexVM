@@ -160,11 +160,10 @@ namespace RexVM::Native::Misc {
         const auto jzentry = frame.getLocalI8(0);
         const auto fileStat = zipGetFieStat(jzentry);
         const auto type = frame.getLocalI4(2);
-        auto &oopManager = frame.vm.oopManager;
 
         switch (type) {
             case 0: {//JZENTRY_NAME
-                const auto fileNameOop = oopManager->newByteArrayOop(MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE);
+                const auto fileNameOop = frame.mem.newByteArrayOop(MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE);
                 std::copy(fileStat->m_filename, fileStat->m_filename + MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE, fileNameOop->data.get());
                 frame.returnRef(fileNameOop);
                 return;
@@ -198,7 +197,7 @@ namespace RexVM::Native::Misc {
         std::vector<cstring> fileNames;
 
         for (decltype(archive->m_total_files) i = 0; i < archive->m_total_files; ++i) {
-            std::array<char, 512> nameBuffer;
+            std::array<char, 512> nameBuffer{};
             if (!mz_zip_reader_get_filename(archive, i, nameBuffer.data(), sizeof(nameBuffer))) {
                 frame.returnRef(nullptr);
                 return;
@@ -209,9 +208,9 @@ namespace RexVM::Native::Misc {
             }
         }
 
-        const auto result = frame.vm.oopManager->newStringObjArrayOop(fileNames.size());
+        const auto result = frame.mem.newStringObjArrayOop(fileNames.size());
         for (size_t i = 0; i < fileNames.size(); ++i) {
-            result->data[i] = frame.vm.stringPool->getInternString(fileNames[i]);
+            result->data[i] = frame.mem.getInternString(fileNames[i]);
         }
 
         frame.returnRef(result);

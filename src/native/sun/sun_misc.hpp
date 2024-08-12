@@ -46,8 +46,6 @@ namespace RexVM::Native::Sun::Misc {
     }
 
     void newInstance0(Frame &frame) {
-        auto &classLoader = *frame.getCurrentClassLoader();
-        const auto &oopManager = frame.vm.oopManager;
         const auto constructor = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto paramArray = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(1));
 
@@ -56,7 +54,7 @@ namespace RexVM::Native::Sun::Misc {
         const auto srcClass = CAST_INSTANCE_CLASS(srcClassOop->mirrorClass);
         const auto &constructMethod = srcClass->methods.at(slotId);
 
-        const auto instance = oopManager->newInstance(srcClass);
+        const auto instance = frame.mem.newInstance(srcClass);
         std::vector<Slot> constructorParams;
         constructorParams.emplace_back(instance);
         
@@ -64,7 +62,7 @@ namespace RexVM::Native::Sun::Misc {
             for (size_t i = 0; i < paramArray->getDataLength(); ++i) {
                 const auto paramType = constructMethod->paramType[i];
                 const auto val = paramArray->data[i];
-                const auto paramClass = classLoader.getClass(paramType);
+                const auto paramClass = frame.mem.getClass(paramType);
                 if (paramClass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
                     const auto primitiveClass = CAST_PRIMITIVE_CLASS(paramClass);
                     const auto slotVal = primitiveClass->getValueFromBoxingOop(CAST_INSTANCE_OOP(val));
@@ -86,7 +84,7 @@ namespace RexVM::Native::Sun::Misc {
     //native ByteBuffer createLong(String name, int variability, int units, long value);
     void createLong(Frame &frame) {
         //java.nio.ByteBuffer#allocateDirect
-        const auto byteBufferClass = frame.getCurrentClassLoader()->getInstanceClass("java/nio/ByteBuffer");
+        const auto byteBufferClass = frame.mem.getInstanceClass("java/nio/ByteBuffer");
         const auto allocateDirectMethod = byteBufferClass->getMethod("allocateDirect", "(I)Ljava/nio/ByteBuffer;", true);
         const auto [byteBufferOopSlot, slotType] = frame.runMethodManual(*allocateDirectMethod, { Slot(8) });
         frame.returnRef(byteBufferOopSlot.refVal);
@@ -101,7 +99,7 @@ namespace RexVM::Native::Sun::Misc {
     void undGetCwd(Frame &frame) {
         // std::array<char, 512> buffer;
         // getcwd(buffer.data(), sizeof(buffer));
-        const auto byteArrayOop = frame.vm.oopManager->newByteArrayOop(0);
+        const auto byteArrayOop = frame.mem.newByteArrayOop(0);
         frame.returnRef(byteArrayOop);
     }
 

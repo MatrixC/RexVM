@@ -11,16 +11,16 @@
 namespace RexVM {
 
     void throwAssignException(Frame &frame, const cstring &className, const cstring &message) {
-        const auto instanceClass = frame.getCurrentClassLoader()->getInstanceClass(className);
+        const auto instanceClass = frame.mem.getInstanceClass(className);
         instanceClass->clinit(frame);
-        const auto throwable = frame.vm.oopManager->newInstance(instanceClass);
+        const auto throwable = frame.mem.newInstance(instanceClass);
         const auto hasMessage = !message.empty();
         const auto initMethod = instanceClass->getMethod("<init>", hasMessage ? "(Ljava/lang/String;)V" : "()V", false);
         std::vector<Slot> initParams;
         initParams.reserve(2);
         initParams.emplace_back(throwable);
         if (hasMessage) {
-            initParams.emplace_back(frame.vm.stringPool->getInternString(message));
+            initParams.emplace_back(frame.mem.getInternString(message));
         }
         frame.runMethodManual(*initMethod, initParams);
         frame.throwException(throwable);

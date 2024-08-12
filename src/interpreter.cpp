@@ -113,14 +113,14 @@ namespace RexVM {
                 case ConstantTagEnum::CONSTANT_String: {
                     const auto stringConstInfo = CAST_CONSTANT_STRING_INFO(valPtr);
                     const auto strValue = getConstantStringFromPool(constantPool, stringConstInfo->index);
-                    frame.pushRef(frame.vm.stringPool->getInternString(strValue));
+                    frame.pushRef(frame.mem.getInternString(strValue));
                     break;
                 }
 
                 case ConstantTagEnum::CONSTANT_Class: {
                     const auto classConstInfo = CAST_CONSTANT_CLASS_INFO(valPtr);
                     const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
-                    const auto value = frame.classLoader.getClass(className);
+                    const auto value = frame.mem.getClass(className);
                     frame.pushRef(value->mirror.get());
                     break;
                 }
@@ -1032,9 +1032,7 @@ namespace RexVM {
             const cstring &methodDescriptor
         ) {
             const auto invokeMethod = 
-                    frame.getCurrentClassLoader()
-                        ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
-                        ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
+                    frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
             //1第一个参数为MethodHandle Object
             const auto popLength = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
             frame.runMethodInner(*invokeMethod, popLength);
@@ -1108,18 +1106,17 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             const auto &constantPool = frame.constantPool;
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
-            const auto instanceClass = frame.classLoader.getInstanceClass(className);
+            const auto instanceClass = frame.mem.getInstanceClass(className);
             instanceClass->clinit(frame);
-            const auto &oopManager = frame.vm.oopManager;
 
             const auto specialType = instanceClass->specialInstanceClass;
             switch (specialType) {
                 case SpecialInstanceClass::NONE:
-                    frame.pushRef(oopManager->newInstance(instanceClass));
+                    frame.pushRef(frame.mem.newInstance(instanceClass));
                     break;
                 
                 case SpecialInstanceClass::THREAD_CLASS:
-                    frame.pushRef(oopManager->newVMThread(instanceClass));
+                    frame.pushRef(frame.mem.newVMThread(instanceClass));
                     break;
                 
                 case SpecialInstanceClass::CLASS_LOADER_CLASS:
@@ -1129,22 +1126,20 @@ namespace RexVM {
         }
 
         void newarray(Frame &frame) {
-            const auto &oopManager = frame.vm.oopManager;
             const auto type = static_cast<BasicType>(frame.reader.readU1());
             const auto length = frame.popI4();
-            const auto oop = oopManager->newTypeArrayOop(type, length);
+            const auto oop = frame.mem.newTypeArrayOop(type, length);
             frame.pushRef(oop);
         }
 
         void anewarray(Frame &frame) {
-            const auto &oopManager = frame.vm.oopManager;
             const auto classIndex = frame.reader.readU2();
             const auto length = frame.popI4();
             const auto &constantPool = frame.constantPool;
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, classIndex);
             
-            const auto array = frame.classLoader.getObjectArrayClass(className);
-            frame.pushRef(oopManager->newObjArrayOop(array, length));
+            const auto array = frame.mem.getObjectArrayClass(className);
+            frame.pushRef(frame.mem.newObjArrayOop(array, length));
         }
 
         void arraylength(Frame &frame) {
@@ -1168,7 +1163,7 @@ namespace RexVM {
             }
             const auto &constantPool = frame.constantPool;
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
-            const auto checkClass = frame.classLoader.getClass(className);
+            const auto checkClass = frame.mem.getClass(className);
             if (!ref->isInstanceOf(checkClass)) {
                 throwClassCastException(frame, ref->getClass()->name, className);
                 return;
@@ -1184,7 +1179,7 @@ namespace RexVM {
             }
             const auto &constantPool = frame.constantPool;
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
-            const auto checkClass = frame.classLoader.getClass(className);
+            const auto checkClass = frame.mem.getClass(className);
             if (ref->isInstanceOf(checkClass)) {
                 frame.pushI4(1);
             } else {
@@ -1249,16 +1244,16 @@ namespace RexVM {
             }
         }
 
-        ref multiArrayHelper(OopManager &oopManager, ClassLoader &classLoader, std::unique_ptr<i4[]> &dimLength, i4 dimCount, const cstring& name, i4 currentDim) {
+        ref multiArrayHelper(Frame &frame, std::unique_ptr<i4[]> &dimLength, i4 dimCount, const cstring& name, i4 currentDim) {
             const auto arrayLength = dimLength[currentDim];
-            const auto currentArrayClass = classLoader.getArrayClass(name);
+            const auto currentArrayClass = frame.mem.getArrayClass(name);
             ArrayOop *arrayOop;
             if (currentArrayClass->type == ClassTypeEnum::TYPE_ARRAY_CLASS) {
                 const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(currentArrayClass);
-                arrayOop = oopManager.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
+                arrayOop = frame.mem.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
             } else {
                 const auto objArrayClass = CAST_OBJ_ARRAY_CLASS(currentArrayClass);
-                arrayOop = oopManager.newObjArrayOop(objArrayClass, arrayLength);
+                arrayOop = frame.mem.newObjArrayOop(objArrayClass, arrayLength);
             }
 
             if (currentDim == dimCount - 1) {
@@ -1269,15 +1264,13 @@ namespace RexVM {
             if (currentDim < dimCount - 1) {
                 const auto childName = name.substr(1);
                 for (auto i = 0; i < arrayLength; ++i) {
-                    objArrayOop->data[i] = multiArrayHelper(oopManager, classLoader, dimLength, dimCount, childName, currentDim + 1);
+                    objArrayOop->data[i] = multiArrayHelper(frame, dimLength, dimCount, childName, currentDim + 1);
                 }
             }
             return objArrayOop;
         }
 
         void multianewarray(Frame &frame) {
-            const auto &oopManager = frame.vm.oopManager;
-            auto &classLoader = frame.classLoader;
             const auto index = frame.reader.readU2();
             const auto dimension = frame.reader.readU1();
             const auto &constantPool = frame.constantPool;
@@ -1287,7 +1280,7 @@ namespace RexVM {
                 dimLength[i] = frame.popI4();
             }
             
-            const auto multiArray = multiArrayHelper(*oopManager, classLoader, dimLength, dimension, className, 0);
+            const auto multiArray = multiArrayHelper(frame, dimLength, dimension, className, 0);
             frame.pushRef(multiArray);
         }
 

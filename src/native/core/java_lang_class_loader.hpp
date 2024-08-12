@@ -34,7 +34,7 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto className = StringPool::getJavaString(classNameOop);
-        const auto mirrorOop = frame.vm.bootstrapClassLoader->getClass(className)->getMirrorOop();
+        const auto mirrorOop = frame.mem.getClass(className)->getMirrorOop();
         frame.returnRef(mirrorOop);
     }
 
@@ -46,7 +46,7 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto className = getJVMClassName(StringPool::getJavaString(classNameOop));
-        const auto mirrorOop = frame.getCurrentClassLoader()->getClass(className)->getMirrorOop();
+        const auto mirrorOop = frame.mem.getClass(className)->getMirrorOop();
         frame.returnRef(mirrorOop);
     }
 

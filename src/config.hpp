@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 #include <tuple>
+#include <bit>
 #include "basic_macro.hpp"
 #include "os_platform.hpp"
 
@@ -32,7 +33,7 @@ namespace RexVM {
     using cstring = std::string;
     using cview = std::string_view;
     using ustring = std::u16string;
-    using ptr_size = u8;
+    using ptr_addtition = u8;
 
     union Slot {
         i4 i4Val{0};
@@ -127,26 +128,26 @@ namespace RexVM {
         ACC_MANDATED = 0x8000,
     };
 
-    constexpr u8 PS_PTR_LENGTH = 48;
-    constexpr u8 PS_SIZE_LENGTH = 16;
-    constexpr u8 PS_PTR_MASK = 0xffffffffffff;
-    constexpr u8 PS_SIZE_MASK = 0xffff;
+    constexpr u8 PA_PTR_LENGTH = 48;
+    constexpr u8 PA_SIZE_LENGTH = 16;
+    constexpr u8 PA_PTR_MASK = 0xffffffffffff;
+    constexpr u8 PA_ADDITION_MASK = 0xffff;
 
     template<typename T>
     concept Pointer = std::is_pointer_v<T>;
 
     template<Pointer T>
-    T getPtrPS(ptr_size p) {
-        return std::bit_cast<T>(p & PS_PTR_MASK);
+    T getPtrPA(ptr_addtition pa) {
+        return std::bit_cast<T>(pa & PA_PTR_MASK);
     }
 
-    inline size_t getSizePS(ptr_size p) {
-        return CAST_SIZE_T((p >> PS_PTR_LENGTH) & PS_SIZE_MASK);
+    inline size_t getAdditionPA(ptr_addtition pa) {
+        return CAST_SIZE_T((pa >> PA_PTR_LENGTH) & PA_ADDITION_MASK);
     }
 
     template<Pointer T>
-    ptr_size createPS(T ptr, size_t size) {
-        return {(std::bit_cast<ptr_size>(ptr) & PS_PTR_MASK) | (size << PS_PTR_LENGTH)};
+    ptr_addtition createPA(T ptr, size_t addititon) {
+        return (std::bit_cast<ptr_addtition>(ptr) & PA_PTR_MASK) | (addititon << PA_PTR_LENGTH);
     }
 }
 

@@ -8,6 +8,7 @@
 namespace RexVM {
 
     struct VM;
+    struct VMThread;
 
     struct OopManager {
 
@@ -16,30 +17,30 @@ namespace RexVM {
         explicit OopManager(VM &vm);
         std::unordered_set<Oop *> allocatedOop;
 
-        [[nodiscard]] InstanceOop *newInstance(InstanceClass * klass);
-        [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * klass, size_t length);
+        [[nodiscard]] InstanceOop *newInstance(VMThread *thread, InstanceClass * klass);
+        [[nodiscard]] ObjArrayOop *newObjArrayOop(VMThread *thread, ObjArrayClass * klass, size_t length);
 
-        [[nodiscard]] ObjArrayOop *newObjectObjArrayOop(size_t length);
-        [[nodiscard]] ObjArrayOop *newClassObjArrayOop(size_t length);
-        [[nodiscard]] ObjArrayOop *newStringObjArrayOop(size_t length);
+        [[nodiscard]] ObjArrayOop *newObjectObjArrayOop(VMThread *thread, size_t length);
+        [[nodiscard]] ObjArrayOop *newClassObjArrayOop(VMThread *thread, size_t length);
+        [[nodiscard]] ObjArrayOop *newStringObjArrayOop(VMThread *thread, size_t length);
 
-        [[nodiscard]] TypeArrayOop *newTypeArrayOop(BasicType type, size_t length);
-        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length);
-        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer);
-        [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length);
+        [[nodiscard]] TypeArrayOop *newTypeArrayOop(VMThread *thread, BasicType type, size_t length);
+        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(VMThread *thread, size_t length);
+        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(VMThread *thread, size_t length, const u1 *initBuffer);
+        [[nodiscard]] CharTypeArrayOop *newCharArrayOop(VMThread *thread, size_t length);
 
-        [[nodiscard]] InstanceOop *newBooleanOop(i4 value);
-        [[nodiscard]] InstanceOop *newByteOop(i4 value);
-        [[nodiscard]] InstanceOop *newCharOop(i4 value);
-        [[nodiscard]] InstanceOop *newShortOop(i4 value);
-        [[nodiscard]] InstanceOop *newIntegerOop(i4 value);
-        [[nodiscard]] InstanceOop *newFloatOop(f4 value);
-        [[nodiscard]] InstanceOop *newLongOop(i8 value);
-        [[nodiscard]] InstanceOop *newDoubleOop(f8 value);
+        [[nodiscard]] InstanceOop *newBooleanOop(VMThread *thread, i4 value);
+        [[nodiscard]] InstanceOop *newByteOop(VMThread *thread, i4 value);
+        [[nodiscard]] InstanceOop *newCharOop(VMThread *thread, i4 value);
+        [[nodiscard]] InstanceOop *newShortOop(VMThread *thread, i4 value);
+        [[nodiscard]] InstanceOop *newIntegerOop(VMThread *thread, i4 value);
+        [[nodiscard]] InstanceOop *newFloatOop(VMThread *thread, f4 value);
+        [[nodiscard]] InstanceOop *newLongOop(VMThread *thread, i8 value);
+        [[nodiscard]] InstanceOop *newDoubleOop(VMThread *thread, f8 value);
 
 
-        VMThread *newVMThread(InstanceClass * klass);
-        VMThread *newVMThread();
+        VMThread *newVMThread(VMThread *thread, InstanceClass * klass);
+        VMThread *newVMThread(VMThread *thread);
         VMThread *newMainVMThread(Method &method, std::vector<Slot> params);
 
     };

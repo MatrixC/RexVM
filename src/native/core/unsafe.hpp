@@ -302,8 +302,7 @@ namespace RexVM::Native::Core {
     //native Object allocateInstance(Class<?> cls) throws InstantiationException;
     void allocateInstance(Frame &frame) {
         const auto mirrorClass = GET_MIRROR_INSTANCE_CLASS(frame.getLocalRef(1));
-        const auto &oopManager = frame.vm.oopManager;
-        const auto instance = oopManager->newInstance(mirrorClass);
+        const auto instance = frame.mem.newInstance(mirrorClass);
         frame.returnRef(instance);
     }
 

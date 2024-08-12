@@ -24,9 +24,9 @@ namespace RexVM::Native::Core {
     }
 
     template<typename T>
-    T *getTypeArrayClone(OopManager *oopManager, T *src) {
+    T *getTypeArrayClone(Frame &frame, T *src) {
         const auto klass = CAST_TYPE_ARRAY_CLASS(src->getClass());
-        const auto newOop = oopManager->newTypeArrayOop(klass->elementType, src->getDataLength());
+        const auto newOop = frame.mem.newTypeArrayOop(klass->elementType, src->getDataLength());
         auto newArray = static_cast<T *>(newOop);
         std::copy(src->data.get(), src->data.get() + src->getDataLength(), newArray->data.get());
 
@@ -36,9 +36,9 @@ namespace RexVM::Native::Core {
         return newArray;
     }
 
-    ObjArrayOop *getObjArrayClone(OopManager *oopManager, ObjArrayOop *src) {
+    ObjArrayOop *getObjArrayClone(Frame &frame, ObjArrayOop *src) {
         const auto klass = CAST_OBJ_ARRAY_CLASS(src->getClass());
-        const auto newOop = oopManager->newObjArrayOop(klass, src->getDataLength());
+        const auto newOop = frame.mem.newObjArrayOop(klass, src->getDataLength());
         for (size_t i = 0; i < src->getDataLength(); ++i) {
             newOop->data[i] = src->data[i];
         }
@@ -47,16 +47,17 @@ namespace RexVM::Native::Core {
 
     //protected native Object clone() throws CloneNotSupportedException;
     void clone(Frame &frame) {
-        const auto &oopManager = frame.vm.oopManager;
         const auto self = frame.getThis();
         const auto klass = self->getClass();
         switch (klass->getType()) {
-            case ClassTypeEnum::INSTANCE_CLASS:
-                frame.returnRef((CAST_INSTANCE_OOP(self))->clone(*oopManager));
+            case ClassTypeEnum::INSTANCE_CLASS: {
+                const auto newInstance = frame.mem.newInstance((CAST_INSTANCE_OOP(self))->getInstanceClass());
+                frame.returnRef((CAST_INSTANCE_OOP(self))->clone(newInstance));
                 return;
+            }
 
             case ClassTypeEnum::OBJ_ARRAY_CLASS:
-                frame.returnRef(getObjArrayClone(oopManager.get(), CAST_OBJ_ARRAY_OOP(self)));
+                frame.returnRef(getObjArrayClone(frame, CAST_OBJ_ARRAY_OOP(self)));
                 return;
 
             case ClassTypeEnum::TYPE_ARRAY_CLASS: {
@@ -64,31 +65,31 @@ namespace RexVM::Native::Core {
                 switch (typeArrayKlass->elementType) {
                     case BasicType::T_BOOLEAN:
                     case BasicType::T_BYTE:
-                        frame.returnRef(getTypeArrayClone(oopManager.get(), CAST_BYTE_TYPE_ARRAY_OOP(self)));
+                        frame.returnRef(getTypeArrayClone(frame, CAST_BYTE_TYPE_ARRAY_OOP(self)));
                         return;
 
                     case BasicType::T_CHAR:
-                        frame.returnRef(getTypeArrayClone(oopManager.get(), CAST_CHAR_TYPE_ARRAY_OOP(self)));
+                        frame.returnRef(getTypeArrayClone(frame, CAST_CHAR_TYPE_ARRAY_OOP(self)));
                         return;
 
                     case BasicType::T_FLOAT:
-                        frame.returnRef(getTypeArrayClone(oopManager.get(), CAST_FLOAT_TYPE_ARRAY_OOP(self)));
+                        frame.returnRef(getTypeArrayClone(frame, CAST_FLOAT_TYPE_ARRAY_OOP(self)));
                         return;
 
                     case BasicType::T_DOUBLE:
-                        frame.returnRef(getTypeArrayClone(oopManager.get(), CAST_DOUBLE_TYPE_ARRAY_OOP(self)));
+                        frame.returnRef(getTypeArrayClone(frame, CAST_DOUBLE_TYPE_ARRAY_OOP(self)));
                         return;
                     
                     case BasicType::T_SHORT:
-                        frame.returnRef(getTypeArrayClone(oopManager.get(), CAST_SHORT_TYPE_ARRAY_OOP(self)));
+                        frame.returnRef(getTypeArrayClone(frame, CAST_SHORT_TYPE_ARRAY_OOP(self)));
                         return;
 
                     case BasicType::T_INT:
-                        frame.returnRef(getTypeArrayClone(oopManager.get(), CAST_INT_TYPE_ARRAY_OOP(self)));
+                        frame.returnRef(getTypeArrayClone(frame, CAST_INT_TYPE_ARRAY_OOP(self)));
                         return;
 
                     case BasicType::T_LONG:
-                        frame.returnRef(getTypeArrayClone(oopManager.get(), CAST_LONG_TYPE_ARRAY_OOP(self)));
+                        frame.returnRef(getTypeArrayClone(frame, CAST_LONG_TYPE_ARRAY_OOP(self)));
                         return;
                     
                     default:

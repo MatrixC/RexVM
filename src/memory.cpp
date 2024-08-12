@@ -13,7 +13,7 @@ namespace RexVM {
 
     }
 
-    InstanceOop *OopManager::newInstance(InstanceClass * const klass) {
+    InstanceOop *OopManager::newInstance(VMThread *thread, InstanceClass * klass) {
         const auto oop = new InstanceOop(klass, klass->instanceSlotCount);
         allocatedOop.insert(oop);
         return oop;
@@ -25,7 +25,7 @@ namespace RexVM {
 
         const auto threadGroupClass = 
             vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
-        const auto vmThreadGroup = newInstance(threadGroupClass);
+        const auto vmThreadGroup = newInstance(nullptr, threadGroupClass);
 
         const auto oop = new VMThread(vm, threadClass, &method, std::move(params));
         oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
@@ -34,13 +34,13 @@ namespace RexVM {
         return oop;
     }
 
-    VMThread *OopManager::newVMThread(InstanceClass * const klass) {
+    VMThread *OopManager::newVMThread(VMThread *thread, InstanceClass * const klass) {
         const auto oop = new VMThread(vm, klass, nullptr, {});
         allocatedOop.insert(oop);
         return oop;
     }
 
-    VMThread *OopManager::newVMThread() {
+    VMThread *OopManager::newVMThread(VMThread *thread) {
         const auto threadClass = 
             vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
         const auto oop = new VMThread(vm, threadClass, nullptr, {});
@@ -48,28 +48,28 @@ namespace RexVM {
         return oop;
     }
 
-    ObjArrayOop *OopManager::newObjArrayOop(ObjArrayClass * const klass, size_t length) {
+    ObjArrayOop *OopManager::newObjArrayOop(VMThread *thread, ObjArrayClass * const klass, size_t length) {
         const auto oop = new ObjArrayOop(klass, length);
         allocatedOop.insert(oop);
         return oop;
     }
 
-    ObjArrayOop *OopManager::newObjectObjArrayOop(size_t length) {
+    ObjArrayOop *OopManager::newObjectObjArrayOop(VMThread *thread, size_t length) {
         const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_OBJECT_NAME);
-        return newObjArrayOop(klass, length);
+        return newObjArrayOop(thread, klass, length);
     }
 
-    ObjArrayOop *OopManager::newClassObjArrayOop(size_t length) {
+    ObjArrayOop *OopManager::newClassObjArrayOop(VMThread *thread, size_t length) {
         const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_CLASS_NAME);
-        return newObjArrayOop(klass, length);
+        return newObjArrayOop(thread, klass, length);
     }
 
-    ObjArrayOop *OopManager::newStringObjArrayOop(size_t length) {
+    ObjArrayOop *OopManager::newStringObjArrayOop(VMThread *thread, size_t length) {
         const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_STRING_NAME);
-        return newObjArrayOop(klass, length);
+        return newObjArrayOop(thread, klass, length);
     }
 
-    TypeArrayOop *OopManager::newTypeArrayOop(BasicType type, size_t length) {
+    TypeArrayOop *OopManager::newTypeArrayOop(VMThread *thread, BasicType type, size_t length) {
         TypeArrayOop *oop = nullptr;
         const auto klass = vm.bootstrapClassLoader->getTypeArrayClass(type);
         switch (type) {
@@ -111,78 +111,78 @@ namespace RexVM {
         return oop;
     }
 
-    ByteTypeArrayOop *OopManager::newByteArrayOop(size_t length) {
+    ByteTypeArrayOop *OopManager::newByteArrayOop(VMThread *thread, size_t length) {
         const auto klass = vm.bootstrapClassLoader->getTypeArrayClass(BasicType::T_BYTE);
         const auto oop = new ByteTypeArrayOop(klass, length);
         allocatedOop.insert(oop);
         return oop;
     }
 
-    ByteTypeArrayOop *OopManager::newByteArrayOop(size_t length, const u1 *initBuffer) {
-        const auto oop = newByteArrayOop(length);
+    ByteTypeArrayOop *OopManager::newByteArrayOop(VMThread *thread, size_t length, const u1 *initBuffer) {
+        const auto oop = newByteArrayOop(thread, length);
         std::copy(initBuffer, initBuffer + length, oop->data.get());
         return oop;
     }
 
-    CharTypeArrayOop *OopManager::newCharArrayOop(size_t length) {
+    CharTypeArrayOop *OopManager::newCharArrayOop(VMThread *thread, size_t length) {
         const auto klass = vm.bootstrapClassLoader->getTypeArrayClass(BasicType::T_CHAR);
         const auto oop = new CharTypeArrayOop(klass, length);
         allocatedOop.insert(oop);
         return oop;
     }
 
-    InstanceOop *OopManager::newBooleanOop(i4 value) {
+    InstanceOop *OopManager::newBooleanOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_BOOLEAN);
-        const auto integerOop = newInstance(klass);
+        const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "Z", Slot(value));
         return integerOop;
     }
 
-    InstanceOop *OopManager::newByteOop(i4 value) {
+    InstanceOop *OopManager::newByteOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_BYTE);
-        const auto integerOop = newInstance(klass);
+        const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "B", Slot(value));
         return integerOop;
     }
 
-    InstanceOop *OopManager::newCharOop(i4 value) {
+    InstanceOop *OopManager::newCharOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_CHARACTER);
-        const auto integerOop = newInstance(klass);
+        const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "C", Slot(value));
         return integerOop;
     }
 
-    InstanceOop *OopManager::newShortOop(i4 value) {
+    InstanceOop *OopManager::newShortOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SHORT);
-        const auto integerOop = newInstance(klass);
+        const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "S", Slot(value));
         return integerOop;
     }
 
-    InstanceOop *OopManager::newIntegerOop(i4 value) {
+    InstanceOop *OopManager::newIntegerOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INTEGER);
-        const auto integerOop = newInstance(klass);
+        const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "I", Slot(value));
         return integerOop;
     }
 
-    InstanceOop *OopManager::newFloatOop(f4 value) {
+    InstanceOop *OopManager::newFloatOop(VMThread *thread, f4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_FLOAT);
-        const auto integerOop = newInstance(klass);
+        const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "F", Slot(value));
         return integerOop;
     }
 
-    InstanceOop *OopManager::newLongOop(i8 value) {
+    InstanceOop *OopManager::newLongOop(VMThread *thread, i8 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_LONG);
-        const auto integerOop = newInstance(klass);
+        const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "J", Slot(value));
         return integerOop;
     }
 
-    InstanceOop *OopManager::newDoubleOop(f8 value) {
+    InstanceOop *OopManager::newDoubleOop(VMThread *thread, f8 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_DOUBLE);
-        const auto integerOop = newInstance(klass);
+        const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "D", Slot(value));
         return integerOop;
     }

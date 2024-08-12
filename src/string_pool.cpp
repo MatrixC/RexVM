@@ -6,6 +6,7 @@
 #include "vm.hpp"
 #include "key_slot_id.hpp"
 #include "memory.hpp"
+#include "frame.hpp"
 
 namespace RexVM {
 
@@ -26,42 +27,54 @@ namespace RexVM {
         return utf16ToUtf8(char16Ptr, charArray->getDataLength());
     }
 
-    InstanceOop *StringPool::getInternString(const RexVM::cstring &str) {
+    InstanceOop *StringPool::getInternString(const cstring &str) {
         std::lock_guard<std::mutex> lock(mtx);
         InstanceOop *result = nullptr;
         if (stringTable->find(str, result)) {
             return result;
         }
-        result = createJavaString(str);
+        result = createJavaString(nullptr, str);
         stringTable->insert(str, result);
         return result;
     }
 
-    InstanceOop *StringPool::getInternStringOld(const cstring &str) {
+    InstanceOop *StringPool::getInternString(VMThread *thread, const cstring &str) {
         std::lock_guard<std::mutex> lock(mtx);
-        if (const auto iter = internMap.find(str); iter != internMap.end()) {
-            return iter->second;
+        InstanceOop *result = nullptr;
+        if (stringTable->find(str, result)) {
+            return result;
         }
-        auto stringPtr = createJavaString(str);
-        internMap.emplace(str, stringPtr);
-        return stringPtr;
+        result = createJavaString(thread, str);
+        stringTable->insert(str, result);
+        return result;
     }
+
+
+//    InstanceOop *StringPool::getInternStringOld(const cstring &str) {
+//        std::lock_guard<std::mutex> lock(mtx);
+//        if (const auto iter = internMap.find(str); iter != internMap.end()) {
+//            return iter->second;
+//        }
+//        auto stringPtr = createJavaString(str);
+//        internMap.emplace(str, stringPtr);
+//        return stringPtr;
+//    }
 
     void StringPool::gcStringOop(InstanceOop *oop) {
         std::lock_guard<std::mutex> lock(mtx);
         stringTable->erase(oop);
     }
 
-    InstanceOop *StringPool::createJavaString(const cstring &str) const {
+    InstanceOop *StringPool::createJavaString(VMThread *thread, const cstring &str) const {
         const auto utf16Vec = utf8ToUtf16Vec(str.c_str(), str.size());
         const auto utf16Ptr = utf16Vec.data();
         const auto utf16Length = utf16Vec.size();
 
-        const auto charArrayOop = vm.oopManager->newCharArrayOop(utf16Length);
+        const auto charArrayOop = vm.oopManager->newCharArrayOop(thread, utf16Length);
         if (utf16Length > 0) [[likely]] {
             std::memcpy(charArrayOop->data.get(), utf16Ptr, sizeof(cchar_16) * utf16Length);
         }
-        auto result = vm.oopManager->newInstance(stringClass);
+        auto result = vm.oopManager->newInstance(thread, stringClass);
         result->setFieldValue(stringClassValueFieldSlotId, Slot(charArrayOop));
         return result;
     }

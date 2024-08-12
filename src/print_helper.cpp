@@ -83,7 +83,7 @@ namespace RexVM {
             panic("oop is not array type");
         }
 
-        const auto arraysClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Arrays");
+        const auto arraysClass = frame.mem.getInstanceClass("java/util/Arrays");
         const auto arrayClassName = 
             klass->getType() == ClassTypeEnum::TYPE_ARRAY_CLASS ? 
                 cformat("({})Ljava/lang/String;", klass->name) :
@@ -96,7 +96,7 @@ namespace RexVM {
 
     cstring formatInstance(Frame &frame, InstanceOop *oop) {
         const auto className = oop->getClass()->name;
-        const auto objectsClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Objects");
+        const auto objectsClass = frame.mem.getInstanceClass("java/util/Objects");
         const auto toStringMethod = objectsClass->getMethod("toString", "(Ljava/lang/Object;)Ljava/lang/String;", true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
         auto ret = val.refVal == nullptr ? "null" : StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));

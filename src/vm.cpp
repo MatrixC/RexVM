@@ -11,6 +11,7 @@
 #include "memory.hpp"
 #include "execute.hpp"
 #include "file_system.hpp"
+#include "finalize.hpp"
 
 
 namespace RexVM {
@@ -67,6 +68,10 @@ namespace RexVM {
         runStaticMethodOnMainThread(*this, *initMethod, {});
     }
 
+    void VM::initCollector() {
+        collector = std::make_unique<Collector>(*this);
+    }
+
     void VM::runMainMethod() {
         const auto userParams = params.userParams;
 
@@ -83,7 +88,7 @@ namespace RexVM {
             std::exit(1);
         }
         const auto mainMethodParmSize = userParams.size() - 1;
-        const auto stringArray = oopManager->newStringObjArrayOop(mainMethodParmSize);
+        const auto stringArray = oopManager->newStringObjArrayOop(nullptr, mainMethodParmSize);
 
         if (userParams.size() > 1) {
             for (size_t i = 1; i < userParams.size(); ++i) {
@@ -114,11 +119,17 @@ namespace RexVM {
         vmThreadDeque.emplace_back(thread);
     }
 
+    size_t VM::getActiveThreadCount() {
+        std::lock_guard<std::mutex> lock(vmThreadMtx);
+        return vmThreadDeque.size();
+    }
+
     VM::VM(ApplicationParameter &params) : params(params) {
     }
 
     void VM::start() {
         initClassPath();
+        initCollector();
         initOopManager();
         initBootstrapClassLoader();
         initStringPool();
@@ -131,8 +142,6 @@ namespace RexVM {
         VM vm(param);
         vm.start();
         collectAll(vm);
-
-        cprintln("{}", sizeof(Oop));
     }
 
 }

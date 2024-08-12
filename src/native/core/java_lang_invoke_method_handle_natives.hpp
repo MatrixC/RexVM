@@ -88,7 +88,6 @@ namespace RexVM::Native::Core {
             panic("can't be nullptr error throws");
             return;
         }
-        auto &classLoader = *frame.getCurrentClassLoader();
 
         auto clazz = GET_MIRROR_CLASS(memberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
         const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
@@ -99,7 +98,7 @@ namespace RexVM::Native::Core {
         if (clazz == nullptr) {
             panic("resolve error");
         } else if (clazz->getType() == ClassTypeEnum::TYPE_ARRAY_CLASS || clazz->getType() == ClassTypeEnum::OBJ_ARRAY_CLASS) {
-            clazz = classLoader.getClass(JAVA_LANG_OBJECT_NAME);
+            clazz = frame.mem.getClass(JAVA_LANG_OBJECT_NAME);
         }
         const auto instanceClass = CAST_INSTANCE_CLASS(clazz);
         const auto descriptor = methodHandleGetDescriptor(clazz, type, name);
@@ -182,8 +181,6 @@ namespace RexVM::Native::Core {
         size_t index,
         std::vector<Slot> &params
     ) {
-        auto &classLoader = *frame.getCurrentClassLoader();
-        const auto &oopManager = frame.vm.oopManager;
         //const auto paramSlotType = methodPtr->paramSlotType[index];
 
         const auto &methodParamType = methodPtr->paramType;
@@ -202,7 +199,7 @@ namespace RexVM::Native::Core {
             }
             return;
         }
-        const auto paramClass = classLoader.getClass(paramType);
+        const auto paramClass = frame.mem.getClass(paramType);
         const auto className = paramClass->name;
         //两种情况 传参是REF 函数需要Primitive 或者相反
         if (type == SlotTypeEnum::REF) {
@@ -219,21 +216,21 @@ namespace RexVM::Native::Core {
         } else {
             //Box
             if (className == JAVA_LANG_INTEGER_NAME) {
-                params.emplace_back(oopManager->newIntegerOop(val.i4Val));
+                params.emplace_back(frame.mem.newIntegerOop(val.i4Val));
             } else if (className == JAVA_LANG_LONG_NAME) {
-                params.emplace_back(oopManager->newLongOop(val.i8Val));
+                params.emplace_back(frame.mem.newLongOop(val.i8Val));
             } else if (className == JAVA_LANG_FLOAT_NAME) {
-                params.emplace_back(oopManager->newFloatOop(val.f4Val));
+                params.emplace_back(frame.mem.newFloatOop(val.f4Val));
             } else if (className == JAVA_LANG_DOUBLE_NAME) {
-                params.emplace_back(oopManager->newDoubleOop(val.f8Val));
+                params.emplace_back(frame.mem.newDoubleOop(val.f8Val));
             } else if (className == JAVA_LANG_BOOLEAN_NAME) {
-                params.emplace_back(oopManager->newBooleanOop(val.i4Val));
+                params.emplace_back(frame.mem.newBooleanOop(val.i4Val));
             } else if (className == JAVA_LANG_BYTE_NAME) {
-                params.emplace_back(oopManager->newByteOop(val.i4Val));
+                params.emplace_back(frame.mem.newByteOop(val.i4Val));
             } else if (className == JAVA_LANG_CHARACTER_NAME) {
-                params.emplace_back(oopManager->newCharOop(val.i4Val));
+                params.emplace_back(frame.mem.newCharOop(val.i4Val));
             } else if (className == JAVA_LANG_SHORT_NAME) {
-                params.emplace_back(oopManager->newShortOop(val.i4Val));
+                params.emplace_back(frame.mem.newShortOop(val.i4Val));
             } else {
                 panic("error");
             }
@@ -255,7 +252,7 @@ namespace RexVM::Native::Core {
         if (lastParamType == "[Ljava/lang/Object;") {
             //最后一个参数是数组
             const auto foldParamSize = params.size() - methodPtr->paramSlotSize + 1;
-            const auto arrayOop = frame.vm.oopManager->newObjectObjArrayOop(foldParamSize);
+            const auto arrayOop = frame.mem.newObjectObjArrayOop(foldParamSize);
             for (size_t i = 0; i < foldParamSize; ++i) {
                 arrayOop->data[i] = params[methodPtr->paramSlotSize - 1 + i].refVal;
             }
@@ -300,8 +297,6 @@ namespace RexVM::Native::Core {
     }
 
     void methodHandleInvoke(Frame &frame) {
-        auto &classLoader = *frame.getCurrentClassLoader();
-        const auto &oopManager = frame.vm.oopManager;
         const auto self = frame.getThisInstance();
 
         std::vector<Slot> prefixParam;
@@ -325,7 +320,7 @@ namespace RexVM::Native::Core {
         if ((kind == MethodHandleEnum::REF_invokeSpecial || kind == MethodHandleEnum::REF_newInvokeSpecial) 
                 && methodPtr->name == "<init>") {
             //Constructor
-            const auto newInstance = oopManager->newInstance(&methodPtr->klass);
+            const auto newInstance = frame.mem.newInstance( &methodPtr->klass);
             const auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) }, true);
             frame.runMethodManualTypes(*methodPtr, paramsWithType);
             frame.returnRef(newInstance);
@@ -367,12 +362,12 @@ namespace RexVM::Native::Core {
         if (frame.markThrow) {
             return;
         }
-        const auto returnClass = classLoader.getClass(methodPtr->returnType);
+        const auto returnClass = frame.mem.getClass(methodPtr->returnType);
         ref oopResult = nullptr;
         if (slotType != SlotTypeEnum::NONE) {
             if (returnClass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
                 const auto returnPrimitiveClass = CAST_PRIMITIVE_CLASS(returnClass);
-                oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, *oopManager);
+                oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, frame);
             } else {
                 oopResult = result.refVal;
             }

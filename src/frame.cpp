@@ -1,4 +1,5 @@
 #include "frame.hpp"
+#include <utility>
 #include "constant_info.hpp"
 #include "class_member.hpp"
 #include "oop.hpp"
@@ -6,8 +7,7 @@
 #include "vm.hpp"
 #include "execute.hpp"
 #include "print_helper.hpp"
-#include <utility>
-
+#include "frame_memory_handler.hpp"
 
 namespace RexVM {
 
@@ -45,6 +45,7 @@ namespace RexVM {
             thread(thread),
             method(method),
             klass(method.klass),
+            mem(FrameMemoryHandler(*this)),
             constantPool(klass.constantPool),
             classLoader(klass.classLoader) {
         const auto nativeMethod = method.isNative();
@@ -345,7 +346,6 @@ namespace RexVM {
         return operandStackContext.getStackOffset(offset);
     }
 
-
     ref Frame::getThis() const {
         return getLocalRef(0);
     }
@@ -404,5 +404,6 @@ namespace RexVM {
         printStackSlot();
         printReturn();
     }
+
 
 }
