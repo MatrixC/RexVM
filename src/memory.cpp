@@ -240,7 +240,7 @@ namespace RexVM {
 
     void collectOop(ref oop) {
         const auto klass = oop->getClass();
-        if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
+        if (klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
             const auto instanceClass = CAST_INSTANCE_CLASS(klass);
             const auto finalizeMethod = instanceClass->getMethodSelf("finalize", "()V", false);
             if (finalizeMethod != nullptr) {

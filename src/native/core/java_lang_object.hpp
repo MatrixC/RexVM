@@ -50,7 +50,7 @@ namespace RexVM::Native::Core {
         const auto &oopManager = frame.vm.oopManager;
         const auto self = frame.getThis();
         const auto klass = self->getClass();
-        switch (klass->type) {
+        switch (klass->getType()) {
             case ClassTypeEnum::INSTANCE_CLASS:
                 frame.returnRef((CAST_INSTANCE_OOP(self))->clone(*oopManager));
                 return;

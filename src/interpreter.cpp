@@ -1057,7 +1057,7 @@ namespace RexVM {
             const auto instance = frame.getStackOffset(paramSlotSize - 1).refVal;
             ASSERT_IF_NULL_THROW_NPE(instance);
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
-            for (auto k = instanceClass; k != nullptr; k = k->superClass) {
+            for (auto k = instanceClass; k != nullptr; k = k->getSuperClass()) {
                 const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
                 if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {
                     frame.runMethodInner(*realInvokeMethod);

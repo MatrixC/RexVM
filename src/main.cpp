@@ -31,7 +31,6 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
     return 0;
 }
 
-
 int main(int argc, char *argv[]) {
     ApplicationParameter applicationParameter;
     if (parseArgs(argc, argv, applicationParameter) == 0) {

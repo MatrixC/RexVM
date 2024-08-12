@@ -47,7 +47,7 @@ namespace RexVM::Native::Core {
             throwClassNotFoundException(frame, className);
             return;
         }
-        if (initialize && klass->type == ClassTypeEnum::INSTANCE_CLASS) {
+        if (initialize && klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
             CAST_INSTANCE_CLASS(klass)->clinit(frame);
         }
         frame.returnRef(klass->getMirrorOop());
@@ -102,7 +102,7 @@ namespace RexVM::Native::Core {
     void getModifiers(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
         const auto removeSuper = ~CAST_I4(AccessFlagEnum::ACC_SUPER);
-        frame.returnI4(CAST_I4(mirrorClass->accessFlags) & removeSuper);
+        frame.returnI4(CAST_I4(mirrorClass->getAccessFlags()) & removeSuper);
     }
 
     //native boolean isInstance(Object obj);
@@ -121,7 +121,7 @@ namespace RexVM::Native::Core {
     //native Class<? super T> getSuperclass();
     void getSuperclass(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
-        const auto superClass = mirrorClass->superClass;
+        const auto superClass = mirrorClass->getSuperClass();
         if (superClass == nullptr) {
             frame.returnRef(nullptr);
         } else {
@@ -380,10 +380,10 @@ namespace RexVM::Native::Core {
         }
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
 
-        const auto &interfaces = instanceMirrorClass->interfaces;
-        const auto retArrayOop = oopManager->newClassObjArrayOop(interfaces.size());
-         for (size_t i = 0; i < interfaces.size(); ++i) {
-            retArrayOop->data[i] = interfaces.at(i)->getMirrorOop();
+        const auto interfaceSize = instanceMirrorClass->getInterfaceSize();
+        const auto retArrayOop = oopManager->newClassObjArrayOop(interfaceSize);
+        FOR_FROM_ZERO(interfaceSize) {
+            retArrayOop->data[i] = instanceMirrorClass->getInterfaceByIndex(i)->getMirrorOop();
         }
 
         frame.returnRef(retArrayOop);
@@ -696,7 +696,7 @@ namespace RexVM::Native::Core {
     void getClassAccessFlags(Frame &frame) {
         const auto instance = CAST_MIRROR_OOP(frame.getThis());
         const auto mirrorClass = instance->mirrorClass;
-        frame.returnI4(CAST_I4(mirrorClass->accessFlags));
+        frame.returnI4(CAST_I4(mirrorClass->getAccessFlags()));
     }
 
 }

@@ -20,6 +20,26 @@ namespace RexVM {
             type(type), accessFlags(accessFlags), name(std::move(name)), classLoader(classLoader) {
     }
 
+    ClassTypeEnum Class::getType() const {
+        return type;
+    }
+
+    u2 Class::getAccessFlags() const {
+        return accessFlags;
+    }
+
+    size_t Class::getInterfaceSize() const {
+        return interfaces.size();
+    }
+
+    InstanceClass *Class::getInterfaceByIndex(size_t index) const {
+        return interfaces.data()[index];
+    }
+
+    InstanceClass *Class::getSuperClass() const {
+        return superClass;
+    }
+
     bool Class::isInstanceClass() const {
         return type == ClassTypeEnum::INSTANCE_CLASS;
     }
@@ -102,7 +122,7 @@ namespace RexVM {
 
 
     bool Class::isSubClassOf(const Class *that) const {
-        for (auto c = this->superClass; c != nullptr; c = c->superClass) {
+        for (auto c = this->getSuperClass(); c != nullptr; c = c->getSuperClass()) {
             if (c == that) {
                 return true;
             }
@@ -116,8 +136,9 @@ namespace RexVM {
         }
         auto self = static_cast<const InstanceClass *>(this);
         auto interface = static_cast<const InstanceClass *>(that);
-        for (auto c = self; c != nullptr; c = c->superClass) {
-            for (const auto &item: c->interfaces) {
+        for (auto c = self; c != nullptr; c = c->getSuperClass()) {
+            FOR_FROM_ZERO(c->getInterfaceSize()) {
+                const auto item = c->getInterfaceByIndex(i);
                 if (item == interface || item->isSubInterfaceOf(interface)) {
                     return true;
                 }
@@ -132,7 +153,8 @@ namespace RexVM {
         }
         auto self = static_cast<const InstanceClass *>(this);
         auto interface = static_cast<const InstanceClass *>(that);
-        for (const auto &item: self->interfaces) {
+        FOR_FROM_ZERO(self->getInterfaceSize()) { 
+            const auto item = self->getInterfaceByIndex(i);
             if (item == interface || item->isSubInterfaceOf(interface)) {
                 return true;
             }
@@ -224,8 +246,6 @@ namespace RexVM {
         moveConstantPool(cf);
         calcFieldSlotId();
         initStaticField();
-
-
     }
 
     void InstanceClass::initAttributes(ClassFile &cf) {
@@ -334,7 +354,7 @@ namespace RexVM {
         staticDataType = std::make_unique<SlotTypeEnum[]>(staticSlotCount);
         staticData = std::make_unique<Slot[]>(staticSlotCount);
 
-        for (auto klass = this; klass != nullptr; klass = klass->superClass) {
+        for (auto klass = this; klass != nullptr; klass = klass->getSuperClass()) {
             for (const auto &field: klass->fields) {
                 if (field->isStatic()) {
                     if (klass == this) {

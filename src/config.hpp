@@ -32,8 +32,9 @@ namespace RexVM {
     using cstring = std::string;
     using cview = std::string_view;
     using ustring = std::u16string;
+    using ptr_size = u8;
 
-    union alignas(8) Slot {
+    union Slot {
         i4 i4Val{0};
         i8 i8Val;
         f4 f4Val;
@@ -57,10 +58,6 @@ namespace RexVM {
 
         explicit Slot(ref val) : refVal(val) {
         }
-
-        // bool operator==(const Slot& other) const {
-        //     return i8Val == other.i8Val;
-        // }
     };
 
     enum class SlotTypeEnum : u1 {
@@ -129,9 +126,29 @@ namespace RexVM {
         ACC_MODULE = 0x8000,
         ACC_MANDATED = 0x8000,
     };
+
+    constexpr u8 PS_PTR_LENGTH = 48;
+    constexpr u8 PS_SIZE_LENGTH = 16;
+    constexpr u8 PS_PTR_MASK = 0xffffffffffff;
+    constexpr u8 PS_SIZE_MASK = 0xffff;
+
+    template<typename T>
+    concept Pointer = std::is_pointer_v<T>;
+
+    template<Pointer T>
+    T getPtrPS(ptr_size p) {
+        return std::bit_cast<T>(p & PS_PTR_MASK);
+    }
+
+    inline size_t getSizePS(ptr_size p) {
+        return CAST_SIZE_T((p >> PS_PTR_LENGTH) & PS_SIZE_MASK);
+    }
+
+    template<Pointer T>
+    ptr_size createPS(T ptr, size_t size) {
+        return {(std::bit_cast<ptr_size>(ptr) & PS_PTR_MASK) | (size << PS_PTR_LENGTH)};
+    }
 }
-
-
 
 
 #endif

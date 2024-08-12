@@ -27,7 +27,7 @@ namespace RexVM {
     }
 
     void pClass(Class *klass) {
-        switch (klass->type) {
+        switch (klass->getType()) {
             case ClassTypeEnum::PRIMITIVE_CLASS: {
                 const auto clazz = CAST_PRIMITIVE_CLASS(klass);
                 cprintln("PrimitiveClass({}): {}", getPrimitiveClassNameByBasicType(clazz->basicType), clazz->name);
@@ -45,14 +45,13 @@ namespace RexVM {
                     cprintln("Method: {}, descritpro: {}", item->name, item->descriptor);
                 }
                 cprintln("");
-                if (clazz->superClass != nullptr) {
-                    cprintln("SuperClass: {}", clazz->superClass->name);
+                if (clazz->getSuperClass() != nullptr) {
+                    cprintln("SuperClass: {}", clazz->getSuperClass()->name);
                 }
                 cprintln("");
-                if (!clazz->interfaces.empty()) {
-                    for (const auto &item : clazz->interfaces) {
-                        cprintln("Interface: {}", item->name);
-                    }
+                FOR_FROM_ZERO(clazz->getInterfaceSize()) {
+                    const auto item = clazz->getInterfaceByIndex(i);
+                    cprintln("Interface: {}", item->name);
                 }
                 break;
             }
@@ -86,7 +85,7 @@ namespace RexVM {
 
         const auto arraysClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Arrays");
         const auto arrayClassName = 
-            klass->type == ClassTypeEnum::TYPE_ARRAY_CLASS ? 
+            klass->getType() == ClassTypeEnum::TYPE_ARRAY_CLASS ? 
                 cformat("({})Ljava/lang/String;", klass->name) :
                 "([Ljava/lang/Object;)Ljava/lang/String;";
         const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);

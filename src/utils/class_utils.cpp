@@ -24,10 +24,10 @@ namespace RexVM {
     }
 
     cstring getDescriptorByClass(Class *klass) {
-        if (klass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
+        if (klass->getType() == ClassTypeEnum::PRIMITIVE_CLASS) {
             const auto descriptor = getDescriptorByPrimitiveClassName(klass->name);
             return cstring{CAST_CHAR(descriptor)};
-        } else if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
+        } else if (klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
             return getDescriptorClassName(klass->name);
         } else {
             return klass->name;

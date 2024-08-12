@@ -9,7 +9,7 @@ namespace RexVM {
     SpinLock Oop::monitorLock;
 
     Oop::Oop(Class *klass, size_t dataLength) :
-            mark1((std::bit_cast<u8>(klass) & OOP_MARK_PTR_MASK) | (dataLength << OOP_MARK_PTR_LENGTH_BIT)) {
+            mark1(createPS(klass, dataLength)) {
         if (dataLength >= 65535) {
             panic("not support");
         }
@@ -24,15 +24,15 @@ namespace RexVM {
     }
 
     Class *Oop::getClass() const {
-        return std::bit_cast<Class *>(mark1 & OOP_MARK_PTR_MASK);
+        return getPtrPS<Class *>(mark1);
     }
 
     OopMonitor *Oop::getMonitor() const {
-        return std::bit_cast<OopMonitor *>(mark2 & OOP_MARK_PTR_MASK);
+        return getPtrPS<OopMonitor *>(mark2);
     }
 
     size_t Oop::getDataLength() const {
-         return (mark1 >> OOP_MARK_PTR_LENGTH_BIT) & OOP_MARK1_DATA_LENGTH_MASK;
+        return getSizePS(mark1);
     }
 
     OopTypeEnum Oop::getType() const {
@@ -53,7 +53,7 @@ namespace RexVM {
         if (getMonitor() == nullptr) [[unlikely]] {
             Oop::monitorLock.lock();
             if (getMonitor() == nullptr) {
-                mark2 = std::bit_cast<u8>(new OopMonitor) & OOP_MARK_PTR_MASK;
+                mark2 = createPS(new OopMonitor, 0);
             }
             Oop::monitorLock.unlock();
         }
@@ -116,8 +116,8 @@ namespace RexVM {
                 }
             }
         }
-        if (klass->superClass != nullptr) {
-            initInstanceField(oop, klass->superClass);
+        if (klass->getSuperClass() != nullptr) {
+            initInstanceField(oop, klass->getSuperClass());
         }
     }
 

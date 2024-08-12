@@ -31,11 +31,6 @@ namespace RexVM {
         std::condition_variable_any monitorCv;
     };
 
-    constexpr u8 OOP_MARK_PTR_LENGTH_BIT = 48;
-    constexpr u8 OOP_MARK_PTR_MASK = 0xffffffffffff;
-    constexpr u8 OOP_MARK1_DATA_LENGTH_BIT = 16;
-    constexpr u8 OOP_MARK1_DATA_LENGTH_MASK = 0xffff;
-
     struct Oop {
         static SpinLock monitorLock;
     private:
@@ -43,10 +38,11 @@ namespace RexVM {
         //data部分可改用32bit的Slot 进一步减少占用 或依然使用64slot 但进行一次field slotId重计算 在取数时做处理
         //data指针考虑使用弹性数组
 
+
         //low[ classPtr(48) dataLength(16) ]high
-        u8 mark1{0};
+        ptr_size mark1{0};
         //low[ mutexPtr(48) finalize(1) ]high
-        volatile u8 mark2{0};
+        volatile ptr_size mark2{0};
 
         [[nodiscard]] OopMonitor *getMonitor() const;
 

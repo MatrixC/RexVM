@@ -98,7 +98,7 @@ namespace RexVM::Native::Core {
 
         if (clazz == nullptr) {
             panic("resolve error");
-        } else if (clazz->type == ClassTypeEnum::TYPE_ARRAY_CLASS || clazz->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
+        } else if (clazz->getType() == ClassTypeEnum::TYPE_ARRAY_CLASS || clazz->getType() == ClassTypeEnum::OBJ_ARRAY_CLASS) {
             clazz = classLoader.getClass(JAVA_LANG_OBJECT_NAME);
         }
         const auto instanceClass = CAST_INSTANCE_CLASS(clazz);

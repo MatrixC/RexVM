@@ -22,13 +22,13 @@ namespace RexVM {
     struct Frame;
     struct OopManager;
 
-    enum class ClassInitStatusEnum {
+    enum class ClassInitStatusEnum : u1 {
         LOADED,
         INIT,
         INITED,
     };
 
-    enum class ClassTypeEnum {
+    enum class ClassTypeEnum : u1 {
         PRIMITIVE_CLASS,
         INSTANCE_CLASS,
         TYPE_ARRAY_CLASS,
@@ -36,24 +36,36 @@ namespace RexVM {
     };
 
     //标记在InstanceClass上, 用于在new指令上提升效率
-    enum class SpecialInstanceClass {
+    enum class SpecialInstanceClass : u1 {
         NONE,
         THREAD_CLASS,
         CLASS_LOADER_CLASS,
     };
 
     struct Class {
+        const cstring name;
+        std::vector<InstanceClass *> interfaces;
+        InstanceClass *superClass{nullptr};
+        std::unique_ptr<MirrorOop> mirror;
+
+
         const ClassTypeEnum type;
         const u2 accessFlags{};
-        const cstring name;
-        std::unique_ptr<MirrorOop> mirror;
+        
         ClassLoader &classLoader;
         std::atomic<ClassInitStatusEnum> initStatus{ClassInitStatusEnum::LOADED};
 
-        InstanceClass *superClass{nullptr};
-        std::vector<InstanceClass *> interfaces;
 
+        //flags: low[accessFlags(16), type(2), anonymous(1), special(3), dimension, basicType(elementType) ]high
+
+        
         explicit Class(ClassTypeEnum type, u2 accessFlags, cstring name, ClassLoader &classLoader);
+
+        [[nodiscard]] ClassTypeEnum getType() const;
+        [[nodiscard]] u2 getAccessFlags() const;
+        [[nodiscard]] size_t getInterfaceSize() const;
+        [[nodiscard]] InstanceClass *getInterfaceByIndex(size_t index) const;
+        [[nodiscard]] InstanceClass *getSuperClass() const;
 
         [[nodiscard]] bool isInstanceClass() const;
         [[nodiscard]] bool isInterface() const;
@@ -71,7 +83,7 @@ namespace RexVM {
         [[nodiscard]] bool isSubClassOf(const Class *that) const;
 
         [[nodiscard]] MirrorOop *getMirrorOop() const;
-
+        
         virtual ~Class();
     };
 
@@ -149,7 +161,6 @@ namespace RexVM {
         void setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const;
         [[nodiscard]] Slot getFieldValue(size_t index) const;
         [[nodiscard]] Slot getFieldValue(const cstring &name, const cstring &descriptor) const;
-
 
     };
 
