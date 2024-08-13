@@ -27,7 +27,6 @@ namespace RexVM {
 
     struct VMThread : InstanceOop {
         VM &vm;
-        bool isMainThread{false};
         std::thread nativeThread;
         Frame *currentFrame{nullptr};
         Method *runMethod;
@@ -36,8 +35,6 @@ namespace RexVM {
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
         OopHolder oopHolder;
-
-        explicit VMThread(VM &vm, InstanceClass * klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
 
         //Normal
         explicit VMThread(VM &vm, InstanceClass * const klass);

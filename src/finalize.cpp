@@ -1,14 +1,24 @@
 #include "finalize.hpp"
+#include <chrono>
 #include "vm.hpp"
 #include "class_loader.hpp"
 #include "class.hpp"
 #include "oop.hpp"
 #include "thread.hpp"
 #include "memory.hpp"
+#include "string_pool.hpp"
 
 namespace RexVM {
 
     Collector::Collector(VM &vm) : vm(vm) {
+        collectThread = std::thread([this]() {
+            while (!this->vm.exit) {
+                if (oopCount > 1000) {
+                    startGC();
+                }
+                std::this_thread::sleep_for(std::chrono::microseconds(500));
+            }
+        });
     }
 
     void Collector::stopTheWorld() {
@@ -45,9 +55,9 @@ namespace RexVM {
         }
         std::vector<ref> liveRefs;
         liveRefs.reserve(100000);
-        collect(vm.oopManager->defaultOopHolder, liveRefs);
+        collect(vm, vm.oopManager->defaultOopHolder, liveRefs);
         for (const auto &thread : vm.vmThreadDeque) {
-            collect(thread->oopHolder, liveRefs);
+            collect(vm, thread->oopHolder, liveRefs);
         }
 
         for (const auto &item : liveRefs) {
@@ -60,6 +70,12 @@ namespace RexVM {
         cprintln("gc finish {}", liveRefs.size());
 
         collectFinish();
+    }
+
+    void Collector::join() {
+        if (collectThread.joinable()) {
+            collectThread.join();
+        }
     }
 
     void traceInstanceOopChild(InstanceOop *oop) {
@@ -160,18 +176,22 @@ namespace RexVM {
         return gcRoots;
     }
 
-    void collect(std::vector<ref> &currentRefs, std::vector<ref> &liveRefs) {
+    void collect(VM &vm, std::vector<ref> &currentRefs, std::vector<ref> &liveRefs) {
+        const auto stringClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
         for (const auto &item : currentRefs) {
-            if (item->isMarkTraced()) {
+            if (item->traceMarked) {
                 liveRefs.emplace_back(item);
             } else {
+                if (item->getClass() == stringClass) {
+                    vm.stringPool->eraseString(CAST_INSTANCE_OOP(item));
+                }
                 delete item;
             }
         }
     }
 
-    void collect(OopHolder &oopHolder, std::vector<ref> &liveRefs) {
-        collect(oopHolder.oops, liveRefs); 
+    void collect(VM &vm, OopHolder &oopHolder, std::vector<ref> &liveRefs) {
+        collect(vm, oopHolder.oops, liveRefs); 
         oopHolder.clear(); 
     }
 

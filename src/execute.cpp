@@ -154,13 +154,11 @@ namespace RexVM {
         ref monitorHandler = nullptr;
         if (method.isSynchronized()) [[unlikely]] {
             monitorHandler = method.isStatic() ? method.klass.getMirrorOop() : frame.getThis();
-            //monitorHandler->monitorMtx.lock();
             monitorHandler->lock();
             lock = true;
         }
         executeFrame(frame, methodName);
         if (lock) {
-            //monitorHandler->monitorMtx.unlock();
             monitorHandler->unlock();
         }
     }
@@ -191,12 +189,6 @@ namespace RexVM {
         const auto methodName = method_.klass.name + "#" + method_.name;
         monitorExecuteFrame(nextFrame, methodName);
         thread.currentFrame = backupFrame;
-    }
-
-    void runStaticMethodOnMainThread(VM &vm, Method &method, std::vector<Slot> params) {
-        vm.mainThread = std::unique_ptr<VMThread>(vm.oopManager->newMainVMThread(method, std::move(params)));
-        vm.mainThread->start(nullptr);
-        vm.mainThread->join();
     }
 
 }

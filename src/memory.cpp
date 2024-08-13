@@ -37,31 +37,8 @@ namespace RexVM {
         return oop;
     }
 
-    VMThread *OopManager::newMainVMThread(Method &method, std::vector<Slot> params) {
-        const auto threadClass = 
-            vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
-
-        const auto threadGroupClass = 
-            vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
-        const auto vmThreadGroup = newInstance(nullptr, threadGroupClass);
-
-        const auto oop = new VMThread(vm, threadClass, &method, std::move(params));
-        oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
-        oop->setFieldValue("priority", "I", Slot(CAST_I8(1)));
-        //defaultOopHolder.addOop(oop);
-        return oop;
-    }
-
     VMThread *OopManager::newVMThread(VMThread *thread, InstanceClass * const klass) {
-        const auto oop = new VMThread(vm, klass, nullptr, {});
-        addToOopHolder(thread, oop);
-        return oop;
-    }
-
-    VMThread *OopManager::newVMThread(VMThread *thread) {
-        const auto threadClass = 
-            vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
-        const auto oop = new VMThread(vm, threadClass, nullptr, {});
+        const auto oop = new VMThread(vm, klass);
         addToOopHolder(thread, oop);
         return oop;
     }
@@ -212,11 +189,6 @@ namespace RexVM {
             defaultOopHolder.addOop(oop);
         }
         ++oopCount;
-
-        if (oopCount > 1000) {
-            //vm.collector->startGC();
-        }
-
     }
 
     void traceOop(Oop * const oop, std::unordered_set<Oop *> &tracedOop) {

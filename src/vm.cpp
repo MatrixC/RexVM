@@ -63,23 +63,26 @@ namespace RexVM {
     }
 
     void VM::initMainThread() {
-        const auto threadClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+         mainThread = std::make_unique<VMThread>(*this);
+
         const auto threadGroupClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
-        const auto vmThreadGroup = oopManager->newInstance(nullptr, threadGroupClass);
+        const auto vmThreadGroup = oopManager->newInstance(mainThread.get(), threadGroupClass);
+       
+        mainThread->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
+        mainThread->setFieldValue("priority", "I", Slot(CAST_I8(1)));
+        addStartThread(mainThread.get());
+    }
 
-
-
-        // const auto oop = new VMThread(vm, threadClass, &method, std::move(params));
-        // oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
-        // oop->setFieldValue("priority", "I", Slot(CAST_I8(1)));
-        // //defaultOopHolder.addOop(oop);
-        // mainThread = std::make_unique<VMThread>();
+    void VM::runStaticMethodOnMainThread(Method &method, std::vector<Slot> params) {
+        mainThread->reset(&method, params);
+        mainThread->start(nullptr);
+        mainThread->join();
     }
 
     void VM::initJavaSystemClass() {
         const auto systemClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM);
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
-        runStaticMethodOnMainThread(*this, *initMethod, {});
+        runStaticMethodOnMainThread(*initMethod, {});
     }
 
     void VM::initCollector() {
@@ -106,11 +109,12 @@ namespace RexVM {
 
         if (userParams.size() > 1) {
             for (size_t i = 1; i < userParams.size(); ++i) {
-                stringArray->data[i - 1] = stringPool->getInternString(userParams.at(i));
+                stringArray->data[i - 1] = stringPool->getInternString(mainThread.get(), userParams.at(i));
             }
         }
 
-        runStaticMethodOnMainThread(*this, *mainMethod, {Slot(stringArray)});
+        //runStaticMethodOnMainThread(*this, *mainMethod, {Slot(stringArray)});
+        runStaticMethodOnMainThread(*mainMethod, {Slot(stringArray)});
     }
 
     void VM::joinThreads() {
@@ -126,6 +130,8 @@ namespace RexVM {
             }
             vmThread->join();
         }
+        exit = true;
+        collector->join();
     }
 
     void VM::addStartThread(VMThread *thread) {
@@ -151,14 +157,13 @@ namespace RexVM {
         initJavaSystemClass();
         runMainMethod();
         joinThreads();
+
     }
 
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();
         //collectAll(vm);
-        const auto &roots = getGcRoots(vm);
-        cprintln("roots {}", roots.size());
     }
 
 }

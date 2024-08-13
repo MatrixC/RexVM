@@ -3,6 +3,7 @@
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include <thread>
 #include "config.hpp"
 
 namespace RexVM {
@@ -18,6 +19,7 @@ namespace RexVM {
         std::mutex mtx;
         std::condition_variable cv;
         std::atomic_size_t stopThreadCount{0};
+        std::thread collectThread;
 
         explicit Collector(VM &vm);
 
@@ -29,12 +31,14 @@ namespace RexVM {
 
         void startGC();
 
+        void join();
+
     };
 
     void traceOop(ref oop);
     std::vector<ref> getGcRoots(VM &vm);
-    void collect(std::vector<ref> &currentRefs, std::vector<ref> &liveRefs);
-    void collect(OopHolder &oopHolder, std::vector<ref> &liveRefs);
+    void collect(VM &vm, std::vector<ref> &currentRefs, std::vector<ref> &liveRefs);
+    void collect(VM &vm, OopHolder &oopHolder, std::vector<ref> &liveRefs);
     
 }
 

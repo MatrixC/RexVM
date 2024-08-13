@@ -12,16 +12,6 @@
 
 namespace RexVM {
 
-    VMThread::VMThread(VM &vm, InstanceClass * const klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams) : 
-            InstanceOop(klass), 
-            vm(vm), 
-            isMainThread(runnableMethod != nullptr), 
-            runMethod(isMainThread ? runnableMethod : getInstanceClass()->getMethod("run", "()V", false)),
-            params(isMainThread ? std::move(runnableMethodParams) : std::vector<Slot>{ Slot(this) }),
-            stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
-            stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
-    }
-
     //Normal
     VMThread::VMThread(VM &vm, InstanceClass * const klass) : 
             InstanceOop(klass), 
@@ -45,14 +35,13 @@ namespace RexVM {
     void VMThread::reset(Method *method, std::vector<Slot> runParams) {
         setStatus(ThreadStatusEnum::NEW);
         runMethod = method;
-        params = params;
+        params = runParams;
     }
 
     void VMThread::run() {
         setStatus(ThreadStatusEnum::RUNNABLE);
         createFrameAndRunMethod(*this, *runMethod, params, nullptr);
         setStatus(ThreadStatusEnum::TERMINATED);
-        //std::lock_guard<std::recursive_mutex> lock(monitorMtx);
         std::lock_guard<std::recursive_mutex> lock(getAndInitMonitor()->monitorMtx);
         notify_all();
     }
@@ -61,23 +50,9 @@ namespace RexVM {
         if (getStatus() != ThreadStatusEnum::NEW) {
             throwIllegalThreadStateException(*currentFrame);
         }
-        /*
-        if (isMainThread) [[unlikely]] {
-            vm.addStartThread(this);
-            run();
-        } else {
-            nativeThread = std::thread([this]() {
-                run();
-            }); 
-            vm.addStartThread(this);
-        }
-        */
         nativeThread = std::thread([this]() {
             run();
         }); 
-        // if (!isMainThread) {
-        //     vm.addStartThread(this);
-        // }
     }
 
     cstring VMThread::getName() const {

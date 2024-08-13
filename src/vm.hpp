@@ -18,6 +18,7 @@ namespace RexVM {
     struct VMThread;
     struct OopManager;
     struct Collector;
+    struct Method;
 
     struct ApplicationParameter {
         cstring userClassPath;
@@ -35,13 +36,17 @@ namespace RexVM {
 
         std::mutex vmThreadMtx;
         std::deque<VMThread *> vmThreadDeque;
-
+        bool exit{false};
+        
         explicit VM(ApplicationParameter &params);
 
         void start();
 
+
         void addStartThread(VMThread *vmThread);
         size_t getActiveThreadCount();
+
+        void runStaticMethodOnMainThread(Method &method, std::vector<Slot> params);
 
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
         cstring javaHome{};

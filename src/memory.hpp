@@ -57,8 +57,6 @@ namespace RexVM {
 
 
         VMThread *newVMThread(VMThread *thread, InstanceClass * klass);
-        VMThread *newVMThread(VMThread *thread);
-        VMThread *newMainVMThread(Method &method, std::vector<Slot> params);
 
         void addToOopHolder(VMThread *thread, ref oop);
 

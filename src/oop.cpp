@@ -91,15 +91,15 @@ namespace RexVM {
     }
 
     void Oop::markTraced() {
-        marked = true;
+        traceMarked = true;
     }
 
     void Oop::clearTraced() {
-        marked = false;
+        traceMarked = false;
     }
 
     bool Oop::isMarkTraced() {
-        return marked;
+        return traceMarked;
     }
 
 
