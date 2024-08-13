@@ -2,6 +2,7 @@
 #define MEMORY_HPP
 #include <unordered_set>
 #include <vector>
+#include <atomic>
 #include "config.hpp"
 #include "class.hpp"
 #include "oop.hpp"
@@ -11,6 +12,8 @@ namespace RexVM {
     struct VM;
     struct VMThread;
 
+    extern std::atomic_int oopCount;
+
     struct OopHolder {
         std::vector<ref> oops;
 
@@ -19,6 +22,8 @@ namespace RexVM {
         explicit OopHolder();
 
         void addOop(ref oop);
+
+        void clear();
     };
 
     struct OopManager {

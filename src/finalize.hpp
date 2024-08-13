@@ -3,10 +3,12 @@
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include "config.hpp"
 
 namespace RexVM {
 
     struct VM;
+    struct OopHolder;
 
     struct Collector {
 
@@ -28,6 +30,11 @@ namespace RexVM {
         void startGC();
 
     };
+
+    void traceOop(ref oop);
+    std::vector<ref> getGcRoots(VM &vm);
+    void collect(std::vector<ref> &currentRefs, std::vector<ref> &liveRefs);
+    void collect(OopHolder &oopHolder, std::vector<ref> &liveRefs);
     
 }
 

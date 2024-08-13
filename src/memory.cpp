@@ -5,9 +5,12 @@
 #include "thread.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"
+#include "finalize.hpp"
 #include "utils/format.hpp"
 
 namespace RexVM {
+
+    std::atomic_int oopCount{0};
 
     OopHolder::OopHolder(size_t size) {
         oops.reserve(size);
@@ -18,6 +21,11 @@ namespace RexVM {
 
     void OopHolder::addOop(ref oop) {
         oops.emplace_back(oop);
+    }
+
+    void OopHolder::clear() {
+        oops.clear();
+        oops.shrink_to_fit();
     }
 
     OopManager::OopManager(VM &vm) : vm(vm) {
@@ -40,7 +48,7 @@ namespace RexVM {
         const auto oop = new VMThread(vm, threadClass, &method, std::move(params));
         oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
         oop->setFieldValue("priority", "I", Slot(CAST_I8(1)));
-        defaultOopHolder.addOop(oop);
+        //defaultOopHolder.addOop(oop);
         return oop;
     }
 
@@ -203,8 +211,13 @@ namespace RexVM {
         } else {
             defaultOopHolder.addOop(oop);
         }
-    }
+        ++oopCount;
 
+        if (oopCount > 1000) {
+            //vm.collector->startGC();
+        }
+
+    }
 
     void traceOop(Oop * const oop, std::unordered_set<Oop *> &tracedOop) {
         if (oop == nullptr) {

@@ -194,9 +194,9 @@ namespace RexVM {
     }
 
     void runStaticMethodOnMainThread(VM &vm, Method &method, std::vector<Slot> params) {
-        const auto vmThread = vm.oopManager->newMainVMThread(method, std::move(params));
-        vmThread->start(nullptr);
-        vmThread->join();
+        vm.mainThread = std::unique_ptr<VMThread>(vm.oopManager->newMainVMThread(method, std::move(params)));
+        vm.mainThread->start(nullptr);
+        vm.mainThread->join();
     }
 
 }

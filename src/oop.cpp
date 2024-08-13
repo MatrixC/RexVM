@@ -90,6 +90,19 @@ namespace RexVM {
         getAndInitMonitor()->monitorCv.notify_all();
     }
 
+    void Oop::markTraced() {
+        marked = true;
+    }
+
+    void Oop::clearTraced() {
+        marked = false;
+    }
+
+    bool Oop::isMarkTraced() {
+        return marked;
+    }
+
+
     void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
         //std::memset(oop->data.get(), 0, sizeof(Slot) * oop->getDataLength());
         for (const auto &field: klass->fields) {

@@ -30,7 +30,7 @@ namespace RexVM {
         bool isMainThread{false};
         std::thread nativeThread;
         Frame *currentFrame{nullptr};
-        Method &runMethod;
+        Method *runMethod;
         std::atomic_bool interrupted{false};
         std::vector<Slot> params;
         std::unique_ptr<Slot[]> stackMemory;
@@ -38,7 +38,17 @@ namespace RexVM {
         OopHolder oopHolder;
 
         explicit VMThread(VM &vm, InstanceClass * klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
+
+        //Normal
+        explicit VMThread(VM &vm, InstanceClass * const klass);
+
+        //Main
+        explicit VMThread(VM &vm);
+
+
         ~VMThread();
+
+        void reset(Method *method, std::vector<Slot> params);
 
         
         void start(Frame *currentFrame);
@@ -48,7 +58,7 @@ namespace RexVM {
         void setStatus(ThreadStatusEnum status);
         [[nodiscard]] ThreadStatusEnum getStatus() const;
         [[nodiscard]] bool isAlive() const;
-        [[nodiscard]] std::vector<Oop *> getThreadGCRoots() const;
+        void getThreadGCRoots(std::vector<ref> &result) const;
 
         private:
             void run();

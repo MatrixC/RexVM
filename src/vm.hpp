@@ -31,6 +31,7 @@ namespace RexVM {
         std::unique_ptr<StringPool> stringPool;
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
         std::unique_ptr<Collector> collector;
+        std::unique_ptr<VMThread> mainThread;
 
         std::mutex vmThreadMtx;
         std::deque<VMThread *> vmThreadDeque;
@@ -51,6 +52,7 @@ namespace RexVM {
         void initOopManager();
         void initBootstrapClassLoader();
         void initStringPool();
+        void initMainThread();
         void initJavaSystemClass();
         void initCollector();
         void runMainMethod();

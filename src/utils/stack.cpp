@@ -48,8 +48,7 @@ namespace RexVM {
          return memory[sp - offset];
      }
 
-    std::vector<Oop *> StackContext::getObjects() const {
-        std::vector<Oop *> result;
+    void StackContext::getObjects(std::vector<ref> &result) const {
         for (auto i = 0; i <= sp; ++i) {
             const auto &val = memory[i];
             const auto valType = memoryType[i];
@@ -57,8 +56,6 @@ namespace RexVM {
                 result.emplace_back(val.refVal);
             }
         }
-
-        return result;
     }
 
     [[nodiscard]] Slot *StackContext::getCurrentSlotPtr() const {

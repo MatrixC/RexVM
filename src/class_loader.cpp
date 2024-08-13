@@ -83,7 +83,11 @@ namespace RexVM {
             loadInstanceClass(name);
         }
 
-        return classMap[name].get();
+        if (const auto iter = classMap.find(name); iter != classMap.end()) {
+            return iter->second.get();
+        }
+
+        return nullptr;
     }
 
 

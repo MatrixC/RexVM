@@ -42,6 +42,8 @@ namespace RexVM {
         //volatile ?, oopMonitorPtr, flags
         Composite<OopMonitor *, u2> comFlags{};
 
+        volatile bool marked{false};
+
         [[nodiscard]] OopMonitor *getMonitor() const;
 
     public:
@@ -68,6 +70,12 @@ namespace RexVM {
         void notify_one();
 
         void notify_all();
+
+        void markTraced();
+
+        void clearTraced();
+
+        bool isMarkTraced();
 
     };
 

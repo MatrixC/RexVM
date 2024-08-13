@@ -16,17 +16,41 @@ namespace RexVM {
             InstanceOop(klass), 
             vm(vm), 
             isMainThread(runnableMethod != nullptr), 
-            runMethod(isMainThread ? *runnableMethod : *getInstanceClass()->getMethod("run", "()V", false)),
+            runMethod(isMainThread ? runnableMethod : getInstanceClass()->getMethod("run", "()V", false)),
             params(isMainThread ? std::move(runnableMethodParams) : std::vector<Slot>{ Slot(this) }),
+            stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
+            stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
+    }
+
+    //Normal
+    VMThread::VMThread(VM &vm, InstanceClass * const klass) : 
+            InstanceOop(klass), 
+            vm(vm), 
+            runMethod(getInstanceClass()->getMethod("run", "()V", false)),
+            params(std::vector<Slot>{ Slot(this) }),
+            stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
+            stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
+    }
+
+    //Main
+    VMThread::VMThread(VM &vm) : 
+            InstanceOop(vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)),
+            vm(vm), 
             stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
             stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
     }
 
     VMThread::~VMThread() = default;
 
+    void VMThread::reset(Method *method, std::vector<Slot> runParams) {
+        setStatus(ThreadStatusEnum::NEW);
+        runMethod = method;
+        params = params;
+    }
+
     void VMThread::run() {
         setStatus(ThreadStatusEnum::RUNNABLE);
-        createFrameAndRunMethod(*this, runMethod, params, nullptr);
+        createFrameAndRunMethod(*this, *runMethod, params, nullptr);
         setStatus(ThreadStatusEnum::TERMINATED);
         //std::lock_guard<std::recursive_mutex> lock(monitorMtx);
         std::lock_guard<std::recursive_mutex> lock(getAndInitMonitor()->monitorMtx);
@@ -51,9 +75,9 @@ namespace RexVM {
         nativeThread = std::thread([this]() {
             run();
         }); 
-        if (!isMainThread) {
-            vm.addStartThread(this);
-        }
+        // if (!isMainThread) {
+        //     vm.addStartThread(this);
+        // }
     }
 
     cstring VMThread::getName() const {
@@ -80,19 +104,11 @@ namespace RexVM {
         }
     }
 
-    std::vector<Oop *> VMThread::getThreadGCRoots() const {
-        std::vector<Oop *> result;
+    void VMThread::getThreadGCRoots(std::vector<ref> &result) const {
         for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
-            const auto localObjects = cur->getLocalObjects();
-            const auto stackObjects = cur->operandStackContext.getObjects();
-            if (!localObjects.empty()) {
-                result.insert(result.end(), localObjects.begin(), localObjects.end());
-            }
-            if (!stackObjects.empty()) {
-                result.insert(result.end(), stackObjects.begin(), stackObjects.end());
-            }
+            cur->getLocalObjects(result);
+            cur->operandStackContext.getObjects(result);
         }
-        return result;
     }
 
 

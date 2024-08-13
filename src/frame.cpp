@@ -341,7 +341,6 @@ namespace RexVM {
         throwObject = nullptr;
     }
 
-
     Slot Frame::getStackOffset(size_t offset) const {
         return operandStackContext.getStackOffset(offset);
     }
@@ -354,15 +353,13 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(getThis());
     }
 
-    std::vector<Oop *> Frame::getLocalObjects() const {
-        std::vector<Oop *> result;
+    void Frame::getLocalObjects(std::vector<ref> &result) const {
         for (size_t i = 0; i < localVariableTableSize; ++i) {
             const auto value = localVariableTable[i];
             if (localVariableTableType[i] == SlotTypeEnum::REF && value.refVal != nullptr) {
                  result.emplace_back(value.refVal);
             }
         }
-        return result;
     }
 
     void Frame::printCallStack() {

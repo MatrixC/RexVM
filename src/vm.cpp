@@ -62,6 +62,20 @@ namespace RexVM {
         bootstrapClassLoader->initBasicJavaClass();
     }
 
+    void VM::initMainThread() {
+        const auto threadClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+        const auto threadGroupClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
+        const auto vmThreadGroup = oopManager->newInstance(nullptr, threadGroupClass);
+
+
+
+        // const auto oop = new VMThread(vm, threadClass, &method, std::move(params));
+        // oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
+        // oop->setFieldValue("priority", "I", Slot(CAST_I8(1)));
+        // //defaultOopHolder.addOop(oop);
+        // mainThread = std::make_unique<VMThread>();
+    }
+
     void VM::initJavaSystemClass() {
         const auto systemClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM);
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
@@ -133,6 +147,7 @@ namespace RexVM {
         initOopManager();
         initBootstrapClassLoader();
         initStringPool();
+        initMainThread();
         initJavaSystemClass();
         runMainMethod();
         joinThreads();
@@ -141,7 +156,9 @@ namespace RexVM {
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();
-        collectAll(vm);
+        //collectAll(vm);
+        const auto &roots = getGcRoots(vm);
+        cprintln("roots {}", roots.size());
     }
 
 }
