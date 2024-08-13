@@ -6,7 +6,7 @@
 #include <thread>
 #include "config.hpp"
 #include "class.hpp"
-#include "oop.hpp"
+#include "memory.hpp"
 
 namespace RexVM {
 
@@ -35,12 +35,13 @@ namespace RexVM {
         std::vector<Slot> params;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
+        OopHolder oopHolder;
 
         explicit VMThread(VM &vm, InstanceClass * klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
         ~VMThread();
 
         
-        void start(Frame *frame);
+        void start(Frame *currentFrame);
         void join();
 
         [[nodiscard]] cstring getName() const;

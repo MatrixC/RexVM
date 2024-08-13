@@ -8,15 +8,16 @@
 #include "class_loader.hpp"
 #include "key_slot_id.hpp"
 #include "exception_helper.hpp"
+#include "memory.hpp"
 
 namespace RexVM {
 
-    VMThread::VMThread(VM &vm, InstanceClass * const klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams)
-            : InstanceOop(klass), 
+    VMThread::VMThread(VM &vm, InstanceClass * const klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams) : 
+            InstanceOop(klass), 
             vm(vm), 
             isMainThread(runnableMethod != nullptr), 
             runMethod(isMainThread ? *runnableMethod : *getInstanceClass()->getMethod("run", "()V", false)),
-            params(isMainThread ? std::move(runnableMethodParams) : std::vector{ Slot(this) }),
+            params(isMainThread ? std::move(runnableMethodParams) : std::vector<Slot>{ Slot(this) }),
             stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
             stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
     }
@@ -32,11 +33,11 @@ namespace RexVM {
         notify_all();
     }
 
-    void VMThread::start(Frame *frame) {
-        /*
+    void VMThread::start(Frame *currentFrame) {
         if (getStatus() != ThreadStatusEnum::NEW) {
-            throwIllegalThreadStateException(*frame);
+            throwIllegalThreadStateException(*currentFrame);
         }
+        /*
         if (isMainThread) [[unlikely]] {
             vm.addStartThread(this);
             run();

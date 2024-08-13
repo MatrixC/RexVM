@@ -8,6 +8,7 @@
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "class.hpp"
+#include "composite_ptr.hpp"
 #include "utils/spin_lock.hpp"
 
 namespace RexVM {
@@ -35,11 +36,11 @@ namespace RexVM {
         static SpinLock monitorLock;
     private:
 
-        //low[ classPtr(48) dataLength(16) ]high
-        ptr_addtition klass{0};
+        //class, dataLength
+        Composite<Class *, size_t> comClass;
 
-        //low[ mutexPtr(48) finalize(1) ]high
-        volatile ptr_addtition flags{0};
+        //volatile ?, oopMonitorPtr, flags
+        Composite<OopMonitor *, u2> comFlags{};
 
         [[nodiscard]] OopMonitor *getMonitor() const;
 

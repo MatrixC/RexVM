@@ -2,6 +2,7 @@
 #include "class.hpp"
 #include "class_member.hpp"
 #include "memory.hpp"
+#include "thread.hpp"
 #include <algorithm>
 
 namespace RexVM {
@@ -9,7 +10,7 @@ namespace RexVM {
     SpinLock Oop::monitorLock;
 
     Oop::Oop(Class *klass, size_t dataLength) :
-            klass(createPA(klass, dataLength)) {
+            comClass(klass, dataLength) {
         if (dataLength >= 65535) {
             panic("not support");
         }
@@ -24,15 +25,15 @@ namespace RexVM {
     }
 
     Class *Oop::getClass() const {
-        return getPtrPA<Class *>(klass);
+        return comClass.getPtr();
     }
 
     size_t Oop::getDataLength() const {
-        return getAdditionPA(klass);
+        return comClass.getData();
     }
 
     OopMonitor *Oop::getMonitor() const {
-        return getPtrPA<OopMonitor *>(flags);
+        return comFlags.getPtr();
     }
 
     OopTypeEnum Oop::getType() const {
@@ -53,7 +54,7 @@ namespace RexVM {
         if (getMonitor() == nullptr) [[unlikely]] {
             Oop::monitorLock.lock();
             if (getMonitor() == nullptr) {
-                flags = createPA(new OopMonitor, 0);
+                comFlags.reset(new OopMonitor, 0);
             }
             Oop::monitorLock.unlock();
         }

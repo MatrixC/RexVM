@@ -14,6 +14,7 @@
 #include "string_pool.hpp"
 #include "memory.hpp"
 #include "method_handle.hpp"
+#include "thread.hpp"
 
 namespace RexVM {
 

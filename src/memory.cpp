@@ -9,13 +9,23 @@
 
 namespace RexVM {
 
-    OopManager::OopManager(VM &vm) : vm(vm) {
+    OopHolder::OopHolder(size_t size) {
+        oops.reserve(size);
+    }
 
+    OopHolder::OopHolder() : OopHolder(8192) {
+    }
+
+    void OopHolder::addOop(ref oop) {
+        oops.emplace_back(oop);
+    }
+
+    OopManager::OopManager(VM &vm) : vm(vm) {
     }
 
     InstanceOop *OopManager::newInstance(VMThread *thread, InstanceClass * klass) {
         const auto oop = new InstanceOop(klass, klass->instanceSlotCount);
-        allocatedOop.insert(oop);
+        addToOopHolder(thread, oop);
         return oop;
     }
 
@@ -30,13 +40,13 @@ namespace RexVM {
         const auto oop = new VMThread(vm, threadClass, &method, std::move(params));
         oop->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
         oop->setFieldValue("priority", "I", Slot(CAST_I8(1)));
-        allocatedOop.insert(oop);
+        defaultOopHolder.addOop(oop);
         return oop;
     }
 
     VMThread *OopManager::newVMThread(VMThread *thread, InstanceClass * const klass) {
         const auto oop = new VMThread(vm, klass, nullptr, {});
-        allocatedOop.insert(oop);
+        addToOopHolder(thread, oop);
         return oop;
     }
 
@@ -44,13 +54,13 @@ namespace RexVM {
         const auto threadClass = 
             vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
         const auto oop = new VMThread(vm, threadClass, nullptr, {});
-        allocatedOop.insert(oop);
+        addToOopHolder(thread, oop);
         return oop;
     }
 
     ObjArrayOop *OopManager::newObjArrayOop(VMThread *thread, ObjArrayClass * const klass, size_t length) {
         const auto oop = new ObjArrayOop(klass, length);
-        allocatedOop.insert(oop);
+        addToOopHolder(thread, oop);
         return oop;
     }
 
@@ -107,14 +117,14 @@ namespace RexVM {
                 break;
         }
 
-        allocatedOop.insert(oop);
+        addToOopHolder(thread, oop);
         return oop;
     }
 
     ByteTypeArrayOop *OopManager::newByteArrayOop(VMThread *thread, size_t length) {
         const auto klass = vm.bootstrapClassLoader->getTypeArrayClass(BasicType::T_BYTE);
         const auto oop = new ByteTypeArrayOop(klass, length);
-        allocatedOop.insert(oop);
+        addToOopHolder(thread, oop);
         return oop;
     }
 
@@ -127,7 +137,7 @@ namespace RexVM {
     CharTypeArrayOop *OopManager::newCharArrayOop(VMThread *thread, size_t length) {
         const auto klass = vm.bootstrapClassLoader->getTypeArrayClass(BasicType::T_CHAR);
         const auto oop = new CharTypeArrayOop(klass, length);
-        allocatedOop.insert(oop);
+        addToOopHolder(thread, oop);
         return oop;
     }
 
@@ -185,6 +195,14 @@ namespace RexVM {
         const auto integerOop = newInstance(thread, klass);
         integerOop->setFieldValue("value", "D", Slot(value));
         return integerOop;
+    }
+
+    void OopManager::addToOopHolder(VMThread *thread, ref oop) {
+        if (thread != nullptr) [[likely]] {
+            thread->oopHolder.addOop(oop);
+        } else {
+            defaultOopHolder.addOop(oop);
+        }
     }
 
 

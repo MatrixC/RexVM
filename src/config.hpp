@@ -33,7 +33,6 @@ namespace RexVM {
     using cstring = std::string;
     using cview = std::string_view;
     using ustring = std::u16string;
-    using ptr_addtition = u8;
 
     union Slot {
         i4 i4Val{0};
@@ -128,27 +127,6 @@ namespace RexVM {
         ACC_MANDATED = 0x8000,
     };
 
-    constexpr u8 PA_PTR_LENGTH = 48;
-    constexpr u8 PA_SIZE_LENGTH = 16;
-    constexpr u8 PA_PTR_MASK = 0xffffffffffff;
-    constexpr u8 PA_ADDITION_MASK = 0xffff;
-
-    template<typename T>
-    concept Pointer = std::is_pointer_v<T>;
-
-    template<Pointer T>
-    T getPtrPA(ptr_addtition pa) {
-        return std::bit_cast<T>(pa & PA_PTR_MASK);
-    }
-
-    inline size_t getAdditionPA(ptr_addtition pa) {
-        return CAST_SIZE_T((pa >> PA_PTR_LENGTH) & PA_ADDITION_MASK);
-    }
-
-    template<Pointer T>
-    ptr_addtition createPA(T ptr, size_t addititon) {
-        return (std::bit_cast<ptr_addtition>(ptr) & PA_PTR_MASK) | (addititon << PA_PTR_LENGTH);
-    }
 }
 
 

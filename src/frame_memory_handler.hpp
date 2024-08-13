@@ -22,6 +22,7 @@ namespace RexVM {
     struct CharTypeArrayOop;
     struct StringPool;
     struct ClassLoader;
+    struct VMThread;
 
     struct FrameMemoryHandler {
         explicit FrameMemoryHandler(const Frame &frame);

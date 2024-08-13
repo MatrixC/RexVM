@@ -1,18 +1,30 @@
 #ifndef MEMORY_HPP
 #define MEMORY_HPP
 #include <unordered_set>
+#include <vector>
+#include "config.hpp"
 #include "class.hpp"
 #include "oop.hpp"
-#include "thread.hpp"
 
 namespace RexVM {
 
     struct VM;
     struct VMThread;
 
+    struct OopHolder {
+        std::vector<ref> oops;
+
+        explicit OopHolder(size_t size);
+
+        explicit OopHolder();
+
+        void addOop(ref oop);
+    };
+
     struct OopManager {
 
         VM &vm;
+        OopHolder defaultOopHolder{};
 
         explicit OopManager(VM &vm);
         std::unordered_set<Oop *> allocatedOop;
@@ -42,6 +54,8 @@ namespace RexVM {
         VMThread *newVMThread(VMThread *thread, InstanceClass * klass);
         VMThread *newVMThread(VMThread *thread);
         VMThread *newMainVMThread(Method &method, std::vector<Slot> params);
+
+        void addToOopHolder(VMThread *thread, ref oop);
 
     };
 
