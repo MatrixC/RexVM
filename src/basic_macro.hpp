@@ -62,6 +62,7 @@
 #define CAST_EXCEPTIONS_ATTRIBUTE(x) INSTANCE_CAST<ExceptionsAttribute *>(x)
 
 #define CAST_CLASS(x) static_cast<Class *>(x)
+#define CAST_CLASS_MEMBER(x) static_cast<ClassMember *>(x)
 #define CAST_METHOD(x) static_cast<Method *>(x)
 #define CAST_FIELD(x) static_cast<Field *>(x)
 #define CAST_INSTANCE_CLASS(x) INSTANCE_CAST<InstanceClass *>(x)

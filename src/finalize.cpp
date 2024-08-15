@@ -15,14 +15,14 @@ namespace RexVM {
     //先不回收Mirror
 
     Collector::Collector(VM &vm) : vm(vm) {
-        // collectThread = std::thread([this]() {
-        //     while (!this->vm.exit) {
-        //         if (oopCount > 1000) {
-        //             startGC();
-        //         }
-        //         std::this_thread::sleep_for(std::chrono::microseconds(500));
-        //     }
-        // });
+        collectThread = std::thread([this]() {
+            while (!this->vm.exit) {
+                if (oopCount > 1000) {
+                    startGC();
+                }
+                std::this_thread::sleep_for(std::chrono::microseconds(500));
+            }
+        });
     }
 
     void Collector::stopTheWorld() {
@@ -140,6 +140,8 @@ namespace RexVM {
     }
 
     void traceInstanceOopChild(InstanceOop *oop) {
+        //如果是mirrorOop 要判断是否是ConstantPool Mirror 它里面包含了一个Class的MirrorOop
+
         const auto klass = oop->getInstanceClass();
         //要包含它父类的字段
         for (auto current = klass; current != nullptr; current = current->superClass) {
@@ -234,7 +236,10 @@ namespace RexVM {
 
     void getStaticRef(ClassLoader &classLoader, std::vector<ref> &gcRoots) {
         for (const auto &[name, klass] : classLoader.classMap) {
-            gcRoots.emplace_back(klass->getMirror(nullptr));
+            const auto mirror = klass->getMirror(nullptr, false);
+            if (mirror != nullptr) {
+                gcRoots.emplace_back(klass->getMirror(nullptr));
+            }
             if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
                 const auto instanceClass = CAST_INSTANCE_CLASS(klass.get());
                 if (instanceClass->notInitialize()) {

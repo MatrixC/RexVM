@@ -186,6 +186,41 @@ namespace RexVM {
     MirOop::MirOop(InstanceClass *klass, voidPtr mirrorObj, MirrorObjectTypeEnum type) :
         InstanceOop(klass, klass->instanceSlotCount),
         mirror(mirrorObj, static_cast<u2>(type)) {
+        isMirror = true;
+    }
+
+    MirOop::~MirOop() {
+        const auto type = getMirrorObjectType();
+        switch (type) {
+            case MirrorObjectTypeEnum::CLASS: {
+                const auto klass = getMirrorClass();
+                klass->mirrorBase.clear();
+                break;
+            }
+
+            case MirrorObjectTypeEnum::FIELD:
+            case MirrorObjectTypeEnum::METHOD:
+            case MirrorObjectTypeEnum::CONSTRUCTOR: {
+                const auto member = CAST_CLASS_MEMBER(mirror.getPtr());
+                member->mirrorBase.clear();
+                break;
+            }
+
+            case MirrorObjectTypeEnum::CONSTANT_POOL: {
+                const auto classMirrorOop = CAST_MIRROR_OOP(mirror.getPtr());
+                if (classMirrorOop != nullptr) {
+                    const auto reKlass = CAST_INSTANCE_CLASS(classMirrorOop->getMirrorClass());
+                    reKlass->constantPoolMirrorBase.clear();
+                }
+            }
+
+            default:
+                break;
+        }
+    }
+
+    MirrorObjectTypeEnum MirOop::getMirrorObjectType() const {
+        return static_cast<MirrorObjectTypeEnum>(mirror.getData());
     }
 
     Class *MirOop::getMirrorClass() const {

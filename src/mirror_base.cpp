@@ -44,6 +44,12 @@ namespace RexVM {
         return mirOop;
     }
 
+    void MirrorBase::clear() {
+        int i = 10;
+        cprintln("clear.....");
+        mirOop = nullptr;
+    }
+
     void MirrorBase::initMethodMirrorOop(Frame &frame, Method *method, bool isConstructor) {
         auto &klass = method->klass;
 
@@ -128,8 +134,9 @@ namespace RexVM {
     MirrorBase::MirrorBase() = default;
 
     MirrorBase::~MirrorBase() {
-        delete mirOop;
-        mirOop = nullptr;
+        //这里不应该删除 应该交给gc去清理
+        // delete mirOop;
+        // mirOop = nullptr;
     }
 
 }

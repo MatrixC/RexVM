@@ -45,6 +45,8 @@ namespace RexVM {
 
         bool traceMarked{false};
 
+        bool isMirror{false};
+
         explicit Oop(Class *klass, size_t dataLength);
 
         ~Oop();
@@ -105,10 +107,13 @@ namespace RexVM {
         Composite<voidPtr, u2> mirror;
 
         explicit MirOop(InstanceClass *klass, voidPtr mirror, MirrorObjectTypeEnum type);
+        ~MirOop();
 
-        Class *getMirrorClass() const;
-        Method *getMirrorMethod() const;
-        Field *getMirrorField() const;
+        [[nodiscard]] MirrorObjectTypeEnum getMirrorObjectType() const;
+
+        [[nodiscard]] Class *getMirrorClass() const;
+        [[nodiscard]] Method *getMirrorMethod() const;
+        [[nodiscard]] Field *getMirrorField() const;
     };
 
     struct ArrayOop : Oop {

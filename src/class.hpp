@@ -97,7 +97,6 @@ namespace RexVM {
         u2 staticSlotCount{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
 
-        std::unique_ptr<InstanceOop> constantPoolOop;
         MirrorBase constantPoolMirrorBase{};
 
         [[nodiscard]] MirOop *getConstantPoolMirror(Frame *frame, bool init = true);
