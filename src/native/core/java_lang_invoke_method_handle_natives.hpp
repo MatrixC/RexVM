@@ -65,7 +65,7 @@ namespace RexVM::Native::Core {
                     newFlags |= (CAST_I4(MethodHandleEnum::REF_invokeVirtual) << MN_REFERENCE_KIND_SHIFT);
                 }
             }
-            setMemberNameClazzAndFlags(memberNameOop, methodPtr->klass.getMirrorOop(), newFlags);
+            setMemberNameClazzAndFlags(memberNameOop, methodPtr->klass.getMirror(&frame), newFlags);
         } else if (refClassName == "java/lang/reflect/Field") {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
             const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
@@ -117,11 +117,11 @@ namespace RexVM::Native::Core {
                 return;
             }
             const auto newFlags = flags | CAST_I4(resolveMethod->accessFlags);
-            setMemberNameClazzAndFlags(memberNameOop, resolveMethod->klass.getMirrorOop(), newFlags);
+            setMemberNameClazzAndFlags(memberNameOop, resolveMethod->klass.getMirror(&frame), newFlags);
         } else if (flags & MN_IS_FIELD) {
             const auto resolveField = instanceClass->getField(name, descriptor, isStatic);
             const auto newFlags = flags | CAST_I4(resolveField->accessFlags);
-            setMemberNameClazzAndFlags(memberNameOop, resolveField->klass.getMirrorOop(), newFlags);
+            setMemberNameClazzAndFlags(memberNameOop, resolveField->klass.getMirror(&frame), newFlags);
         } else if (flags & MN_IS_TYPE) {
             panic("error");
         }

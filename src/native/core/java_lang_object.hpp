@@ -16,7 +16,7 @@
 namespace RexVM::Native::Core {
 
     void getClass(Frame &frame) {
-        frame.returnRef(frame.getThis()->getClass()->getMirrorOop());
+        frame.returnRef(frame.getThis()->getClass()->getMirror(&frame));
     }
 
     void hashCode(Frame &frame) {

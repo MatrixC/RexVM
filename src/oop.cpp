@@ -95,13 +95,13 @@ namespace RexVM {
     }
 
     void Oop::clearTraced() {
-        if (getClass()->name == "java/lang/Class") {
-            int i = 10;
-            const auto mirror = CAST_MIRROR_OOP(this);
-            if (mirror->mirrorClass->name == "java/lang/Long") {
-                cprintln("Long mark clearn");
-            }
-        }
+        // if (getClass()->name == "java/lang/Class") {
+        //     int i = 10;
+        //     const auto mirror = CAST_MIRROR_OOP(this);
+        //     if (mirror->getMirrorClass()->name == "java/lang/Long") {
+        //         cprintln("Long mark clearn");
+        //     }
+        // }
         traceMarked = false;
     }
 

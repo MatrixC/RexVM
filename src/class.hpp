@@ -49,9 +49,7 @@ namespace RexVM {
         
         const cstring name;
         std::vector<InstanceClass *> interfaces;
-        //ptr_size interfaces;
         InstanceClass *superClass{nullptr};
-        std::unique_ptr<MirrorOop> mirror;
 
         const ClassTypeEnum type;
         const u2 accessFlags{};
@@ -84,11 +82,9 @@ namespace RexVM {
         [[nodiscard]] bool isSuperInterfaceOf(const Class *that) const;
         [[nodiscard]] bool isSubClassOf(const Class *that) const;
 
-        [[nodiscard]] MirrorOop *getMirrorOop() const;
-
         static SpinLock mirrorLock;
         MirOop *mirOop{nullptr};
-        [[nodiscard]] MirOop *getMirror(Frame *frame);
+        [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
         
         virtual ~Class();
     };
@@ -111,6 +107,7 @@ namespace RexVM {
         u2 instanceSlotCount{};
         u2 staticSlotCount{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
+        std::unique_ptr<InstanceOop> constantPoolOop;
 
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<std::unique_ptr<Method>> methods;

@@ -19,7 +19,7 @@ namespace RexVM::Native::Core {
 
     Class *getMirrorClass(Frame &frame) {
         const auto instance = CAST_MIRROR_OOP(frame.getThisInstance());
-        return instance->mirrorClass;
+        return instance->getMirrorClass();
     }
 
     InstanceClass *getMirrorInstanceClass(Frame &frame) {
@@ -50,15 +50,15 @@ namespace RexVM::Native::Core {
         if (initialize && klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
             CAST_INSTANCE_CLASS(klass)->clinit(frame);
         }
-        frame.returnRef(klass->getMirrorOop());
+        frame.returnRef(klass->getMirror(&frame));
     }
 
     //static native Class<?> getPrimitiveClass(String name);
     void getPrimitiveClass(Frame &frame) {
-        auto classNameOop = frame.getLocalRef(0);
-        const auto className = StringPool::getJavaString(CAST_INSTANCE_OOP(classNameOop));
+        auto classNameOop = frame.getThisInstance();
+        const auto className = StringPool::getJavaString(classNameOop);
         const auto klass = frame.mem.getClass(className);
-        frame.returnRef(klass->getMirrorOop());
+        frame.returnRef(klass->getMirror(&frame));
     }
 
     //static native boolean desiredAssertionStatus0(Class<?> clazz);
@@ -88,15 +88,9 @@ namespace RexVM::Native::Core {
     void isAssignableFrom(Frame &frame) {
         const auto mirrorClass = getMirrorClass(frame);
         const auto thatClass = CAST_MIRROR_OOP(frame.getLocalRef(1));
-        const auto mirrorThatClass = thatClass->mirrorClass;
+        const auto mirrorThatClass = thatClass->getMirrorClass();
         frame.returnBoolean(mirrorClass->isAssignableFrom(mirrorThatClass));
     }
-
-    // void isInstance(Frame &frame) {
-    //     const auto mirrorClass = getMirrorClass(frame);
-    //     const auto objOop = frame.getLocalRef(1);
-    //     frame.returnBoolean(objOop->getClass()->isAssignableFrom(mirrorClass));
-    // }
 
     //native int getModifiers();
     void getModifiers(Frame &frame) {
@@ -125,7 +119,7 @@ namespace RexVM::Native::Core {
         if (superClass == nullptr) {
             frame.returnRef(nullptr);
         } else {
-            frame.returnRef(superClass->getMirrorOop());
+            frame.returnRef(superClass->getMirror(&frame));
         }
     }
 
@@ -138,7 +132,7 @@ namespace RexVM::Native::Core {
         }
         const auto arrayClass = CAST_ARRAY_CLASS(mirrorClass);
         const auto componentName = arrayClass->getComponentClassName();
-        const auto componentMirrorOop = frame.mem.getClass(componentName)->getMirrorOop();
+        const auto componentMirrorOop = frame.mem.getClass(componentName)->getMirror(&frame);
         frame.returnRef(componentMirrorOop);
     }
 
@@ -166,7 +160,7 @@ namespace RexVM::Native::Core {
         const auto targetInstanceClass = CAST_INSTANCE_CLASS(targetClass);
 
         const auto objArrayOop = frame.mem.newObjectObjArrayOop(3);
-        objArrayOop->data[0] = targetInstanceClass->getMirrorOop();
+        objArrayOop->data[0] = targetInstanceClass->getMirror(&frame);
 
         if (enclosingMethodAttr->methodIndex != 0) {
             const auto [methodName, methodDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, enclosingMethodAttr->methodIndex);
@@ -200,7 +194,7 @@ namespace RexVM::Native::Core {
                         return;
                     } else {
                         const auto outerClassName = getConstantStringFromPoolByIndexInfo(constantPool, item->outerClassInfoIndex);
-                        frame.returnRef(frame.mem.getClass(outerClassName)->getMirrorOop());
+                        frame.returnRef(frame.mem.getClass(outerClassName)->getMirror(&frame));
                         return;
                     }
                 } 
@@ -230,10 +224,10 @@ namespace RexVM::Native::Core {
             }
 
             auto mirrorFieldInstance = frame.mem.newInstance(retTypeClass);
-            mirrorFieldInstance->setFieldValue("clazz", "Ljava/lang/Class;", Slot(instanceMirrorClass->getMirrorOop()));
+            mirrorFieldInstance->setFieldValue("clazz", "Ljava/lang/Class;", Slot(instanceMirrorClass->getMirror(&frame)));
             mirrorFieldInstance->setFieldValue("slot", "I", Slot(field->slotId));
             mirrorFieldInstance->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(field->name)));
-            mirrorFieldInstance->setFieldValue("type", "Ljava/lang/Class;", Slot(field->getTypeClass()->getMirrorOop()));
+            mirrorFieldInstance->setFieldValue("type", "Ljava/lang/Class;", Slot(field->getTypeClass()->getMirror(&frame)));
             mirrorFieldInstance->setFieldValue("modifiers", "I", Slot(field->getModifier()));
             mirrorFieldInstance->setFieldValue("signature", "Ljava/lang/String;", Slot(frame.mem.getInternString(field->signature)));
             if (field->runtimeVisibleAnnotation != nullptr) {
@@ -292,7 +286,7 @@ namespace RexVM::Native::Core {
             const auto paramClasses = method->getParamClasses();
             const auto paramClassesArrayOop = frame.mem.newClassObjArrayOop(paramClasses.size());
             for (size_t i = 0; i < paramClasses.size(); ++i) {
-                paramClassesArrayOop->data[i] = paramClasses.at(i)->getMirrorOop();
+                paramClassesArrayOop->data[i] = paramClasses.at(i)->getMirror(&frame);
             }
 
             const auto exceptionArrayOop = frame.mem.newClassObjArrayOop(method->exceptionsIndex.size());
@@ -300,12 +294,12 @@ namespace RexVM::Native::Core {
                 const auto exceptionIdx = method->exceptionsIndex.at(i);
                 const auto exceptionClassName = 
                     getConstantStringFromPoolByIndexInfo(instanceMirrorClass->constantPool, exceptionIdx);
-                exceptionArrayOop->data[i] = frame.mem.getClass(exceptionClassName)->getMirrorOop();
+                exceptionArrayOop->data[i] = frame.mem.getClass(exceptionClassName)->getMirror(&frame);
             }
 
             auto mirrorMethodInstance = frame.mem.newInstance(retTypeClass);
             mirrorMethodInstance->setFieldValue("override", "Z", Slot(CAST_I4(0)));
-            mirrorMethodInstance->setFieldValue("clazz", "Ljava/lang/Class;", Slot(instanceMirrorClass->getMirrorOop()));
+            mirrorMethodInstance->setFieldValue("clazz", "Ljava/lang/Class;", Slot(instanceMirrorClass->getMirror(&frame)));
             mirrorMethodInstance->setFieldValue("slot", "I", Slot(method->index));
             mirrorMethodInstance->setFieldValue("parameterTypes", "[Ljava/lang/Class;", Slot(paramClassesArrayOop));
             mirrorMethodInstance->setFieldValue("exceptionTypes", "[Ljava/lang/Class;", Slot(exceptionArrayOop));
@@ -316,7 +310,7 @@ namespace RexVM::Native::Core {
 
             if (!isConstructor) {
                 mirrorMethodInstance->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(method->name)));
-                mirrorMethodInstance->setFieldValue("returnType", "Ljava/lang/Class;", Slot(frame.mem.getClass(method->returnType)->getMirrorOop()));
+                mirrorMethodInstance->setFieldValue("returnType", "Ljava/lang/Class;", Slot(frame.mem.getClass(method->returnType)->getMirror(&frame)));
             }
             
             if (method->runtimeVisibleAnnotation != nullptr) {
@@ -375,7 +369,7 @@ namespace RexVM::Native::Core {
         const auto interfaceSize = instanceMirrorClass->getInterfaceSize();
         const auto retArrayOop = frame.mem.newClassObjArrayOop(interfaceSize);
         FOR_FROM_ZERO(interfaceSize) {
-            retArrayOop->data[i] = instanceMirrorClass->getInterfaceByIndex(i)->getMirrorOop();
+            retArrayOop->data[i] = instanceMirrorClass->getInterfaceByIndex(i)->getMirror(&frame);
         }
 
         frame.returnRef(retArrayOop);
@@ -459,7 +453,7 @@ namespace RexVM::Native::Core {
     void fieldGetTypeAnnotationBytes0(Frame &frame) {
         const auto self = frame.getThisInstance();
         const auto slotId = self->getFieldValue("slot", "I").i4Val;
-        const auto fieldClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(self->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->mirrorClass);
+        const auto fieldClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(self->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->getMirrorClass());
         const auto fieldPtr = fieldClass->fields[slotId].get();
 
         if (fieldPtr->runtimeVisibleTypeAnnotation != nullptr) {
@@ -479,18 +473,21 @@ namespace RexVM::Native::Core {
     //native ConstantPool getConstantPool();
     void getConstantPool(Frame &frame) {
         const auto instance = CAST_MIRROR_OOP(frame.getThisInstance());
-        const auto mirrorClass = instance->getClass();
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
+        const auto instanceClass = instance->getClass();
+        if (instanceClass == nullptr || instanceClass->type != ClassTypeEnum::INSTANCE_CLASS) {
             frame.returnRef(nullptr);
             return;
         }
-        auto constantPoolPtr = instance->constantPoolOop.get();
+        const auto mirrorClass = CAST_INSTANCE_CLASS(instance->getMirrorClass());
+        //auto constantPoolPtr = instance->constantPoolOop.get();
+        auto constantPoolPtr = mirrorClass->constantPoolOop.get();
+    
         if (constantPoolPtr == nullptr) {
             //TODO Thread unsafe
             const auto constantPoolClass = frame.mem.getInstanceClass("sun/reflect/ConstantPool");
-            instance->constantPoolOop = std::make_unique<InstanceOop>(constantPoolClass);
-            instance->constantPoolOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(instance));
-            constantPoolPtr = instance->constantPoolOop.get();
+            mirrorClass->constantPoolOop = std::make_unique<InstanceOop>(constantPoolClass);
+            mirrorClass->constantPoolOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(instance));
+            constantPoolPtr = mirrorClass->constantPoolOop.get();
         }
         frame.returnRef(constantPoolPtr);
     }
@@ -516,7 +513,7 @@ namespace RexVM::Native::Core {
         for (size_t i = 0; i < innerClassesAttr->classes.size(); ++i) {
             const auto innerClassName = 
                 getConstantStringFromPoolByIndexInfo(constantPool, innerClassesAttr->classes.at(i)->innerClassInfoIndex);
-            retArrayOop->data[i] = frame.mem.getClass(innerClassName)->getMirrorOop();
+            retArrayOop->data[i] = frame.mem.getClass(innerClassName)->getMirror(&frame);
         }
             
         frame.returnRef(retArrayOop);
@@ -525,7 +522,8 @@ namespace RexVM::Native::Core {
     //private native Parameter[] getParameters0();
     void getParameters0(Frame &frame) {
         const auto method = frame.getThisInstance();
-        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->mirrorClass);
+        ASSERT_IF_NULL_THROW_NPE(method);
+        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->getMirrorClass());
         const auto slotId = method->getFieldValue("slot", "I").i4Val;
         const auto methodPtr = methodClass->methods[slotId].get();
         const auto parameterClass = frame.mem.getInstanceClass("java/lang/reflect/Parameter");
@@ -547,22 +545,26 @@ namespace RexVM::Native::Core {
     
     //native Class<?> getClassAt0         (Object constantPoolOop, int index);
     void getClassAt0(Frame &frame) {
+        ASSERT_IF_NULL_THROW_NPE(frame.getThis());
         const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
+        ASSERT_IF_NULL_THROW_NPE(mirrorOop);
         const auto index = frame.getLocalI4(2);
-        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->mirrorClass);
+        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->getMirrorClass());
         const auto &constantPool = mirrorClass->constantPool;
 
         const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
 
-        const auto val = frame.mem.getClass(className)->getMirrorOop();
+        const auto val = frame.mem.getClass(className)->getMirror(&frame);
         frame.returnRef(val);
     }
 
     //native int      getIntAt0           (Object constantPoolOop, int index);
     void getIntAt0(Frame &frame) {
+        ASSERT_IF_NULL_THROW_NPE(frame.getThis());
         const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
+        ASSERT_IF_NULL_THROW_NPE(mirrorOop);
         const auto index = frame.getLocalI4(2);
-        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->mirrorClass);
+        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->getMirrorClass());
         const auto &constantPool = mirrorClass->constantPool;
         const auto ptr = constantPool.at(index).get();
 
@@ -572,9 +574,11 @@ namespace RexVM::Native::Core {
 
     //native long     getLongAt0          (Object constantPoolOop, int index);
     void getLongAt0(Frame &frame) {
+        ASSERT_IF_NULL_THROW_NPE(frame.getThis());
         const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
+        ASSERT_IF_NULL_THROW_NPE(mirrorOop);
         const auto index = frame.getLocalI4(2);
-        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->mirrorClass);
+        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->getMirrorClass());
         const auto &constantPool = mirrorClass->constantPool;
         const auto ptr = constantPool.at(index).get();
 
@@ -584,9 +588,11 @@ namespace RexVM::Native::Core {
 
     //native float    getFloatAt0         (Object constantPoolOop, int index);
     void getFloatAt0(Frame &frame) {
+        ASSERT_IF_NULL_THROW_NPE(frame.getThis());
         const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
+        ASSERT_IF_NULL_THROW_NPE(mirrorOop);
         const auto index = frame.getLocalI4(2);
-        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->mirrorClass);
+        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->getMirrorClass());
         const auto &constantPool = mirrorClass->constantPool;
         const auto ptr = constantPool.at(index).get();
 
@@ -596,9 +602,11 @@ namespace RexVM::Native::Core {
 
     //native double   getDoubleAt0        (Object constantPoolOop, int index);
     void getDoubleAt0(Frame &frame) {
+        ASSERT_IF_NULL_THROW_NPE(frame.getThis());
         const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
+        ASSERT_IF_NULL_THROW_NPE(mirrorOop);
         const auto index = frame.getLocalI4(2);
-        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->mirrorClass);
+        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->getMirrorClass());
         const auto &constantPool = mirrorClass->constantPool;
         const auto ptr = constantPool.at(index).get();
 
@@ -608,9 +616,11 @@ namespace RexVM::Native::Core {
 
     //native String   getUTF8At0          (Object constantPoolOop, int index);
     void getUTF8At0(Frame &frame) {
+        ASSERT_IF_NULL_THROW_NPE(frame.getThis());
         const auto mirrorOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
+        ASSERT_IF_NULL_THROW_NPE(mirrorOop);
         const auto index = frame.getLocalI4(2);
-        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->mirrorClass);
+        const auto mirrorClass = CAST_INSTANCE_CLASS(mirrorOop->getMirrorClass());
         const auto &constantPool = mirrorClass->constantPool;
 
         const auto val = getConstantStringFromPool(constantPool, index);
@@ -619,13 +629,11 @@ namespace RexVM::Native::Core {
 
     void invoke0(Frame &frame) {
         const auto method = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        ASSERT_IF_NULL_THROW_NPE(method);
         const auto obj = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         const auto args = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(2));
-        if (method == nullptr) {
-            panic("invoke0 error: method nullptr");
-        }
 
-        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->mirrorClass);
+        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->getMirrorClass());
         //const auto methodName = StringPool::getJavaString(CAST_INSTANCE_OOP(method->getFieldValue("name", "Ljava/lang/String;").refVal));
         const auto slotId = method->getFieldValue("slot", "I").i4Val;
         const auto methodPtr = methodClass->methods[slotId].get();
@@ -670,12 +678,12 @@ namespace RexVM::Native::Core {
 
     void getCallerClass(Frame &frame) {
         const auto callerFrame = frame.previous->previous;
-        frame.returnRef(callerFrame->klass.getMirrorOop());
+        frame.returnRef(callerFrame->klass.getMirror(&frame));
     }
     
     void getClassAccessFlags(Frame &frame) {
         const auto instance = CAST_MIRROR_OOP(frame.getThis());
-        const auto mirrorClass = instance->mirrorClass;
+        const auto mirrorClass = instance->getMirrorClass();
         frame.returnI4(CAST_I4(mirrorClass->getAccessFlags()));
     }
 

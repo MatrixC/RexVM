@@ -16,7 +16,7 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto length = frame.getLocalI4(1);
-        const auto mirrorClass = mirrorOop->mirrorClass;
+        const auto mirrorClass = mirrorOop->getMirrorClass();
         switch (mirrorClass->type) {
             case ClassTypeEnum::PRIMITIVE_CLASS: {
                 const auto primitiveClass = CAST_PRIMITIVE_CLASS(mirrorClass);

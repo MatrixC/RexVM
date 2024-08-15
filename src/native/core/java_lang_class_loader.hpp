@@ -20,7 +20,7 @@ namespace RexVM::Native::Core {
     void resolveClass0(Frame &frame) {
         //same sa ensureClassInitialized
         const auto mirrorClassOop = CAST_MIRROR_OOP(frame.getLocalRef(1));
-        const auto mirrorClass = mirrorClassOop->mirrorClass;
+        const auto mirrorClass = mirrorClassOop->getMirrorClass();
         if (mirrorClass->type == ClassTypeEnum::INSTANCE_CLASS) {
             (CAST_INSTANCE_CLASS(mirrorClass))->clinit(frame);
         }
@@ -34,7 +34,7 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto className = StringPool::getJavaString(classNameOop);
-        const auto mirrorOop = frame.mem.getClass(className)->getMirrorOop();
+        const auto mirrorOop = frame.mem.getClass(className)->getMirror(&frame);
         frame.returnRef(mirrorOop);
     }
 
@@ -46,7 +46,7 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto className = getJVMClassName(StringPool::getJavaString(classNameOop));
-        const auto mirrorOop = frame.mem.getClass(className)->getMirrorOop();
+        const auto mirrorOop = frame.mem.getClass(className)->getMirror(&frame);
         frame.returnRef(mirrorOop);
     }
 

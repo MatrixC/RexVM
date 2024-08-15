@@ -130,19 +130,19 @@ namespace RexVM {
 
 
     void ClassLoader::initMirrorClass(Class *klass) {
-        if (klass->mirror == nullptr) {
-            if (mirrorClass != nullptr) {
-                /*
-                auto mirror = new MirrorOop(mirrorClass, klass);
-                if (classLoaderInstance != nullptr) {
-                    //mirror->setFieldValue("classLoader", "Ljava/lang/ClassLoader;", Slot(classLoaderInstance));
-                    //TODO bootstrapLoader or application loader is different
-                }
-                klass->mirror = mirror;
-                */
-                klass->mirror = std::make_unique<MirrorOop>(mirrorClass, klass);
-            }
-        }
+        // if (klass->mirror == nullptr) {
+        //     if (mirrorClass != nullptr) {
+        //         /*
+        //         auto mirror = new MirrorOop(mirrorClass, klass);
+        //         if (classLoaderInstance != nullptr) {
+        //             //mirror->setFieldValue("classLoader", "Ljava/lang/ClassLoader;", Slot(classLoaderInstance));
+        //             //TODO bootstrapLoader or application loader is different
+        //         }
+        //         klass->mirror = mirror;
+        //         */
+        //         klass->mirror = std::make_unique<MirrorOop>(mirrorClass, klass);
+        //     }
+        // }
     }
 
     InstanceClass *ClassLoader::getInstanceClass(const cstring &name) {

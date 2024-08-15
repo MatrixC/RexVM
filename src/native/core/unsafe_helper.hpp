@@ -203,7 +203,7 @@ namespace RexVM::Native::Core {
             if (obj->getClass()->name != JAVA_LANG_CLASS_NAME) {
                 panic("error object");
             }
-            const auto mirrorClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(obj)->mirrorClass);
+            const auto mirrorClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(obj)->getMirrorClass());
             dataPtr = CAST_U1_PTR(mirrorClass->staticData.get());
         } else if (obj->getType() == OopTypeEnum::INSTANCE_OOP) {
             const auto instanceObj = CAST_INSTANCE_OOP(obj);

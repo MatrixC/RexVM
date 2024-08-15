@@ -107,8 +107,8 @@ namespace RexVM {
         if (method.name == "getName" && method.klass.name == JAVA_LANG_CLASS_NAME) {
             int i = 10;
             const auto mirrorOop = CAST_MIRROR_OOP(frame.getThis());
-            const auto mirrorC = mirrorOop->mirrorClass;
-            cprintln("getName run {}", mirrorC->name);
+            const auto mirrorC = mirrorOop->getMirrorClass();
+            //cprintln("getName run {}", mirrorC->name);
         }
 
         frame.vm.collector->checkStop();
@@ -160,7 +160,7 @@ namespace RexVM {
         auto lock = false;
         ref monitorHandler = nullptr;
         if (method.isSynchronized()) [[unlikely]] {
-            monitorHandler = method.isStatic() ? method.klass.getMirrorOop() : frame.getThis();
+            monitorHandler = method.isStatic() ? method.klass.getMirror(&frame) : frame.getThis();
             monitorHandler->lock();
             lock = true;
         }

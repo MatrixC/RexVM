@@ -27,7 +27,7 @@ namespace RexVM::Native::Core {
         const auto bufferPtr = buffer->data.get() + off;
 
         const auto classOop = frame.mem.loadInstanceClass(bufferPtr, len, notAnonymous);
-        frame.returnRef(classOop->getMirrorOop());
+        frame.returnRef(classOop->getMirror(&frame));
     }
 
     //native Class<?> defineClass0(String name, byte[] b, int off, int len, ProtectionDomain pd);

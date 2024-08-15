@@ -33,12 +33,12 @@ namespace RexVM {
     //代替MethodType.fromMethodDescriptorString
     InstanceOop *createMethodType(Frame &frame, const cstring &methodDescriptor) {
         const auto [paramType, returnTypeType] = parseMethodDescriptor(methodDescriptor);
-        const auto returnTypeOop = frame.mem.getClass(returnTypeType)->getMirrorOop();
+        const auto returnTypeOop = frame.mem.getClass(returnTypeType)->getMirror(&frame);
         const auto classArrayOop = frame.mem.newClassObjArrayOop(paramType.size());
 
         size_t i = 0;
         for (const auto &className: paramType) {
-            classArrayOop->data[i++] = frame.mem.getClass(className)->getMirrorOop();
+            classArrayOop->data[i++] = frame.mem.getClass(className)->getMirror(&frame);
         }
         const auto runtimeMethodTypeClass = frame.mem.getInstanceClass("java/lang/invoke/MethodType");
         const auto makeImplMethod = runtimeMethodTypeClass->getMethod("makeImpl", "(Ljava/lang/Class;[Ljava/lang/Class;Z)Ljava/lang/invoke/MethodType;", true);
@@ -78,7 +78,7 @@ namespace RexVM {
         const auto kind = static_cast<MethodHandleEnum>(methodHandleInfo->referenceKind);
 
         const auto methodHandleClass = frame.mem.getInstanceClass(methodHandleClassName);
-        const auto methodHandleClassMirrorOop = methodHandleClass->getMirrorOop();
+        const auto methodHandleClassMirrorOop = methodHandleClass->getMirror(&frame);
         const auto methodHandleMemberNameOop = frame.mem.getInternString(methodHandleMemberName);
 
         Slot type;
@@ -87,7 +87,7 @@ namespace RexVM {
             case MethodHandleEnum::REF_getStatic:
             case MethodHandleEnum::REF_putField:
             case MethodHandleEnum::REF_putStatic:
-                type = Slot(frame.mem.getClass(getClassNameByFieldDescriptor(methodHandleMemberDescriptor))->getMirrorOop());
+                type = Slot(frame.mem.getClass(getClassNameByFieldDescriptor(methodHandleMemberDescriptor))->getMirror(&frame));
                 break;
 
             default:
@@ -97,7 +97,7 @@ namespace RexVM {
 
         std::vector<Slot> linkMethodHandleParam;
         linkMethodHandleParam.reserve(5);
-        linkMethodHandleParam.emplace_back(callerClass->getMirrorOop());
+        linkMethodHandleParam.emplace_back(callerClass->getMirror(&frame));
         linkMethodHandleParam.emplace_back(CAST_I4(methodHandleInfo->referenceKind));
         linkMethodHandleParam.emplace_back(methodHandleClassMirrorOop);
         linkMethodHandleParam.emplace_back(methodHandleMemberNameOop);
@@ -146,7 +146,7 @@ namespace RexVM {
                 }
                 case ConstantTagEnum::CONSTANT_Class: {
                     const auto className = getConstantStringFromPool(constantPool, CAST_CONSTANT_CLASS_INFO(constantInfo)->index);
-                    argResult = frame.mem.getClass(className)->getMirrorOop();
+                    argResult = frame.mem.getClass(className)->getMirror(&frame);
                     break;
                 }
                 case ConstantTagEnum::CONSTANT_Integer:
@@ -174,7 +174,7 @@ namespace RexVM {
         const auto appendixResultArrayOop = frame.mem.newObjectObjArrayOop(1);
         std::vector<Slot> linkCallSiteParams;
         linkCallSiteParams.reserve(5);
-        linkCallSiteParams.emplace_back(callerClass->getMirrorOop());
+        linkCallSiteParams.emplace_back(callerClass->getMirror(&frame));
         linkCallSiteParams.emplace_back(methodHandle);
         linkCallSiteParams.emplace_back(frame.mem.getInternString(invokeName));
         linkCallSiteParams.emplace_back(createMethodType(frame, invokeDescriptor));
@@ -266,14 +266,14 @@ namespace RexVM {
                 const auto ptypes = CAST_OBJ_ARRAY_OOP(type->getFieldValue("ptypes", "[Ljava/lang/Class;").refVal);
                 for (size_t i = 0; i < ptypes->getDataLength(); ++i) {
                     const auto classMirrorOop = CAST_MIRROR_OOP(ptypes->data[i]);
-                    const auto mirrorClass = classMirrorOop->mirrorClass;
+                    const auto mirrorClass = classMirrorOop->getMirrorClass();
                     descriptor += getDescriptorByClass(mirrorClass);
                 }
                 descriptor += ")";
                 const auto rtype = CAST_MIRROR_OOP(type->getFieldValue("rtype", "Ljava/lang/Class;").refVal);
-                descriptor += getDescriptorByClass(rtype->mirrorClass);
+                descriptor += getDescriptorByClass(rtype->getMirrorClass());
             } else if (typeClassName == JAVA_LANG_CLASS_NAME) {
-                const auto mirrorClass = CAST_MIRROR_OOP(type)->mirrorClass;
+                const auto mirrorClass = CAST_MIRROR_OOP(type)->getMirrorClass();
                 descriptor = getDescriptorByClass(mirrorClass);
             } else {
                 panic("error typeClassName");

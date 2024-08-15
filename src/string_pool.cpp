@@ -115,12 +115,12 @@ namespace RexVM {
             const auto oopVal = current->value;
             if (StringPool::equalJavaString(oopVal, utf16Ptr, utf16Length)) {
                 ret = oopVal;
-                cprintln("sp findOk {}, {}", key, CAST_VOID_PTR(oopVal));
+                //cprintln("sp findOk {}, {}", key, CAST_VOID_PTR(oopVal));
                 return true;
             }
             current = current->next;
         }
-        cprintln("sp findFail {}", key);
+        //cprintln("sp findFail {}", key);
         return false;
     }
 
@@ -128,7 +128,7 @@ namespace RexVM {
         const auto index = getKeyIndex(key);
         auto newNode = new Node(value);
 
-        cprintln("sp insert {}, {}", key, CAST_VOID_PTR(value));
+        //cprintln("sp insert {}, {}", key, CAST_VOID_PTR(value));
 
         if (table[index] == nullptr) {
             table[index] = newNode;
@@ -156,7 +156,7 @@ namespace RexVM {
                     prev->next = current->next;
                 }
                 int i = 10;
-                cprintln("sp earse {}, {}", key, CAST_VOID_PTR(value));
+                //cprintln("sp earse {}, {}", key, CAST_VOID_PTR(value));
                 delete current;
                 break;
             }

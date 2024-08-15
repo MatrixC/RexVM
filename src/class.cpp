@@ -230,23 +230,26 @@ namespace RexVM {
         }
     }
 
-    MirrorOop * Class::getMirrorOop() const {
-        return mirror.get();
-    }
-
-    MirOop *Class::getMirror(Frame *frame) {
+    MirOop *Class::getMirror(Frame *frame, bool init) {
         if (mirOop == nullptr) [[unlikely]] {
+            if (!init) [[unlikely]] {
+                return nullptr;
+            }
             Class::mirrorLock.lock();
             if (mirOop == nullptr) {
+                if (frame == nullptr) [[unlikely]] {
+                    return nullptr;
+                }
                 mirOop = frame->mem.newMirror(nullptr, this, MirrorObjectTypeEnum::CLASS);
             }
             Class::mirrorLock.unlock();
         }
         return mirOop;
-
     }
 
-    Class::~Class() = default;
+    Class::~Class() {
+        delete mirOop;
+    }
 
     InstanceClass::InstanceClass(ClassLoader &classLoader, ClassFile &cf) :
             Class(ClassTypeEnum::INSTANCE_CLASS, cf.accessFlags, cf.getThisClassName(), classLoader) {

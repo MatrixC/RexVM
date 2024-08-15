@@ -122,7 +122,7 @@ namespace RexVM {
                     const auto classConstInfo = CAST_CONSTANT_CLASS_INFO(valPtr);
                     const auto className = getConstantStringFromPool(constantPool, classConstInfo->index);
                     const auto value = frame.mem.getClass(className);
-                    frame.pushRef(value->mirror.get());
+                    frame.pushRef(value->getMirror(&frame));
                     break;
                 }
 

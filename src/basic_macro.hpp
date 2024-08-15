@@ -81,11 +81,11 @@
 #define CAST_FLOAT_TYPE_ARRAY_OOP(x) static_cast<FloatTypeArrayOop *>(x)
 #define CAST_LONG_TYPE_ARRAY_OOP(x) static_cast<LongTypeArrayOop *>(x)
 #define CAST_DOUBLE_TYPE_ARRAY_OOP(x) static_cast<DoubleTypeArrayOop *>(x)
-#define CAST_MIRROR_OOP(x) static_cast<MirrorOop *>(x)
+#define CAST_MIRROR_OOP(x) static_cast<MirOop *>(x)
 #define CAST_VM_THREAD_OOP(x) static_cast<VMThread *>(x)
 
-#define GET_MIRROR_CLASS(x) CAST_MIRROR_OOP(x)->mirrorClass
-#define GET_MIRROR_INSTANCE_CLASS(x) CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(x)->mirrorClass)
+#define GET_MIRROR_CLASS(x) CAST_MIRROR_OOP(x)->getMirrorClass()
+#define GET_MIRROR_INSTANCE_CLASS(x) CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(x)->getMirrorClass())
 
 #define FOR_FROM(f, x) for (auto i = std::remove_const_t<decltype(x)>(f); i < (x); ++i)
 #define FOR_FROM_ZERO(x) FOR_FROM(0, (x))

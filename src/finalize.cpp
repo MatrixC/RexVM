@@ -11,15 +11,17 @@
 
 namespace RexVM {
 
+    //先不回收Mirror
+
     Collector::Collector(VM &vm) : vm(vm) {
-        collectThread = std::thread([this]() {
-            while (!this->vm.exit) {
-                if (oopCount > 1000) {
-                    startGC();
-                }
-                std::this_thread::sleep_for(std::chrono::microseconds(500));
-            }
-        });
+        // collectThread = std::thread([this]() {
+        //     while (!this->vm.exit) {
+        //         if (oopCount > 1000) {
+        //             startGC();
+        //         }
+        //         std::this_thread::sleep_for(std::chrono::microseconds(500));
+        //     }
+        // });
     }
 
     void Collector::stopTheWorld() {
@@ -106,7 +108,7 @@ namespace RexVM {
         //     // auto isLong = false;
         //     if (item->getClass()->name == JAVA_LANG_CLASS_NAME) {
         //         const auto mirrorOop = CAST_MIRROR_OOP(item);
-        //         const auto klass = mirrorOop->mirrorClass;
+        //         const auto klass = mirrorOop->getMirrorClass();
         //         cprintln("LIVE, {}", klass->name);
         //     }
         //     item->clearTraced();
@@ -171,7 +173,7 @@ namespace RexVM {
     void traceOop(ref oop) {
         if (oop->getClass()->name == JAVA_LANG_CLASS_NAME) {
             const auto mirrorOop = CAST_MIRROR_OOP(oop);
-            const auto klass = mirrorOop->mirrorClass;
+            const auto klass = mirrorOop->getMirrorClass();
             if (klass->name == "java/lang/Long") {
                 cprintln("traceOop Long, {} {}", oop->isMarkTraced(), CAST_VOID_PTR(oop));
             }
@@ -187,7 +189,7 @@ namespace RexVM {
         if (oop->getClass()->name == JAVA_LANG_CLASS_NAME) {
             int i = 10;
             const auto mirrorOop = CAST_MIRROR_OOP(oop);
-            const auto klass = mirrorOop->mirrorClass;
+            const auto klass = mirrorOop->getMirrorClass();
             const auto name = CAST_VOID_PTR(mirrorOop->getFieldValue("name", "Ljava/lang/String;").refVal);
             cprintln("trace to class {}, name {}", klass->name, name);
 
@@ -231,7 +233,7 @@ namespace RexVM {
 
     void getStaticRef(ClassLoader &classLoader, std::vector<ref> &gcRoots) {
         for (const auto &[name, klass] : classLoader.classMap) {
-            gcRoots.emplace_back(klass->getMirrorOop());
+            gcRoots.emplace_back(klass->getMirror(nullptr));
             if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
                 const auto instanceClass = CAST_INSTANCE_CLASS(klass.get());
                 if (instanceClass->notInitialize()) {
@@ -275,7 +277,7 @@ namespace RexVM {
                 
                 if (item->getClass()->name == JAVA_LANG_CLASS_NAME) {
                 const auto mirrorOop = CAST_MIRROR_OOP(item);
-                const auto klass = mirrorOop->mirrorClass;
+                const auto klass = mirrorOop->getMirrorClass();
                 if (klass->name == "java/lang/Long") {
                     cprintln("BBBBB");
                 }
