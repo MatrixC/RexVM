@@ -27,8 +27,10 @@ namespace RexVM {
             JAVA_LANG_INVOKE_METHOD_HANDLE_NAME,
             JAVA_LANG_STACK_TRACE_ELEMENT_NAME,
             JAVA_LANG_REFLECT_METHOD_NAME,
+            JAVA_LANG_REFLECT_CONSTRUCTOR_NAME,
             JAVA_LANG_REFLECT_FIELD_NAME,
             JAVA_LANG_INVOKE_MEMBER_NAME_NAME,
+            SUN_REFLECT_CONSTANT_POOL_NAME,
     };
 
     cstring getBasicJavaClassName(BasicJavaClassEnum classEnum) {

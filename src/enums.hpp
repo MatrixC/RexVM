@@ -80,8 +80,10 @@ namespace RexVM {
     enum class MirrorObjectTypeEnum : u2 {
         CLASS,
         METHOD,
+        CONSTRUCTOR,
         FIELD,
         MEMBER_NAME,
+        CONSTANT_POOL,
     };
 
     enum class ThreadStatusEnum : u2 {

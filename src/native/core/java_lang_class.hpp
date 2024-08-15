@@ -225,6 +225,7 @@ namespace RexVM::Native::Core {
                 continue;
             }
 
+            /*
             auto mirrorFieldInstance = frame.mem.newInstance(retTypeClass);
             mirrorFieldInstance->setFieldValue("clazz", "Ljava/lang/Class;", Slot(instanceMirrorClass->getMirror(&frame)));
             mirrorFieldInstance->setFieldValue("slot", "I", Slot(field->slotId));
@@ -240,6 +241,8 @@ namespace RexVM::Native::Core {
                     );
                 mirrorFieldInstance->setFieldValue("annotations", "[B", Slot(byteArrayOop));
             }
+            */
+            const auto mirrorFieldInstance = field->getMirror(&frame);
             fieldInstances.emplace_back(mirrorFieldInstance);
         }
 
@@ -285,6 +288,7 @@ namespace RexVM::Native::Core {
                 }
             }
 
+            /*
             const auto paramClasses = method->getParamClasses();
             const auto paramClassesArrayOop = frame.mem.newClassObjArrayOop(paramClasses.size());
             for (size_t i = 0; i < paramClasses.size(); ++i) {
@@ -341,6 +345,8 @@ namespace RexVM::Native::Core {
                     );
                 mirrorMethodInstance->setFieldValue("annotationDefault", "[B", Slot(byteArrayOop));
             }
+            */
+            const auto mirrorMethodInstance = method->getMirror(&frame);
             methodInstances.emplace_back(mirrorMethodInstance);
         }
 
@@ -481,16 +487,18 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto mirrorClass = CAST_INSTANCE_CLASS(instance->getMirrorClass());
-        //auto constantPoolPtr = instance->constantPoolOop.get();
-        auto constantPoolPtr = mirrorClass->constantPoolOop.get();
+
+        const auto constantPoolPtr = mirrorClass->getConstantPoolMirror(&frame);
+
+        // auto constantPoolPtr = mirrorClass->constantPoolOop.get();
     
-        if (constantPoolPtr == nullptr) {
-            //TODO Thread unsafe
-            const auto constantPoolClass = frame.mem.getInstanceClass("sun/reflect/ConstantPool");
-            mirrorClass->constantPoolOop = std::make_unique<InstanceOop>(constantPoolClass);
-            mirrorClass->constantPoolOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(instance));
-            constantPoolPtr = mirrorClass->constantPoolOop.get();
-        }
+        // if (constantPoolPtr == nullptr) {
+        //     //TODO Thread unsafe
+        //     const auto constantPoolClass = frame.mem.getInstanceClass("sun/reflect/ConstantPool");
+        //     mirrorClass->constantPoolOop = std::make_unique<InstanceOop>(constantPoolClass);
+        //     mirrorClass->constantPoolOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(instance));
+        //     constantPoolPtr = mirrorClass->constantPoolOop.get();
+        // }
         frame.returnRef(constantPoolPtr);
     }
 

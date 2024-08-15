@@ -17,8 +17,6 @@
 
 namespace RexVM {
 
-    SpinLock Class::mirrorLock;
-
     Class::Class(const ClassTypeEnum type, const u2 accessFlags, cstring name, ClassLoader &classLoader) :
             name(std::move(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
     }
@@ -174,6 +172,15 @@ namespace RexVM {
         return that->isSubInterfaceOf(this);
     }
 
+    MirOop *Class::getMirror(Frame *frame, bool init) {
+        static SpinLock lock;
+        return mirrorBase.getBaseMirror(frame, MirrorObjectTypeEnum::CLASS, this, lock, init);
+    }
+
+
+    Class::~Class() {
+    }
+
     constexpr auto PRIMITIVE_CLASS_ACCESS_FLAGS = 
         CAST_U2(AccessFlagEnum::ACC_PUBLIC) |
         CAST_U2(AccessFlagEnum::ACC_FINAL) |
@@ -231,25 +238,6 @@ namespace RexVM {
         }
     }
 
-    MirOop *Class::getMirror(Frame *frame, bool init) {
-        //return getBaseMirror(frame, MirrorObjectTypeEnum::CLASS, Class::mirrorLock, init, nullptr);
-        if (mirOop == nullptr) [[unlikely]] {
-            if (!init) [[unlikely]] {
-                return nullptr;
-            }
-            mirrorLock.lock();
-            if (mirOop == nullptr) {
-                if (frame != nullptr) {
-                    mirOop = frame->mem.newMirror(nullptr, this, MirrorObjectTypeEnum::CLASS);
-                }
-            }
-            mirrorLock.unlock();
-        }
-        return mirOop;
-    }
-
-    Class::~Class() {
-    }
 
     InstanceClass::InstanceClass(ClassLoader &classLoader, ClassFile &cf) :
             Class(ClassTypeEnum::INSTANCE_CLASS, cf.accessFlags, cf.getThisClassName(), classLoader) {
@@ -604,6 +592,11 @@ namespace RexVM {
     void InstanceClass::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const {
         auto field = getField(name, descriptor, true);
         staticData[field->slotId] = value;
+    }
+
+    MirOop *InstanceClass::getConstantPoolMirror(Frame *frame, bool init) {
+        static SpinLock lock;
+        return constantPoolMirrorBase.getBaseMirror(frame, MirrorObjectTypeEnum::CONSTANT_POOL, this, lock, init);
     }
 
     ArrayClass::ArrayClass(const ClassTypeEnum type, const cstring &name,

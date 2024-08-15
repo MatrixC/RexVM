@@ -51,12 +51,20 @@ namespace RexVM {
                     klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_METHOD);
                     break;
 
+                case MirrorObjectTypeEnum::CONSTRUCTOR:
+                    klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_CONSTRUCTOR);
+                    break;
+
                 case MirrorObjectTypeEnum::FIELD:
-                    vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_FIELD);
+                    klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_FIELD);
                     break;
 
                 case MirrorObjectTypeEnum::MEMBER_NAME:
-                    vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_MEMBER_NAME);
+                    klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_MEMBER_NAME);
+                    break;
+
+                case MirrorObjectTypeEnum::CONSTANT_POOL:
+                    klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::SUN_REFLECT_CONSTANT_POOL);
                     break;
 
                 default:

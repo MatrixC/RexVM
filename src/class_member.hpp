@@ -6,6 +6,8 @@
 #include <vector>
 #include <algorithm>
 #include <optional>
+#include "utils/spin_lock.hpp"
+#include "mirror_base.hpp"
 
 namespace RexVM {
 
@@ -16,6 +18,7 @@ namespace RexVM {
     struct ExceptionTable;
     struct LineNumberInfo;
     struct ClassFile;
+    struct MirrorBase;
 
     struct ClassMember {
         const ClassMemberTypeEnum type;
@@ -40,10 +43,14 @@ namespace RexVM {
         [[nodiscard]] bool isFinal() const;
         [[nodiscard]] bool isPublic() const;
         [[nodiscard]] bool isPrivate() const;
+        [[nodiscard]] bool isConstructor() const;
         [[nodiscard]] i4 getModifier() const;
 
         [[nodiscard]] bool is(const cstring &name, const cstring &descriptor) const;
         [[nodiscard]] bool is(const cstring &name, const cstring &descriptor, bool isStatic) const;
+
+        MirrorBase mirrorBase{};
+        [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
         virtual ~ClassMember();
     };
@@ -120,7 +127,6 @@ namespace RexVM {
         [[nodiscard]] u4 getLineNumber(u4 pc) const;
 
         ~Method() override;
-
 
         private:
         void initParamSlotSize();

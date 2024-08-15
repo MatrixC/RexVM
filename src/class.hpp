@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <atomic>
 #include "utils/spin_lock.hpp"
+#include "mirror_base.hpp"
 
 namespace RexVM {
 
@@ -70,9 +71,9 @@ namespace RexVM {
         [[nodiscard]] bool isSuperInterfaceOf(const Class *that) const;
         [[nodiscard]] bool isSubClassOf(const Class *that) const;
 
-        static SpinLock mirrorLock;
-        MirOop *mirOop{nullptr};
+        MirrorBase mirrorBase{};
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
+
         
         virtual ~Class();
     };
@@ -95,7 +96,11 @@ namespace RexVM {
         u2 instanceSlotCount{};
         u2 staticSlotCount{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
+
         std::unique_ptr<InstanceOop> constantPoolOop;
+        MirrorBase constantPoolMirrorBase{};
+
+        [[nodiscard]] MirOop *getConstantPoolMirror(Frame *frame, bool init = true);
 
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<std::unique_ptr<Method>> methods;

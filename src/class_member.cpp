@@ -61,6 +61,10 @@ namespace RexVM {
         return (accessFlags & CAST_U2(AccessFlagEnum::ACC_PRIVATE)) != 0;
     }
 
+    bool ClassMember::isConstructor() const {
+        return type == ClassMemberTypeEnum::METHOD && name == "<init>";
+    }
+
     i4 ClassMember::getModifier() const {
         return (accessFlags & ~(CAST_U2(AccessFlagEnum::ACC_ANNOTATION)));
     }
@@ -71,6 +75,19 @@ namespace RexVM {
 
     bool ClassMember::is(const cstring &name_, const cstring &descriptor_, bool isStatic) const {
         return is(name_, descriptor_) && this->isStatic() == isStatic;
+    }
+
+    MirOop *ClassMember::getMirror(Frame *frame, bool init) {
+        static SpinLock fieldLock;
+        static SpinLock methodLock;
+
+        SpinLock &lock = type == ClassMemberTypeEnum::FIELD ? fieldLock : methodLock;
+
+        const auto mirrorType = 
+            type == ClassMemberTypeEnum::FIELD ? MirrorObjectTypeEnum::FIELD
+            : (isConstructor() ? MirrorObjectTypeEnum::CONSTRUCTOR : MirrorObjectTypeEnum::METHOD);
+
+        return mirrorBase.getBaseMirror(frame, mirrorType, this, lock, init);
     }
 
     ClassMember::~ClassMember() = default;

@@ -7,7 +7,9 @@ namespace RexVM {
     struct SpinLock;
     struct MirOop;
     struct Frame;
-    struct MirOop;
+    struct Class;
+    struct Method;
+    struct Field;
 
     using MirrorInitHandler = void (*)(MirOop *);
 
@@ -17,7 +19,11 @@ namespace RexVM {
         explicit MirrorBase();
         ~MirrorBase();
 
-        [[nodiscard]] MirOop *getBaseMirror(Frame *frame, MirrorObjectTypeEnum type, SpinLock &lock, bool init, MirrorInitHandler initHandler);
+        [[nodiscard]] MirOop *getBaseMirror(Frame *frame, MirrorObjectTypeEnum type, voidPtr mirrorObj, SpinLock &lock, bool init);
+
+        void initMethodMirrorOop(Frame &frame, Method *method, bool isConstructor);
+        void initFieldMirrorOop(Frame &frame, Field *field);
+        void initConstantPoolMirrorOop(Frame &frame, Class *klass);
     };
 }
 
