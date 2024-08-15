@@ -16,6 +16,8 @@
 
 namespace RexVM {
 
+    SpinLock Class::mirrorLock;
+
     Class::Class(const ClassTypeEnum type, const u2 accessFlags, cstring name, ClassLoader &classLoader) :
             name(std::move(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
     }
@@ -232,6 +234,18 @@ namespace RexVM {
         return mirror.get();
     }
 
+    MirOop *Class::getMirror(Frame *frame) {
+        if (mirOop == nullptr) [[unlikely]] {
+            Class::mirrorLock.lock();
+            if (mirOop == nullptr) {
+                mirOop = frame->mem.newMirror(nullptr, this, MirrorObjectTypeEnum::CLASS);
+            }
+            Class::mirrorLock.unlock();
+        }
+        return mirOop;
+
+    }
+
     Class::~Class() = default;
 
     InstanceClass::InstanceClass(ClassLoader &classLoader, ClassFile &cf) :
@@ -245,7 +259,7 @@ namespace RexVM {
         initInterfaceAndSuperClass(cf);
         moveConstantPool(cf);
         calcFieldSlotId();
-        initStaticField();
+        //initStaticField();
     }
 
     void InstanceClass::initAttributes(ClassFile &cf) {
@@ -374,7 +388,7 @@ namespace RexVM {
         }
     }
 
-    void InstanceClass::initStaticField() {
+    void InstanceClass::initStaticField(VMThread &thread) {
         if (staticSlotCount <= 0) {
             return;
         }
@@ -399,6 +413,7 @@ namespace RexVM {
                     data = Slot(CAST_CONSTANT_DOUBLE_INFO(constValue.get())->value);
                 } else if (descriptor == "Ljava/lang/String;") {
                     auto strOop = classLoader.vm.stringPool->getInternString(
+                        &thread,
                         getConstantStringFromPoolByIndexInfo(constantPool, field->constantValueIndex)
                     );
                     data = Slot(strOop);
@@ -452,6 +467,8 @@ namespace RexVM {
         if (superClass != nullptr) {
            superClass->clinit(frame);
         }
+
+        initStaticField(frame.thread);
 
         const auto clinitMethod = getMethod("<clinit>", "()V", true);
         if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {

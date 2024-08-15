@@ -95,13 +95,19 @@ namespace RexVM {
     }
 
     void Oop::clearTraced() {
+        if (getClass()->name == "java/lang/Class") {
+            int i = 10;
+            const auto mirror = CAST_MIRROR_OOP(this);
+            if (mirror->mirrorClass->name == "java/lang/Long") {
+                cprintln("Long mark clearn");
+            }
+        }
         traceMarked = false;
     }
 
     bool Oop::isMarkTraced() {
         return traceMarked;
     }
-
 
     void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
         //std::memset(oop->data.get(), 0, sizeof(Slot) * oop->getDataLength());
@@ -179,7 +185,25 @@ namespace RexVM {
 
     MirrorOop::MirrorOop(InstanceClass *klass, Class *mirrorClass) :
         InstanceOop(klass, klass->instanceSlotCount),
-        mirrorClass(mirrorClass) {
+        mirrorClass(mirrorClass),
+        name(mirrorClass->name) {
+    }
+
+    MirOop::MirOop(InstanceClass *klass, voidPtr mirrorObj, MirrorObjectTypeEnum type) :
+        InstanceOop(klass, klass->instanceSlotCount),
+        mirror(mirrorObj, static_cast<u2>(type)) {
+    }
+
+    Class *MirOop::getMirrorClass() const {
+        return CAST_CLASS(mirror.getPtr());
+    }
+
+    Method *MirOop::getMirrorMethod() const {
+        return CAST_METHOD(mirror.getPtr());
+    }
+
+    Field *MirOop::getMirrorField() const {
+        return CAST_FIELD(mirror.getPtr());
     }
 
     ArrayOop::ArrayOop(const OopTypeEnum type, ArrayClass *klass, const size_t dataLength) :

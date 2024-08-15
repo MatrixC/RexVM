@@ -63,7 +63,7 @@ namespace RexVM {
     }
 
     void VM::initMainThread() {
-         mainThread = std::make_unique<VMThread>(*this);
+        mainThread = std::make_unique<VMThread>(*this);
 
         const auto threadGroupClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
         const auto vmThreadGroup = oopManager->newInstance(mainThread.get(), threadGroupClass);
@@ -105,7 +105,7 @@ namespace RexVM {
             std::exit(1);
         }
         const auto mainMethodParmSize = userParams.size() - 1;
-        const auto stringArray = oopManager->newStringObjArrayOop(nullptr, mainMethodParmSize);
+        const auto stringArray = oopManager->newStringObjArrayOop(mainThread.get(), mainMethodParmSize);
 
         if (userParams.size() > 1) {
             for (size_t i = 1; i < userParams.size(); ++i) {

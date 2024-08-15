@@ -3,6 +3,7 @@
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "basic_java_class.hpp"
+#include "oop.hpp"
 
 namespace RexVM {
 
@@ -16,6 +17,7 @@ namespace RexVM {
     struct ObjArrayClass;
     struct TypeArrayClass;
     struct InstanceOop;
+    struct MirOop;
     struct ObjArrayOop;
     struct TypeArrayOop;
     struct ByteTypeArrayOop;
@@ -33,6 +35,7 @@ namespace RexVM {
         ClassLoader &classLoader;
 
         [[nodiscard]] InstanceOop *newInstance(InstanceClass * klass);
+        [[nodiscard]] MirOop *newMirror(InstanceClass * klass, voidPtr mirror, MirrorObjectTypeEnum type);
         [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * klass, size_t length);
 
         [[nodiscard]] ObjArrayOop *newObjectObjArrayOop(size_t length);

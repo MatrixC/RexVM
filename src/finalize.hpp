@@ -37,8 +37,8 @@ namespace RexVM {
 
     void traceOop(ref oop);
     std::vector<ref> getGcRoots(VM &vm);
-    void collect(VM &vm, std::vector<ref> &currentRefs, std::vector<ref> &liveRefs);
-    void collect(VM &vm, OopHolder &oopHolder, std::vector<ref> &liveRefs);
+    void collect(VM &vm, std::vector<ref> &currentRefs, std::vector<ref> &liveRefs, u8 &deleteCnt);
+    void collect(VM &vm, OopHolder &oopHolder, std::vector<ref> &liveRefs, u8 &deleteCnt);
     
 }
 

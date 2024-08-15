@@ -7,6 +7,7 @@
 #include "vm.hpp"
 #include "execute.hpp"
 #include "print_helper.hpp"
+#include "string_pool.hpp"
 #include "frame_memory_handler.hpp"
 
 namespace RexVM {
@@ -393,6 +394,10 @@ namespace RexVM {
         if (markReturn && existReturnValue) {
             cprintln("Return {}", formatSlot(*this, returnValue, returnType));
         }
+    }
+
+    void Frame::printStr(ref oop) {
+        cprintln("{}", StringPool::getJavaString(CAST_INSTANCE_OOP(oop)));
     }
 
     void Frame::print() {

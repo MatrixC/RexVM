@@ -9,6 +9,7 @@
 #include <atomic>
 #include "class_member.hpp"
 #include "attribute_info.hpp"
+#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 
@@ -22,6 +23,7 @@ namespace RexVM {
     struct Frame;
     struct OopManager;
     struct VMThread;
+    struct MirOop;
 
     enum class ClassInitStatusEnum : u1 {
         LOADED,
@@ -44,6 +46,7 @@ namespace RexVM {
     };
 
     struct Class {
+        
         const cstring name;
         std::vector<InstanceClass *> interfaces;
         //ptr_size interfaces;
@@ -82,6 +85,10 @@ namespace RexVM {
         [[nodiscard]] bool isSubClassOf(const Class *that) const;
 
         [[nodiscard]] MirrorOop *getMirrorOop() const;
+
+        static SpinLock mirrorLock;
+        MirOop *mirOop{nullptr};
+        [[nodiscard]] MirOop *getMirror(Frame *frame);
         
         virtual ~Class();
     };
@@ -130,7 +137,7 @@ namespace RexVM {
 
     private:
         void calcFieldSlotId();
-        void initStaticField();
+        void initStaticField(VMThread &thread);
         void initAttributes(ClassFile &cf);
         void initFields(ClassFile &cf);
         void initMethods(ClassFile &cf);

@@ -143,6 +143,7 @@ namespace RexVM {
         void printLocalSlot();
         void printStackSlot();
         void printReturn();
+        void printStr(ref oop);
         void print();
     };
 

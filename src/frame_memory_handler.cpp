@@ -19,6 +19,10 @@ namespace RexVM {
         return oopManager.newInstance(&vmThread, klass);
     }
 
+    MirOop *FrameMemoryHandler::newMirror(InstanceClass * klass, voidPtr mirror, MirrorObjectTypeEnum type) {
+        return oopManager.newMirror(&vmThread, klass, mirror, type);
+    }
+
     ObjArrayOop *FrameMemoryHandler::newObjArrayOop(ObjArrayClass * klass, size_t length) {
         return oopManager.newObjArrayOop(&vmThread, klass, length);
     }

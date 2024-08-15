@@ -106,9 +106,27 @@ namespace RexVM {
     struct MirrorOop : InstanceOop {
         //对于MirrorOop或许可以直接用InstanceOop，在最后的加一两个slot里存入自己的数据
         Class *mirrorClass;
+        cstring name;
         std::unique_ptr<InstanceOop> constantPoolOop;
 
         explicit MirrorOop(InstanceClass *klass, Class *mirrorClass);
+    };
+
+    enum class MirrorObjectTypeEnum : u2 {
+        CLASS,
+        METHOD,
+        FIELD,
+        MEMBER_NAME,
+    };
+
+    struct MirOop : InstanceOop {
+        Composite<voidPtr, u2> mirror;
+
+        explicit MirOop(InstanceClass *klass, voidPtr mirror, MirrorObjectTypeEnum type);
+
+        Class *getMirrorClass() const;
+        Method *getMirrorMethod() const;
+        Field *getMirrorField() const;
     };
 
     struct ArrayOop : Oop {

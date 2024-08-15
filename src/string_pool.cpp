@@ -12,7 +12,7 @@ namespace RexVM {
 
     StringPool::StringPool(VM &vm, ClassLoader &classLoader)
             : vm(vm), classLoader(classLoader),
-            stringTable(std::make_unique<StringTable>(128)),
+            stringTable(std::make_unique<StringTable>(STRING_POOL_SIZE)),
             stringClass(classLoader.getInstanceClass(JAVA_LANG_STRING_NAME)) {
     }
 
@@ -27,18 +27,10 @@ namespace RexVM {
         return utf16ToUtf8(char16Ptr, charArray->getDataLength());
     }
 
-    InstanceOop *StringPool::getInternString(const cstring &str) {
-        std::lock_guard<std::mutex> lock(mtx);
-        InstanceOop *result = nullptr;
-        if (stringTable->find(str, result)) {
-            return result;
-        }
-        result = createJavaString(nullptr, str);
-        stringTable->insert(str, result);
-        return result;
-    }
-
     InstanceOop *StringPool::getInternString(VMThread *thread, const cstring &str) {
+        if (str == "double") {
+            int i = 10;
+        }
         std::lock_guard<std::mutex> lock(mtx);
         InstanceOop *result = nullptr;
         if (stringTable->find(str, result)) {
@@ -85,13 +77,10 @@ namespace RexVM {
         const auto charArrayLength = charArray->getDataLength();
         return arrayLength == charArrayLength
             && (arrayLength == 0 //empty String
-                or std::memcmp(rawPtr, charArrayPtr, sizeof(cchar_16) * charArrayLength) == 0
+                || std::memcmp(rawPtr, charArrayPtr, sizeof(cchar_16) * charArrayLength) == 0
                 );
     }
 
-    void StringPool::eraseString(InstanceOop *oop) {
-        stringTable->erase(oop);
-    }
 
     StringTable::StringTable(RexVM::size_t size)
             : tableSize(size), table(size, nullptr) {
@@ -126,16 +115,20 @@ namespace RexVM {
             const auto oopVal = current->value;
             if (StringPool::equalJavaString(oopVal, utf16Ptr, utf16Length)) {
                 ret = oopVal;
+                cprintln("sp findOk {}, {}", key, CAST_VOID_PTR(oopVal));
                 return true;
             }
             current = current->next;
         }
+        cprintln("sp findFail {}", key);
         return false;
     }
 
     void StringTable::insert(Key key, Value value) {
         const auto index = getKeyIndex(key);
         auto newNode = new Node(value);
+
+        cprintln("sp insert {}, {}", key, CAST_VOID_PTR(value));
 
         if (table[index] == nullptr) {
             table[index] = newNode;
@@ -162,8 +155,10 @@ namespace RexVM {
                 } else {
                     prev->next = current->next;
                 }
+                int i = 10;
+                cprintln("sp earse {}, {}", key, CAST_VOID_PTR(value));
                 delete current;
-                return;
+                break;
             }
             prev = current;
             current = current->next;

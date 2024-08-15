@@ -162,6 +162,8 @@ namespace RexVM::Native::Core {
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("os.arch")), Slot(frame.mem.getInternString(OS_ARCH_IMPL)) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("os.name")), Slot(frame.mem.getInternString(OS_NAME)) });
 
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("sun.reflect.noCaches")), Slot(frame.mem.getInternString("true")) });
+
         frame.returnRef(props);
     }
 

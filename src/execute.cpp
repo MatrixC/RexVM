@@ -104,6 +104,13 @@ namespace RexVM {
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
 
+        if (method.name == "getName" && method.klass.name == JAVA_LANG_CLASS_NAME) {
+            int i = 10;
+            const auto mirrorOop = CAST_MIRROR_OOP(frame.getThis());
+            const auto mirrorC = mirrorOop->mirrorClass;
+            cprintln("getName run {}", mirrorC->name);
+        }
+
         frame.vm.collector->checkStop();
 
         if (notNativeMethod) [[likely]] {

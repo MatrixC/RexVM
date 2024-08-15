@@ -35,6 +35,7 @@ namespace RexVM {
         std::unordered_set<Oop *> allocatedOop;
 
         [[nodiscard]] InstanceOop *newInstance(VMThread *thread, InstanceClass * klass);
+        [[nodiscard]] MirOop *newMirror(VMThread *thread, InstanceClass * klass, voidPtr mirror, MirrorObjectTypeEnum type);
         [[nodiscard]] ObjArrayOop *newObjArrayOop(VMThread *thread, ObjArrayClass * klass, size_t length);
 
         [[nodiscard]] ObjArrayOop *newObjectObjArrayOop(VMThread *thread, size_t length);

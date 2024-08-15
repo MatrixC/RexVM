@@ -127,6 +127,8 @@ namespace RexVM {
         ACC_MANDATED = 0x8000,
     };
 
+    constexpr size_t STRING_POOL_SIZE = 1024;
+
 }
 
 
