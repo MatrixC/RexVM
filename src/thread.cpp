@@ -3,6 +3,7 @@
 #include <utility>
 #include "vm.hpp"
 #include "frame.hpp"
+#include "class.hpp"
 #include "memory.hpp"
 #include "execute.hpp"
 #include "class_loader.hpp"

@@ -1,11 +1,15 @@
 #include "print_helper.hpp"
 #include "class.hpp"
+#include "class_member.hpp"
 #include "class_loader.hpp"
 #include "oop.hpp"
 #include "frame.hpp"
 #include "basic_type.hpp"
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
+#include "class_file.hpp"
+#include "constant_info.hpp"
+
 
 namespace RexVM {
 

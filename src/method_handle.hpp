@@ -3,11 +3,8 @@
 #include "config.hpp"
 #include <vector>
 #include <memory>
-
 #include "vm.hpp"
 #include "class.hpp"
-#include "attribute_info.hpp"
-#include "constant_info.hpp"
 
 namespace RexVM {
 

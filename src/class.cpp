@@ -13,6 +13,7 @@
 #include "frame.hpp"
 #include "exception.hpp"
 #include "memory.hpp"
+#include "attribute_info.hpp"
 
 namespace RexVM {
 
@@ -231,24 +232,23 @@ namespace RexVM {
     }
 
     MirOop *Class::getMirror(Frame *frame, bool init) {
+        //return getBaseMirror(frame, MirrorObjectTypeEnum::CLASS, Class::mirrorLock, init, nullptr);
         if (mirOop == nullptr) [[unlikely]] {
             if (!init) [[unlikely]] {
                 return nullptr;
             }
-            Class::mirrorLock.lock();
+            mirrorLock.lock();
             if (mirOop == nullptr) {
-                if (frame == nullptr) [[unlikely]] {
-                    return nullptr;
+                if (frame != nullptr) {
+                    mirOop = frame->mem.newMirror(nullptr, this, MirrorObjectTypeEnum::CLASS);
                 }
-                mirOop = frame->mem.newMirror(nullptr, this, MirrorObjectTypeEnum::CLASS);
             }
-            Class::mirrorLock.unlock();
+            mirrorLock.unlock();
         }
         return mirOop;
     }
 
     Class::~Class() {
-        delete mirOop;
     }
 
     InstanceClass::InstanceClass(ClassLoader &classLoader, ClassFile &cf) :

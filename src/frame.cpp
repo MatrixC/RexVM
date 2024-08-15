@@ -1,6 +1,7 @@
 #include "frame.hpp"
 #include <utility>
 #include "constant_info.hpp"
+#include "class.hpp"
 #include "class_member.hpp"
 #include "oop.hpp"
 #include "thread.hpp"

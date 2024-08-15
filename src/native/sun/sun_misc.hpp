@@ -6,6 +6,7 @@
 #include "../../thread.hpp"
 #include "../../oop.hpp"
 #include "../../class.hpp"
+#include "../../class_member.hpp"
 #include "../../execute.hpp"
 #include "../../memory.hpp"
 #include "../../constant_info.hpp"

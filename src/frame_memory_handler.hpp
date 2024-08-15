@@ -3,7 +3,6 @@
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "basic_java_class.hpp"
-#include "oop.hpp"
 
 namespace RexVM {
 

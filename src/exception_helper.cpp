@@ -2,6 +2,7 @@
 #include "frame.hpp"
 #include "class_loader.hpp"
 #include "class.hpp"
+#include "oop.hpp"
 #include "vm.hpp"
 #include "memory.hpp"
 #include "string_pool.hpp"

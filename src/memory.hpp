@@ -1,16 +1,23 @@
 #ifndef MEMORY_HPP
 #define MEMORY_HPP
+#include "config.hpp"
 #include <unordered_set>
 #include <vector>
 #include <atomic>
-#include "config.hpp"
-#include "class.hpp"
-#include "oop.hpp"
 
 namespace RexVM {
 
     struct VM;
     struct VMThread;
+    struct InstanceOop;
+    struct MirOop;
+    struct ObjArrayOop;
+    struct TypeArrayOop;
+    struct ByteTypeArrayOop;
+    struct CharTypeArrayOop;
+    struct InstanceClass;
+    struct ObjArrayClass;
+
 
     extern std::atomic_int oopCount;
 

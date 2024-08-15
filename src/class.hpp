@@ -7,8 +7,6 @@
 #include <memory>
 #include <unordered_map>
 #include <atomic>
-#include "class_member.hpp"
-#include "attribute_info.hpp"
 #include "utils/spin_lock.hpp"
 
 namespace RexVM {
@@ -24,26 +22,16 @@ namespace RexVM {
     struct OopManager;
     struct VMThread;
     struct MirOop;
+    struct MirrorBase;
+    struct BootstrapMethodsAttribute;
+    struct EnclosingMethodAttribute;
+    struct InnerClassesAttribute;
+    struct ClassMember;
+    struct Method;
+    struct Field;
+    struct AttributeInfo;
 
-    enum class ClassInitStatusEnum : u1 {
-        LOADED,
-        INIT,
-        INITED,
-    };
 
-    enum class ClassTypeEnum : u1 {
-        PRIMITIVE_CLASS,
-        INSTANCE_CLASS,
-        TYPE_ARRAY_CLASS,
-        OBJ_ARRAY_CLASS,
-    };
-
-    //标记在InstanceClass上, 用于在new指令上提升效率
-    enum class SpecialInstanceClass : u1 {
-        NONE,
-        THREAD_CLASS,
-        CLASS_LOADER_CLASS,
-    };
 
     struct Class {
         

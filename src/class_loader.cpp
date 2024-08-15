@@ -8,13 +8,12 @@
 #include "constant_info.hpp"
 #include "class_file.hpp"
 #include "class.hpp"
+#include "class_member.hpp"
 #include "vm.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
 #include "basic_java_class.hpp"
 #include "key_slot_id.hpp"
-
-
 
 namespace RexVM {
 

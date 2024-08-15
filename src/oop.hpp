@@ -7,7 +7,6 @@
 #include <condition_variable>
 #include "config.hpp"
 #include "basic_type.hpp"
-#include "class.hpp"
 #include "composite_ptr.hpp"
 #include "utils/spin_lock.hpp"
 
@@ -20,12 +19,10 @@ namespace RexVM {
     struct ObjArrayClass;
     struct OopManager;
     struct VMThread;
+    struct SpinLock;
+    struct Method;
+    struct Field;
 
-    enum class OopTypeEnum : u1 {
-        INSTANCE_OOP = 0,
-        TYPE_ARRAY_OOP = 1,
-        OBJ_ARRAY_OOP = 2,
-    };
 
     struct OopMonitor {
         std::recursive_mutex monitorMtx;
@@ -103,21 +100,6 @@ namespace RexVM {
 
     };
 
-    struct MirrorOop : InstanceOop {
-        //对于MirrorOop或许可以直接用InstanceOop，在最后的加一两个slot里存入自己的数据
-        Class *mirrorClass;
-        cstring name;
-        std::unique_ptr<InstanceOop> constantPoolOop;
-
-        explicit MirrorOop(InstanceClass *klass, Class *mirrorClass);
-    };
-
-    enum class MirrorObjectTypeEnum : u2 {
-        CLASS,
-        METHOD,
-        FIELD,
-        MEMBER_NAME,
-    };
 
     struct MirOop : InstanceOop {
         Composite<voidPtr, u2> mirror;
@@ -186,7 +168,6 @@ namespace RexVM {
 
         explicit DoubleTypeArrayOop(TypeArrayClass *klass, size_t dataLength);
     };
-
 
 }
 

@@ -9,6 +9,7 @@
 #include "constant_info.hpp"
 #include "frame.hpp"
 #include "class.hpp"
+#include "class_member.hpp"
 #include "oop.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"

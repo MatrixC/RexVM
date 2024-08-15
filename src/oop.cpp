@@ -183,12 +183,6 @@ namespace RexVM {
         return CAST_INSTANCE_CLASS(getClass());
     }
 
-    MirrorOop::MirrorOop(InstanceClass *klass, Class *mirrorClass) :
-        InstanceOop(klass, klass->instanceSlotCount),
-        mirrorClass(mirrorClass),
-        name(mirrorClass->name) {
-    }
-
     MirOop::MirOop(InstanceClass *klass, voidPtr mirrorObj, MirrorObjectTypeEnum type) :
         InstanceOop(klass, klass->instanceSlotCount),
         mirror(mirrorObj, static_cast<u2>(type)) {
@@ -253,6 +247,5 @@ namespace RexVM {
         TypeArrayOop(klass, dataLength), data(std::make_unique<f8[]>(dataLength)) {
             std::fill_n(data.get(), dataLength, CAST_F8(0));
     }
-
 
 }

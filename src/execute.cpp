@@ -4,6 +4,8 @@
 #include "utils/class_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "vm.hpp"
+#include "class.hpp"
+#include "class_member.hpp"
 #include "finalize.hpp"
 #include "opcode.hpp"
 #include "frame.hpp"

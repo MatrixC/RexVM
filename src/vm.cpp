@@ -5,6 +5,8 @@
 #include "utils/class_path.hpp"
 #include "utils/class_utils.hpp"
 #include "utils/string_utils.hpp"
+#include "class.hpp"
+#include "class_member.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"
 #include "thread.hpp"

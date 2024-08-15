@@ -5,6 +5,7 @@
 #include "string_pool.hpp"
 #include "oop.hpp"
 #include "class.hpp"
+#include "class_member.hpp"
 #include "class_loader.hpp"
 #include "frame.hpp"
 #include "utils/descriptor_parser.hpp"

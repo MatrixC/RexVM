@@ -3,6 +3,7 @@
 #include "vm.hpp"
 #include "class_loader.hpp"
 #include "class.hpp"
+#include "class_member.hpp"
 #include "oop.hpp"
 #include "thread.hpp"
 #include "memory.hpp"

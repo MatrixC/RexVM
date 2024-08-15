@@ -17,11 +17,6 @@ namespace RexVM {
     struct LineNumberInfo;
     struct ClassFile;
 
-    enum class ClassMemberTypeEnum {
-        FIELD,
-        METHOD,
-    };
-
     struct ClassMember {
         const ClassMemberTypeEnum type;
         const u2 accessFlags{};

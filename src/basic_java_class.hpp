@@ -30,6 +30,9 @@ namespace RexVM {
     inline const cstring JAVA_LANG_RUNTIME_NAME = "java/lang/Runtime";
     inline const cstring JAVA_LANG_INVOKE_METHOD_HANDLE_NAME = "java/lang/invoke/MethodHandle";
     inline const cstring JAVA_LANG_STACK_TRACE_ELEMENT_NAME = "java/lang/StackTraceElement";
+    inline const cstring JAVA_LANG_REFLECT_METHOD_NAME = "java/lang/reflect/Method";
+    inline const cstring JAVA_LANG_REFLECT_FIELD_NAME = "java/lang/reflect/Field";
+    inline const cstring JAVA_LANG_INVOKE_MEMBER_NAME_NAME = "java/lang/invoke/MemberName";
 
     enum class BasicJavaClassEnum : size_t {
         JAVA_LANG_OBJECT,
@@ -55,6 +58,9 @@ namespace RexVM {
         JAVA_LANG_RUNTIME,
         JAVA_LANG_INVOKE_METHOD_HANDLE,
         JAVA_LANG_STACK_TRACE_ELEMENT,
+        JAVA_LANG_REFLECT_METHOD,
+        JAVA_LANG_REFLECT_FIELD,
+        JAVA_LANG_INVOKE_MEMBER_NAME,
         COUNT,
     };
     constexpr auto BASIC_JAVA_CLASS_ENUM_COUNT = CAST_SIZE_T(BasicJavaClassEnum::COUNT) + 1;

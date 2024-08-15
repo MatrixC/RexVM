@@ -5,7 +5,7 @@
 #include <memory>
 #include <thread>
 #include "config.hpp"
-#include "class.hpp"
+#include "oop.hpp"
 #include "memory.hpp"
 
 namespace RexVM {
@@ -15,15 +15,7 @@ namespace RexVM {
     struct Method;
     struct InstanceOop;
     struct Oop;
-
-    enum class ThreadStatusEnum : u2 {
-        NEW = 0x0000,
-        RUNNABLE = 0x0004,
-        BLOCKED = 0x0400,
-        WAITING = 0x0010,
-        TIMED_WAITING = 0x0020,
-        TERMINATED = 0x0002,
-    };
+    struct OopHolder;
 
     struct VMThread : InstanceOop {
         VM &vm;

@@ -3,6 +3,9 @@
 #include <utility>
 #include "vm.hpp"
 #include "thread.hpp"
+#include "class.hpp"
+#include "class_member.hpp"
+#include "oop.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"
 #include "finalize.hpp"
@@ -45,12 +48,15 @@ namespace RexVM {
                     break;
 
                 case MirrorObjectTypeEnum::METHOD:
+                    klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_METHOD);
                     break;
 
                 case MirrorObjectTypeEnum::FIELD:
+                    vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_FIELD);
                     break;
 
                 case MirrorObjectTypeEnum::MEMBER_NAME:
+                    vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_MEMBER_NAME);
                     break;
 
                 default:
