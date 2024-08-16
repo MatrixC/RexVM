@@ -30,7 +30,7 @@ namespace RexVM {
         void reset();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
-        void getObjects(std::vector<ref> &result) const;
+        void getStackObjects(std::vector<ref> &result) const;
 
         [[nodiscard]] Slot *getCurrentSlotPtr() const;
         [[nodiscard]] SlotTypeEnum *getCurrentSlotTypePtr() const;

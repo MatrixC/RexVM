@@ -48,7 +48,7 @@ namespace RexVM {
          return memory[sp - offset];
      }
 
-    void StackContext::getObjects(std::vector<ref> &result) const {
+    void StackContext::getStackObjects(std::vector<ref> &result) const {
         for (auto i = 0; i <= sp; ++i) {
             const auto &val = memory[i];
             const auto valType = memoryType[i];

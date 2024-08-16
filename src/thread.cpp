@@ -51,7 +51,10 @@ namespace RexVM {
         if (getStatus() != ThreadStatusEnum::NEW) {
             throwIllegalThreadStateException(*currentFrame);
         }
-        vm.addStartThread(this);
+
+        if (vm.mainThread.get() != this) {
+            vm.addStartThread(this);
+        }
         nativeThread = std::thread([this]() {
             run();
         }); 
@@ -84,7 +87,25 @@ namespace RexVM {
     void VMThread::getThreadGCRoots(std::vector<ref> &result) const {
         for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
             cur->getLocalObjects(result);
-            cur->operandStackContext.getObjects(result);
+            cur->operandStackContext.getStackObjects(result);
+        }
+    }
+
+    void VMThread::getCollectRoots(std::vector<ref> &result) const {
+        if (currentFrame == nullptr) {
+            return;
+        }
+
+        const auto firstStackPtr = stackMemory.get();
+        const auto lastStackPtr = currentFrame->operandStackContext.memory + currentFrame->operandStackContext.sp;
+
+        for (auto cur = firstStackPtr; cur != (lastStackPtr + 1); ++cur) {
+            const auto index = cur - firstStackPtr;
+            const auto slot = *cur;
+            const auto slotType = stackMemoryType[index];
+            if (slotType == SlotTypeEnum::REF && slot.refVal != nullptr) {
+                result.emplace_back(slot.refVal);
+            }
         }
     }
 

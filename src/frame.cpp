@@ -397,15 +397,20 @@ namespace RexVM {
 
     void Frame::printCollectRoots() {
         std::vector<ref> result;
-        for (auto current = this; current != nullptr; current = current->previous) {
-            current->getLocalObjects(result);
-            current->operandStackContext.getObjects(result);
-        }
+        thread.getThreadGCRoots(result);
 
         auto index = 0;
         for (const auto &refVal : result) {
             const auto slotStr = formatSlot(*this, Slot(refVal), SlotTypeEnum::REF);
-            cprintln("roots[{}]: {}", index++, slotStr);
+            cprintln("roots1[{}]: {}", index++, slotStr);
+        }
+
+        result.clear();
+        index = 0;
+        thread.getCollectRoots(result);
+        for (const auto &refVal : result) {
+            const auto slotStr = formatSlot(*this, Slot(refVal), SlotTypeEnum::REF);
+            cprintln("roots2[{}]: {}", index++, slotStr);
         }
         
     }

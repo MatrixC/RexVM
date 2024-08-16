@@ -21,7 +21,7 @@ namespace RexVM {
         collectThread = std::thread([this]() {
             while (!this->vm.exit) {
                 if (oopCount > 1000) {
-                    //startGC();
+                    startGC();
                 }
                 std::this_thread::sleep_for(std::chrono::microseconds(500));
             }
@@ -29,10 +29,7 @@ namespace RexVM {
     }
 
     void Collector::stopTheWorld() {
-        std::lock_guard<std::mutex> lock(mtx);
         markCollect = true;
-
-
         while (!vm.checkAllThreadStopForCollect()) {
         }
     }
