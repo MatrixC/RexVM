@@ -355,14 +355,11 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(getThis());
     }
 
-    extern InstanceOop *jjjjjjj2;
     void Frame::getLocalObjects(std::vector<ref> &result) const {
         for (size_t i = 0; i < localVariableTableSize; ++i) {
             const auto value = localVariableTable[i];
             if (localVariableTableType[i] == SlotTypeEnum::REF && value.refVal != nullptr) {
-                if (jjjjjjj2 == value.refVal) {
-                    int ii = 10;
-                }
+
                 result.emplace_back(value.refVal);
             }
         }

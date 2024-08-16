@@ -27,15 +27,8 @@ namespace RexVM {
         return utf16ToUtf8(char16Ptr, charArray->getDataLength());
     }
 
-    InstanceOop *jjjjjjj2 = nullptr;
     InstanceOop *StringPool::getInternString(VMThread *thread, const cstring &str) {
         std::lock_guard<std::mutex> lock(mtx);
-
-        if (str == "¤ #,##0.00;-¤ #,##0.00") {
-            //jjjjjjj2 = result;
-            int i = 10;
-        }
-
         InstanceOop *result = nullptr;
         if (stringTable->find(str, result)) {
             return result;
@@ -46,22 +39,10 @@ namespace RexVM {
         return result;
     }
 
-
-//    InstanceOop *StringPool::getInternStringOld(const cstring &str) {
-//        std::lock_guard<std::mutex> lock(mtx);
-//        if (const auto iter = internMap.find(str); iter != internMap.end()) {
-//            return iter->second;
-//        }
-//        auto stringPtr = createJavaString(str);
-//        internMap.emplace(str, stringPtr);
-//        return stringPtr;
-//    }
-
     void StringPool::gcStringOop(InstanceOop *oop) {
         std::lock_guard<std::mutex> lock(mtx);
         stringTable->erase(oop);
     }
-
     
     InstanceOop *StringPool::createJavaString(VMThread *thread, const cstring &str) const {
         const auto utf16Vec = utf8ToUtf16Vec(str.c_str(), str.size());
@@ -72,7 +53,9 @@ namespace RexVM {
         if (utf16Length > 0) [[likely]] {
             std::memcpy(charArrayOop->data.get(), utf16Ptr, sizeof(cchar_16) * utf16Length);
         }
+
         auto result = vm.oopManager->newInstance(thread, stringClass);
+        result->setStringHash(stringTable->getKeyIndex(str));
         result->setFieldValue(stringClassValueFieldSlotId, Slot(charArrayOop));
         return result;
     }
@@ -105,9 +88,9 @@ namespace RexVM {
     StringTable::Node::Node(RexVM::InstanceOop *value) : value(value) {
     }
 
-    size_t StringTable::getKeyIndex(Key key) const {
+    u2 StringTable::getKeyIndex(Key key) const {
         const auto hashCode = HashFunction{}(key);
-        return hashCode % tableSize;
+        return CAST_U2(hashCode % tableSize);
     }
 
     bool StringTable::find(Key key, Value &ret) {
@@ -121,20 +104,16 @@ namespace RexVM {
             const auto oopVal = current->value;
             if (StringPool::equalJavaString(oopVal, utf16Ptr, utf16Length)) {
                 ret = oopVal;
-                //cprintln("sp findOk {}, {}", key, CAST_VOID_PTR(oopVal));
                 return true;
             }
             current = current->next;
         }
-        //cprintln("sp findFail {}", key);
         return false;
     }
 
     void StringTable::insert(Key key, Value value) {
-        const auto index = getKeyIndex(key);
+        const auto [hasHash, index] = value->getStringHash();
         auto newNode = new Node(value);
-
-        //cprintln("sp insert {}, {}", key, CAST_VOID_PTR(value));
 
         if (table[index] == nullptr) {
             table[index] = newNode;
@@ -148,8 +127,10 @@ namespace RexVM {
     }
 
     void StringTable::erase(Value value) {
-        const auto key = StringPool::getJavaString(value);
-        const auto index = getKeyIndex(key);
+        const auto [hasHash, index] = value->getStringHash(); 
+        if (!hasHash) {
+            return;
+        }
         auto current = table[index];
         Node *prev = nullptr;
 
@@ -162,7 +143,6 @@ namespace RexVM {
                     prev->next = current->next;
                 }
                 int i = 10;
-                //cprintln("sp earse {}, {}", key, CAST_VOID_PTR(value));
                 delete current;
                 break;
             }

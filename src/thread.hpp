@@ -26,6 +26,7 @@ namespace RexVM {
         std::vector<Slot> params;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
+        bool stopForCollect{false};
         OopHolder oopHolder;
 
         //Normal

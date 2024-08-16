@@ -45,6 +45,7 @@ namespace RexVM {
 
         void addStartThread(VMThread *vmThread);
         size_t getActiveThreadCount();
+        bool checkAllThreadStopForCollect();
 
         void runStaticMethodOnMainThread(Method &method, std::vector<Slot> params);
 

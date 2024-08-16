@@ -105,7 +105,7 @@ namespace RexVM {
     using MethodHandler = void (*)(Frame &frame);
     using NativeMethodHandler = MethodHandler;
 
-    constexpr size_t STRING_POOL_SIZE = 1024;
+    constexpr size_t STRING_POOL_SIZE = 512;
 
 }
 

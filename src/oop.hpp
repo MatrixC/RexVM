@@ -5,6 +5,7 @@
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include <tuple>
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "composite_ptr.hpp"
@@ -37,45 +38,40 @@ namespace RexVM {
         Composite<Class *, size_t> comClass;
 
         //volatile ?, oopMonitorPtr, flags
+        //low [oopMonitor(48), traced(1) finalize(1) ... hashAvaiable(1) hash(10)] high
         Composite<OopMonitor *, u2> comFlags{};
 
         [[nodiscard]] OopMonitor *getMonitor() const;
 
-    public:
-
         bool traceMarked{false};
 
-        bool isMirror{false};
+    public:
 
         explicit Oop(Class *klass, size_t dataLength);
-
         ~Oop();
+        [[nodiscard]] bool isInstanceOf(Class *checkClass) const;
+        
 
         [[nodiscard]] Class *getClass() const;
-
         [[nodiscard]] size_t getDataLength() const;
-
         [[nodiscard]] OopTypeEnum getType() const;
-
         [[nodiscard]] OopMonitor *getAndInitMonitor();
-
-        [[nodiscard]] bool isInstanceOf(Class *checkClass) const;
+        [[nodiscard]] u2 getFlags() const;
+        void setFlags(u2 flags);
 
         void lock();
-
         void unlock();
 
         void wait(VMThread &currentThread, size_t timeout);
-
         void notify_one();
-
         void notify_all();
 
         void markTraced();
-
         void clearTraced();
+        bool isTraced();
 
-        bool isMarkTraced();
+        void setStringHash(u2 hashCode);
+        std::tuple<bool, u2>  getStringHash() const;
 
     };
 

@@ -40,8 +40,7 @@ namespace RexVM {
         void insert(Key key, Value value);
         void erase(Value value);
 
-    private:
-        [[nodiscard]] size_t getKeyIndex(Key key) const;
+        [[nodiscard]] u2 getKeyIndex(Key key) const;
 
     };
 

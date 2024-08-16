@@ -36,6 +36,13 @@ namespace RexVM {
         return comFlags.getPtr();
     }
 
+    u2 Oop::getFlags() const {
+        return comFlags.getData();
+    }
+    void Oop::setFlags(u2 flags) {
+        comFlags.setData(flags);
+    }
+
     OopTypeEnum Oop::getType() const {
         switch (getClass()->type) {
             case ClassTypeEnum::INSTANCE_CLASS:
@@ -95,18 +102,34 @@ namespace RexVM {
     }
 
     void Oop::clearTraced() {
-        // if (getClass()->name == "java/lang/Class") {
-        //     int i = 10;
-        //     const auto mirror = CAST_MIRROR_OOP(this);
-        //     if (mirror->getMirrorClass()->name == "java/lang/Long") {
-        //         cprintln("Long mark clearn");
-        //     }
-        // }
         traceMarked = false;
     }
 
-    bool Oop::isMarkTraced() {
+    bool Oop::isTraced() {
         return traceMarked;
+    }
+
+    //hasHash 1bit, hashCode 9bit
+    constexpr u2 HAS_HASH_MASK = 0x200;  //1000000000
+    constexpr u2 HASH_MASK = 0x3ff;      //1111111111
+    constexpr u2 HASH_VAL_MASK = 0x1ff;  //0111111111
+    void Oop::setStringHash(u2 hashCode) {
+        #ifdef DEBUG
+        if (hashCode >= HAS_HASH_MASK) {
+            panic("error HashCode");
+        }
+        #endif
+        hashCode |= HAS_HASH_MASK; //final hashCode
+
+        const auto flags = (getFlags() & ~HASH_MASK) | hashCode;
+        setFlags(flags);
+    }
+    
+    std::tuple<bool, u2> Oop::getStringHash() const {
+        const auto hashCode = getFlags() & HASH_MASK;
+        const auto hasHash = (hashCode & HAS_HASH_MASK) != 0;
+        const auto hashVal = hashCode & HASH_VAL_MASK;
+        return std::make_tuple(hasHash, hashVal);
     }
 
     void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
@@ -186,7 +209,6 @@ namespace RexVM {
     MirOop::MirOop(InstanceClass *klass, voidPtr mirrorObj, MirrorObjectTypeEnum type) :
         InstanceOop(klass, klass->instanceSlotCount),
         mirror(mirrorObj, static_cast<u2>(type)) {
-        isMirror = true;
     }
 
     void MirOop::destory() {

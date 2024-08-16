@@ -148,6 +148,16 @@ namespace RexVM {
         return vmThreadDeque.size();
     }
 
+    bool VM::checkAllThreadStopForCollect() {
+        std::lock_guard<std::mutex> lock(vmThreadMtx);
+        for (const auto &item : vmThreadDeque) {
+            if (!item->stopForCollect) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     VM::VM(ApplicationParameter &params) : params(params) {
     }
 
