@@ -214,7 +214,6 @@ namespace RexVM::Native::Core {
             return;
         }
 
-        const auto retTypeClass = frame.mem.getInstanceClass("java/lang/reflect/Field");
         const auto retArrayTypeClass = frame.mem.getObjectArrayClass("java/lang/reflect/Field");
 
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);

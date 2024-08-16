@@ -179,6 +179,7 @@ namespace RexVM {
 
 
     Class::~Class() {
+        int i = 10;
     }
 
     constexpr auto PRIMITIVE_CLASS_ACCESS_FLAGS = 

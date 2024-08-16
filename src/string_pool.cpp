@@ -27,17 +27,22 @@ namespace RexVM {
         return utf16ToUtf8(char16Ptr, charArray->getDataLength());
     }
 
+    InstanceOop *jjjjjjj2 = nullptr;
     InstanceOop *StringPool::getInternString(VMThread *thread, const cstring &str) {
-        if (str == "double") {
+        std::lock_guard<std::mutex> lock(mtx);
+
+        if (str == "¤ #,##0.00;-¤ #,##0.00") {
+            //jjjjjjj2 = result;
             int i = 10;
         }
-        std::lock_guard<std::mutex> lock(mtx);
+
         InstanceOop *result = nullptr;
         if (stringTable->find(str, result)) {
             return result;
         }
         result = createJavaString(thread, str);
         stringTable->insert(str, result);
+
         return result;
     }
 
@@ -57,6 +62,7 @@ namespace RexVM {
         stringTable->erase(oop);
     }
 
+    
     InstanceOop *StringPool::createJavaString(VMThread *thread, const cstring &str) const {
         const auto utf16Vec = utf8ToUtf16Vec(str.c_str(), str.size());
         const auto utf16Ptr = utf16Vec.data();

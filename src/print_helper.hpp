@@ -22,6 +22,7 @@ namespace RexVM {
 
     void pObjArray(Oop *oop);
 
+    cstring formatArray(Frame &frame, ref oop);
     cstring formatSlot(Frame &frame, Slot val, SlotTypeEnum type);
 
     void pio(Frame &frame, ref oop);

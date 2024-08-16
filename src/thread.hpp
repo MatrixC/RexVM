@@ -48,6 +48,7 @@ namespace RexVM {
         [[nodiscard]] ThreadStatusEnum getStatus() const;
         [[nodiscard]] bool isAlive() const;
         void getThreadGCRoots(std::vector<ref> &result) const;
+        bool hasNativeCall() const;
 
         private:
             void run();

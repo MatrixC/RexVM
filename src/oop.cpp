@@ -189,12 +189,12 @@ namespace RexVM {
         isMirror = true;
     }
 
-    MirOop::~MirOop() {
+    void MirOop::destory() {
         const auto type = getMirrorObjectType();
         switch (type) {
             case MirrorObjectTypeEnum::CLASS: {
-                const auto klass = getMirrorClass();
-                klass->mirrorBase.clear();
+                const auto mirrorClass = getMirrorClass();
+                mirrorClass->mirrorBase.clear(this);
                 break;
             }
 
@@ -202,7 +202,7 @@ namespace RexVM {
             case MirrorObjectTypeEnum::METHOD:
             case MirrorObjectTypeEnum::CONSTRUCTOR: {
                 const auto member = CAST_CLASS_MEMBER(mirror.getPtr());
-                member->mirrorBase.clear();
+                member->mirrorBase.clear(this);
                 break;
             }
 
@@ -210,13 +210,17 @@ namespace RexVM {
                 const auto classMirrorOop = CAST_MIRROR_OOP(mirror.getPtr());
                 if (classMirrorOop != nullptr) {
                     const auto reKlass = CAST_INSTANCE_CLASS(classMirrorOop->getMirrorClass());
-                    reKlass->constantPoolMirrorBase.clear();
+                    reKlass->constantPoolMirrorBase.clear(this);
                 }
             }
 
             default:
                 break;
         }
+    }
+
+    MirOop::~MirOop() {
+        destory();
     }
 
     MirrorObjectTypeEnum MirOop::getMirrorObjectType() const {

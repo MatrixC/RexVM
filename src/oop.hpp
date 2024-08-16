@@ -105,9 +105,14 @@ namespace RexVM {
 
     struct MirOop : InstanceOop {
         Composite<voidPtr, u2> mirror;
+        #ifdef DEBUG
+        cstring mirrorName;
+        #endif
 
         explicit MirOop(InstanceClass *klass, voidPtr mirror, MirrorObjectTypeEnum type);
         ~MirOop();
+
+        void destory();
 
         [[nodiscard]] MirrorObjectTypeEnum getMirrorObjectType() const;
 

@@ -37,7 +37,7 @@ namespace RexVM {
             if (data > COM_DATA_MASK) [[unlikely]] {
                 panic("Composite not support");
             } 
-            composite = (std::bit_cast<u8>(ptr) & COM_PTR_MASK) | (data << COM_PTR_LENGTH);
+            composite = (std::bit_cast<u8>(ptr) & COM_PTR_MASK) | (CAST_U8(data) << COM_PTR_LENGTH);
         }
 
     };

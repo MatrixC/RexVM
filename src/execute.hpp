@@ -27,8 +27,8 @@ namespace RexVM {
     extern bool printExecuteLog;
 
     void executeFrame(Frame &frame, [[maybe_unused]] const cstring& methodName);
-    void createFrameAndRunMethod(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous);
-    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous, size_t paramSlotSize);
+    void createFrameAndRunMethod(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous, bool nativeCall = false);
+    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous, size_t paramSlotSize, bool nativeCall = false);
 
 }
 

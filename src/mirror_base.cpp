@@ -18,6 +18,10 @@ namespace RexVM {
                 if (frame != nullptr) {
                     mirOop = frame->mem.newMirror(nullptr, mirrorObj, type);
                     switch (type) {
+                        case MirrorObjectTypeEnum::CLASS:
+                            initClassMirrorOop(*frame, CAST_CLASS(mirrorObj));
+                            break;
+
                         case MirrorObjectTypeEnum::FIELD:
                             initFieldMirrorOop(*frame, CAST_FIELD(mirrorObj));
                             break;
@@ -44,15 +48,23 @@ namespace RexVM {
         return mirOop;
     }
 
-    void MirrorBase::clear() {
+    void MirrorBase::clear(voidPtr checkPtr) {
         int i = 10;
-        cprintln("clear.....");
+        //cprintln("clear.....");
+        if (checkPtr != mirOop) {
+            cprintln("error...");
+        }
         mirOop = nullptr;
+    }
+
+    void MirrorBase::initClassMirrorOop(Frame &frame, Class *klass) {
+        #ifdef DEBUG
+        mirOop->mirrorName = klass->name;
+        #endif
     }
 
     void MirrorBase::initMethodMirrorOop(Frame &frame, Method *method, bool isConstructor) {
         auto &klass = method->klass;
-
         const auto paramClasses = method->getParamClasses();
         const auto paramClassesArrayOop = frame.mem.newClassObjArrayOop(paramClasses.size());
         FOR_FROM_ZERO(paramClasses.size()) {
@@ -107,8 +119,14 @@ namespace RexVM {
                 );
             mirOop->setFieldValue("annotationDefault", "[B", Slot(byteArrayOop));
         }
+
+        #ifdef DEBUG
+        mirOop->mirrorName = klass.name + "." + method->name;
+        #endif
     }
 
+
+    void *jjjj = nullptr;
     void MirrorBase::initFieldMirrorOop(Frame &frame, Field *field) {
         auto &klass = field->klass;
         mirOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(klass.getMirror(&frame)));
@@ -124,6 +142,15 @@ namespace RexVM {
                     field->runtimeVisibleAnnotation.get()
                 );
             mirOop->setFieldValue("annotations", "[B", Slot(byteArrayOop));
+        }
+
+        #ifdef DEBUG
+        mirOop->mirrorName = klass.name + "." + field->name;
+        #endif
+
+        if (field->name == "¤ #,##0.00;-¤ #,##0.00") {
+            jjjj = CAST_VOID_PTR(mirOop);
+            cprintln("jjjj annoptr {}", jjjj);
         }
     }
 

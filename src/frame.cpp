@@ -89,7 +89,7 @@ namespace RexVM {
 
     //手动调用java方法用,创建新Frame,用params向其传递参数
     std::tuple<Slot, SlotTypeEnum> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
-        createFrameAndRunMethod(thread, runMethod, std::move(params), this);
+        createFrameAndRunMethod(thread, runMethod, std::move(params), this, true);
         //Method可能有返回值,需要处理返回值的pop
         if (runMethod.returnSlotType == SlotTypeEnum::NONE) {
             //void函数，无返回
@@ -355,12 +355,19 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(getThis());
     }
 
+    extern InstanceOop *jjjjjjj2;
     void Frame::getLocalObjects(std::vector<ref> &result) const {
         for (size_t i = 0; i < localVariableTableSize; ++i) {
             const auto value = localVariableTable[i];
             if (localVariableTableType[i] == SlotTypeEnum::REF && value.refVal != nullptr) {
-                 result.emplace_back(value.refVal);
+                if (jjjjjjj2 == value.refVal) {
+                    int ii = 10;
+                }
+                result.emplace_back(value.refVal);
             }
+        }
+        if (markReturn && existReturnValue && returnType == SlotTypeEnum::REF) {
+            result.emplace_back(returnValue.refVal);
         }
     }
 
@@ -376,7 +383,7 @@ namespace RexVM {
             const auto val = localVariableTable[i];
             const auto type = localVariableTableType[i];
             const auto slotStr = formatSlot(*this, val, type);
-            cprintln("Local[{}]: {}", i, slotStr);
+            cprintln("Local[{}, type-{}]: {}", i, static_cast<u2>(type), slotStr);
         }
     }
 
@@ -387,8 +394,23 @@ namespace RexVM {
             const auto valPtr = operandStackContext.memory + index;
             const auto valType = operandStackContext.memoryType[index];
             const auto slotStr = formatSlot(*this, val, valType);
-            cprintln("Stack[{}] {}: {}", offset, CAST_VOID_PTR(valPtr), slotStr);
+            cprintln("Stack[{}, type-{}] {}: {}", offset, static_cast<u2>(valType),CAST_VOID_PTR(valPtr), slotStr);
         }
+    }
+
+    void Frame::printCollectRoots() {
+        std::vector<ref> result;
+        for (auto current = this; current != nullptr; current = current->previous) {
+            current->getLocalObjects(result);
+            current->operandStackContext.getObjects(result);
+        }
+
+        auto index = 0;
+        for (const auto &refVal : result) {
+            const auto slotStr = formatSlot(*this, Slot(refVal), SlotTypeEnum::REF);
+            cprintln("roots[{}]: {}", index++, slotStr);
+        }
+        
     }
 
     void Frame::printReturn() {
@@ -405,7 +427,9 @@ namespace RexVM {
         cprintln("Method: {}.{}#{}", method.klass.name, method.name, method.descriptor);
         printLocalSlot();
         printStackSlot();
+        printCollectRoots();
         printReturn();
+
     }
 
 

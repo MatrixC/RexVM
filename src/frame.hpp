@@ -44,6 +44,7 @@ namespace RexVM {
         StackContext operandStackContext;
         u1 currentByteCode{};
         u2 level{};
+        bool nativeCall{false};
 
         VM &vm;
         VMThread &thread;
@@ -142,6 +143,7 @@ namespace RexVM {
         void printCallStack();
         void printLocalSlot();
         void printStackSlot();
+        void printCollectRoots();
         void printReturn();
         void printStr(ref oop);
         void print();

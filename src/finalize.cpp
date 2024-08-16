@@ -9,11 +9,15 @@
 #include "memory.hpp"
 #include "string_pool.hpp"
 #include "print_helper.hpp"
+#include "frame.hpp"
 
 namespace RexVM {
+    //是否可以加调规则 如果当前调用栈中有native函数 就不进行gc
+    //gc线程里尽量不要再分配heap内存
 
     //先不回收Mirror
-
+    extern void *jjjj;
+    extern InstanceOop *jjjjjjj2;
     Collector::Collector(VM &vm) : vm(vm) {
         collectThread = std::thread([this]() {
             while (!this->vm.exit) {
@@ -39,25 +43,99 @@ namespace RexVM {
         cv.notify_all();
     }
 
-    void Collector::checkStop() {
+    void Collector::checkStop(Frame &frame, const cstring &methodName) {
         if (!markCollect) [[likely]] {
             return;
         }
 
         ++stopThreadCount;
         std::unique_lock<std::mutex> lock(mtx);
+        cprintln("stop methodName: {}", methodName);
+        //frame.printCallStack();
         cv.wait(lock, [this] { return !markCollect; });
+    }
+
+    std::unordered_map<ref, cstring> deletedMap;
+
+    void deleteItem(ref item) {
+        // if (item->getClass()->name == JAVA_LANG_REFLECT_FIELD_NAME) {
+        //     const auto f = CAST_INSTANCE_OOP(item);
+        //     const auto nameOop = CAST_INSTANCE_OOP(f->getFieldValue("name", "Ljava/lang/String;").refVal);
+        //     const auto name = StringPool::getJavaString(nameOop);
+        //     deletedMap.emplace(item, name);
+        // } else {
+            //deletedMap.emplace(item, item->getClass()->name);
+        // }
+
+        if (CAST_VOID_PTR(item) == jjjj) {
+            int i = 10;
+        }
+
+        if (item == jjjjjjj2) {
+            panic("xxxx");
+        }
+
+        if (item->getClass()->name == JAVA_LANG_STRING_NAME) {
+            const auto k1 = CAST_INSTANCE_OOP(item);
+            auto jstr = StringPool::getJavaString(k1);
+            bool kk = jstr == "";
+            const auto arr = CAST_CHAR_TYPE_ARRAY_OOP(k1->getFieldValue("value", "[C").refVal);
+            const auto k2 = cformat("{}:{}:{}:{}", "STR", jstr, std::to_string(jstr.size()), CAST_VOID_PTR(arr));
+            deletedMap.emplace(item, k2); 
+        } else {
+            deletedMap.emplace(item, item->getClass()->name);
+        }
+
+        //cprintln("delete {}", item->getClass()->name);
+        if (item->isMirror) {
+            const auto k = CAST_MIRROR_OOP(item);
+            //k->destory();
+            delete k;
+        } else {
+            delete item;
+        }
+        
+        
+    }
+
+    void showItem(ref item) {
+        const auto iter = deletedMap.find(item);
+        if (iter != deletedMap.end()) {
+            cprintln("{}", iter->second);
+        } else {
+            cprintln("null");
+        }
     }
 
     void Collector::startGC() {
         cprintln("start gc");
         stopTheWorld();
         //cprintln("stop the world finish");
-        const auto &gcRoots = getGcRoots(vm);
-        //cprintln("get gcroot finish {}", gcRoots.size());
+        // const auto &gcRoots = getGcRoots(vm);
+        // for (const auto &item : gcRoots) {
+        //     traceOop(item);
+        // }
+
+        for (const auto &thread : vm.vmThreadDeque) {
+            if (thread->hasNativeCall()) {
+                collectFinish();
+                return;
+            }
+        }
+
+
+
+        std::vector<ref> gcRoots;
+        getStaticRef(*vm.bootstrapClassLoader, gcRoots);
         for (const auto &item : gcRoots) {
             traceOop(item);
         }
+        gcRoots.clear();
+        getThreadRef(vm, gcRoots);
+        for (const auto &item : gcRoots) {
+            traceOop(item);
+        }
+
         //cprintln("trace gcroot finish");
         const auto stringClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
 
@@ -65,30 +143,31 @@ namespace RexVM {
         liveRefs.reserve(100000);
 
         for (const auto &item : vm.oopManager->defaultOopHolder.oops) {
-            if (item->traceMarked  || item->getClass()->name == "[C") {
+            if (item->traceMarked  || item->getClass()->name == "[C" || item->getClass() == stringClass) {
                 liveRefs.emplace_back(item);
                 item->traceMarked = false;
             } else {
                 if (item->getClass() == stringClass) {
-                    cprintln("gcs {}", StringPool::getJavaString(CAST_INSTANCE_OOP(item)));
                     vm.stringPool->gcStringOop(CAST_INSTANCE_OOP(item));
                 }
-                delete item;
+                deleteItem(item);
             }
         }
         vm.oopManager->defaultOopHolder.oops.clear();
 
         for (const auto &thread : vm.vmThreadDeque) {
             for (const auto &item : thread->oopHolder.oops) {
-                if (item->traceMarked || item->getClass()->name == "[C") {
+                if (item->traceMarked || item->getClass()->name == "[C" || item->getClass() == stringClass) {
                     liveRefs.emplace_back(item);
                     item->traceMarked = false;
                 } else {
                     if (item->getClass() == stringClass) {
-                        cprintln("gcs {}", StringPool::getJavaString(CAST_INSTANCE_OOP(item)));
                         vm.stringPool->gcStringOop(CAST_INSTANCE_OOP(item));
                     }
-                    delete item;
+                    if (item->getClass()->name == JAVA_LANG_REFLECT_FIELD_NAME) {
+                        int i = 10;
+                    }
+                    deleteItem(item);
                 }
             }
             thread->oopHolder.oops.clear();
@@ -152,7 +231,7 @@ namespace RexVM {
                     if (memberOop != nullptr) {
                         if (field->name == "name" && klass->name == JAVA_LANG_CLASS_NAME) {
                             int i = 10;
-                            cprintln("trace name filed {} {}", klass->name, StringPool::getJavaString(CAST_INSTANCE_OOP(memberOop)));
+                            //cprintln("trace name filed {} {}", klass->name, StringPool::getJavaString(CAST_INSTANCE_OOP(memberOop)));
                         }
                         traceOop(memberOop);
                     }
@@ -174,11 +253,15 @@ namespace RexVM {
     }
 
     void traceOop(ref oop) {
+        if (jjjj == CAST_VOID_PTR(oop)) {
+            int i = 10;
+        }
+
         if (oop->getClass()->name == JAVA_LANG_CLASS_NAME) {
             const auto mirrorOop = CAST_MIRROR_OOP(oop);
             const auto klass = mirrorOop->getMirrorClass();
             if (klass->name == "java/lang/Long") {
-                cprintln("traceOop Long, {} {}", oop->isMarkTraced(), CAST_VOID_PTR(oop));
+                //cprintln("traceOop Long, {} {}", oop->isMarkTraced(), CAST_VOID_PTR(oop));
             }
             // const auto name = CAST_VOID_PTR(mirrorOop->getFieldValue("name", "Ljava/lang/String;").refVal);
             // cprintln("trace to class {}, name {}", klass->name, name);
@@ -194,7 +277,7 @@ namespace RexVM {
             const auto mirrorOop = CAST_MIRROR_OOP(oop);
             const auto klass = mirrorOop->getMirrorClass();
             const auto name = CAST_VOID_PTR(mirrorOop->getFieldValue("name", "Ljava/lang/String;").refVal);
-            cprintln("trace to class {}, name {}", klass->name, name);
+            //cprintln("trace to class {}, name {}", klass->name, name);
 
         }
 
@@ -238,7 +321,7 @@ namespace RexVM {
         for (const auto &[name, klass] : classLoader.classMap) {
             const auto mirror = klass->getMirror(nullptr, false);
             if (mirror != nullptr) {
-                gcRoots.emplace_back(klass->getMirror(nullptr));
+                gcRoots.emplace_back(mirror);
             }
             if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
                 const auto instanceClass = CAST_INSTANCE_CLASS(klass.get());

@@ -51,6 +51,7 @@ namespace RexVM {
         if (getStatus() != ThreadStatusEnum::NEW) {
             throwIllegalThreadStateException(*currentFrame);
         }
+        vm.addStartThread(this);
         nativeThread = std::thread([this]() {
             run();
         }); 
@@ -85,6 +86,15 @@ namespace RexVM {
             cur->getLocalObjects(result);
             cur->operandStackContext.getObjects(result);
         }
+    }
+
+    bool VMThread::hasNativeCall() const {
+        for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
+            if (cur->nativeCall) {
+                return true;
+            }
+        }
+        return false;
     }
 
 

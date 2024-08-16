@@ -78,10 +78,6 @@ namespace RexVM {
             getConstantStringFromPoolByClassNameType(constantPool, methodHandleInfo->referenceIndex);
         const auto kind = static_cast<MethodHandleEnum>(methodHandleInfo->referenceKind);
 
-        const auto methodHandleClass = frame.mem.getInstanceClass(methodHandleClassName);
-        const auto methodHandleClassMirrorOop = methodHandleClass->getMirror(&frame);
-        const auto methodHandleMemberNameOop = frame.mem.getInternString(methodHandleMemberName);
-
         Slot type;
         switch (kind) {
             case MethodHandleEnum::REF_getField:
@@ -95,6 +91,15 @@ namespace RexVM {
                 type = Slot(createMethodType(frame, methodHandleMemberDescriptor));
                 break;
         }
+
+        const auto methodHandleClass = frame.mem.getInstanceClass(methodHandleClassName);
+        const auto methodHandleClassMirrorOop = methodHandleClass->getMirror(&frame);
+        const auto methodHandleMemberNameOop = frame.mem.getInternString(methodHandleMemberName);
+
+        //上面 methodHandleMemberNameOop 的分配必须靠近下面的 runMethodManual
+        //在native方法中分配的内存 一定要直接传参 不要在在分配内存中又调用其他函数
+        //否则被分配的对象极易容易被gc直接释放 导致后续函数拿到的是一个无效指针
+        //这个问题查了我好久好久
 
         std::vector<Slot> linkMethodHandleParam;
         linkMethodHandleParam.reserve(5);
@@ -126,8 +131,10 @@ namespace RexVM {
         const auto linkCallSiteImplMethod = methodHandleNativesClass->getMethod("linkCallSiteImpl", "(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;", true);
 
         const auto arraySize = bootstrapArguments.size();
-        const auto argObjArrayOop = frame.mem.newObjectObjArrayOop(arraySize);
-        for (size_t i = 0; i < bootstrapArguments.size(); ++i) {
+        std::vector<ref> argResults;
+        argResults.reserve(arraySize);
+        
+        FOR_FROM_ZERO(arraySize) {
             const auto index = bootstrapArguments[i];
             const auto constantInfo = constantPool[index].get();
             const auto tagEnum = CAST_CONSTANT_TAG_ENUM(constantInfo->tag);
@@ -169,12 +176,19 @@ namespace RexVM {
             if (frame.markThrow) {
                 return nullptr;
             }
-            argObjArrayOop->data[i] = argResult;
+            argResults[i] = argResult;
+            //argObjArrayOop->data[i] = argResult;
         }
         
+        const auto argObjArrayOop = frame.mem.newObjectObjArrayOop(arraySize);
+        //这个oop分配必须放在这里 之前是放在for循环上面的 因为for循环中有函数调用 就被gc掉了
+        FOR_FROM_ZERO(arraySize) {
+            argObjArrayOop->data[i] = argResults[i];
+        }
+
         const auto appendixResultArrayOop = frame.mem.newObjectObjArrayOop(1);
         std::vector<Slot> linkCallSiteParams;
-        linkCallSiteParams.reserve(5);
+        linkCallSiteParams.reserve(6);
         linkCallSiteParams.emplace_back(callerClass->getMirror(&frame));
         linkCallSiteParams.emplace_back(methodHandle);
         linkCallSiteParams.emplace_back(frame.mem.getInternString(invokeName));

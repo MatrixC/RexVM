@@ -85,6 +85,8 @@ namespace RexVM {
         const auto systemClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM);
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
         runStaticMethodOnMainThread(*initMethod, {});
+        int i = 10;
+        cprintln("initsystem finish");
     }
 
     void VM::initCollector() {

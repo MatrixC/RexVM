@@ -21,8 +21,9 @@ namespace RexVM {
 
         [[nodiscard]] MirOop *getBaseMirror(Frame *frame, MirrorObjectTypeEnum type, voidPtr mirrorObj, SpinLock &lock, bool init);
 
-        void clear();
+        void clear(voidPtr checkPtr);
 
+        void initClassMirrorOop(Frame &frame, Class *klass);
         void initMethodMirrorOop(Frame &frame, Method *method, bool isConstructor);
         void initFieldMirrorOop(Frame &frame, Field *field);
         void initConstantPoolMirrorOop(Frame &frame, Class *klass);

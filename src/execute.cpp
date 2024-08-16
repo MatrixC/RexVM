@@ -106,14 +106,27 @@ namespace RexVM {
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
 
-        if (method.name == "getName" && method.klass.name == JAVA_LANG_CLASS_NAME) {
+        if (method.name == "<init>" && method.klass.name == JAVA_LANG_REFLECT_FIELD_NAME) {
             int i = 10;
             const auto mirrorOop = CAST_MIRROR_OOP(frame.getThis());
             const auto mirrorC = mirrorOop->getMirrorClass();
             //cprintln("getName run {}", mirrorC->name);
         }
 
-        frame.vm.collector->checkStop();
+        if (method.name == "getDeclaredFields") {
+            cprintln("getDeclaredFields");
+            //printExecuteLog = true;
+        }
+
+        if (printExecuteLog == true && method.name == "getDeclaredFields0") {
+            int i = 10;
+        }
+
+        if (method.name == "cc") {
+            int i = 10;
+        }
+
+        frame.vm.collector->checkStop(frame, methodName);
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
@@ -172,16 +185,17 @@ namespace RexVM {
         }
     }
 
-    void createFrameAndRunMethod(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
+    void createFrameAndRunMethod(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous, bool nativeCall) {
         Frame nextFrame(thread.vm, thread, method_, previous);
+        nextFrame.nativeCall = nativeCall;
         const auto slotSize = method_.paramSlotSize;
         nextFrame.methodParamSlotSize = slotSize;
         if (slotSize != params.size()) {
              panic("createFrameAndRunMethod error: params length " + method_.name);
         }
-        for (size_t i = 0; i < params.size(); ++i) {
+        FOR_FROM_ZERO(params.size()) {
             const auto slotType = method_.getParamSlotType(i);
-            nextFrame.setLocal(i, params.at(i), slotType);
+            nextFrame.setLocal(i, params[i], slotType);
         }
         const auto backupFrame = thread.currentFrame;
         thread.currentFrame = &nextFrame;
@@ -190,8 +204,9 @@ namespace RexVM {
         thread.currentFrame = backupFrame;
     }
 
-    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous, size_t paramSlotSize) {
+    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous, size_t paramSlotSize, bool nativeCall) {
         Frame nextFrame(thread.vm, thread, method_, previous, paramSlotSize);
+        nextFrame.nativeCall = nativeCall;
         nextFrame.methodParamSlotSize = paramSlotSize;
         const auto backupFrame = thread.currentFrame;
         thread.currentFrame = &nextFrame;
