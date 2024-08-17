@@ -46,8 +46,6 @@ namespace RexVM {
         void addStartThread(VMThread *vmThread);
         bool checkAllThreadStopForCollect();
 
-        void runStaticMethodOnMainThread(Method &method, std::vector<Slot> methodParams) const;
-
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
         cstring javaHome{};
         cstring javaClassPath{};
@@ -58,7 +56,6 @@ namespace RexVM {
         void initBootstrapClassLoader();
         void initStringPool();
         void initMainThread();
-        void initJavaSystemClass() const;
         void initCollector();
         void runMainMethod() const;
         void joinThreads();

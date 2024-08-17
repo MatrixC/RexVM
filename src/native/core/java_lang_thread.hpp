@@ -66,7 +66,7 @@ namespace RexVM::Native::Core {
             // endless loop tryHandlePending
             return;
         }
-        self->start(&frame);
+        self->start(&frame, true);
     }
 
     //public native int countStackFrames();

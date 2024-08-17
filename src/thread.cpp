@@ -9,16 +9,17 @@
 #include "class_loader.hpp"
 #include "key_slot_id.hpp"
 #include "exception_helper.hpp"
-#include "memory.hpp"
 
 namespace RexVM {
 
+    VMThreadMethod::VMThreadMethod(Method *method, std::vector<Slot> params) : method(method), params(std::move(params)) {
+    }
+
     //Normal
-    VMThread::VMThread(VM &vm, InstanceClass * const klass) : 
-            InstanceOop(klass), 
-            vm(vm), 
-            runMethod(getInstanceClass()->getMethod("run", "()V", false)),
-            params(std::vector<Slot>{ Slot(this) }),
+    VMThread::VMThread(VM &vm, InstanceClass * const klass) :
+            InstanceOop(klass),
+            vm(vm),
+            runMethods({VMThreadMethod(getInstanceClass()->getMethod("run", "()V", false), { Slot(this) })}),
             stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
             stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
     }
@@ -31,17 +32,24 @@ namespace RexVM {
             stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
     }
 
-    VMThread::~VMThread() = default;
+    VMThread *VMThread::createOriginVMThread(VM &vm) {
+        auto vmThread = new VMThread(vm);
 
-    void VMThread::reset(Method *method, std::vector<Slot> runParams) {
-        setStatus(ThreadStatusEnum::NEW);
-        runMethod = method;
-        params = std::move(runParams);
+        const auto threadGroupClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
+        const auto vmThreadGroup = vm.oopManager->newInstance(vmThread, threadGroupClass);
+
+        vmThread->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
+        vmThread->setFieldValue("priority", "I", Slot(CAST_I8(1)));
+        return vmThread;
     }
+
+    VMThread::~VMThread() = default;
 
     void VMThread::run() {
         setStatus(ThreadStatusEnum::RUNNABLE);
-        createFrameAndRunMethod(*this, *runMethod, params, nullptr);
+        for (const auto &item: runMethods) {
+            createFrameAndRunMethod(*this, *item.method, item.params, nullptr);
+        }
         setStatus(ThreadStatusEnum::TERMINATED);
 
         //vm.oopManager->defaultOopHolder.addAnotherHolderOops(oopHolder);
@@ -51,17 +59,22 @@ namespace RexVM {
         notify_all();
     }
 
-    void VMThread::start(Frame *currentFrame_) {
+    void VMThread::start(Frame *currentFrame_, bool addToThreadDeque) {
         if (getStatus() != ThreadStatusEnum::NEW) {
             throwIllegalThreadStateException(*currentFrame_);
         }
 
-        if (vm.mainThread.get() != this) {
+        if (addToThreadDeque) {
             vm.addStartThread(this);
         }
+
         nativeThread = std::thread([this]() {
             run();
-        }); 
+        });
+    }
+
+    void VMThread::addMethod(RexVM::Method *method, const std::vector<Slot>& params) {
+        runMethods.emplace_back(method, params);
     }
 
     cstring VMThread::getName() const {

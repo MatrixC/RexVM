@@ -22,18 +22,9 @@ namespace RexVM {
         oops.emplace_back(oop);
     }
 
-    void OopHolder::addFinalizeOop(RexVM::ref oop) {
-        runFinalizeOops.emplace_back(oop);
-    }
-
     void OopHolder::clear() {
         oops.clear();
         oops.shrink_to_fit();
-    }
-
-    void OopHolder::clearFinalizeOop() {
-        runFinalizeOops.clear();
-        runFinalizeOops.shrink_to_fit();
     }
 
     void OopHolder::addAnotherHolderOops(OopHolder &that) {

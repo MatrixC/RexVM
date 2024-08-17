@@ -65,28 +65,9 @@ namespace RexVM {
     }
 
     void VM::initMainThread() {
-        mainThread = std::make_unique<VMThread>(*this);
-
-        const auto threadGroupClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
-        const auto vmThreadGroup = oopManager->newInstance(mainThread.get(), threadGroupClass);
-       
-        mainThread->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
-        mainThread->setFieldValue("priority", "I", Slot(CAST_I8(1)));
+        mainThread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(*this));
         addStartThread(mainThread.get());
-
         garbageCollector->start();
-    }
-
-    void VM::runStaticMethodOnMainThread(Method &method, std::vector<Slot> methodParams) const {
-        mainThread->reset(&method, std::move(methodParams));
-        mainThread->start(nullptr);
-        mainThread->join();
-    }
-
-    void VM::initJavaSystemClass() const {
-        const auto systemClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM);
-        const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
-        runStaticMethodOnMainThread(*initMethod, {});
     }
 
     void VM::initCollector() {
@@ -117,8 +98,15 @@ namespace RexVM {
             }
         }
 
-        //runStaticMethodOnMainThread(*this, *mainMethod, {Slot(stringArray)});
-        runStaticMethodOnMainThread(*mainMethod, {Slot(stringArray)});
+        const auto initMethod =
+                bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM)
+                ->getMethod("initializeSystemClass", "()V", true);
+
+        mainThread->addMethod(initMethod, {});
+        mainThread->addMethod(mainMethod, {Slot(stringArray)});
+
+        mainThread->start(nullptr, false);
+        mainThread->join();
     }
 
     void VM::joinThreads() {
@@ -164,12 +152,11 @@ namespace RexVM {
 
     void VM::start() {
         initClassPath();
-        initCollector();
         initOopManager();
         initBootstrapClassLoader();
         initStringPool();
+        initCollector();
         initMainThread();
-        initJavaSystemClass();
         runMainMethod();
         joinThreads();
         exitVM();

@@ -3,11 +3,12 @@
 #include "config.hpp"
 #include <memory>
 #include <mutex>
-#include <condition_variable>
 #include <vector>
 #include <thread>
 #include <atomic>
 #include <chrono>
+#include <deque>
+#include <condition_variable>
 
 namespace RexVM {
 
@@ -18,6 +19,23 @@ namespace RexVM {
     struct InstanceOop;
     struct ObjArrayOop;
     struct OopHolder;
+    struct GarbageCollect;
+
+    struct FinalizeRunner {
+
+        explicit FinalizeRunner(VM &vm, GarbageCollect &collector);
+
+        GarbageCollect &collector;
+        std::unique_ptr<VMThread> thread;
+        std::mutex dequeMtx;
+        std::condition_variable cv;
+        std::deque<InstanceOop *> oopDeque;
+
+        void add(InstanceOop *oop);
+        void run(InstanceOop *oop) const;
+        void start();
+
+    };
 
     constexpr size_t GC_ROOT_START_SIZE = 8192;
 
@@ -45,6 +63,8 @@ namespace RexVM {
 
         explicit GarbageCollect(VM &vm);
 
+        FinalizeRunner finalizeRunner;
+
         VM &vm;
         bool markCollect{false};
         std::mutex mtx;
@@ -53,13 +73,9 @@ namespace RexVM {
         bool enableLog{true};
         size_t sumCollectedMemory{0};
 
-        //Class obj constant
-        //ConstantPool Class
-        Class *constantPoolClass{nullptr};
         Class *stringClass{nullptr};
-        //StringClass
 
-        void checkStopForCollect(Frame &frame);
+        void checkStopForCollect(VMThread &thread);
         bool checkTerminationCollect();
         void stopTheWorld();
         void startTheWorld();
@@ -73,18 +89,13 @@ namespace RexVM {
         void traceMarkInstanceOopChild(InstanceOop *oop) const;
         void traceMarkObjArrayOopChild(ObjArrayOop * oop) const;
 
-        void collect(ref oop, std::vector<ref> &survives, size_t &collectedOopMemory) const;
-        void collectOopHolder(OopHolder &holder, GarbageCollectContext &context) const;
+        void collectOopHolder(OopHolder &holder, GarbageCollectContext &context);
         void collectAll() const;
-
-        void runFinalize(Frame &frame, InstanceOop *oop) const;
 
         void start();
         void join();
     };
 
-    struct FinalizeRunner {
-    };
 
 }
 

@@ -104,7 +104,7 @@ namespace RexVM {
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
 
-        frame.vm.garbageCollector->checkStopForCollect(frame);
+        frame.vm.garbageCollector->checkStopForCollect(frame.thread);
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;

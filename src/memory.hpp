@@ -20,20 +20,12 @@ namespace RexVM {
 
     struct OopHolder {
         std::vector<ref> oops;
-        //Thread run finalize method
-        std::vector<ref> runFinalizeOops;
 
         explicit OopHolder(size_t size);
-
         explicit OopHolder();
 
         void addOop(ref oop);
-
-        void addFinalizeOop(ref oop);
-
         void clear();
-
-        void clearFinalizeOop();
 
         void addAnotherHolderOops(OopHolder &that);
     };

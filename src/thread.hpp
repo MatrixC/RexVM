@@ -17,15 +17,21 @@ namespace RexVM {
     class Oop;
     struct OopHolder;
 
+    struct VMThreadMethod {
+        explicit VMThreadMethod(Method *method, std::vector<Slot> params);
+        Method *method;
+        std::vector<Slot> params;
+    };
+
     struct VMThread : InstanceOop {
         VM &vm;
         std::thread nativeThread;
-        Frame *currentFrame{nullptr};
-        Method *runMethod;
-        std::atomic_bool interrupted{false};
-        std::vector<Slot> params;
+        std::vector<VMThreadMethod> runMethods;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
+
+        Frame *currentFrame{nullptr};
+        std::atomic_bool interrupted{false};
         volatile bool stopForCollect{false};
         OopHolder oopHolder;
 
@@ -34,14 +40,12 @@ namespace RexVM {
 
         //Main
         explicit VMThread(VM &vm);
-
-
         ~VMThread();
 
-        void reset(Method *method, std::vector<Slot> params);
+        static VMThread *createOriginVMThread(VM &vm);
 
-        
-        void start(Frame *currentFrame_);
+        void addMethod(Method *method, const std::vector<Slot>& params);
+        void start(Frame *currentFrame_, bool addToThreadDeque = true);
         void join();
 
         [[nodiscard]] cstring getName() const;
@@ -50,7 +54,7 @@ namespace RexVM {
         [[nodiscard]] bool isAlive() const;
         void getThreadGCRoots(std::vector<ref> &result) const;
         void getCollectRoots(std::vector<ref> &result) const;
-        bool hasNativeCall() const;
+        [[nodiscard]] bool hasNativeCall() const;
 
         private:
             void run();
