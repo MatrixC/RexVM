@@ -1,10 +1,7 @@
-#include "interpreter.hpp"
 #include <cmath>
 
 #include "exception_helper.hpp"
-#include "utils/byte_reader.hpp"
 #include "utils/descriptor_parser.hpp"
-#include "utils/class_utils.hpp"
 #include "opcode.hpp"
 #include "constant_info.hpp"
 #include "frame.hpp"
@@ -1070,7 +1067,7 @@ namespace RexVM {
         template<bool clinit, bool isStatic>
         void invokeStaticCommon(Frame &frame, u2 index) {
             const auto invokeMethod = frame.klass.getRefMethod(index, isStatic);
-            if constexpr (clinit == true) {
+            if constexpr (clinit) {
                 invokeMethod->klass.clinit(frame);
             }
             frame.runMethodInner(*invokeMethod);

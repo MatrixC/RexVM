@@ -13,7 +13,7 @@
 
 namespace RexVM {
 
-    struct Oop;
+    class Oop;
 
     using u1 = std::uint8_t;
     using u2 = std::uint16_t;
@@ -68,7 +68,6 @@ namespace RexVM {
         F8,
         REF,
     };
-
 
     const Slot ZERO_SLOT = Slot(CAST_I8(0));
 

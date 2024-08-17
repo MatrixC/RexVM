@@ -8,7 +8,7 @@
 
 namespace RexVM {
 
-    struct Oop;
+    class Oop;
 
     struct StackContext {
         i4 sp;

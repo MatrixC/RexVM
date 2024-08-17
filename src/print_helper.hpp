@@ -10,7 +10,7 @@ namespace RexVM {
     struct ClassFile;
     struct Class;
     struct ObjArrayOop;
-    struct Oop;
+    class Oop;
     struct InstanceOop;
     struct Frame;
 

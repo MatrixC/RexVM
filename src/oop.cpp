@@ -61,7 +61,7 @@ namespace RexVM {
         if (getMonitor() == nullptr) [[unlikely]] {
             Oop::monitorLock.lock();
             if (getMonitor() == nullptr) {
-                comFlags.reset(new OopMonitor, 0);
+                comFlags.setPtr(new OopMonitor);
             }
             Oop::monitorLock.unlock();
         }
@@ -97,16 +97,22 @@ namespace RexVM {
         getAndInitMonitor()->monitorCv.notify_all();
     }
 
+    constexpr u2 TRACED_MASK = 0x8000; //10000000000000000
+    constexpr u2 MIRROR_MASK = 0x4000; //01000000000000000
     void Oop::markTraced() {
-        traceMarked = true;
+        setFlags(getFlags() | TRACED_MASK);
     }
 
     void Oop::clearTraced() {
-        traceMarked = false;
+        setFlags(getFlags() & (~TRACED_MASK));
     }
 
-    bool Oop::isTraced() {
-        return traceMarked;
+    bool Oop::isTraced() const {
+        return getFlags() & TRACED_MASK;
+    }
+
+    bool Oop::isMirror() const {
+        return getFlags() & MIRROR_MASK;
     }
 
     //hasHash 1bit, hashCode 9bit
@@ -130,6 +136,25 @@ namespace RexVM {
         const auto hasHash = (hashCode & HAS_HASH_MASK) != 0;
         const auto hashVal = hashCode & HASH_VAL_MASK;
         return std::make_tuple(hasHash, hashVal);
+    }
+
+    size_t Oop::getMemorySize() const {
+        const auto oopType = getType();
+        const auto dataLength = getDataLength();
+        switch (oopType) {
+            case OopTypeEnum::INSTANCE_OOP:
+                return sizeof(InstanceOop) + dataLength * SLOT_BYTE_SIZE;
+            case OopTypeEnum::OBJ_ARRAY_OOP:
+                return sizeof(InstanceOop) + dataLength * SLOT_BYTE_SIZE;
+            case OopTypeEnum::TYPE_ARRAY_OOP: {
+                const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(getClass());
+                const auto elementSize = getElementSizeByBasicType(typeArrayClass->elementType);
+                //sizeof(ByteTypeArrayOop) = sizeof(TypeArrayOop) + sizeof(ptr)
+                return sizeof(ByteTypeArrayOop) + dataLength * elementSize;
+            }
+        }
+        panic("error getMemorySize");
+        return 0;
     }
 
     void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
@@ -209,9 +234,10 @@ namespace RexVM {
     MirOop::MirOop(InstanceClass *klass, voidPtr mirrorObj, MirrorObjectTypeEnum type) :
         InstanceOop(klass, klass->instanceSlotCount),
         mirror(mirrorObj, static_cast<u2>(type)) {
+        setFlags(getFlags() | MIRROR_MASK);
     }
 
-    void MirOop::destory() {
+    void MirOop::destroy() {
         const auto type = getMirrorObjectType();
         switch (type) {
             case MirrorObjectTypeEnum::CLASS: {
@@ -229,11 +255,8 @@ namespace RexVM {
             }
 
             case MirrorObjectTypeEnum::CONSTANT_POOL: {
-                const auto classMirrorOop = CAST_MIRROR_OOP(mirror.getPtr());
-                if (classMirrorOop != nullptr) {
-                    const auto reKlass = CAST_INSTANCE_CLASS(classMirrorOop->getMirrorClass());
-                    reKlass->constantPoolMirrorBase.clear(this);
-                }
+                const auto mirrorClass = CAST_INSTANCE_CLASS(getMirrorClass());
+                mirrorClass->constantPoolMirrorBase.clear(this);
             }
 
             default:
@@ -242,7 +265,7 @@ namespace RexVM {
     }
 
     MirOop::~MirOop() {
-        destory();
+        destroy();
     }
 
     MirrorObjectTypeEnum MirOop::getMirrorObjectType() const {

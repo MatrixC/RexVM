@@ -92,6 +92,9 @@
 #define FOR_FROM_ZERO(x) FOR_FROM(0, (x))
 #define FOR_FROM_ONE(x)  FOR_FROM(1, (x))
 
+#define FOR_VECTOR(x, iname) for (const auto & iname : (x))
+#define FOR_VECTOR_ITEM(x) FOR_VECTOR(x, item)
+
 #define ASSERT_IF_NULL_THROW_NPE(x) \
   if ((x) == nullptr) { \
     throwNullPointException(frame); \

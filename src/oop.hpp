@@ -24,7 +24,6 @@ namespace RexVM {
     struct Method;
     struct Field;
 
-
     struct OopMonitor {
         std::recursive_mutex monitorMtx;
         std::condition_variable_any monitorCv;
@@ -36,21 +35,17 @@ namespace RexVM {
 
         //class, dataLength
         Composite<Class *, size_t> comClass;
-
         //volatile ?, oopMonitorPtr, flags
-        //low [oopMonitor(48), traced(1) finalize(1) ... hashAvaiable(1) hash(10)] high
+        //low [oopMonitor(48), traced(1) isMirror (1) finalize(1) ...(3) {hasHash(1) hash(9)}] high
         Composite<OopMonitor *, u2> comFlags{};
 
         [[nodiscard]] OopMonitor *getMonitor() const;
-
-        bool traceMarked{false};
 
     public:
 
         explicit Oop(Class *klass, size_t dataLength);
         ~Oop();
         [[nodiscard]] bool isInstanceOf(Class *checkClass) const;
-        
 
         [[nodiscard]] Class *getClass() const;
         [[nodiscard]] size_t getDataLength() const;
@@ -68,10 +63,13 @@ namespace RexVM {
 
         void markTraced();
         void clearTraced();
-        bool isTraced();
+        [[nodiscard]] bool isTraced() const;
+        [[nodiscard]] bool isMirror() const;
 
         void setStringHash(u2 hashCode);
-        std::tuple<bool, u2>  getStringHash() const;
+        [[nodiscard]] std::tuple<bool, u2>  getStringHash() const;
+
+        [[nodiscard]] size_t getMemorySize() const;
 
     };
 
@@ -108,7 +106,7 @@ namespace RexVM {
         explicit MirOop(InstanceClass *klass, voidPtr mirror, MirrorObjectTypeEnum type);
         ~MirOop();
 
-        void destory();
+        void destroy();
 
         [[nodiscard]] MirrorObjectTypeEnum getMirrorObjectType() const;
 

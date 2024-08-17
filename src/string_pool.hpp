@@ -39,6 +39,7 @@ namespace RexVM {
         bool find(Key key, Value &ret);
         void insert(Key key, Value value);
         void erase(Value value);
+        void clear();
 
         [[nodiscard]] u2 getKeyIndex(Key key) const;
 
@@ -62,6 +63,8 @@ namespace RexVM {
         explicit StringPool(VM &vm, ClassLoader &classLoader);
 
         ~StringPool();
+
+        void clear() const;
 
     private:
         InstanceClass *stringClass;

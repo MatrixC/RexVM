@@ -1,6 +1,5 @@
 #include "memory.hpp"
 
-#include <utility>
 #include "vm.hpp"
 #include "thread.hpp"
 #include "class.hpp"
@@ -8,7 +7,6 @@
 #include "oop.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"
-#include "finalize.hpp"
 #include "utils/format.hpp"
 
 namespace RexVM {

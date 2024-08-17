@@ -1,6 +1,7 @@
 #include "vm.hpp"
 #include <atomic>
 #include <filesystem>
+#include <utility>
 #include "basic_java_class.hpp"
 #include "utils/class_path.hpp"
 #include "utils/class_utils.hpp"
@@ -11,9 +12,8 @@
 #include "string_pool.hpp"
 #include "thread.hpp"
 #include "memory.hpp"
-#include "execute.hpp"
 #include "file_system.hpp"
-#include "finalize.hpp"
+#include "garbage_collect.hpp"
 
 
 namespace RexVM {
@@ -73,27 +73,27 @@ namespace RexVM {
         mainThread->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
         mainThread->setFieldValue("priority", "I", Slot(CAST_I8(1)));
         addStartThread(mainThread.get());
+
+        garbageCollector->start();
     }
 
-    void VM::runStaticMethodOnMainThread(Method &method, std::vector<Slot> params) {
-        mainThread->reset(&method, params);
+    void VM::runStaticMethodOnMainThread(Method &method, std::vector<Slot> methodParams) const {
+        mainThread->reset(&method, std::move(methodParams));
         mainThread->start(nullptr);
         mainThread->join();
     }
 
-    void VM::initJavaSystemClass() {
+    void VM::initJavaSystemClass() const {
         const auto systemClass = bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM);
         const auto initMethod = systemClass->getMethod("initializeSystemClass", "()V", true);
         runStaticMethodOnMainThread(*initMethod, {});
-        int i = 10;
-        cprintln("initsystem finish");
     }
 
     void VM::initCollector() {
-        collector = std::make_unique<Collector>(*this);
+        garbageCollector = std::make_unique<GarbageCollect>(*this);
     }
 
-    void VM::runMainMethod() {
+    void VM::runMainMethod() const {
         const auto userParams = params.userParams;
 
         const auto &className = getJVMClassName(userParams[0]);
@@ -134,18 +134,19 @@ namespace RexVM {
             }
             vmThread->join();
         }
+
+    }
+
+    void VM::exitVM() {
         exit = true;
-        collector->join();
+        garbageCollector->join();
+        stringPool->clear();
+        garbageCollector->collectAll();
     }
 
     void VM::addStartThread(VMThread *thread) {
         std::lock_guard<std::mutex> lock(vmThreadMtx);
         vmThreadDeque.emplace_back(thread);
-    }
-
-    size_t VM::getActiveThreadCount() {
-        std::lock_guard<std::mutex> lock(vmThreadMtx);
-        return vmThreadDeque.size();
     }
 
     bool VM::checkAllThreadStopForCollect() {
@@ -171,13 +172,12 @@ namespace RexVM {
         initJavaSystemClass();
         runMainMethod();
         joinThreads();
-
+        exitVM();
     }
 
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();
-        //collectAll(vm);
     }
 
 }

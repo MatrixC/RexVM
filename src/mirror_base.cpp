@@ -49,21 +49,21 @@ namespace RexVM {
     }
 
     void MirrorBase::clear(voidPtr checkPtr) {
-        int i = 10;
-        //cprintln("clear.....");
+#ifdef DEBUG
         if (checkPtr != mirOop) {
-            cprintln("error...");
+            panic("clear check error");
         }
+#endif
         mirOop = nullptr;
     }
 
-    void MirrorBase::initClassMirrorOop(Frame &frame, Class *klass) {
+    void MirrorBase::initClassMirrorOop(Frame &frame, Class *klass) const {
         #ifdef DEBUG
         mirOop->mirrorName = klass->name;
         #endif
     }
 
-    void MirrorBase::initMethodMirrorOop(Frame &frame, Method *method, bool isConstructor) {
+    void MirrorBase::initMethodMirrorOop(Frame &frame, Method *method, bool isConstructor) const {
         auto &klass = method->klass;
         const auto paramClasses = method->getParamClasses();
         const auto paramClassesArrayOop = frame.mem.newClassObjArrayOop(paramClasses.size());
@@ -125,9 +125,7 @@ namespace RexVM {
         #endif
     }
 
-
-    void *jjjj = nullptr;
-    void MirrorBase::initFieldMirrorOop(Frame &frame, Field *field) {
+    void MirrorBase::initFieldMirrorOop(Frame &frame, Field *field) const {
         auto &klass = field->klass;
         mirOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(klass.getMirror(&frame)));
         mirOop->setFieldValue("slot", "I", Slot(field->slotId));
@@ -148,14 +146,11 @@ namespace RexVM {
         mirOop->mirrorName = klass.name + "." + field->name;
         #endif
 
-        if (field->name == "¤ #,##0.00;-¤ #,##0.00") {
-            jjjj = CAST_VOID_PTR(mirOop);
-            cprintln("jjjj annoptr {}", jjjj);
-        }
     }
 
-    void MirrorBase::initConstantPoolMirrorOop(Frame &frame, Class *klass) {
-        mirOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(klass->getMirror(&frame)));
+    void MirrorBase::initConstantPoolMirrorOop(Frame &frame, Class *klass) const {
+//        mirOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(klass->getMirror(&frame)));
+//        mirOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(std::bit_cast<i8>(klass)));
     }
 
     MirrorBase::MirrorBase() = default;

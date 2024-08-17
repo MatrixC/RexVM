@@ -1,4 +1,6 @@
 #include "garbage_collect.hpp"
+#include <unordered_set>
+#include <algorithm>
 #include "vm.hpp"
 #include "thread.hpp"
 #include "frame.hpp"
@@ -7,10 +9,15 @@
 #include "oop.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"
+#include "memory.hpp"
+#include "utils/string_utils.hpp"
 
 namespace RexVM {
 
-    void GarbageCollect::checkStorForCollect(Frame &frame) {
+    GarbageCollect::GarbageCollect(VM &vm) : vm(vm) {
+    }
+
+    void GarbageCollect::checkStopForCollect(Frame &frame) {
         if (!markCollect) [[likely]] {
             return;
         }
@@ -55,11 +62,59 @@ namespace RexVM {
             traceMarkOop(item);
         }
 
+        std::vector<ref> survives;
+        survives.reserve(GC_SURVIVE_SIZE);
 
+        auto &defaultOopHolder = vm.oopManager->defaultOopHolder;
 
+        size_t collectOopCount = defaultOopHolder.oops.size();
+        for (const auto &oop: defaultOopHolder.oops) {
+            collect(oop, survives, gcRoots);
+        }
+        defaultOopHolder.clear();
+
+        for (const auto &item: vm.vmThreadDeque) {
+            auto &holder = item->oopHolder;
+            collectOopCount += holder.oops.size();
+            for (const auto &oop: holder.oops) {
+                collect(oop, survives, gcRoots);
+            }
+            holder.clear();
+        }
+
+        //fuck!
+        //or gcRoots all clearTraced()
+        vm.mainThread->clearTraced();
+
+        vm.oopManager->defaultOopHolder.oops = survives;
+
+        if (enableLog) {
+            cprintln("gcLog gcRoot:{}, oopCount:{}, survive:{}", gcRoots.size(), collectOopCount, survives.size());
+        }
+
+        startTheWorld();
     }
 
-    void GarbageCollect::getClassStaticRef(std::vector<ref> gcRoots) {
+    void GarbageCollect::collect(ref oop, std::vector<ref> &survives, const std::vector<ref> &gcRoots) const {
+        if (oop->isTraced()) {
+            survives.emplace_back(oop);
+            oop->clearTraced();
+        } else {
+            const auto oopClass = oop->getClass();
+            if (oopClass == stringClass) {
+                vm.stringPool->gcStringOop(CAST_INSTANCE_OOP(oop));
+            }
+
+            if (oop->isMirror()) {
+                //run ~MirOop
+                delete CAST_MIRROR_OOP(oop);
+            } else {
+                delete oop;
+            }
+        }
+    }
+
+    void GarbageCollect::getClassStaticRef(std::vector<ref> &gcRoots) const {
         auto &classLoader = *vm.bootstrapClassLoader;
         for (const auto &[name, klass] : classLoader.classMap) {
             const auto mirror = klass->getMirror(nullptr, false);
@@ -83,13 +138,13 @@ namespace RexVM {
         }
     }
 
-    void GarbageCollect::getThreadRef(std::vector<ref> gcRoots) {
+    void GarbageCollect::getThreadRef(std::vector<ref> &gcRoots) {
         //是否要考虑gc线程?
         for (const auto &thread : vm.vmThreadDeque) {
             const auto status = thread->getStatus();
+            gcRoots.emplace_back(thread);
             if (status != ThreadStatusEnum::TERMINATED) {
                 thread->getThreadGCRoots(gcRoots);
-                gcRoots.emplace_back(thread);
             }
         }
     }
@@ -123,10 +178,7 @@ namespace RexVM {
     }
 
     void GarbageCollect::traceMarkInstanceOopChild(InstanceOop *oop) const {
-        //如果是mirrorOop 要判断是否是ConstantPool Mirror 它里面包含了一个Class的MirrorOop
         const auto klass = oop->getInstanceClass();
-
-        
 
         //要包含它父类的字段
         for (auto current = klass; current != nullptr; current = current->superClass) {
@@ -151,6 +203,36 @@ namespace RexVM {
                     traceMarkOop(element);
                 }
             }
+        }
+    }
+
+    void GarbageCollect::collectAll() const {
+        for (const auto &oop: vm.oopManager->defaultOopHolder.oops) {
+            delete oop;
+        }
+
+        for (const auto &item: vm.vmThreadDeque) {
+            for (const auto &oop: item->oopHolder.oops) {
+                delete oop;
+            }
+        }
+    }
+
+    void GarbageCollect::start() {
+        constantPoolClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::SUN_REFLECT_CONSTANT_POOL);
+        stringClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
+
+        gcThread = std::thread([this]() {
+             while (!this->vm.exit) {
+                 std::this_thread::sleep_for(std::chrono::milliseconds(300));
+                 this->run();
+             }
+        });
+    }
+
+    void GarbageCollect::join() {
+        if (gcThread.joinable()) {
+            gcThread.join();
         }
     }
 

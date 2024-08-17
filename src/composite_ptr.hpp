@@ -36,7 +36,7 @@ namespace RexVM {
         }
 
         inline void reset(P ptr, T data) {
-            if (data > COM_DATA_SHIFT_MASK) [[unlikely]] {
+            if (CAST_U8(data) > COM_DATA_SHIFT_MASK) [[unlikely]] {
                 panic("Composite not support");
             } 
             composite = (std::bit_cast<u8>(ptr) & COM_PTR_MASK) | (CAST_U8(data) << COM_PTR_LENGTH);
@@ -48,7 +48,7 @@ namespace RexVM {
         }
 
         inline void setData(T data) {
-            composite &= ~ COM_DATA_MASK;
+            composite &= ~COM_DATA_MASK;
             composite |= (CAST_U8(data) << COM_PTR_LENGTH);
         }
 

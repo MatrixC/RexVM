@@ -15,7 +15,7 @@ namespace RexVM {
     struct ClassFile;
     struct ClassLoader;
     struct ConstantInfo;
-    struct Oop;
+    class Oop;
     struct InstanceOop;
     struct MirrorOop;
     struct InstanceClass;

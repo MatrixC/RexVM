@@ -3,7 +3,6 @@
 #include "config.hpp"
 #include <unordered_set>
 #include <vector>
-#include <atomic>
 
 namespace RexVM {
 
@@ -17,9 +16,6 @@ namespace RexVM {
     struct CharTypeArrayOop;
     struct InstanceClass;
     struct ObjArrayClass;
-
-
-    extern std::atomic_int oopCount;
 
     struct OopHolder {
         std::vector<ref> oops;

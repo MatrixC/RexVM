@@ -18,7 +18,7 @@ namespace RexVM {
     struct InstanceClass;
     struct ObjArrayClass;
     struct Method;
-    struct Oop;
+    class Oop;
     struct InstanceOop;
     struct FrameMemoryHandler;
     struct ObjArrayOop;

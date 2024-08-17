@@ -178,9 +178,7 @@ namespace RexVM {
     }
 
 
-    Class::~Class() {
-        int i = 10;
-    }
+    Class::~Class() = default;
 
     constexpr auto PRIMITIVE_CLASS_ACCESS_FLAGS = 
         CAST_U2(AccessFlagEnum::ACC_PUBLIC) |

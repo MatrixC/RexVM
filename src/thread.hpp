@@ -14,7 +14,7 @@ namespace RexVM {
     struct Frame;
     struct Method;
     struct InstanceOop;
-    struct Oop;
+    class Oop;
     struct OopHolder;
 
     struct VMThread : InstanceOop {
@@ -30,7 +30,7 @@ namespace RexVM {
         OopHolder oopHolder;
 
         //Normal
-        explicit VMThread(VM &vm, InstanceClass * const klass);
+        explicit VMThread(VM &vm, InstanceClass * klass);
 
         //Main
         explicit VMThread(VM &vm);

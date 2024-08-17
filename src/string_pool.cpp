@@ -70,6 +70,10 @@ namespace RexVM {
                 );
     }
 
+    void StringPool::clear() const {
+        stringTable->clear();
+    }
+
 
     StringTable::StringTable(RexVM::size_t size)
             : tableSize(size), table(size, nullptr) {
@@ -142,12 +146,23 @@ namespace RexVM {
                 } else {
                     prev->next = current->next;
                 }
-                int i = 10;
                 delete current;
                 break;
             }
             prev = current;
             current = current->next;
         }
+    }
+
+    void StringTable::clear() {
+        for (size_t i = 0; i < tableSize; ++i) {
+            auto current = table[i];
+            while (current != nullptr) {
+                const auto next = current->next;
+                delete current;
+                current = next;
+            }
+        }
+        table.clear();
     }
 }

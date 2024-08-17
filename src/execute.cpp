@@ -6,15 +6,13 @@
 #include "vm.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
-#include "finalize.hpp"
 #include "opcode.hpp"
 #include "frame.hpp"
-#include "memory.hpp"
 #include "interpreter.hpp"
 #include "thread.hpp"
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
-#include "method_handle.hpp"
+#include "garbage_collect.hpp"
 
 namespace RexVM {
 
@@ -106,27 +104,7 @@ namespace RexVM {
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
 
-        if (method.name == "<init>" && method.klass.name == JAVA_LANG_REFLECT_FIELD_NAME) {
-            int i = 10;
-            const auto mirrorOop = CAST_MIRROR_OOP(frame.getThis());
-            const auto mirrorC = mirrorOop->getMirrorClass();
-            //cprintln("getName run {}", mirrorC->name);
-        }
-
-        if (method.name == "getDeclaredFields") {
-            cprintln("getDeclaredFields");
-            //printExecuteLog = true;
-        }
-
-        if (printExecuteLog == true && method.name == "getDeclaredFields0") {
-            int i = 10;
-        }
-
-        if (method.name == "cc") {
-            int i = 10;
-        }
-
-        frame.vm.collector->checkStop(frame, methodName);
+        frame.vm.garbageCollector->checkStopForCollect(frame);
 
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;

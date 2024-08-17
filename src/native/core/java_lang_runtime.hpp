@@ -9,7 +9,6 @@
 #include "../../class.hpp"
 #include "../../execute.hpp"
 #include "../../memory.hpp"
-#include "../../finalize.hpp"
 
 
 namespace RexVM::Native::Core {
@@ -20,12 +19,6 @@ namespace RexVM::Native::Core {
 
     //native void gc();
     void _gc(Frame &frame) {
-        std::thread gcThread([frame]() {
-            frame.vm.collector->startGC();
-        });
-        gcThread.detach();
-
-        std::this_thread::sleep_for(std::chrono::microseconds(1000));
     }
 
 }
