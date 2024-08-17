@@ -20,7 +20,6 @@ namespace RexVM {
     struct OopHolder;
 
     constexpr size_t GC_ROOT_START_SIZE = 8192;
-    constexpr size_t GC_SURVIVE_SIZE = 10240;
 
     struct GarbageCollectContext {
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
@@ -28,20 +27,18 @@ namespace RexVM {
         std::chrono::system_clock::time_point traceOopEndTime;
         std::chrono::system_clock::time_point endTime;
 
-        explicit GarbageCollectContext();
+        explicit GarbageCollectContext(VM &vm);
 
-        std::atomic_size_t createdOopCount{0};
-        std::atomic_size_t createdOopMemory{0};
+        size_t allocatedOopCount{0};
+        size_t allocatedOopMemory{0};
         std::atomic_size_t collectedOopCount{0};
         std::atomic_size_t collectedOopMemory{0};
-        std::atomic_size_t remainOopCount{0};
-        std::atomic_size_t remainOopMemory{0};
 
         void endGetRoots();
         void endTraceOop();
 
-        void collectFinish();
-        void printLog() const;
+        void collectFinish(VM &vm);
+        void printLog(VM &vm) const;
     };
 
     struct GarbageCollect {
@@ -84,6 +81,9 @@ namespace RexVM {
 
         void start();
         void join();
+    };
+
+    struct FinalizeRunner {
     };
 
 }

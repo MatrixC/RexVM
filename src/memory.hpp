@@ -3,6 +3,7 @@
 #include "config.hpp"
 #include <unordered_set>
 #include <vector>
+#include <atomic>
 
 namespace RexVM {
 
@@ -43,7 +44,6 @@ namespace RexVM {
         OopHolder defaultOopHolder{};
 
         explicit OopManager(VM &vm);
-        std::unordered_set<Oop *> allocatedOop;
 
         [[nodiscard]] InstanceOop *newInstance(VMThread *thread, InstanceClass * klass);
         [[nodiscard]] MirOop *newMirror(VMThread *thread, InstanceClass * klass, voidPtr mirror, MirrorObjectTypeEnum type);
@@ -67,11 +67,11 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *newLongOop(VMThread *thread, i8 value);
         [[nodiscard]] InstanceOop *newDoubleOop(VMThread *thread, f8 value);
 
-
         VMThread *newVMThread(VMThread *thread, InstanceClass * klass);
-
         void addToOopHolder(VMThread *thread, ref oop);
 
+        std::atomic_size_t allocatedOopCount {0};
+        std::atomic_size_t allocatedOopMemory {0};
     };
 
     void traceOop(Oop * root, std::unordered_set<Oop *> &tracedOop);

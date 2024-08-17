@@ -14,29 +14,36 @@
 
 namespace RexVM {
 
-    GarbageCollectContext::GarbageCollectContext() = default;
+    GarbageCollectContext::GarbageCollectContext(VM &vm) {
+        const auto &oopManager = vm.oopManager;
+        allocatedOopCount = oopManager->allocatedOopCount;
+        allocatedOopMemory = oopManager->allocatedOopMemory;
+    }
 
     void GarbageCollectContext::endGetRoots() {
         getGcRootEndTime = std::chrono::system_clock::now();
     }
+
     void GarbageCollectContext::endTraceOop() {
         traceOopEndTime = std::chrono::system_clock::now();
     }
 
-    void GarbageCollectContext::collectFinish() {
+    void GarbageCollectContext::collectFinish(VM &vm) {
         endTime = std::chrono::system_clock::now();
-        remainOopCount = createdOopCount - collectedOopCount;
-        remainOopMemory = createdOopMemory - collectedOopMemory;
+        const auto &oopManager = vm.oopManager;
+        oopManager->allocatedOopCount -= collectedOopCount;
+        oopManager->allocatedOopMemory -= collectedOopMemory;
     }
 
-    void GarbageCollectContext::printLog() const {
+    void GarbageCollectContext::printLog(VM &vm) const {
+        const auto &oopManager = vm.oopManager;
         const auto timeCost = endTime - startTime;
         cprintln("gc [{:%H:%M:%S} cost:{}], crt:{}[{}KB], col:{}[{}KB], rem:{}[{}KB]",
-                startTime, timeCost,
-                createdOopCount.load(), CAST_F4(createdOopMemory) / 1024,
-                collectedOopCount.load(), CAST_F4(collectedOopMemory) / 1024,
-                remainOopCount.load(), CAST_F4(remainOopMemory) / 1024
-                );
+                 startTime, timeCost,
+                 allocatedOopCount, CAST_F4(allocatedOopMemory) / 1024,
+                 collectedOopCount.load(), CAST_F4(collectedOopMemory) / 1024,
+                 oopManager->allocatedOopCount.load(), CAST_F4(oopManager->allocatedOopMemory) / 1024
+        );
     }
 
     GarbageCollect::GarbageCollect(VM &vm) : vm(vm) {
@@ -63,7 +70,7 @@ namespace RexVM {
 
     bool GarbageCollect::checkTerminationCollect() {
         //如果有线程栈中有native函数 停止gc
-        for (const auto &thread : vm.vmThreadDeque) {
+        for (const auto &thread: vm.vmThreadDeque) {
             if (thread->hasNativeCall()) {
                 return false;
             }
@@ -90,12 +97,12 @@ namespace RexVM {
             return;
         }
 
-        GarbageCollectContext context;
+        GarbageCollectContext context(vm);
 
         const auto gcRoots = getGarbageCollectRoots();
         context.endGetRoots();
 
-        for (const auto &item : gcRoots) {
+        for (const auto &item: gcRoots) {
             traceMarkOop(item);
         }
         context.endTraceOop();
@@ -104,9 +111,9 @@ namespace RexVM {
         for (const auto &item: vm.vmThreadDeque) {
             collectOopHolder(item->oopHolder, context);
         }
-        context.collectFinish();
+        context.collectFinish(vm);
         if (enableLog) {
-            context.printLog();
+            context.printLog(vm);
         }
 
 
@@ -185,13 +192,10 @@ namespace RexVM {
         std::vector<ref> survives;
         survives.reserve(oops.size() / 2);
         for (const auto &oop: oops) {
-            const auto memorySize = oop->getMemorySize();
-            ++context.createdOopCount;
-            context.createdOopMemory += memorySize;
 
             if (oop->isTraced()) {
                 survives.emplace_back(oop);
-                oop->clearTraced(); 
+                oop->clearTraced();
             } else {
 //                if (!oop->isFinalized()) [[unlikely]] {
 //                    //need to run finalize
@@ -201,9 +205,11 @@ namespace RexVM {
 //                    continue;
 //                }
 
+                const auto memorySize = oop->getMemorySize();
+
                 ++context.collectedOopCount;
                 context.collectedOopMemory += memorySize;
-                
+
                 const auto oopClass = oop->getClass();
                 if (oopClass == stringClass) {
                     vm.stringPool->gcStringOop(CAST_INSTANCE_OOP(oop));
@@ -213,15 +219,15 @@ namespace RexVM {
                     delete CAST_MIRROR_OOP(oop);
                 } else {
                     delete oop;
-                } 
+                }
             }
         }
-        holder.oops = survives;
+        holder.oops.swap(survives);
     }
 
     void GarbageCollect::getClassStaticRef(std::vector<ref> &gcRoots) const {
         auto &classLoader = *vm.bootstrapClassLoader;
-        for (const auto &[name, klass] : classLoader.classMap) {
+        for (const auto &[name, klass]: classLoader.classMap) {
             const auto mirror = klass->getMirror(nullptr, false);
             if (mirror != nullptr) {
                 gcRoots.emplace_back(mirror);
@@ -232,7 +238,7 @@ namespace RexVM {
                     continue;
                 }
 
-                for (const auto &field : instanceClass->fields) {
+                for (const auto &field: instanceClass->fields) {
                     if (field->getFieldSlotType() == SlotTypeEnum::REF && field->isStatic()) {
                         if (const auto oop = instanceClass->getFieldValue(field->slotId).refVal; oop != nullptr) {
                             gcRoots.emplace_back(oop);
@@ -245,7 +251,7 @@ namespace RexVM {
 
     void GarbageCollect::getThreadRef(std::vector<ref> &gcRoots) {
         //是否要考虑gc线程?
-        for (const auto &thread : vm.vmThreadDeque) {
+        for (const auto &thread: vm.vmThreadDeque) {
             const auto status = thread->getStatus();
             if (status != ThreadStatusEnum::TERMINATED) {
                 thread->getThreadGCRoots(gcRoots);
@@ -287,7 +293,7 @@ namespace RexVM {
 
         //要包含它父类的字段
         for (auto current = klass; current != nullptr; current = current->superClass) {
-            for (const auto &field : current->fields) {
+            for (const auto &field: current->fields) {
                 const auto fieldType = field->getFieldSlotType();
                 if (fieldType == SlotTypeEnum::REF && !field->isStatic()) {
                     const auto memberOop = oop->getFieldValue(field->slotId).refVal;
@@ -299,7 +305,7 @@ namespace RexVM {
         }
     }
 
-    void GarbageCollect::traceMarkObjArrayOopChild(ObjArrayOop * oop) const {
+    void GarbageCollect::traceMarkObjArrayOopChild(ObjArrayOop *oop) const {
         const auto arrayLength = oop->getDataLength();
         if (arrayLength > 0) {
             FOR_FROM_ZERO(arrayLength) {
@@ -343,10 +349,10 @@ namespace RexVM {
         stringClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
 
         gcThread = std::thread([this]() {
-             while (!this->vm.exit) {
-                 std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                 this->run();
-             }
+            while (!this->vm.exit) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(300));
+                this->run();
+            }
         });
     }
 

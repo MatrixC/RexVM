@@ -11,8 +11,6 @@
 
 namespace RexVM {
 
-    std::atomic_int oopCount{0};
-
     OopHolder::OopHolder(size_t size) {
         oops.reserve(size);
     }
@@ -236,77 +234,7 @@ namespace RexVM {
 
     void OopManager::addToOopHolder(VMThread *thread, ref oop) {
         thread->oopHolder.addOop(oop);
-        ++oopCount;
+        ++allocatedOopCount;
+        allocatedOopMemory += oop->getMemorySize();
     }
-
-    void traceOop(Oop * const oop, std::unordered_set<Oop *> &tracedOop) {
-        if (oop == nullptr) {
-            return;
-        }
-        if (tracedOop.contains(oop)) {
-            return;
-        }
-        tracedOop.insert(oop);
-
-        const auto oopType = oop->getType();
-        switch (oopType) {
-            case OopTypeEnum::INSTANCE_OOP:
-                traceInstanceOopChild(CAST_INSTANCE_OOP(oop), tracedOop);
-            break;
-
-            case OopTypeEnum::OBJ_ARRAY_OOP:
-                traceObjArrayOopChild(CAST_OBJ_ARRAY_OOP(oop), tracedOop);
-            break;
-
-            case OopTypeEnum::TYPE_ARRAY_OOP:
-            return;
-        }
-        
-    }
-
-    void traceInstanceOopChild(InstanceOop * const oop, std::unordered_set<Oop *> &tracedOop) {
-        const auto klass = oop->getInstanceClass();
-        for (const auto &field : klass->fields) {
-            const auto fieldType = field->getFieldSlotType();
-            if (fieldType == SlotTypeEnum::REF && !field->isStatic()) {
-                const auto memberOop = oop->getFieldValue(field->slotId).refVal;
-                if (memberOop != nullptr) {
-                    traceOop(memberOop, tracedOop);
-                }
-            }
-        }
-    }
-
-    void traceObjArrayOopChild(ObjArrayOop * const oop, std::unordered_set<Oop *> &tracedOop) {
-        const auto arrayLength = oop->getDataLength();
-        if (arrayLength > 0) {
-            for (size_t i = 0; i < arrayLength; ++i) {
-                const auto element = oop->data[i];
-                if (element != nullptr) {
-                    traceOop(element, tracedOop);
-                }
-            }
-        }
-    }
-
-    void collectOop(ref oop) {
-        const auto klass = oop->getClass();
-        if (klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
-            const auto instanceClass = CAST_INSTANCE_CLASS(klass);
-            const auto finalizeMethod = instanceClass->getMethodSelf("finalize", "()V", false);
-            if (finalizeMethod != nullptr) {
-                
-            }
-        }
-    }
-
-    void collectAll(VM &vm) {
-        const auto &oopManager = vm.oopManager;
-        auto &allocatedOop = oopManager->allocatedOop;
-
-        for (auto &oop : allocatedOop) {
-            delete oop;
-        }
-    }
-    
 }
