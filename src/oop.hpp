@@ -32,17 +32,19 @@ namespace RexVM {
     class Oop {
         static SpinLock monitorLock;
     private:
-
-        //class, dataLength
+        //classPtr, dataLength
         Composite<Class *, size_t> comClass;
-        //volatile ?, oopMonitorPtr, flags
-        //low [oopMonitor(48), traced(1) isMirror (1) finalize(1) ...(3) {hasHash(1) hash(9)}] high
+
+        //low [oopMonitor(48), traced(1) isMirror (1) finalized(1) ...(3) {hasHash(1) hash(9)}] high
         Composite<OopMonitor *, u2> comFlags{};
 
         [[nodiscard]] OopMonitor *getMonitor() const;
 
-    public:
+    protected:
+        [[nodiscard]] u2 getFlags() const;
+        void setFlags(u2 flags);
 
+    public:
         explicit Oop(Class *klass, size_t dataLength);
         ~Oop();
         [[nodiscard]] bool isInstanceOf(Class *checkClass) const;
@@ -51,8 +53,6 @@ namespace RexVM {
         [[nodiscard]] size_t getDataLength() const;
         [[nodiscard]] OopTypeEnum getType() const;
         [[nodiscard]] OopMonitor *getAndInitMonitor();
-        [[nodiscard]] u2 getFlags() const;
-        void setFlags(u2 flags);
 
         void lock();
         void unlock();
@@ -65,12 +65,13 @@ namespace RexVM {
         void clearTraced();
         [[nodiscard]] bool isTraced() const;
         [[nodiscard]] bool isMirror() const;
+        [[nodiscard]] bool isFinalized() const;
+        void setFinalized(bool finalized);
 
         void setStringHash(u2 hashCode);
-        [[nodiscard]] std::tuple<bool, u2>  getStringHash() const;
+        [[nodiscard]] std::tuple<bool, u2> getStringHash() const;
 
         [[nodiscard]] size_t getMemorySize() const;
-
     };
 
     struct InstanceOop : Oop {
@@ -95,7 +96,6 @@ namespace RexVM {
         [[nodiscard]] InstanceClass *getInstanceClass() const;
 
     };
-
 
     struct MirOop : InstanceOop {
         Composite<voidPtr, u2> mirror;

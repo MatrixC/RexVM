@@ -24,9 +24,24 @@ namespace RexVM {
         oops.emplace_back(oop);
     }
 
+    void OopHolder::addFinalizeOop(RexVM::ref oop) {
+        runFinalizeOops.emplace_back(oop);
+    }
+
     void OopHolder::clear() {
         oops.clear();
         oops.shrink_to_fit();
+    }
+
+    void OopHolder::clearFinalizeOop() {
+        runFinalizeOops.clear();
+        runFinalizeOops.shrink_to_fit();
+    }
+
+    void OopHolder::addAnotherHolderOops(OopHolder &that) {
+        auto &anotherOops = that.oops;
+        std::copy(oops.begin(), oops.end(), std::back_inserter(anotherOops));
+        anotherOops.clear();
     }
 
     OopManager::OopManager(VM &vm) : vm(vm) {

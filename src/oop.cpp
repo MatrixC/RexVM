@@ -9,11 +9,14 @@ namespace RexVM {
 
     SpinLock Oop::monitorLock;
 
+    constexpr u2 TRACED_MASK = 0x8000;     //1000000000000000
+    constexpr u2 MIRROR_MASK = 0x4000;     //0100000000000000
+    constexpr u2 FINALIZED_MASK = 0x2000;  //0010000000000000
+
     Oop::Oop(Class *klass, size_t dataLength) :
-            comClass(klass, dataLength) {
-        if (dataLength >= 65535) {
-            panic("not support");
-        }
+            comClass(klass, dataLength),
+            comFlags(nullptr, FINALIZED_MASK) {
+        //dataLength >= 65535, not support
     }
 
     bool Oop::isInstanceOf(Class *checkClass) const {
@@ -97,8 +100,6 @@ namespace RexVM {
         getAndInitMonitor()->monitorCv.notify_all();
     }
 
-    constexpr u2 TRACED_MASK = 0x8000; //10000000000000000
-    constexpr u2 MIRROR_MASK = 0x4000; //01000000000000000
     void Oop::markTraced() {
         setFlags(getFlags() | TRACED_MASK);
     }
@@ -113,6 +114,16 @@ namespace RexVM {
 
     bool Oop::isMirror() const {
         return getFlags() & MIRROR_MASK;
+    }
+
+    void Oop::setFinalized(bool finalized) {
+        auto flags = getFlags();
+        flags = finalized ? (flags | FINALIZED_MASK) : (flags & (~FINALIZED_MASK));
+        setFlags(flags);
+    }
+
+    bool Oop::isFinalized() const {
+        return getFlags() & FINALIZED_MASK;
     }
 
     //hasHash 1bit, hashCode 9bit
@@ -145,7 +156,7 @@ namespace RexVM {
             case OopTypeEnum::INSTANCE_OOP:
                 return sizeof(InstanceOop) + dataLength * SLOT_BYTE_SIZE;
             case OopTypeEnum::OBJ_ARRAY_OOP:
-                return sizeof(InstanceOop) + dataLength * SLOT_BYTE_SIZE;
+                return sizeof(ObjArrayOop) + dataLength * SLOT_BYTE_SIZE;
             case OopTypeEnum::TYPE_ARRAY_OOP: {
                 const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(getClass());
                 const auto elementSize = getElementSizeByBasicType(typeArrayClass->elementType);
@@ -153,7 +164,6 @@ namespace RexVM {
                 return sizeof(ByteTypeArrayOop) + dataLength * elementSize;
             }
         }
-        panic("error getMemorySize");
         return 0;
     }
 
@@ -193,6 +203,9 @@ namespace RexVM {
             Oop(klass, dataLength),
             data(std::make_unique<Slot[]>(dataLength)) {
         initInstanceField(this, klass);
+        if (klass->overrideFinalize) {
+            setFinalized(false);
+        }
     }
 
     InstanceOop::InstanceOop(InstanceClass *klass) : InstanceOop(klass, klass->instanceSlotCount) {

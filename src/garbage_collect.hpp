@@ -6,6 +6,8 @@
 #include <condition_variable>
 #include <vector>
 #include <thread>
+#include <atomic>
+#include <chrono>
 
 namespace RexVM {
 
@@ -15,9 +17,32 @@ namespace RexVM {
     struct Class;
     struct InstanceOop;
     struct ObjArrayOop;
+    struct OopHolder;
 
     constexpr size_t GC_ROOT_START_SIZE = 8192;
     constexpr size_t GC_SURVIVE_SIZE = 10240;
+
+    struct GarbageCollectContext {
+        std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
+        std::chrono::system_clock::time_point getGcRootEndTime;
+        std::chrono::system_clock::time_point traceOopEndTime;
+        std::chrono::system_clock::time_point endTime;
+
+        explicit GarbageCollectContext();
+
+        std::atomic_size_t createdOopCount{0};
+        std::atomic_size_t createdOopMemory{0};
+        std::atomic_size_t collectedOopCount{0};
+        std::atomic_size_t collectedOopMemory{0};
+        std::atomic_size_t remainOopCount{0};
+        std::atomic_size_t remainOopMemory{0};
+
+        void endGetRoots();
+        void endTraceOop();
+
+        void collectFinish();
+        void printLog() const;
+    };
 
     struct GarbageCollect {
 
@@ -29,6 +54,7 @@ namespace RexVM {
         std::condition_variable cv;
         std::thread gcThread;
         bool enableLog{true};
+        size_t sumCollectedMemory{0};
 
         //Class obj constant
         //ConstantPool Class
@@ -50,8 +76,11 @@ namespace RexVM {
         void traceMarkInstanceOopChild(InstanceOop *oop) const;
         void traceMarkObjArrayOopChild(ObjArrayOop * oop) const;
 
-        void collect(ref oop, std::vector<ref> &survives, const std::vector<ref>& ref) const;
+        void collect(ref oop, std::vector<ref> &survives, size_t &collectedOopMemory) const;
+        void collectOopHolder(OopHolder &holder, GarbageCollectContext &context) const;
         void collectAll() const;
+
+        void runFinalize(Frame &frame, InstanceOop *oop) const;
 
         void start();
         void join();

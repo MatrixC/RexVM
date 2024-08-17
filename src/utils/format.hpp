@@ -1,12 +1,9 @@
-//
-// Created by ch on 12/20/23.
-//
-
 #ifndef FORMAT_HPP
 #define FORMAT_HPP
 
 #define FMT_HEADER_ONLY
 #include <fmt/core.h>
+#include <fmt/chrono.h>
 
 namespace RexVM {
 

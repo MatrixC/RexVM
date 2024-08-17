@@ -249,7 +249,6 @@ namespace RexVM {
         initInterfaceAndSuperClass(cf);
         moveConstantPool(cf);
         calcFieldSlotId();
-        //initStaticField();
     }
 
     void InstanceClass::initAttributes(ClassFile &cf) {
@@ -306,13 +305,10 @@ namespace RexVM {
         methods.reserve(cf.methodCount);
         u2 index = 0;
         for (const auto &methodInfo: cf.methods) {
-            auto method =
-                    std::make_unique<Method>(
-                            *this,
-                            methodInfo.get(),
-                            cf,
-                            index++
-                    );
+            auto method = std::make_unique<Method>(*this,methodInfo.get(),cf,index++);
+            if (!overrideFinalize && method->name == "finalize" && method->descriptor == "()V") {
+                overrideFinalize = true;
+            }
             methods.emplace_back(std::move(method));
         }
     }

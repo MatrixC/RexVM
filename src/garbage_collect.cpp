@@ -14,6 +14,31 @@
 
 namespace RexVM {
 
+    GarbageCollectContext::GarbageCollectContext() = default;
+
+    void GarbageCollectContext::endGetRoots() {
+        getGcRootEndTime = std::chrono::system_clock::now();
+    }
+    void GarbageCollectContext::endTraceOop() {
+        traceOopEndTime = std::chrono::system_clock::now();
+    }
+
+    void GarbageCollectContext::collectFinish() {
+        endTime = std::chrono::system_clock::now();
+        remainOopCount = createdOopCount - collectedOopCount;
+        remainOopMemory = createdOopMemory - collectedOopMemory;
+    }
+
+    void GarbageCollectContext::printLog() const {
+        const auto timeCost = endTime - startTime;
+        cprintln("gc [{:%H:%M:%S} cost:{}], crt:{}[{}KB], col:{}[{}KB], rem:{}[{}KB]",
+                startTime, timeCost,
+                createdOopCount.load(), CAST_F4(createdOopMemory) / 1024,
+                collectedOopCount.load(), CAST_F4(collectedOopMemory) / 1024,
+                remainOopCount.load(), CAST_F4(remainOopMemory) / 1024
+                );
+    }
+
     GarbageCollect::GarbageCollect(VM &vm) : vm(vm) {
     }
 
@@ -25,6 +50,14 @@ namespace RexVM {
         std::unique_lock<std::mutex> lock(mtx);
         frame.thread.stopForCollect = true;
         cv.wait(lock, [this] { return !markCollect; });
+
+//        auto holder = frame.thread.oopHolder;
+//        if (!holder.runFinalizeOops.empty()) {
+//            FOR_VECTOR_ITEM(holder.runFinalizeOops) {
+//                runFinalize(frame, CAST_INSTANCE_OOP(item));
+//            }
+//            holder.clearFinalizeOop();
+//        }
         frame.thread.stopForCollect = false;
     }
 
@@ -57,54 +90,87 @@ namespace RexVM {
             return;
         }
 
+        GarbageCollectContext context;
+
         const auto gcRoots = getGarbageCollectRoots();
+        context.endGetRoots();
+
         for (const auto &item : gcRoots) {
             traceMarkOop(item);
         }
+        context.endTraceOop();
 
-        std::vector<ref> survives;
-        survives.reserve(GC_SURVIVE_SIZE);
-
-        auto &defaultOopHolder = vm.oopManager->defaultOopHolder;
-
-        size_t collectOopCount = defaultOopHolder.oops.size();
-        for (const auto &oop: defaultOopHolder.oops) {
-            collect(oop, survives, gcRoots);
-        }
-        defaultOopHolder.clear();
-
+        collectOopHolder(vm.oopManager->defaultOopHolder, context);
         for (const auto &item: vm.vmThreadDeque) {
-            auto &holder = item->oopHolder;
-            collectOopCount += holder.oops.size();
-            for (const auto &oop: holder.oops) {
-                collect(oop, survives, gcRoots);
-            }
-            holder.clear();
+            collectOopHolder(item->oopHolder, context);
         }
+        context.collectFinish();
+        if (enableLog) {
+            context.printLog();
+        }
+
+
+//        std::vector<ref> survives;
+//        survives.reserve(GC_SURVIVE_SIZE);
+//
+//        auto &defaultOopHolder = vm.oopManager->defaultOopHolder;
+//
+//        size_t allocatedOopCount = defaultOopHolder.oops.size();
+//        size_t allocatedOopMemory{0};
+//        size_t collectedOopMemory{0};
+//        for (const auto &oop: defaultOopHolder.oops) {
+//            allocatedOopMemory += oop->getMemorySize();
+//            collect(oop, survives, collectedOopMemory);
+//        }
+//        defaultOopHolder.clear();
+//
+//        for (const auto &item: vm.vmThreadDeque) {
+//            auto &holder = item->oopHolder;
+//            allocatedOopCount += holder.oops.size();
+//            for (const auto &oop: holder.oops) {
+//                allocatedOopMemory += oop->getMemorySize();
+//                collect(oop, survives, collectedOopMemory);
+//            }
+//            holder.clear();
+//        }
+//        const auto remainOopCount = survives.size();
+//        const auto collectedOopCount = allocatedOopCount - remainOopCount;
+//        const auto remainOopMemory = allocatedOopMemory - collectedOopMemory;
+//        sumCollectedMemory += collectedOopMemory;
 
         //fuck!
         //or gcRoots all clearTraced()
         vm.mainThread->clearTraced();
 
-        vm.oopManager->defaultOopHolder.oops = survives;
+//        vm.oopManager->defaultOopHolder.oops = survives;
 
-        if (enableLog) {
-            cprintln("gcLog gcRoot:{}, oopCount:{}, survive:{}", gcRoots.size(), collectOopCount, survives.size());
-        }
+//        if (enableLog) {
+//            cprintln("gcLog gcRootCount:{}, oopCount:{}, oopMemory:{}KB, collectCount:{}, collectMemory:{}KB",
+//                     gcRoots.size(), allocatedOopCount, CAST_F4(allocatedOopMemory) / 1024, collectedOopCount, CAST_F4(collectedOopMemory) / 1024);
+//        }
 
         startTheWorld();
     }
 
-    void GarbageCollect::collect(ref oop, std::vector<ref> &survives, const std::vector<ref> &gcRoots) const {
+    void GarbageCollect::collect(ref oop, std::vector<ref> &survives, size_t &collectedOopMemory) const {
         if (oop->isTraced()) {
             survives.emplace_back(oop);
             oop->clearTraced();
         } else {
+            if (!oop->isFinalized()) [[unlikely]] {
+                //need to run finalize
+                survives.emplace_back(oop);
+                //run finalize
+
+                oop->setFinalized(true);
+                return;
+            }
+
             const auto oopClass = oop->getClass();
+            collectedOopMemory += oop->getMemorySize();
             if (oopClass == stringClass) {
                 vm.stringPool->gcStringOop(CAST_INSTANCE_OOP(oop));
             }
-
             if (oop->isMirror()) {
                 //run ~MirOop
                 delete CAST_MIRROR_OOP(oop);
@@ -112,6 +178,45 @@ namespace RexVM {
                 delete oop;
             }
         }
+    }
+
+    void GarbageCollect::collectOopHolder(OopHolder &holder, GarbageCollectContext &context) const {
+        const auto &oops = holder.oops;
+        std::vector<ref> survives;
+        survives.reserve(oops.size() / 2);
+        for (const auto &oop: oops) {
+            const auto memorySize = oop->getMemorySize();
+            ++context.createdOopCount;
+            context.createdOopMemory += memorySize;
+
+            if (oop->isTraced()) {
+                survives.emplace_back(oop);
+                oop->clearTraced(); 
+            } else {
+//                if (!oop->isFinalized()) [[unlikely]] {
+//                    //need to run finalize
+//                    survives.emplace_back(oop);
+//                    //run finalize
+//                    holder.addFinalizeOop(oop);
+//                    continue;
+//                }
+
+                ++context.collectedOopCount;
+                context.collectedOopMemory += memorySize;
+                
+                const auto oopClass = oop->getClass();
+                if (oopClass == stringClass) {
+                    vm.stringPool->gcStringOop(CAST_INSTANCE_OOP(oop));
+                }
+                if (oop->isMirror()) [[unlikely]] {
+                    //run ~MirOop
+                    delete CAST_MIRROR_OOP(oop);
+                } else {
+                    delete oop;
+                } 
+            }
+        }
+        holder.oops = survives;
     }
 
     void GarbageCollect::getClassStaticRef(std::vector<ref> &gcRoots) const {
@@ -142,9 +247,9 @@ namespace RexVM {
         //是否要考虑gc线程?
         for (const auto &thread : vm.vmThreadDeque) {
             const auto status = thread->getStatus();
-            gcRoots.emplace_back(thread);
             if (status != ThreadStatusEnum::TERMINATED) {
                 thread->getThreadGCRoots(gcRoots);
+                gcRoots.emplace_back(thread);
             }
         }
     }
@@ -207,6 +312,7 @@ namespace RexVM {
     }
 
     void GarbageCollect::collectAll() const {
+        cprintln("sumCollectedMemory:{}KB", CAST_F4(sumCollectedMemory) / 1024);
         for (const auto &oop: vm.oopManager->defaultOopHolder.oops) {
             delete oop;
         }
@@ -216,6 +322,20 @@ namespace RexVM {
                 delete oop;
             }
         }
+    }
+
+    void GarbageCollect::runFinalize(Frame &frame, InstanceOop *oop) const {
+        const auto klass = oop->getInstanceClass();
+        const auto finalizeMethod = klass->getMethod("finalize", "()V", false);
+        if (finalizeMethod == nullptr) {
+            panic("run finalize error");
+        }
+
+        frame.runMethodManual(*finalizeMethod, {Slot(oop)});
+        if (frame.markThrow) {
+            return;
+        }
+        oop->setFinalized(true);
     }
 
     void GarbageCollect::start() {

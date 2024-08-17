@@ -26,7 +26,7 @@ namespace RexVM {
         std::vector<Slot> params;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
-        bool stopForCollect{false};
+        volatile bool stopForCollect{false};
         OopHolder oopHolder;
 
         //Normal
@@ -41,7 +41,7 @@ namespace RexVM {
         void reset(Method *method, std::vector<Slot> params);
 
         
-        void start(Frame *currentFrame);
+        void start(Frame *currentFrame_);
         void join();
 
         [[nodiscard]] cstring getName() const;

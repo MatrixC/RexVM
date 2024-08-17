@@ -36,20 +36,23 @@ namespace RexVM {
     void VMThread::reset(Method *method, std::vector<Slot> runParams) {
         setStatus(ThreadStatusEnum::NEW);
         runMethod = method;
-        params = runParams;
+        params = std::move(runParams);
     }
 
     void VMThread::run() {
         setStatus(ThreadStatusEnum::RUNNABLE);
         createFrameAndRunMethod(*this, *runMethod, params, nullptr);
         setStatus(ThreadStatusEnum::TERMINATED);
+
+        //vm.oopManager->defaultOopHolder.addAnotherHolderOops(oopHolder);
+
         std::lock_guard<std::recursive_mutex> lock(getAndInitMonitor()->monitorMtx);
         notify_all();
     }
 
-    void VMThread::start(Frame *currentFrame) {
+    void VMThread::start(Frame *currentFrame_) {
         if (getStatus() != ThreadStatusEnum::NEW) {
-            throwIllegalThreadStateException(*currentFrame);
+            throwIllegalThreadStateException(*currentFrame_);
         }
 
         if (vm.mainThread.get() != this) {
@@ -78,7 +81,6 @@ namespace RexVM {
     }
 
     void VMThread::join() {
-        //if (!isMainThread && nativeThread.joinable()) {
         if (nativeThread.joinable()) {
             nativeThread.join();
         }
