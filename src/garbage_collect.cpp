@@ -12,6 +12,7 @@
 #include "memory.hpp"
 #include "utils/string_utils.hpp"
 #include "execute.hpp"
+#include "os_platform.hpp"
 
 namespace RexVM {
 
@@ -74,6 +75,7 @@ namespace RexVM {
 
     void GarbageCollect::stopTheWorld() {
         markCollect = true;
+        finalizeRunner.cv.notify_all();
         while (!vm.checkAllThreadStopForCollect()) {
         }
     }
@@ -105,6 +107,7 @@ namespace RexVM {
             collectOopHolder(item->oopHolder, context);
         }
         context.collectFinish(vm);
+        sumCollectedMemory += context.allocatedOopMemory;
         if (enableLog) {
             context.printLog(vm);
         }
@@ -130,6 +133,7 @@ namespace RexVM {
                 if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
                     //need to run finalize
                     survives.emplace_back(oop);
+                    oop->clearTraced();
                     //add to run finalize
                     finalizeRunner.add(CAST_INSTANCE_OOP(oop));
                     continue;
@@ -260,42 +264,31 @@ namespace RexVM {
         }
     }
 
-//    void GarbageCollect::runFinalize(Frame &frame, InstanceOop *oop) const {
-//        const auto klass = oop->getInstanceClass();
-//        const auto finalizeMethod = klass->getMethod("finalize", "()V", false);
-//        if (finalizeMethod == nullptr) {
-//            panic("run finalize error");
-//        }
-//
-//        frame.runMethodManual(*finalizeMethod, {Slot(oop)});
-//        if (frame.markThrow) {
-//            return;
-//        }
-//        oop->setFinalized(true);
-//    }
-
     void GarbageCollect::start() {
         stringClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
 
         gcThread = std::thread([this]() {
+            setThreadName("GC Thread");
             while (!this->vm.exit) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(300));
                 this->run();
             }
         });
 
-        //finalizeRunner.start();
+        finalizeRunner.start();
     }
 
     void GarbageCollect::join() {
+        finalizeRunner.thread->join();
+
         if (gcThread.joinable()) {
             gcThread.join();
         }
     }
 
     FinalizeRunner::FinalizeRunner(VM &vm, GarbageCollect &collector) : collector(collector)  {
-//        thread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(vm));
-//        vm.addStartThread(thread.get());
+        thread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(vm));
+        thread->setName("Finalize Thread");
     }
 
     void FinalizeRunner::add(InstanceOop *oop) {
@@ -317,18 +310,32 @@ namespace RexVM {
     }
 
     void FinalizeRunner::start() {
-        //error
-        //VMThread while
-        while (!collector.vm.exit) {
-            collector.checkStopForCollect(*thread);
+        std::function<void()> runnable = [this]() {
+            while (!collector.vm.exit) {
+                {
+                    std::unique_lock<std::mutex> lock(dequeMtx);
+                    if (oopDeque.empty()) {
+                        cv.wait(lock, [this] { return !oopDeque.empty() || collector.markCollect; });
+                    }
+                }
 
-            std::unique_lock<std::mutex> lock(dequeMtx);
-            if (oopDeque.empty()) {
-                cv.wait(lock, [&]() { return !oopDeque.empty(); });
+                if (oopDeque.empty()) {
+                    collector.checkStopForCollect(*thread);
+                } else {
+                    std::unique_lock<std::mutex> lock(dequeMtx);
+                    while (!oopDeque.empty()) {
+                        collector.checkStopForCollect(*thread);
+                        const auto oop = oopDeque.front();
+                        oopDeque.pop_front();
+                        run(oop);
+                    }
+                }
             }
-            run(oopDeque.front());
-            oopDeque.pop_front();
-        }
+        };
+
+        thread->addMethod(runnable);
+        //Don't insert into VM->threadDeque, gc thread join this
+        thread->start(nullptr, false);
     }
 
 }

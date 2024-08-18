@@ -30,6 +30,7 @@
 namespace RexVM {
     std::size_t getSystemPageSize();
     std::string getSystemTimeZoneId();
+    void setThreadName(const char *name);
 }
 
 #endif

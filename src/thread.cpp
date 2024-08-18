@@ -9,19 +9,24 @@
 #include "class_loader.hpp"
 #include "key_slot_id.hpp"
 #include "exception_helper.hpp"
+#include "os_platform.hpp"
 
 namespace RexVM {
 
     VMThreadMethod::VMThreadMethod(Method *method, std::vector<Slot> params) : method(method), params(std::move(params)) {
     }
 
+    VMThreadMethod::VMThreadMethod(VMTheadNativeHandler nativeMethod) : nativeMethod(std::move(nativeMethod)) {}
+
     //Normal
     VMThread::VMThread(VM &vm, InstanceClass * const klass) :
             InstanceOop(klass),
             vm(vm),
-            runMethods({VMThreadMethod(getInstanceClass()->getMethod("run", "()V", false), { Slot(this) })}),
             stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
             stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
+        const auto method = getInstanceClass()->getMethod("run", "()V", false);
+        const std::vector<Slot> params = { Slot(this) };
+        runMethods.emplace_back(std::make_unique<VMThreadMethod>(method, params));
     }
 
     //Main
@@ -45,10 +50,21 @@ namespace RexVM {
 
     VMThread::~VMThread() = default;
 
+    void VMThread::setName(const RexVM::cstring &name) {
+        threadName = name;
+    }
+
     void VMThread::run() {
+        if (!threadName.empty()) {
+            setThreadName(threadName.c_str());
+        }
         setStatus(ThreadStatusEnum::RUNNABLE);
         for (const auto &item: runMethods) {
-            createFrameAndRunMethod(*this, *item.method, item.params, nullptr);
+            if (item->method != nullptr) {
+                createFrameAndRunMethod(*this, *item->method, item->params, nullptr);
+            } else if (item->nativeMethod != nullptr) {
+                item->nativeMethod();
+            }
         }
         setStatus(ThreadStatusEnum::TERMINATED);
 
@@ -73,12 +89,12 @@ namespace RexVM {
         });
     }
 
-    void VMThread::addMethod(RexVM::Method *method, const std::vector<Slot>& params) {
-        runMethods.emplace_back(method, params);
+    void VMThread::addMethod(Method *method, const std::vector<Slot>& params) {
+        runMethods.emplace_back(std::make_unique<VMThreadMethod>(method, params));
     }
 
-    cstring VMThread::getName() const {
-        return "Thread";
+    void VMThread::addMethod(VMTheadNativeHandler &method) {
+        runMethods.emplace_back(std::make_unique<VMThreadMethod>(method));
     }
 
     void VMThread::setStatus(ThreadStatusEnum status) {

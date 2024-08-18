@@ -8,6 +8,7 @@
 #include <vector>
 #include <tuple>
 #include <bit>
+#include <functional>
 #include "basic_macro.hpp"
 #include "os_platform.hpp"
 
@@ -28,7 +29,8 @@ namespace RexVM {
     using voidPtr = void *;
     using ref = Oop *;
     using size_t = std::size_t;
-    using cchar = char8_t;
+    //using cchar = char8_t;
+    using cchar = char;
     using cchar_16 = char16_t;
     using cstring = std::string;
     using cview = std::string_view;
@@ -101,8 +103,11 @@ namespace RexVM {
     constexpr size_t THREAD_STACK_MEMORY_KB = THREAD_STACK_SLOT_SIZE * sizeof(Slot) / 1024;
 
     struct Frame;
+    struct VMThread;
     using MethodHandler = void (*)(Frame &frame);
     using NativeMethodHandler = MethodHandler;
+//    using VMTheadNativeHandler = void (*)(VMThread *thread);
+    using VMTheadNativeHandler = std::function<void()>;
 
     constexpr size_t STRING_POOL_SIZE = 512;
 

@@ -66,6 +66,7 @@ namespace RexVM {
 
     void VM::initMainThread() {
         mainThread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(*this));
+        mainThread->setName("Main Thread");
         addStartThread(mainThread.get());
         garbageCollector->start();
     }

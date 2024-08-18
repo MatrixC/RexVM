@@ -10,25 +10,28 @@
 
 namespace RexVM {
 
+    class Oop;
     struct VM;
     struct Frame;
     struct Method;
     struct InstanceOop;
-    class Oop;
     struct OopHolder;
 
     struct VMThreadMethod {
         explicit VMThreadMethod(Method *method, std::vector<Slot> params);
-        Method *method;
+        explicit VMThreadMethod(VMTheadNativeHandler nativeMethod);
+        Method *method{nullptr};
+        VMTheadNativeHandler nativeMethod;
         std::vector<Slot> params;
     };
 
     struct VMThread : InstanceOop {
         VM &vm;
         std::thread nativeThread;
-        std::vector<VMThreadMethod> runMethods;
+        std::vector<std::unique_ptr<VMThreadMethod>> runMethods;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
+        cstring threadName{};
 
         Frame *currentFrame{nullptr};
         std::atomic_bool interrupted{false};
@@ -42,13 +45,15 @@ namespace RexVM {
         explicit VMThread(VM &vm);
         ~VMThread();
 
+        void setName(const cstring &name);
+
         static VMThread *createOriginVMThread(VM &vm);
 
         void addMethod(Method *method, const std::vector<Slot>& params);
+        void addMethod(VMTheadNativeHandler &method);
         void start(Frame *currentFrame_, bool addToThreadDeque = true);
         void join();
 
-        [[nodiscard]] cstring getName() const;
         void setStatus(ThreadStatusEnum status);
         [[nodiscard]] ThreadStatusEnum getStatus() const;
         [[nodiscard]] bool isAlive() const;
