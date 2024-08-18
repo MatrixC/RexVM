@@ -28,20 +28,23 @@ namespace RexVM {
     }
 
     InstanceOop *StringPool::getInternString(VMThread *thread, const cstring &str) {
-        std::lock_guard<std::mutex> lock(mtx);
+        lock.lock();
         InstanceOop *result = nullptr;
         if (stringTable->find(str, result)) {
+            lock.unlock();
             return result;
         }
         result = createJavaString(thread, str);
         stringTable->insert(str, result);
+        lock.unlock();
 
         return result;
     }
 
     void StringPool::gcStringOop(InstanceOop *oop) {
-        std::lock_guard<std::mutex> lock(mtx);
+        lock.lock();
         stringTable->erase(oop);
+        lock.unlock();
     }
     
     InstanceOop *StringPool::createJavaString(VMThread *thread, const cstring &str) const {

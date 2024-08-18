@@ -7,6 +7,7 @@
 #include <tuple>
 #include <vector>
 #include "config.hpp"
+#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 
@@ -50,7 +51,8 @@ namespace RexVM {
         ClassLoader &classLoader;
         std::unique_ptr<StringTable> stringTable;
         std::unordered_map<cstring, InstanceOop *> internMap;
-        std::mutex mtx;
+        SpinLock lock;
+
 
         [[nodiscard]] static cstring getJavaString(InstanceOop *oop) ;
         [[nodiscard]] static bool equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t length);

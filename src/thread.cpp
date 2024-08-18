@@ -68,9 +68,6 @@ namespace RexVM {
         }
         setStatus(ThreadStatusEnum::TERMINATED);
 
-        //vm.oopManager->defaultOopHolder.addAnotherHolderOops(oopHolder);
-        cprintln("aaaa");
-
         std::lock_guard<std::recursive_mutex> lock(getAndInitMonitor()->monitorMtx);
         notify_all();
     }

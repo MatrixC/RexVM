@@ -63,10 +63,10 @@ namespace RexVM {
 
         void markTraced();
         void clearTraced();
+        void setFinalized(bool finalized);
         [[nodiscard]] bool isTraced() const;
         [[nodiscard]] bool isMirror() const;
         [[nodiscard]] bool isFinalized() const;
-        void setFinalized(bool finalized);
 
         void setStringHash(u2 hashCode);
         [[nodiscard]] std::tuple<bool, u2> getStringHash() const;
@@ -106,7 +106,7 @@ namespace RexVM {
         explicit MirOop(InstanceClass *klass, voidPtr mirror, MirrorObjectTypeEnum type);
         ~MirOop();
 
-        void destroy();
+        void clearHolder();
 
         [[nodiscard]] MirrorObjectTypeEnum getMirrorObjectType() const;
 

@@ -250,7 +250,7 @@ namespace RexVM {
         setFlags(getFlags() | MIRROR_MASK);
     }
 
-    void MirOop::destroy() {
+    void MirOop::clearHolder() {
         const auto type = getMirrorObjectType();
         switch (type) {
             case MirrorObjectTypeEnum::CLASS: {
@@ -278,7 +278,7 @@ namespace RexVM {
     }
 
     MirOop::~MirOop() {
-        destroy();
+        clearHolder();
     }
 
     MirrorObjectTypeEnum MirOop::getMirrorObjectType() const {

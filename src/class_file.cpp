@@ -1,6 +1,3 @@
-//
-// Created by ch on 12/17/23.
-//
 #include "utils/format.hpp"
 #include "attribute_info.hpp"
 #include "constant_info.hpp"

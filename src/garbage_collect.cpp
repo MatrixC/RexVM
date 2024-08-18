@@ -125,7 +125,6 @@ namespace RexVM {
         std::vector<ref> survives;
         survives.reserve(oops.size() / 2);
         for (const auto &oop: oops) {
-
             if (oop->isTraced()) {
                 survives.emplace_back(oop);
                 oop->clearTraced();
@@ -270,8 +269,10 @@ namespace RexVM {
         gcThread = std::thread([this]() {
             setThreadName("GC Thread");
             while (!this->vm.exit) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                this->run();
+                std::this_thread::sleep_for(std::chrono::milliseconds(collectSleepTime));
+                if (vm.oopManager->allocatedOopMemory > collectMemoryThreshold) {
+                    this->run();
+                }
             }
         });
 

@@ -21,6 +21,12 @@ namespace RexVM {
     struct OopHolder;
     struct GarbageCollect;
 
+    constexpr size_t GC_ROOT_START_SIZE = 8192;
+    //10MB
+    constexpr size_t GC_MEMORY_THRESHOLD = 10 * 1024 * 1024;
+    //Frequency 2s
+    constexpr size_t GC_SLEEP_TIME = 2000;
+
     struct FinalizeRunner {
 
         explicit FinalizeRunner(VM &vm, GarbageCollect &collector);
@@ -36,8 +42,6 @@ namespace RexVM {
         void start();
 
     };
-
-    constexpr size_t GC_ROOT_START_SIZE = 8192;
 
     struct GarbageCollectContext {
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
@@ -71,6 +75,8 @@ namespace RexVM {
         std::condition_variable cv;
         std::thread gcThread;
         bool enableLog{true};
+        size_t collectMemoryThreshold{GC_MEMORY_THRESHOLD};
+        size_t collectSleepTime{GC_SLEEP_TIME};
         size_t sumCollectedMemory{0};
 
         Class *stringClass{nullptr};
