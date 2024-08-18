@@ -113,6 +113,7 @@ namespace RexVM {
         [[nodiscard]] Class *getMirrorClass() const;
         [[nodiscard]] Method *getMirrorMethod() const;
         [[nodiscard]] Field *getMirrorField() const;
+        [[nodiscard]] Method *getMemberNameMethod();
     };
 
     struct ArrayOop : Oop {

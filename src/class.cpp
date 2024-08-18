@@ -12,7 +12,6 @@
 #include "thread.hpp"
 #include "frame.hpp"
 #include "exception.hpp"
-#include "memory.hpp"
 #include "attribute_info.hpp"
 
 namespace RexVM {
@@ -434,8 +433,11 @@ namespace RexVM {
     
     void InstanceClass::initSpecialType() {
         const auto threadClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+        const auto memberNameClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_MEMBER_NAME);
         if (this == threadClass || this->isSubClassOf(threadClass)) {
             specialInstanceClass = SpecialInstanceClass::THREAD_CLASS;
+        } else if (this == memberNameClass) {
+            specialInstanceClass = SpecialInstanceClass::MEMBER_NAME_CLASS;
         }
     }
 

@@ -40,6 +40,16 @@ namespace RexVM {
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
 
     cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name);
+
+    std::tuple<
+            InstanceClass *,
+            cstring,
+            InstanceOop *,
+            i4,
+            MethodHandleEnum,
+            bool,
+            cstring
+    > methodHandleGetFieldFromMemberName(InstanceOop *memberName);
 }
 
 #endif

@@ -103,6 +103,7 @@ namespace RexVM {
         context.endTraceOop();
 
         collectOopHolder(vm.oopManager->defaultOopHolder, context);
+        collectOopHolder(finalizeRunner.thread->oopHolder, context);
         for (const auto &item: vm.vmThreadDeque) {
             collectOopHolder(item->oopHolder, context);
         }

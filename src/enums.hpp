@@ -64,6 +64,7 @@ namespace RexVM {
         NONE,
         THREAD_CLASS,
         CLASS_LOADER_CLASS,
+        MEMBER_NAME_CLASS,
     };
 
     enum class ClassMemberTypeEnum {

@@ -1,9 +1,12 @@
 #include "oop.hpp"
+#include <algorithm>
 #include "class.hpp"
 #include "class_member.hpp"
 #include "memory.hpp"
 #include "thread.hpp"
-#include <algorithm>
+#include "method_handle.hpp"
+#include "string_pool.hpp"
+
 
 namespace RexVM {
 
@@ -295,6 +298,17 @@ namespace RexVM {
 
     Field *MirOop::getMirrorField() const {
         return CAST_FIELD(mirror.getPtr());
+    }
+
+    Method *MirOop::getMemberNameMethod() {
+        auto methodPtr = CAST_METHOD(mirror.getPtr());
+        if (methodPtr == nullptr) {
+            auto [klass, name, type, flags, kind, isStatic, descriptor]
+                    = methodHandleGetFieldFromMemberName(this);
+            methodPtr = klass->getMethod(name, descriptor, isStatic);
+            mirror.setPtr(methodPtr);
+        }
+        return methodPtr;
     }
 
     ArrayOop::ArrayOop(const OopTypeEnum type, ArrayClass *klass, const size_t dataLength) :

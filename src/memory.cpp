@@ -37,7 +37,28 @@ namespace RexVM {
     }
 
     InstanceOop *OopManager::newInstance(VMThread *thread, InstanceClass * klass) {
-        const auto oop = new InstanceOop(klass, klass->instanceSlotCount);
+        const auto specialType = klass->specialInstanceClass;
+        InstanceOop *oop = nullptr;
+        switch (specialType) {
+            case SpecialInstanceClass::NONE:
+                oop = new InstanceOop(klass, klass->instanceSlotCount);
+                break;
+
+            case SpecialInstanceClass::THREAD_CLASS:
+                oop = newVMThread(thread, klass);
+                break;
+
+            case SpecialInstanceClass::MEMBER_NAME_CLASS:
+                oop = newMirror(thread, klass, nullptr, MirrorObjectTypeEnum::MEMBER_NAME);
+                break;
+
+            case SpecialInstanceClass::CLASS_LOADER_CLASS:
+                panic("not implement");
+                break;
+
+            default:
+                panic("error specialType");
+        }
         addToOopHolder(thread, oop);
         return oop;
     }

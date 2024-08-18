@@ -1108,20 +1108,7 @@ namespace RexVM {
             const auto instanceClass = frame.mem.getInstanceClass(className);
             instanceClass->clinit(frame);
 
-            const auto specialType = instanceClass->specialInstanceClass;
-            switch (specialType) {
-                case SpecialInstanceClass::NONE:
-                    frame.pushRef(frame.mem.newInstance(instanceClass));
-                    break;
-                
-                case SpecialInstanceClass::THREAD_CLASS:
-                    frame.pushRef(frame.mem.newVMThread(instanceClass));
-                    break;
-                
-                case SpecialInstanceClass::CLASS_LOADER_CLASS:
-                    panic("not implement");
-                    break;
-            }
+            frame.pushRef(frame.mem.newInstance(instanceClass));
         }
 
         void newarray(Frame &frame) {
