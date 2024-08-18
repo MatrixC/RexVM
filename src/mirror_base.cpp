@@ -1,7 +1,7 @@
 #include "mirror_base.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
-#include "oop.hpp"
+#include "mirror_oop.hpp"
 #include "frame.hpp"
 #include "constant_info.hpp"
 #include "utils/spin_lock.hpp"

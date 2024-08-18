@@ -5,6 +5,7 @@
 #include "../../frame.hpp"
 #include "../../thread.hpp"
 #include "../../oop.hpp"
+#include "../../mirror_oop.hpp"
 #include "../../class.hpp"
 #include "../../class_member.hpp"
 #include "../../execute.hpp"

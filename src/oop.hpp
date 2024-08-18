@@ -29,6 +29,10 @@ namespace RexVM {
         std::condition_variable_any monitorCv;
     };
 
+    constexpr u2 TRACED_MASK = 0x8000;     //1000000000000000
+    constexpr u2 MIRROR_MASK = 0x4000;     //0100000000000000
+    constexpr u2 FINALIZED_MASK = 0x2000;  //0010000000000000
+
     class Oop {
         static SpinLock monitorLock;
     private:
@@ -95,25 +99,6 @@ namespace RexVM {
 
         [[nodiscard]] InstanceClass *getInstanceClass() const;
 
-    };
-
-    struct MirOop : InstanceOop {
-        Composite<voidPtr, u2> mirror;
-        #ifdef DEBUG
-        cstring mirrorName;
-        #endif
-
-        explicit MirOop(InstanceClass *klass, voidPtr mirror, MirrorObjectTypeEnum type);
-        ~MirOop();
-
-        void clearHolder();
-
-        [[nodiscard]] MirrorObjectTypeEnum getMirrorObjectType() const;
-
-        [[nodiscard]] Class *getMirrorClass() const;
-        [[nodiscard]] Method *getMirrorMethod() const;
-        [[nodiscard]] Field *getMirrorField() const;
-        [[nodiscard]] Method *getMemberNameMethod();
     };
 
     struct ArrayOop : Oop {

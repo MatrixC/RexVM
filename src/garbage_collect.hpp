@@ -67,9 +67,8 @@ namespace RexVM {
 
         explicit GarbageCollect(VM &vm);
 
-        FinalizeRunner finalizeRunner;
-
         VM &vm;
+        FinalizeRunner finalizeRunner;
         bool markCollect{false};
         std::mutex mtx;
         std::condition_variable cv;

@@ -59,7 +59,7 @@ namespace RexVM {
             case 'D':
                 return "double";
             default:
-                panic(&"error descriptor descriptor "[descriptor]);
+                panic("error descriptor descriptor");
         }
         return {};
     }
@@ -85,7 +85,7 @@ namespace RexVM {
             case 'D':
                 return BasicType::T_DOUBLE;
             default:
-                panic(&"error descriptor descriptor "[descriptor]);
+                panic("error descriptor descriptor");
         }
         return BasicType::T_ILLEGAL;
     }

@@ -6,6 +6,7 @@
 #include "vm.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
+#include "mirror_oop.hpp"
 #include "opcode.hpp"
 #include "frame.hpp"
 #include "interpreter.hpp"

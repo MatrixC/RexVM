@@ -5,9 +5,9 @@
 
 namespace RexVM {
 
-    struct CompositeString : Composite<cchar *, u2> {
+    struct CompositeString : Composite<const cchar *, u2> {
 
-
+        explicit CompositeString(const cchar *str);
 
     };
 

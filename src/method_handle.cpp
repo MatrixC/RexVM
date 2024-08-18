@@ -4,6 +4,7 @@
 #include "class_file.hpp"
 #include "string_pool.hpp"
 #include "oop.hpp"
+#include "mirror_oop.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
 #include "class_loader.hpp"

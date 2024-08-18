@@ -7,6 +7,7 @@
 #include "class.hpp"
 #include "class_member.hpp"
 #include "oop.hpp"
+#include "mirror_oop.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"
 #include "memory.hpp"
