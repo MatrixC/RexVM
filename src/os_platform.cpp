@@ -58,6 +58,8 @@ namespace RexVM {
 
     void setThreadName(const char *name) {
 #if defined(_MSC_VER)
+#elif defined(__APPLE__)
+        pthread_setname_np(name);
 #else
         pthread_setname_np(pthread_self(), name);
 #endif

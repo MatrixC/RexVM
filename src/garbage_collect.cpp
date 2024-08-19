@@ -121,6 +121,18 @@ namespace RexVM {
         startTheWorld();
     }
 
+    void GarbageCollect::deleteOop(ref oop) const {
+#ifdef DEBUG
+        const auto klass = oop->getClass();
+        //collectedOopDesc.emplace(oop, klass->name);
+#endif
+        if (oop->isMirror()) [[unlikely]] {
+            //run ~MirOop
+            delete CAST_MIRROR_OOP(oop);
+        } else {
+            delete oop;
+        }
+    }
 
     void GarbageCollect::collectOopHolder(OopHolder &holder, GarbageCollectContext &context) {
         const auto &oops = holder.oops;
@@ -149,12 +161,7 @@ namespace RexVM {
                 if (oopClass == stringClass) {
                     vm.stringPool->gcStringOop(CAST_INSTANCE_OOP(oop));
                 }
-                if (oop->isMirror()) [[unlikely]] {
-                    //run ~MirOop
-                    delete CAST_MIRROR_OOP(oop);
-                } else {
-                    delete oop;
-                }
+                deleteOop(oop);
             }
         }
         holder.oops.swap(survives);
@@ -255,12 +262,12 @@ namespace RexVM {
     void GarbageCollect::collectAll() const {
         cprintln("sumCollectedMemory:{}KB", CAST_F4(sumCollectedMemory) / 1024);
         for (const auto &oop: vm.oopManager->defaultOopHolder.oops) {
-            delete oop;
+            deleteOop(oop);
         }
 
         for (const auto &item: vm.vmThreadDeque) {
             for (const auto &oop: item->oopHolder.oops) {
-                delete oop;
+                deleteOop(oop);
             }
         }
     }
@@ -276,6 +283,8 @@ namespace RexVM {
                     this->run();
                 }
             }
+            //finalize中有wait 防止因为wait而无法退出线程
+            finalizeRunner.cv.notify_all();
         });
 
         finalizeRunner.start();
@@ -318,7 +327,9 @@ namespace RexVM {
                 {
                     std::unique_lock<std::mutex> lock(dequeMtx);
                     if (oopDeque.empty()) {
-                        cv.wait(lock, [this] { return !oopDeque.empty() || collector.markCollect; });
+                        cv.wait(lock, [this] { return !oopDeque.empty() 
+                                                    || collector.markCollect
+                                                    || collector.vm.exit; });
                     }
                 }
 

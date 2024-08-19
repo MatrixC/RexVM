@@ -13,37 +13,39 @@ namespace RexVM {
             if (!init) [[unlikely]] {
                 return nullptr;
             }
-            lock.lock();
-            if (mirOop == nullptr) {
-                if (frame != nullptr) {
-                    mirOop = frame->mem.newMirror(nullptr, mirrorObj, type);
-                    switch (type) {
-                        case MirrorObjectTypeEnum::CLASS:
-                            initClassMirrorOop(*frame, CAST_CLASS(mirrorObj));
-                            break;
+            {
+                //SpinLockGuard guard(lock);
+                std::lock_guard<SpinLock> guard(lock);
+                if (mirOop == nullptr) {
+                    if (frame != nullptr) {
+                        mirOop = frame->mem.newMirror(nullptr, mirrorObj, type);
+                        switch (type) {
+                            case MirrorObjectTypeEnum::CLASS:
+                                initClassMirrorOop(*frame, CAST_CLASS(mirrorObj));
+                                break;
 
-                        case MirrorObjectTypeEnum::FIELD:
-                            initFieldMirrorOop(*frame, CAST_FIELD(mirrorObj));
-                            break;
-                        
-                        case MirrorObjectTypeEnum::METHOD:
-                            initMethodMirrorOop(*frame, CAST_METHOD(mirrorObj), false);
-                            break;
+                            case MirrorObjectTypeEnum::FIELD:
+                                initFieldMirrorOop(*frame, CAST_FIELD(mirrorObj));
+                                break;
+                            
+                            case MirrorObjectTypeEnum::METHOD:
+                                initMethodMirrorOop(*frame, CAST_METHOD(mirrorObj), false);
+                                break;
 
-                        case MirrorObjectTypeEnum::CONSTRUCTOR:
-                            initMethodMirrorOop(*frame, CAST_METHOD(mirrorObj), true);
-                            break;
+                            case MirrorObjectTypeEnum::CONSTRUCTOR:
+                                initMethodMirrorOop(*frame, CAST_METHOD(mirrorObj), true);
+                                break;
 
-                        case MirrorObjectTypeEnum::CONSTANT_POOL:
-                            initConstantPoolMirrorOop(*frame, CAST_CLASS(mirrorObj));
-                            break;
+                            case MirrorObjectTypeEnum::CONSTANT_POOL:
+                                initConstantPoolMirrorOop(*frame, CAST_CLASS(mirrorObj));
+                                break;
 
-                        default:
-                            break;
+                            default:
+                                break;
+                        }
                     }
                 }
             }
-            lock.unlock();
         }
         return mirOop;
     }

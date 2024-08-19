@@ -8,6 +8,7 @@
 #include <atomic>
 #include <chrono>
 #include <deque>
+#include <unordered_map>
 #include <condition_variable>
 
 namespace RexVM {
@@ -23,9 +24,9 @@ namespace RexVM {
 
     constexpr size_t GC_ROOT_START_SIZE = 8192;
     //10MB
-    constexpr size_t GC_MEMORY_THRESHOLD = 10 * 1024 * 1024;
+    constexpr size_t GC_MEMORY_THRESHOLD = 1;
     //Frequency 2s
-    constexpr size_t GC_SLEEP_TIME = 2000;
+    constexpr size_t GC_SLEEP_TIME = 500;
 
     struct FinalizeRunner {
 
@@ -80,6 +81,10 @@ namespace RexVM {
 
         Class *stringClass{nullptr};
 
+#ifdef DEBUG
+        std::unordered_map<voidPtr, cstring> collectedOopDesc;
+#endif
+
         void checkStopForCollect(VMThread &thread);
         bool checkTerminationCollect();
         void stopTheWorld();
@@ -95,6 +100,7 @@ namespace RexVM {
         void traceMarkObjArrayOopChild(ObjArrayOop * oop) const;
 
         void collectOopHolder(OopHolder &holder, GarbageCollectContext &context);
+        void deleteOop(ref oop) const;
         void collectAll() const;
 
         void start();

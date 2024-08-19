@@ -4,6 +4,7 @@
 #include <atomic>
 
 namespace RexVM {
+
     struct SpinLock {
         explicit SpinLock() = default;
 
