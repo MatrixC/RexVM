@@ -6,6 +6,7 @@
 #include "class.hpp"
 #include "memory.hpp"
 #include "execute.hpp"
+#include "string_pool.hpp"
 #include "class_loader.hpp"
 #include "key_slot_id.hpp"
 #include "exception_helper.hpp"
@@ -39,9 +40,12 @@ namespace RexVM {
 
     VMThread *VMThread::createOriginVMThread(VM &vm) {
         auto vmThread = new VMThread(vm);
+        const auto &stringPool = vm.stringPool;
 
         const auto threadGroupClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
         const auto vmThreadGroup = vm.oopManager->newInstance(vmThread, threadGroupClass);
+        vmThreadGroup->setFieldValue("name", "Ljava/lang/String;", Slot(stringPool->getInternString(vmThread, "system")));
+        vmThreadGroup->setFieldValue("maxPriority", "I", Slot(CAST_I4(10)));
 
         vmThread->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
         vmThread->setFieldValue("priority", "I", Slot(CAST_I8(1)));
@@ -50,14 +54,23 @@ namespace RexVM {
 
     VMThread::~VMThread() = default;
 
-    void VMThread::setName(const RexVM::cstring &name) {
-        threadName = name;
+    void VMThread::setName(const cstring &name) {
+        const auto &stringPool = vm.stringPool;
+        setFieldValue(threadClassNameFieldSlotId, Slot(Slot(stringPool->getInternString(this, name))));
+    }
+
+    cstring VMThread::getName() const {
+        const auto nameOop = getFieldValue(threadClassNameFieldSlotId).refVal;
+        if (nameOop == nullptr) {
+            return {};
+        }
+        return StringPool::getJavaString(CAST_INSTANCE_OOP(nameOop));
     }
 
     void VMThread::run() {
-        if (!threadName.empty()) {
-            setThreadName(threadName.c_str());
-        }
+        const auto threadName = getName();
+        setThreadName(threadName.c_str());
+
         setStatus(ThreadStatusEnum::RUNNABLE);
         for (const auto &item: runMethods) {
             if (item->method != nullptr) {
@@ -66,8 +79,15 @@ namespace RexVM {
                 item->nativeMethod();
             }
         }
-        setStatus(ThreadStatusEnum::TERMINATED);
 
+        const auto exitMethod = 
+            vm.bootstrapClassLoader
+                ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->methods[threadClassExitMethodSlotId].get();
+
+        createFrameAndRunMethod(*this, *exitMethod, {Slot(this)}, nullptr);
+
+        setStatus(ThreadStatusEnum::TERMINATED);
         std::lock_guard<std::recursive_mutex> lock(getAndInitMonitor()->monitorMtx);
         notify_all();
     }
@@ -84,6 +104,10 @@ namespace RexVM {
         nativeThread = std::thread([this]() {
             run();
         });
+
+        if (isDaemon()) {
+            nativeThread.detach();
+        }
     }
 
     void VMThread::addMethod(Method *method, const std::vector<Slot>& params) {
@@ -91,7 +115,8 @@ namespace RexVM {
     }
 
     void VMThread::addMethod(VMTheadNativeHandler &method) {
-        runMethods.emplace_back(std::make_unique<VMThreadMethod>(method));
+        runMethods.emplace_back
+        (std::make_unique<VMThreadMethod>(method));
     }
 
     void VMThread::setStatus(ThreadStatusEnum status) {
@@ -100,6 +125,10 @@ namespace RexVM {
 
     ThreadStatusEnum VMThread::getStatus() const {
         return static_cast<ThreadStatusEnum>(getFieldValue(threadClassThreadStatusFieldSlotId).i4Val);
+    }
+
+    bool VMThread::isDaemon() const {
+        return getFieldValue(threadClassDeamonFieldSlotId).i4Val != 0;
     }
 
     bool VMThread::isAlive() const {

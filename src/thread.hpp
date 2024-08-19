@@ -31,7 +31,6 @@ namespace RexVM {
         std::vector<std::unique_ptr<VMThreadMethod>> runMethods;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
-        cstring threadName{};
 
         Frame *currentFrame{nullptr};
         std::atomic_bool interrupted{false};
@@ -46,6 +45,7 @@ namespace RexVM {
         ~VMThread();
 
         void setName(const cstring &name);
+        cstring getName() const;
 
         static VMThread *createOriginVMThread(VM &vm);
 
@@ -56,10 +56,12 @@ namespace RexVM {
 
         void setStatus(ThreadStatusEnum status);
         [[nodiscard]] ThreadStatusEnum getStatus() const;
+        [[nodiscard]] bool isDaemon() const;
         [[nodiscard]] bool isAlive() const;
         void getThreadGCRoots(std::vector<ref> &result) const;
         void getCollectRoots(std::vector<ref> &result) const;
         [[nodiscard]] bool hasNativeCall() const;
+        
 
         private:
             void run();

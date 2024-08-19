@@ -64,6 +64,11 @@ namespace RexVM {
     }
 
     bool GarbageCollect::checkTerminationCollect() {
+        if (vm.exit) {
+            //VM退出
+            return false;
+        }
+
         //如果有线程栈中有native函数 停止gc
         for (const auto &thread: vm.vmThreadDeque) {
             if (thread->hasNativeCall()) {
@@ -77,7 +82,7 @@ namespace RexVM {
     void GarbageCollect::stopTheWorld() {
         markCollect = true;
         finalizeRunner.cv.notify_all();
-        while (!vm.checkAllThreadStopForCollect()) {
+        while (!vm.checkAllThreadStopForCollect() && !vm.exit) {
         }
     }
 
@@ -121,10 +126,11 @@ namespace RexVM {
         startTheWorld();
     }
 
-    void GarbageCollect::deleteOop(ref oop) const {
+    void GarbageCollect::deleteOop(ref oop) {
 #ifdef DEBUG
         const auto klass = oop->getClass();
-        //collectedOopDesc.emplace(oop, klass->name);
+        const auto desc = cformat("{}:{}", klass->name, oop->isMirror());
+        collectedOopDesc.emplace(oop, desc);
 #endif
         if (oop->isMirror()) [[unlikely]] {
             //run ~MirOop
@@ -259,7 +265,7 @@ namespace RexVM {
         }
     }
 
-    void GarbageCollect::collectAll() const {
+    void GarbageCollect::collectAll() {
         cprintln("sumCollectedMemory:{}KB", CAST_F4(sumCollectedMemory) / 1024);
         for (const auto &oop: vm.oopManager->defaultOopHolder.oops) {
             deleteOop(oop);
@@ -273,6 +279,10 @@ namespace RexVM {
     }
 
     void GarbageCollect::start() {
+        if (!enableGC) {
+            return;
+        }
+
         stringClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
 
         gcThread = std::thread([this]() {
@@ -351,5 +361,17 @@ namespace RexVM {
         //Don't insert into VM->threadDeque, gc thread join this
         thread->start(nullptr, false);
     }
+
+
+#ifdef DEBUG
+    std::unordered_map<ref, cstring> collectedOopDesc;
+    cstring getCollectedOopDesc(ref oop) {
+        const auto iter = collectedOopDesc.find(oop);
+        if (iter != collectedOopDesc.end()) {
+            return iter->second;
+        }
+        return "not found";
+    }
+#endif 
 
 }

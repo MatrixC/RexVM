@@ -74,16 +74,14 @@ namespace RexVM {
         std::mutex mtx;
         std::condition_variable cv;
         std::thread gcThread;
-        bool enableLog{true};
         size_t collectMemoryThreshold{GC_MEMORY_THRESHOLD};
         size_t collectSleepTime{GC_SLEEP_TIME};
         size_t sumCollectedMemory{0};
 
-        Class *stringClass{nullptr};
+        bool enableLog{true};
+        bool enableGC{false};
 
-#ifdef DEBUG
-        std::unordered_map<voidPtr, cstring> collectedOopDesc;
-#endif
+        Class *stringClass{nullptr};
 
         void checkStopForCollect(VMThread &thread);
         bool checkTerminationCollect();
@@ -100,12 +98,17 @@ namespace RexVM {
         void traceMarkObjArrayOopChild(ObjArrayOop * oop) const;
 
         void collectOopHolder(OopHolder &holder, GarbageCollectContext &context);
-        void deleteOop(ref oop) const;
-        void collectAll() const;
+        void deleteOop(ref oop);
+        void collectAll();
 
         void start();
         void join();
     };
+
+#ifdef DEBUG
+    extern std::unordered_map<ref, cstring> collectedOopDesc;
+    cstring getCollectedOopDesc(ref oop);
+#endif
 
 
 }

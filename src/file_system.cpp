@@ -42,4 +42,13 @@ namespace RexVM {
         return {};
     }
 
+    cstring getJavaHome() {
+        cstring javaHome{};
+        javaHome = initJavaHome(std::getenv("JAVA_HOME"));
+        if (javaHome.empty()) {
+            javaHome = initJavaHome(std::getenv("JAVA8_HOME"));
+        }
+        return javaHome;
+    }
+
 }

@@ -295,7 +295,8 @@ namespace RexVM::Native::Core {
             = methodHandleGetFieldFromMemberName(memberNameOop);
 
         const auto memberNameMirrorOop = CAST_MIRROR_OOP(memberNameOop);
-        const auto methodPtr = memberNameMirrorOop->getMemberNameMethod();
+        //const auto methodPtr = memberNameMirrorOop->getMemberNameMethod();
+        const auto methodPtr = klass->getMethod(name, descriptor, isStatic);
 
         if (methodPtr == nullptr) {
             panic("error: methodPtr is null");

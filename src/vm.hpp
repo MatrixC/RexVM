@@ -51,12 +51,7 @@ namespace RexVM {
         cstring javaClassPath{};
 
     private:
-        void initClassPath();
-        void initOopManager();
-        void initBootstrapClassLoader();
-        void initStringPool();
-        void initMainThread();
-        void initCollector();
+        void initVM();
         void runMainMethod() const;
         void joinThreads();
         void exitVM();

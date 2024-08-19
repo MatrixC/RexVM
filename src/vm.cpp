@@ -18,61 +18,37 @@
 
 namespace RexVM {
 
-    void VM::initClassPath() {
-        javaHome = initJavaHome(std::getenv("JAVA_HOME"));
+    void VM::initVM() {
+        //init JAVA_HOME
+        javaHome = getJavaHome();
         if (javaHome.empty()) {
-            javaHome = initJavaHome(std::getenv("JAVA8_HOME"));
-            if (javaHome.empty()) {
-                cprintlnErr("Error: JAVA_HOME environment variable not found");
-                std::exit(1);
-            }
-        }
-        std::vector<cstring> pathList;
-        pathList.emplace_back(".");
-        pathList.emplace_back(buildRtPath(javaHome));
-        pathList.emplace_back(buildCharsetsPath(javaHome));
-        const auto userEnvClassPath = std::getenv("CLASSPATH");
-        if (userEnvClassPath != nullptr) {
-            const auto envClassPath = cstring(userEnvClassPath);
-            const auto cps = splitString(envClassPath, PATH_SEPARATOR);
-            for (const auto &item: cps) {
-                pathList.emplace_back(item);
-            }
-        }
-        if (!params.userClassPath.empty()) {
-            const auto cps = splitString(params.userClassPath, PATH_SEPARATOR);
-            for (const auto &item: cps) {
-                pathList.emplace_back(item);
-            }
+            cprintlnErr("Error: JAVA_HOME environment variable not found");
+            std::exit(0);
         }
 
-        classPath = std::make_unique<CombineClassPath>(joinString(pathList, cstring{PATH_SEPARATOR}));
+        //init basic class path
+        classPath = CombineClassPath::getDefaultCombineClassPath(javaHome, params.userClassPath);
         javaClassPath = classPath->getVMClassPath();
-    }
-
-    void VM::initOopManager() {
+        
+        //init memory allocator
         oopManager = std::make_unique<OopManager>(*this);
-    }
 
-    void VM::initBootstrapClassLoader() {
-        bootstrapClassLoader = std::make_unique<ClassLoader>(*this, *classPath);
-    }
+        //init bootstrap classLoader
+        bootstrapClassLoader = std::make_unique<ClassLoader>(*this, *classPath); 
 
-    void VM::initStringPool() {
+        //init string pool
         stringPool = std::make_unique<StringPool>(*this, *bootstrapClassLoader);
         //String Pool初始化完成后才可以初始化全部基础类 否则有些类会因为没有String Pool初始化时报npe
         bootstrapClassLoader->initBasicJavaClass();
-    }
 
-    void VM::initMainThread() {
+        //init gc collector
+        garbageCollector = std::make_unique<GarbageCollect>(*this);
+
+        //init Main Thread
         mainThread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(*this));
-        mainThread->setName("Main Thread");
+        mainThread->setName("main"); //like openjdk
         addStartThread(mainThread.get());
         garbageCollector->start();
-    }
-
-    void VM::initCollector() {
-        garbageCollector = std::make_unique<GarbageCollect>(*this);
     }
 
     void VM::runMainMethod() const {
@@ -82,13 +58,13 @@ namespace RexVM {
         const auto runClass = bootstrapClassLoader->getInstanceClass(className);
         if (runClass == nullptr) {
             cprintlnErr("Error: Could not find or load main class {}", userParams[0]);
-            std::exit(1);
+            std::exit(0);
         }
         const auto mainMethod = runClass->getMethod("main", "([Ljava/lang/String;)V", true);
         if (mainMethod == nullptr) {
             cprintlnErr("Error: Main method not found in class {}, please define the main method as:", userParams[0]);
             cprintlnErr("   public static void main(String[] args)");
-            std::exit(1);
+            std::exit(0);
         }
         const auto mainMethodParmSize = userParams.size() - 1;
         const auto stringArray = oopManager->newStringObjArrayOop(mainThread.get(), mainMethodParmSize);
@@ -123,10 +99,10 @@ namespace RexVM {
             }
             vmThread->join();
         }
-
     }
 
     void VM::exitVM() {
+        //all user thread exit
         exit = true;
         garbageCollector->join();
         stringPool->clear();
@@ -141,7 +117,7 @@ namespace RexVM {
     bool VM::checkAllThreadStopForCollect() {
         std::lock_guard<std::mutex> lock(vmThreadMtx);
         for (const auto &item : vmThreadDeque) {
-            if (!item->stopForCollect) {
+            if (item->getStatus() != ThreadStatusEnum::TERMINATED && !item->stopForCollect) {
                 return false;
             }
         }
@@ -152,12 +128,7 @@ namespace RexVM {
     }
 
     void VM::start() {
-        initClassPath();
-        initOopManager();
-        initBootstrapClassLoader();
-        initStringPool();
-        initCollector();
-        initMainThread();
+        initVM();
         runMainMethod();
         joinThreads();
         exitVM();

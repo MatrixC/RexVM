@@ -50,7 +50,8 @@ namespace RexVM {
                 break;
 
             case SpecialInstanceClass::MEMBER_NAME_CLASS:
-                oop = newMirror(thread, klass, nullptr, MirrorObjectTypeEnum::MEMBER_NAME);
+                //oop = newMirror(thread, klass, nullptr, MirrorObjectTypeEnum::MEMBER_NAME);
+                oop = new InstanceOop(klass, klass->instanceSlotCount);
                 break;
 
             case SpecialInstanceClass::CLASS_LOADER_CLASS:

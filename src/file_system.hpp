@@ -13,6 +13,8 @@ namespace RexVM {
 
     cstring initJavaHome(const char *envJavaHome);
 
+    cstring getJavaHome();
+
 }
 
 #endif

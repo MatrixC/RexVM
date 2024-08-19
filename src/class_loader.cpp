@@ -174,16 +174,29 @@ namespace RexVM {
 
     void ClassLoader::initKeySlotId() const {
         stringClassValueFieldSlotId =
-                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING)
-                        ->getField("value", "[C", false)->slotId;
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING)
+                ->getField("value", "[C", false)->slotId;
 
         throwableClassDetailMessageFieldSlotId =
-                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE)
-                        ->getField("detailMessage", "Ljava/lang/String;",false)->slotId;
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE)
+                ->getField("detailMessage", "Ljava/lang/String;", false)->slotId;
 
         threadClassThreadStatusFieldSlotId =
-                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
-                        ->getField("threadStatus", "I",false)->slotId;
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->getField("threadStatus", "I", false)->slotId;
+
+        threadClassExitMethodSlotId =
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->getMethod("exit", "()V", false)->index;
+
+        threadClassDeamonFieldSlotId =
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->getField("daemon", "Z", false)->slotId;
+        
+        threadClassNameFieldSlotId =
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->getField("name", "Ljava/lang/String;", false)->slotId;
+
     }
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {
