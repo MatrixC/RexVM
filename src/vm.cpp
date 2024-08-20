@@ -90,7 +90,7 @@ namespace RexVM {
         while (true) {
             VMThread *vmThread;
             {
-                std::lock_guard<std::mutex> lock(vmThreadMtx);
+                std::lock_guard<SpinLock> lock(vmThreadLock);
                 if (vmThreadDeque.empty()) {
                     break;
                 }
@@ -110,12 +110,12 @@ namespace RexVM {
     }
 
     void VM::addStartThread(VMThread *thread) {
-        std::lock_guard<std::mutex> lock(vmThreadMtx);
+        std::lock_guard<SpinLock> lock(vmThreadLock);
         vmThreadDeque.emplace_back(thread);
     }
 
     bool VM::checkAllThreadStopForCollect() {
-        std::lock_guard<std::mutex> lock(vmThreadMtx);
+        std::lock_guard<SpinLock> lock(vmThreadLock);
         for (const auto &item : vmThreadDeque) {
             if (item->getStatus() != ThreadStatusEnum::TERMINATED && !item->stopForCollect) {
                 return false;

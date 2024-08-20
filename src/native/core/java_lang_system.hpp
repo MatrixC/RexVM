@@ -11,6 +11,7 @@
 #include "../../memory.hpp"
 #include "../../string_pool.hpp"
 #include "../../file_system.hpp"
+#include "../../utils/time.hpp"
 #include <thread>
 #include <chrono>
 #include <filesystem>
@@ -19,9 +20,7 @@
 namespace RexVM::Native::Core {
 
     void currentTimeMillis(Frame &frame) {
-        const auto now = std::chrono::system_clock::now();
-        const auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
-        frame.returnI8(CAST_I8(ms));
+        frame.returnI8(getCurrentTimeMillis());
     }
 
     //java/lang/System#nanoTime:()J

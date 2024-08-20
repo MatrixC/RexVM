@@ -11,9 +11,10 @@
 #include "class_loader.hpp"
 #include "string_pool.hpp"
 #include "memory.hpp"
-#include "utils/string_utils.hpp"
 #include "execute.hpp"
 #include "os_platform.hpp"
+#include "utils/string_utils.hpp"
+#include "utils/time.hpp"
 
 namespace RexVM {
 
@@ -79,11 +80,17 @@ namespace RexVM {
         return true;
     }
 
-    void GarbageCollect::stopTheWorld() {
+    bool GarbageCollect::stopTheWorld() {
         markCollect = true;
         finalizeRunner.cv.notify_all();
+        const auto stopTime = getCurrentTimeMillis();
         while (!vm.checkAllThreadStopForCollect() && !vm.exit) {
+            if ((getCurrentTimeMillis() - stopTime) > collectStopWaitTimeout) {
+                //stop wait timeout
+                return false;
+            }
         }
+        return true;
     }
 
     void GarbageCollect::startTheWorld() {
@@ -92,8 +99,8 @@ namespace RexVM {
     }
 
     void GarbageCollect::run() {
-        stopTheWorld();
-        if (!checkTerminationCollect()) {
+        const auto stopResult = stopTheWorld();
+        if (!stopResult || !checkTerminationCollect()) {
             startTheWorld();
             return;
         }

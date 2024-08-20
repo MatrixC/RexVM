@@ -8,6 +8,7 @@
 #include <deque>
 #include <chrono>
 #include "config.hpp"
+#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 
@@ -34,7 +35,7 @@ namespace RexVM {
         std::unique_ptr<GarbageCollect> garbageCollector;
         std::unique_ptr<VMThread> mainThread;
 
-        std::mutex vmThreadMtx;
+        SpinLock vmThreadLock;
         std::deque<VMThread *> vmThreadDeque;
         bool exit{false};
         

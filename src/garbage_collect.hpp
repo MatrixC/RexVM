@@ -22,6 +22,9 @@ namespace RexVM {
     struct OopHolder;
     struct GarbageCollect;
 
+    //wait 1s
+    constexpr size_t GC_STOP_WAIT_TIME_OUT = 1000;
+
     constexpr size_t GC_ROOT_START_SIZE = 8192;
     //10MB
     constexpr size_t GC_MEMORY_THRESHOLD = 1;
@@ -75,6 +78,7 @@ namespace RexVM {
         std::condition_variable cv;
         std::thread gcThread;
         size_t collectMemoryThreshold{GC_MEMORY_THRESHOLD};
+        size_t collectStopWaitTimeout{GC_STOP_WAIT_TIME_OUT};
         size_t collectSleepTime{GC_SLEEP_TIME};
         size_t sumCollectedMemory{0};
 
@@ -85,7 +89,7 @@ namespace RexVM {
 
         void checkStopForCollect(VMThread &thread);
         bool checkTerminationCollect();
-        void stopTheWorld();
+        bool stopTheWorld();
         void startTheWorld();
         void run();
 
