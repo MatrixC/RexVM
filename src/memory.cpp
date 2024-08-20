@@ -42,16 +42,12 @@ namespace RexVM {
         InstanceOop *oop = nullptr;
         switch (specialType) {
             case SpecialInstanceClass::NONE:
+            case SpecialInstanceClass::MEMBER_NAME_CLASS:
                 oop = new InstanceOop(klass, klass->instanceSlotCount);
                 break;
 
             case SpecialInstanceClass::THREAD_CLASS:
                 oop = new VMThread(vm, klass);
-                break;
-
-            case SpecialInstanceClass::MEMBER_NAME_CLASS:
-                //oop = newMirror(thread, klass, nullptr, MirrorObjectTypeEnum::MEMBER_NAME);
-                oop = new InstanceOop(klass, klass->instanceSlotCount);
                 break;
 
             case SpecialInstanceClass::CLASS_LOADER_CLASS:
@@ -97,12 +93,6 @@ namespace RexVM {
             }
         }
         const auto oop = new MirOop(klass, mirror, type);
-        addToOopHolder(thread, oop);
-        return oop;
-    }
-
-    VMThread *OopManager::newVMThread(VMThread *thread, InstanceClass * const klass) {
-        const auto oop = new VMThread(vm, klass);
         addToOopHolder(thread, oop);
         return oop;
     }
@@ -247,6 +237,9 @@ namespace RexVM {
     }
 
     void OopManager::addToOopHolder(VMThread *thread, ref oop) {
+#ifdef DEBUG
+        holders.insert(&thread->oopHolder);
+#endif
         thread->oopHolder.addOop(oop);
         ++allocatedOopCount;
         allocatedOopMemory += oop->getMemorySize();

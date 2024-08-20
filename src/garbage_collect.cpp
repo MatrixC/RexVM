@@ -139,11 +139,10 @@ namespace RexVM {
         context.endTraceOop();
 
         collectOopHolder(vm.oopManager->defaultOopHolder, context);
-        collectOopHolder(finalizeRunner.thread->oopHolder, context);
-
         for (const auto &item: vm.threadManager->getThreads()) {
             collectOopHolder(item->oopHolder, context);
         }
+
         context.collectFinish(vm);
         sumCollectedMemory += context.allocatedOopMemory;
         if (enableLog) {
@@ -158,16 +157,57 @@ namespace RexVM {
     }
 
     void GarbageCollect::deleteOop(ref oop) {
-#ifdef DEBUG
         const auto klass = oop->getClass();
+#ifdef DEBUG
         const auto desc = cformat("{}:{}", klass->name, oop->isMirror());
         collectedOopDesc.emplace(oop, desc);
 #endif
-        if (oop->isMirror()) [[unlikely]] {
-            //run ~MirOop
-            delete CAST_MIRROR_OOP(oop);
-        } else {
-            delete oop;
+        if (klass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
+            delete CAST_OBJ_ARRAY_OOP(oop);
+            return;
+        }
+
+        if (klass->type == ClassTypeEnum::TYPE_ARRAY_CLASS) {
+            const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(klass);
+            switch (typeArrayClass->elementType) {
+                case BasicType::T_BOOLEAN:
+                case BasicType::T_BYTE:
+                    delete CAST_BYTE_TYPE_ARRAY_OOP(oop);
+                    return;
+                case BasicType::T_SHORT:
+                    delete CAST_SHORT_TYPE_ARRAY_OOP(oop);
+                    return;
+                case BasicType::T_INT:
+                    delete CAST_INT_TYPE_ARRAY_OOP(oop);
+                    return;
+                case BasicType::T_LONG:
+                    delete CAST_LONG_TYPE_ARRAY_OOP(oop);
+                    return;
+                case BasicType::T_CHAR:
+                    delete CAST_CHAR_TYPE_ARRAY_OOP(oop);
+                    return;
+                case BasicType::T_FLOAT:
+                    delete CAST_FLOAT_TYPE_ARRAY_OOP(oop);
+                    return;
+                case BasicType::T_DOUBLE:
+                    delete CAST_DOUBLE_TYPE_ARRAY_OOP(oop);
+                    return;
+            }
+        }
+
+        if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
+            const auto instanceClass = CAST_INSTANCE_CLASS(klass);
+            const auto specialType = instanceClass->specialInstanceClass;
+            if (oop->isMirror()) {
+                delete CAST_MIRROR_OOP(oop);
+                return;
+            }
+            if (specialType == SpecialInstanceClass::THREAD_CLASS) {
+                delete CAST_VM_THREAD_OOP(oop);
+                return;
+            }
+            delete CAST_INSTANCE_OOP(oop);
+            return;
         }
     }
 
@@ -342,8 +382,6 @@ namespace RexVM {
     }
 
     FinalizeRunner::FinalizeRunner(VM &vm, GarbageCollect &collector) : collector(collector)  {
-        thread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(vm));
-        thread->setName("Finalize Thread");
     }
 
     void FinalizeRunner::add(InstanceOop *oop) {
@@ -360,7 +398,7 @@ namespace RexVM {
         if (finalizeMethod == nullptr) [[unlikely]] {
             cprintlnErr("run finalize error: get finalizeMethod fail");
         } else {
-            createFrameAndRunMethod(*thread, *finalizeMethod, {Slot(oop)}, nullptr);
+            createFrameAndRunMethod(*finalizeThread, *finalizeMethod, {Slot(oop)}, nullptr);
         }
         oop->setFinalized(true);
     }
@@ -402,7 +440,7 @@ namespace RexVM {
     void FinalizeRunner::initFinalizeThread(VMThread *mainThread) {
         const auto &vm = collector.vm;
         const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
-        finalizeThread = vm.oopManager->newVMThread(mainThread, threadClass);
+        finalizeThread = CAST_VM_THREAD_OOP(vm.oopManager->newInstance(mainThread, threadClass));
         std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
         finalizeThread->addMethod(func);
 

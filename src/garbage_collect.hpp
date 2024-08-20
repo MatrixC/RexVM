@@ -36,7 +36,6 @@ namespace RexVM {
         explicit FinalizeRunner(VM &vm, GarbageCollect &collector);
 
         GarbageCollect &collector;
-        std::unique_ptr<VMThread> thread;
         std::mutex dequeMtx;
         std::condition_variable cv;
         std::deque<InstanceOop *> oopDeque;

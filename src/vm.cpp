@@ -50,11 +50,10 @@ namespace RexVM {
         //init Main Thread
         mainThread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(*this));
         mainThread->setName("main"); //like openjdk
-        //addStartThread(mainThread.get());
         garbageCollector->start();
 
         //init Finalize Thread
-        garbageCollector->finalizeRunner.initFinalizeThread(mainThread.get());
+        //garbageCollector->finalizeRunner.initFinalizeThread(mainThread.get());
     }
 
     void VM::runMainMethod() const {
@@ -85,7 +84,12 @@ namespace RexVM {
                 bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM)
                 ->getMethod("initializeSystemClass", "()V", true);
 
+        std::function<void()> initFinalizeThread = [this]() {
+            garbageCollector->finalizeRunner.initFinalizeThread(mainThread.get());
+        };
+
         mainThread->addMethod(initMethod, {});
+        //mainThread->addMethod(initFinalizeThread);
         mainThread->addMethod(mainMethod, {Slot(stringArray)});
 
         mainThread->start(nullptr, true);

@@ -133,7 +133,7 @@ namespace RexVM {
 
         const auto arraySize = bootstrapArguments.size();
         std::vector<ref> argResults;
-        argResults.reserve(arraySize);
+        argResults.reserve(arraySize + 1);
         
         FOR_FROM_ZERO(arraySize) {
             const auto index = bootstrapArguments[i];
@@ -177,8 +177,7 @@ namespace RexVM {
             if (frame.markThrow) {
                 return nullptr;
             }
-            argResults[i] = argResult;
-            //argObjArrayOop->data[i] = argResult;
+            argResults.emplace_back(argResult);
         }
         
         const auto argObjArrayOop = frame.mem.newObjectObjArrayOop(arraySize);

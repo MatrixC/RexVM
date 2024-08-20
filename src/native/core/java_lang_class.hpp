@@ -181,38 +181,6 @@ namespace RexVM::Native::Core {
         frame.returnRef(objArrayOop);
     }
 
-    //native Class<?> getDeclaringClass0();
-    void getDeclaringClass0(Frame &frame) {
-        ASSERT_IF_NULL_THROW_NPE(frame.getThis())
-        const auto mirrorClass = getMirrorClass(frame);
-        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
-            frame.returnRef(nullptr);
-            return;
-        }
-        const auto mirrorInstanceClass = CAST_INSTANCE_CLASS(mirrorClass);
-        const auto &constantPool = mirrorInstanceClass->constantPool;
-        const auto innerClassesAttr = mirrorInstanceClass->getInnerClassesAttr();
-        if (innerClassesAttr == nullptr) {
-            frame.returnRef(nullptr);
-            return;
-        }
-        for (const auto &item : innerClassesAttr->classes) {
-            if (item->innerClassInfoIndex != 0) {
-                const auto innerClassName = getConstantStringFromPoolByIndexInfo(constantPool, item->innerClassInfoIndex);
-                if (innerClassName == mirrorInstanceClass->name) {
-                    if (item->outerClassInfoIndex == 0) {
-                        frame.returnRef(nullptr);
-                        return;
-                    } else {
-                        const auto outerClassName = getConstantStringFromPoolByIndexInfo(constantPool, item->outerClassInfoIndex);
-                        frame.returnRef(frame.mem.getClass(outerClassName)->getMirror(&frame));
-                        return;
-                    }
-                } 
-            }
-        }
-        frame.returnRef(nullptr);
-    }
 
     //Field[] getDeclaredFields0(boolean publicOnly)
     void getDeclaredFields0(Frame &frame) {
@@ -244,6 +212,39 @@ namespace RexVM::Native::Core {
         }
 
         frame.returnRef(retArrayOop);
+    }
+
+    //native Class<?> getDeclaringClass0();
+    void getDeclaringClass0(Frame &frame) {
+        ASSERT_IF_NULL_THROW_NPE(frame.getThis())
+        const auto mirrorClass = getMirrorClass(frame);
+        if (mirrorClass == nullptr || mirrorClass->type != ClassTypeEnum::INSTANCE_CLASS) {
+            frame.returnRef(nullptr);
+            return;
+        }
+        const auto mirrorInstanceClass = CAST_INSTANCE_CLASS(mirrorClass);
+        const auto &constantPool = mirrorInstanceClass->constantPool;
+        const auto innerClassesAttr = mirrorInstanceClass->getInnerClassesAttr();
+        if (innerClassesAttr == nullptr) {
+            frame.returnRef(nullptr);
+            return;
+        }
+        for (const auto &item : innerClassesAttr->classes) {
+            if (item->innerClassInfoIndex != 0) {
+                const auto innerClassName = getConstantStringFromPoolByIndexInfo(constantPool, item->innerClassInfoIndex);
+                if (innerClassName == mirrorInstanceClass->name) {
+                    if (item->outerClassInfoIndex == 0) {
+                        frame.returnRef(nullptr);
+                        return;
+                    } else {
+                        const auto outerClassName = getConstantStringFromPoolByIndexInfo(constantPool, item->outerClassInfoIndex);
+                        frame.returnRef(frame.mem.getClass(outerClassName)->getMirror(&frame));
+                        return;
+                    }
+                } 
+            }
+        }
+        frame.returnRef(nullptr);
     }
 
     void getDeclaredCommons0(Frame &frame, bool isConstructor) {

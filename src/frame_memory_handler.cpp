@@ -87,10 +87,6 @@ namespace RexVM {
         return oopManager.newDoubleOop(&vmThread, value);
     }
 
-    VMThread *FrameMemoryHandler::newVMThread(InstanceClass * klass) {
-        return oopManager.newVMThread(&vmThread, klass);
-    }
-
     InstanceOop *FrameMemoryHandler::getInternString(const cstring &str) {
         return stringPool.getInternString(&vmThread, str);
     }
