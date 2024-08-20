@@ -13,6 +13,9 @@ namespace RexVM {
             comClass(klass, dataLength),
             comFlags(nullptr, FINALIZED_MASK) {
         //dataLength >= 65535, not support
+#ifdef DEBUG
+        className = klass->name;
+#endif
     }
 
     bool Oop::isInstanceOf(Class *checkClass) const {

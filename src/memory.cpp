@@ -46,7 +46,7 @@ namespace RexVM {
                 break;
 
             case SpecialInstanceClass::THREAD_CLASS:
-                oop = newVMThread(thread, klass);
+                oop = new VMThread(vm, klass);
                 break;
 
             case SpecialInstanceClass::MEMBER_NAME_CLASS:

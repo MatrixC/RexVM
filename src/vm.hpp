@@ -20,6 +20,7 @@ namespace RexVM {
     struct OopManager;
     struct Method;
     struct GarbageCollect;
+    struct ThreadManager;
 
     struct ApplicationParameter {
         cstring userClassPath;
@@ -30,26 +31,19 @@ namespace RexVM {
         ApplicationParameter &params;
         std::unique_ptr<ClassPath> classPath;
         std::unique_ptr<OopManager> oopManager;
+        std::unique_ptr<ThreadManager> threadManager;
         std::unique_ptr<StringPool> stringPool;
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
         std::unique_ptr<GarbageCollect> garbageCollector;
         std::unique_ptr<VMThread> mainThread;
-
-        SpinLock vmThreadLock;
-        std::deque<VMThread *> vmThreadDeque;
+        std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
+        cstring javaHome{};
+        cstring javaClassPath{};
         bool exit{false};
         
         explicit VM(ApplicationParameter &params);
 
         void start();
-
-
-        void addStartThread(VMThread *vmThread);
-        bool checkAllThreadStopForCollect();
-
-        std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
-        cstring javaHome{};
-        cstring javaClassPath{};
 
     private:
         void initVM();

@@ -433,16 +433,6 @@ namespace RexVM::Native::Core {
         const auto mirrorClass = CAST_INSTANCE_CLASS(instance->getMirrorClass());
 
         const auto constantPoolPtr = mirrorClass->getConstantPoolMirror(&frame);
-
-        // auto constantPoolPtr = mirrorClass->constantPoolOop.get();
-    
-        // if (constantPoolPtr == nullptr) {
-        //     //TODO Thread unsafe
-        //     const auto constantPoolClass = frame.mem.getInstanceClass("sun/reflect/ConstantPool");
-        //     mirrorClass->constantPoolOop = std::make_unique<InstanceOop>(constantPoolClass);
-        //     mirrorClass->constantPoolOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(instance));
-        //     constantPoolPtr = mirrorClass->constantPoolOop.get();
-        // }
         frame.returnRef(constantPoolPtr);
     }
 

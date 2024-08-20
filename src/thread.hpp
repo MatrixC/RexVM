@@ -4,6 +4,8 @@
 #include <vector>
 #include <memory>
 #include <thread>
+#include <queue>
+#include <mutex>
 #include "config.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
@@ -37,6 +39,10 @@ namespace RexVM {
         volatile bool stopForCollect{false};
         OopHolder oopHolder;
 
+#ifdef DEBUG
+        cstring threadName{};
+#endif
+
         //Normal
         explicit VMThread(VM &vm, InstanceClass * klass);
 
@@ -51,13 +57,14 @@ namespace RexVM {
 
         void addMethod(Method *method, const std::vector<Slot>& params);
         void addMethod(VMTheadNativeHandler &method);
-        void start(Frame *currentFrame_, bool addToThreadDeque = true);
+        void start(Frame *currentFrame_, bool userThread);
         void join();
 
         void setStatus(ThreadStatusEnum status);
         [[nodiscard]] ThreadStatusEnum getStatus() const;
         [[nodiscard]] bool isDaemon() const;
         [[nodiscard]] bool isAlive() const;
+        void setDaemon(bool on);
         void getThreadGCRoots(std::vector<ref> &result) const;
         void getCollectRoots(std::vector<ref> &result) const;
         [[nodiscard]] bool hasNativeCall() const;
@@ -66,6 +73,25 @@ namespace RexVM {
         private:
             void run();
 
+    };
+
+    struct ThreadManager {
+
+        VM &vm;
+
+        explicit ThreadManager(VM &vm);
+
+        std::mutex threadsMtx;
+        std::vector<VMThread *> threads;
+
+        std::mutex joinListMtx;
+        std::queue<VMThread *> joinThreads;
+
+        void addThread(VMThread *thread, bool userThread);
+
+        void joinUserThreads();
+        bool checkAllThreadStopForCollect();
+        std::vector<VMThread *> getThreads();
     };
 
 }

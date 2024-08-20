@@ -42,6 +42,10 @@ namespace RexVM {
         //low [oopMonitor(48), traced(1) isMirror (1) finalized(1) ...(3) {hasHash(1) hash(9)}] high
         Composite<OopMonitor *, u2> comFlags{};
 
+#ifdef DEBUG
+        cstring className{};
+#endif
+
         [[nodiscard]] OopMonitor *getMonitor() const;
 
     protected:

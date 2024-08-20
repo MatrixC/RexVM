@@ -40,10 +40,13 @@ namespace RexVM {
         std::mutex dequeMtx;
         std::condition_variable cv;
         std::deque<InstanceOop *> oopDeque;
+        VMThread *finalizeThread{nullptr};
 
         void add(InstanceOop *oop);
-        void run(InstanceOop *oop) const;
-        void start();
+        void runOopFinalize(InstanceOop *oop) const;
+        bool runOneOop();
+        void runnerMethod();
+        void initFinalizeThread(VMThread *mainThread);
 
     };
 

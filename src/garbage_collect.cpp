@@ -53,6 +53,28 @@ namespace RexVM {
     GarbageCollect::GarbageCollect(VM &vm) : vm(vm), finalizeRunner(vm, *this) {
     }
 
+    void GarbageCollect::start() {
+        if (!enableGC) {
+            return;
+        }
+
+        stringClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
+
+        gcThread = std::thread([this]() {
+            setThreadName("GC Thread");
+            while (!this->vm.exit) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(collectSleepTime));
+                if (vm.oopManager->allocatedOopMemory > collectMemoryThreshold) {
+                    this->run();
+                }
+            }
+            //finalize中有wait 防止因为wait而无法退出线程
+            finalizeRunner.cv.notify_all();
+        });
+
+        //finalizeRunner.start();
+    }
+
     void GarbageCollect::checkStopForCollect(VMThread &thread) {
         if (!markCollect) [[likely]] {
             return;
@@ -71,7 +93,8 @@ namespace RexVM {
         }
 
         //如果有线程栈中有native函数 停止gc
-        for (const auto &thread: vm.vmThreadDeque) {
+        const auto threads = vm.threadManager->getThreads();
+        for (const auto &thread: threads) {
             if (thread->hasNativeCall()) {
                 return false;
             }
@@ -84,10 +107,10 @@ namespace RexVM {
         markCollect = true;
         finalizeRunner.cv.notify_all();
         const auto stopTime = getCurrentTimeMillis();
-        while (!vm.checkAllThreadStopForCollect() && !vm.exit) {
+        while (!vm.threadManager->checkAllThreadStopForCollect() && !vm.exit) {
             if ((getCurrentTimeMillis() - stopTime) > collectStopWaitTimeout) {
                 //stop wait timeout
-                return false;
+                //return false;
             }
         }
         return true;
@@ -117,7 +140,8 @@ namespace RexVM {
 
         collectOopHolder(vm.oopManager->defaultOopHolder, context);
         collectOopHolder(finalizeRunner.thread->oopHolder, context);
-        for (const auto &item: vm.vmThreadDeque) {
+
+        for (const auto &item: vm.threadManager->getThreads()) {
             collectOopHolder(item->oopHolder, context);
         }
         context.collectFinish(vm);
@@ -206,11 +230,13 @@ namespace RexVM {
 
     void GarbageCollect::getThreadRef(std::vector<ref> &gcRoots) {
         //是否要考虑gc线程?
-        for (const auto &thread: vm.vmThreadDeque) {
+        for (const auto &thread: vm.threadManager->getThreads()) {
             const auto status = thread->getStatus();
             if (status != ThreadStatusEnum::TERMINATED) {
                 thread->getThreadGCRoots(gcRoots);
                 gcRoots.emplace_back(thread);
+            } else {
+                //TODO 考虑在这里回收Thread
             }
         }
     }
@@ -274,41 +300,41 @@ namespace RexVM {
 
     void GarbageCollect::collectAll() {
         cprintln("sumCollectedMemory:{}KB", CAST_F4(sumCollectedMemory) / 1024);
-        for (const auto &oop: vm.oopManager->defaultOopHolder.oops) {
-            deleteOop(oop);
+
+        std::vector<OopHolder *> oopHolders;
+        oopHolders.emplace_back(&vm.oopManager->defaultOopHolder);
+        for (const auto &item: vm.threadManager->getThreads()) {
+            oopHolders.emplace_back(&item->oopHolder);
         }
 
-        for (const auto &item: vm.vmThreadDeque) {
-            for (const auto &oop: item->oopHolder.oops) {
-                deleteOop(oop);
-            }
-        }
-    }
+        size_t deleteCount{0};
 
-    void GarbageCollect::start() {
-        if (!enableGC) {
-            return;
-        }
-
-        stringClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
-
-        gcThread = std::thread([this]() {
-            setThreadName("GC Thread");
-            while (!this->vm.exit) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(collectSleepTime));
-                if (vm.oopManager->allocatedOopMemory > collectMemoryThreshold) {
-                    this->run();
+        std::vector<ref> lastCollect;
+        for (const auto &item : oopHolders) {
+            for (const auto &oop : item->oops) {
+                const auto klass = oop->getClass();
+                if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
+                    const auto instanceClass = CAST_INSTANCE_CLASS(klass);
+                    if (instanceClass->specialInstanceClass == SpecialInstanceClass::THREAD_CLASS) {
+                        lastCollect.emplace_back(oop);
+                        continue;
+                    }
                 }
+                deleteOop(oop);
+                ++deleteCount;
             }
-            //finalize中有wait 防止因为wait而无法退出线程
-            finalizeRunner.cv.notify_all();
-        });
+        }
 
-        finalizeRunner.start();
+        for (const auto &item : lastCollect) {
+            deleteOop(item);
+            ++deleteCount;
+        }
+
+        cprintln("{}, {}", vm.oopManager->allocatedOopCount.load(), deleteCount);
     }
 
     void GarbageCollect::join() {
-        finalizeRunner.thread->join();
+        finalizeRunner.cv.notify_all();
 
         if (gcThread.joinable()) {
             gcThread.join();
@@ -328,45 +354,76 @@ namespace RexVM {
         cv.notify_all();
     }
 
-    void FinalizeRunner::run(InstanceOop *oop) const {
+    void FinalizeRunner::runOopFinalize(InstanceOop *oop) const {
         const auto klass = oop->getInstanceClass();
         const auto finalizeMethod = klass->getMethod("finalize", "()V", false);
-        if (finalizeMethod == nullptr) {
-            panic("run finalize error");
+        if (finalizeMethod == nullptr) [[unlikely]] {
+            cprintlnErr("run finalize error: get finalizeMethod fail");
+        } else {
+            createFrameAndRunMethod(*thread, *finalizeMethod, {Slot(oop)}, nullptr);
         }
-        createFrameAndRunMethod(*thread, *finalizeMethod, {Slot(oop)}, nullptr);
         oop->setFinalized(true);
     }
 
-    void FinalizeRunner::start() {
-        std::function<void()> runnable = [this]() {
-            while (!collector.vm.exit) {
-                {
-                    std::unique_lock<std::mutex> lock(dequeMtx);
-                    if (oopDeque.empty()) {
-                        cv.wait(lock, [this] { return !oopDeque.empty() 
-                                                    || collector.markCollect
-                                                    || collector.vm.exit; });
-                    }
-                }
-
-                if (oopDeque.empty()) {
-                    collector.checkStopForCollect(*thread);
-                } else {
-                    std::unique_lock<std::mutex> lock(dequeMtx);
-                    while (!oopDeque.empty()) {
-                        collector.checkStopForCollect(*thread);
-                        const auto oop = oopDeque.front();
-                        oopDeque.pop_front();
-                        run(oop);
-                    }
-                }
+    bool FinalizeRunner::runOneOop() {
+        InstanceOop *oop = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(dequeMtx);
+            if (oopDeque.empty()) {
+                return false;
             }
+            oop = oopDeque.front();
+            oopDeque.pop_front();
+        }
+
+        if (oop != nullptr) {
+            runOopFinalize(oop);
+            return true;
+        }
+        return false;
+    }
+
+    void FinalizeRunner::runnerMethod() {
+        while (!collector.vm.exit) {
+            const auto runOne = runOneOop();
+            collector.checkStopForCollect(*finalizeThread);
+            
+            if (!runOne) {
+                std::unique_lock<std::mutex> lock(dequeMtx);
+                cv.wait(lock, [this] { 
+                    return !oopDeque.empty() 
+                            || collector.markCollect
+                            || collector.vm.exit; 
+                });
+            }
+        }
+    }
+
+    void FinalizeRunner::initFinalizeThread(VMThread *mainThread) {
+        const auto &vm = collector.vm;
+        const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+        finalizeThread = vm.oopManager->newVMThread(mainThread, threadClass);
+        std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
+        finalizeThread->addMethod(func);
+
+        const auto threadConstructor = threadClass->getMethod("<init>", "(Ljava/lang/String;)V", false);
+        const auto setDaemonMethod = threadClass->getMethod("setDaemon", "(Z)V", false);
+        const auto threadNameOop = vm.stringPool->getInternString(mainThread, "Finalize Thread");
+
+        std::vector<Slot> constructorParams = { 
+            Slot(finalizeThread), 
+            Slot(threadNameOop) 
         };
 
-        thread->addMethod(runnable);
-        //Don't insert into VM->threadDeque, gc thread join this
-        thread->start(nullptr, false);
+        std::vector<Slot> setDaemonParams = { 
+            Slot(finalizeThread), 
+            Slot(CAST_I4(1))
+        };
+        
+        createFrameAndRunMethod(*finalizeThread, *threadConstructor, constructorParams, nullptr, true);
+        createFrameAndRunMethod(*finalizeThread, *setDaemonMethod, setDaemonParams, nullptr, true);
+        finalizeThread->start(nullptr, false);
+
     }
 
 

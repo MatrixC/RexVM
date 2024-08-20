@@ -33,6 +33,9 @@ namespace RexVM {
         //init memory allocator
         oopManager = std::make_unique<OopManager>(*this);
 
+        //init thread manager
+        threadManager = std::make_unique<ThreadManager>(*this);
+
         //init bootstrap classLoader
         bootstrapClassLoader = std::make_unique<ClassLoader>(*this, *classPath); 
 
@@ -47,8 +50,11 @@ namespace RexVM {
         //init Main Thread
         mainThread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(*this));
         mainThread->setName("main"); //like openjdk
-        addStartThread(mainThread.get());
+        //addStartThread(mainThread.get());
         garbageCollector->start();
+
+        //init Finalize Thread
+        garbageCollector->finalizeRunner.initFinalizeThread(mainThread.get());
     }
 
     void VM::runMainMethod() const {
@@ -82,46 +88,20 @@ namespace RexVM {
         mainThread->addMethod(initMethod, {});
         mainThread->addMethod(mainMethod, {Slot(stringArray)});
 
-        mainThread->start(nullptr, false);
-        mainThread->join();
+        mainThread->start(nullptr, true);
     }
 
     void VM::joinThreads() {
-        while (true) {
-            VMThread *vmThread;
-            {
-                std::lock_guard<SpinLock> lock(vmThreadLock);
-                if (vmThreadDeque.empty()) {
-                    break;
-                }
-                vmThread = vmThreadDeque.front();
-                vmThreadDeque.pop_front();
-            }
-            vmThread->join();
-        }
+        threadManager->joinUserThreads();
+
+        //all user thread exit
+        exit = true;
     }
 
     void VM::exitVM() {
-        //all user thread exit
-        exit = true;
         garbageCollector->join();
         stringPool->clear();
         garbageCollector->collectAll();
-    }
-
-    void VM::addStartThread(VMThread *thread) {
-        std::lock_guard<SpinLock> lock(vmThreadLock);
-        vmThreadDeque.emplace_back(thread);
-    }
-
-    bool VM::checkAllThreadStopForCollect() {
-        std::lock_guard<SpinLock> lock(vmThreadLock);
-        for (const auto &item : vmThreadDeque) {
-            if (item->getStatus() != ThreadStatusEnum::TERMINATED && !item->stopForCollect) {
-                return false;
-            }
-        }
-        return true;
     }
 
     VM::VM(ApplicationParameter &params) : params(params) {
