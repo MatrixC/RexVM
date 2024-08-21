@@ -187,6 +187,13 @@ namespace RexVM {
         return false;
     }
 
+    void VMThread::setGCSafe(bool val) {
+        gcSafe = val;
+    }
+    [[nodiscard]] bool VMThread::isGCSafe() const {
+        return gcSafe;
+    }
+
 
     ThreadManager::ThreadManager(VM &vm) : vm(vm) {
 
@@ -233,6 +240,14 @@ namespace RexVM {
         std::lock_guard<std::mutex> lock(threadsMtx);
         std::vector<VMThread *> copyThreads(threads);
         return copyThreads;
+    }
+
+    ThreadSafeGuard::ThreadSafeGuard(VMThread &thread) : thread(thread) {
+        thread.setGCSafe(false);
+    }
+
+    ThreadSafeGuard::~ThreadSafeGuard() {
+        thread.setGCSafe(true);
     }
 
 

@@ -142,7 +142,6 @@ namespace RexVM {
         Node *prev = nullptr;
 
         while (current != nullptr) {
-            const auto str = StringPool::getJavaString(current->value);
             if (current->value == value) {
                 if (prev == nullptr) {
                     table[index] = current->next;

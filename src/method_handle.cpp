@@ -9,6 +9,7 @@
 #include "class_member.hpp"
 #include "class_loader.hpp"
 #include "frame.hpp"
+#include "thread.hpp"
 #include "utils/descriptor_parser.hpp"
 #include "utils/class_utils.hpp"
 
@@ -246,7 +247,9 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(frame.pop().refVal);
     }
 
-    void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
+    void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {   
+        ThreadSafeGuard threadGuard(frame.thread);
+
         const auto &methodClass = frame.klass;
         const auto &constantPool = methodClass.constantPool;
         const auto callerClass = &frame.method.klass;

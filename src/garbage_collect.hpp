@@ -22,8 +22,8 @@ namespace RexVM {
     struct OopHolder;
     struct GarbageCollect;
 
-    //wait 1s
-    constexpr size_t GC_STOP_WAIT_TIME_OUT = 1000;
+    //wait 100ms
+    constexpr size_t GC_STOP_WAIT_TIME_OUT = 50;
 
     constexpr size_t GC_ROOT_START_SIZE = 8192;
     //10MB
@@ -50,10 +50,10 @@ namespace RexVM {
     };
 
     struct GarbageCollectContext {
-        std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
-        std::chrono::system_clock::time_point getGcRootEndTime;
-        std::chrono::system_clock::time_point traceOopEndTime;
-        std::chrono::system_clock::time_point endTime;
+        i8 startTime{};
+        i8 getGcRootEndTime{};
+        i8 traceOopEndTime{};
+        i8 endTime{};
 
         explicit GarbageCollectContext(VM &vm);
 
@@ -83,9 +83,11 @@ namespace RexVM {
         size_t collectStopWaitTimeout{GC_STOP_WAIT_TIME_OUT};
         size_t collectSleepTime{GC_SLEEP_TIME};
         size_t sumCollectedMemory{0};
+        size_t collectStartCount{0};
+        size_t collectSuccessCount{0};
 
         bool enableLog{true};
-        bool enableGC{false};
+        bool enableGC{true};
 
         Class *stringClass{nullptr};
 

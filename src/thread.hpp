@@ -33,11 +33,13 @@ namespace RexVM {
         std::vector<std::unique_ptr<VMThreadMethod>> runMethods;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
+        OopHolder oopHolder;
 
         Frame *currentFrame{nullptr};
         std::atomic_bool interrupted{false};
         volatile bool stopForCollect{false};
-        OopHolder oopHolder;
+        volatile bool gcSafe{true};
+        
 
 #ifdef DEBUG
         cstring threadName{};
@@ -68,6 +70,9 @@ namespace RexVM {
         void getThreadGCRoots(std::vector<ref> &result) const;
         void getCollectRoots(std::vector<ref> &result) const;
         [[nodiscard]] bool hasNativeCall() const;
+
+        void setGCSafe(bool val);
+        [[nodiscard]] bool isGCSafe() const;
         
 
         private:
@@ -92,6 +97,21 @@ namespace RexVM {
         void joinUserThreads();
         bool checkAllThreadStopForCollect();
         std::vector<VMThread *> getThreads();
+    };
+
+    struct ThreadSafeGuard {
+        //设置线程的GCSafe状态
+        //在线程进入native方法时 因为native方法中会创建对象
+        //但虚拟机跟踪不到native方法中创建的对象 所以就有可能在
+        //[创建对象 - 使用这个对象] 这个过程中因为对用的了别的方法
+        //进入gc状态而导致创建的对象还未被使用就回收 而指针还停留在
+        //native方法栈中 进而导致core
+
+        VMThread &thread;
+
+        explicit ThreadSafeGuard(VMThread &thread);
+
+        ~ThreadSafeGuard();
     };
 
 }

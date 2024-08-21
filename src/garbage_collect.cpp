@@ -18,22 +18,22 @@
 
 namespace RexVM {
 
-    GarbageCollectContext::GarbageCollectContext(VM &vm) {
+    GarbageCollectContext::GarbageCollectContext(VM &vm) : startTime(getCurrentTimeMillis()) {
         const auto &oopManager = vm.oopManager;
         allocatedOopCount = oopManager->allocatedOopCount;
         allocatedOopMemory = oopManager->allocatedOopMemory;
     }
 
     void GarbageCollectContext::endGetRoots() {
-        getGcRootEndTime = std::chrono::system_clock::now();
+        getGcRootEndTime = getCurrentTimeMillis();
     }
 
     void GarbageCollectContext::endTraceOop() {
-        traceOopEndTime = std::chrono::system_clock::now();
+        traceOopEndTime = getCurrentTimeMillis();
     }
 
     void GarbageCollectContext::collectFinish(VM &vm) {
-        endTime = std::chrono::system_clock::now();
+        endTime = getCurrentTimeMillis();
         const auto &oopManager = vm.oopManager;
         oopManager->allocatedOopCount -= collectedOopCount;
         oopManager->allocatedOopMemory -= collectedOopMemory;
@@ -42,8 +42,8 @@ namespace RexVM {
     void GarbageCollectContext::printLog(VM &vm) const {
         const auto &oopManager = vm.oopManager;
         const auto timeCost = endTime - startTime;
-        cprintln("gc [{:%H:%M:%S} cost:{}], crt:{}[{}KB], col:{}[{}KB], rem:{}[{}KB]",
-                 startTime, timeCost,
+        cprintln("gc [{} cost:{}ms], crt:{}[{}KB], col:{}[{}KB], rem:{}[{}KB]",
+                 millisecondsToReadableTime(startTime), timeCost,
                  allocatedOopCount, CAST_F4(allocatedOopMemory) / 1024,
                  collectedOopCount.load(), CAST_F4(collectedOopMemory) / 1024,
                  oopManager->allocatedOopCount.load(), CAST_F4(oopManager->allocatedOopMemory) / 1024
@@ -95,7 +95,10 @@ namespace RexVM {
         //如果有线程栈中有native函数 停止gc
         const auto threads = vm.threadManager->getThreads();
         for (const auto &thread: threads) {
-            if (thread->hasNativeCall()) {
+            // if (thread->hasNativeCall()) {
+            //     return false;
+            // }
+            if (!thread->isGCSafe()) {
                 return false;
             }
         }
@@ -110,7 +113,7 @@ namespace RexVM {
         while (!vm.threadManager->checkAllThreadStopForCollect() && !vm.exit) {
             if ((getCurrentTimeMillis() - stopTime) > collectStopWaitTimeout) {
                 //stop wait timeout
-                //return false;
+                return false;
             }
         }
         return true;
@@ -122,6 +125,7 @@ namespace RexVM {
     }
 
     void GarbageCollect::run() {
+        ++collectStartCount;
         const auto stopResult = stopTheWorld();
         if (!stopResult || !checkTerminationCollect()) {
             startTheWorld();
@@ -152,6 +156,8 @@ namespace RexVM {
         //fuck!
         //or gcRoots all clearTraced()
         vm.mainThread->clearTraced();
+
+        ++collectSuccessCount;
 
         startTheWorld();
     }
@@ -192,6 +198,9 @@ namespace RexVM {
                 case BasicType::T_DOUBLE:
                     delete CAST_DOUBLE_TYPE_ARRAY_OOP(oop);
                     return;
+                
+                default:
+                    panic("error type");
             }
         }
 
@@ -220,13 +229,19 @@ namespace RexVM {
                 survives.emplace_back(oop);
                 oop->clearTraced();
             } else {
-                if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
-                    //need to run finalize
-                    survives.emplace_back(oop);
-                    oop->clearTraced();
-                    //add to run finalize
-                    finalizeRunner.add(CAST_INSTANCE_OOP(oop));
-                    continue;
+                // if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
+                //     //need to run finalize
+                //     survives.emplace_back(oop);
+                //     oop->clearTraced();
+                //     //add to run finalize
+                //     finalizeRunner.add(CAST_INSTANCE_OOP(oop));
+                //     continue;
+                // }
+                if (oop->getClass()->type == ClassTypeEnum::INSTANCE_CLASS) {
+                    const auto instanceClass = CAST_INSTANCE_CLASS(oop->getClass());
+                    if (instanceClass->specialInstanceClass == SpecialInstanceClass::THREAD_CLASS) {
+                        continue;
+                    }
                 }
 
                 const auto memorySize = oop->getMemorySize();
@@ -339,15 +354,17 @@ namespace RexVM {
     }
 
     void GarbageCollect::collectAll() {
-        cprintln("sumCollectedMemory:{}KB", CAST_F4(sumCollectedMemory) / 1024);
+        cprintln("collectedMemory:{}KB, startCount:{}, successCount:{}", 
+            CAST_F4(sumCollectedMemory) / 1024,
+            collectStartCount,
+            collectSuccessCount
+        );
 
         std::vector<OopHolder *> oopHolders;
         oopHolders.emplace_back(&vm.oopManager->defaultOopHolder);
         for (const auto &item: vm.threadManager->getThreads()) {
             oopHolders.emplace_back(&item->oopHolder);
         }
-
-        size_t deleteCount{0};
 
         std::vector<ref> lastCollect;
         for (const auto &item : oopHolders) {
@@ -361,16 +378,12 @@ namespace RexVM {
                     }
                 }
                 deleteOop(oop);
-                ++deleteCount;
             }
         }
 
         for (const auto &item : lastCollect) {
             deleteOop(item);
-            ++deleteCount;
         }
-
-        cprintln("{}, {}", vm.oopManager->allocatedOopCount.load(), deleteCount);
     }
 
     void GarbageCollect::join() {
