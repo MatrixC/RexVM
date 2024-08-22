@@ -239,9 +239,17 @@ namespace RexVM {
     void OopManager::addToOopHolder(VMThread *thread, ref oop) {
 #ifdef DEBUG
         holders.insert(&thread->oopHolder);
+        ttlock.lock();
+        ttDesc.emplace(oop, oop->getClass()->name);
+        ttlock.unlock();
+
+        if (oop->getClass()->name == "java/lang/ref/Reference$ReferenceHandler") {
+            int i = 10;
+        }
 #endif
         thread->oopHolder.addOop(oop);
         ++allocatedOopCount;
+
         allocatedOopMemory += oop->getMemorySize();
     }
 }

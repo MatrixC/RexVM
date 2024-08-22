@@ -148,7 +148,7 @@ namespace RexVM {
         }
     }
 
-    void monitorExecuteFrame(Frame &frame, const cstring &methodName) {
+    inline void monitorExecuteFrame(Frame &frame, const cstring &methodName) {
         const auto &method = frame.method;
         EXCLUDE_EXECUTE_METHODS(method)
         auto lock = false;

@@ -33,6 +33,7 @@ target("rex")
         "src/native/core/*.cpp",
         "src/native/misc/*.cpp",
         "src/native/sun/*.cpp",
+        "src/native/rex/*.cpp",
 
         "third_party/miniz/miniz.c"
     )

@@ -20,8 +20,8 @@ namespace RexVM {
 
     GarbageCollectContext::GarbageCollectContext(VM &vm) : startTime(getCurrentTimeMillis()) {
         const auto &oopManager = vm.oopManager;
-        allocatedOopCount = oopManager->allocatedOopCount;
-        allocatedOopMemory = oopManager->allocatedOopMemory;
+        tempAllocatedOopCount = oopManager->allocatedOopCount;
+        tempAllocatedOopMemory = oopManager->allocatedOopMemory;
     }
 
     void GarbageCollectContext::endGetRoots() {
@@ -44,7 +44,7 @@ namespace RexVM {
         const auto timeCost = endTime - startTime;
         cprintln("gc [{} cost:{}ms], crt:{}[{}KB], col:{}[{}KB], rem:{}[{}KB]",
                  millisecondsToReadableTime(startTime), timeCost,
-                 allocatedOopCount, CAST_F4(allocatedOopMemory) / 1024,
+                 tempAllocatedOopCount, CAST_F4(tempAllocatedOopMemory) / 1024,
                  collectedOopCount.load(), CAST_F4(collectedOopMemory) / 1024,
                  oopManager->allocatedOopCount.load(), CAST_F4(oopManager->allocatedOopMemory) / 1024
         );
@@ -95,10 +95,8 @@ namespace RexVM {
         //如果有线程栈中有native函数 停止gc
         const auto threads = vm.threadManager->getThreads();
         for (const auto &thread: threads) {
-            // if (thread->hasNativeCall()) {
-            //     return false;
-            // }
             if (!thread->isGCSafe()) {
+                //线程内有GC不安全的代码区块
                 return false;
             }
         }
@@ -148,12 +146,11 @@ namespace RexVM {
         }
 
         context.collectFinish(vm);
-        sumCollectedMemory += context.allocatedOopMemory;
+        sumCollectedMemory += context.tempAllocatedOopMemory;
         if (enableLog) {
             context.printLog(vm);
         }
 
-        //fuck!
         //or gcRoots all clearTraced()
         vm.mainThread->clearTraced();
 
@@ -165,6 +162,10 @@ namespace RexVM {
     void GarbageCollect::deleteOop(ref oop) {
         const auto klass = oop->getClass();
 #ifdef DEBUG
+        vm.oopManager->ttlock.lock();
+        vm.oopManager->ttDesc.erase(oop);
+        vm.oopManager->ttlock.unlock();
+
         const auto desc = cformat("{}:{}", klass->name, oop->isMirror());
         collectedOopDesc.emplace(oop, desc);
 #endif
@@ -218,6 +219,8 @@ namespace RexVM {
             delete CAST_INSTANCE_OOP(oop);
             return;
         }
+
+        panic("error");
     }
 
     void GarbageCollect::collectOopHolder(OopHolder &holder, GarbageCollectContext &context) {
@@ -240,6 +243,7 @@ namespace RexVM {
                 if (oop->getClass()->type == ClassTypeEnum::INSTANCE_CLASS) {
                     const auto instanceClass = CAST_INSTANCE_CLASS(oop->getClass());
                     if (instanceClass->specialInstanceClass == SpecialInstanceClass::THREAD_CLASS) {
+                        survives.emplace_back(oop);
                         continue;
                     }
                 }
@@ -275,6 +279,8 @@ namespace RexVM {
                 for (const auto &field: instanceClass->fields) {
                     if (field->getFieldSlotType() == SlotTypeEnum::REF && field->isStatic()) {
                         if (const auto oop = instanceClass->getFieldValue(field->slotId).refVal; oop != nullptr) {
+                            //java/lang/invoke/SimpleMethodHandle.SPECIES_DATA 在check模式下报错
+                            //oop地址为0xbebebebe00000000
                             gcRoots.emplace_back(oop);
                         }
                     }
@@ -366,24 +372,47 @@ namespace RexVM {
             oopHolders.emplace_back(&item->oopHolder);
         }
 
+        cprintln("start oopDesc size:{}", vm.oopManager->ttDesc.size());
+
+        size_t deleteCount{0};
         std::vector<ref> lastCollect;
         for (const auto &item : oopHolders) {
             for (const auto &oop : item->oops) {
                 const auto klass = oop->getClass();
+                if (klass->name == "java/lang/ref/Reference$ReferenceHandler") {
+                    int i = 10;
+                }
+
                 if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
                     const auto instanceClass = CAST_INSTANCE_CLASS(klass);
                     if (instanceClass->specialInstanceClass == SpecialInstanceClass::THREAD_CLASS) {
                         lastCollect.emplace_back(oop);
+                        cprintln("=1 {}", oop->getClass()->name);
                         continue;
                     }
                 }
+                ++deleteCount;
+                //vm.oopManager->ttDesc.erase(oop);
                 deleteOop(oop);
             }
         }
 
         for (const auto &item : lastCollect) {
+            ++deleteCount;
+            //vm.oopManager->ttDesc.erase(item);
             deleteOop(item);
         }
+
+
+
+        for (const auto &pair : vm.oopManager->ttDesc) {
+            cprintln("remain: {}, {}", CAST_VOID_PTR(pair.first), pair.second);
+        }
+
+        cprintln("collectAll {}({}), oopHolder {}({}), oopDescSize:{}", 
+            vm.oopManager->allocatedOopCount.load(), deleteCount,
+            vm.oopManager->holders.size(), oopHolders.size(), vm.oopManager->ttDesc.size()
+        );
     }
 
     void GarbageCollect::join() {

@@ -124,7 +124,14 @@ namespace RexVM::Native::Core {
     }
 
     void setOut0(Frame &frame) {
+        // const auto defaultPrintStream = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        // const auto rexPrintStreamClass = frame.mem.getInstanceClass("RexPrintStream");
+        // rexPrintStreamClass->clinit(frame);
+        // const auto getMethod = rexPrintStreamClass->getMethod("get", "(Ljava/io/PrintStream;)Ljava/io/PrintStream;", true);
+        // const auto [retVal, retType] = frame.runMethodManual(*getMethod, { Slot(defaultPrintStream) });
+
         frame.klass.setFieldValue("out", "Ljava/io/PrintStream;", Slot(frame.getLocalRef(0)));
+        //frame.klass.setFieldValue("out", "Ljava/io/PrintStream;", retVal);
     }
 
     void setErr0(Frame &frame) {

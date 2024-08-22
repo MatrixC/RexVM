@@ -2,8 +2,10 @@
 #define MEMORY_HPP
 #include "config.hpp"
 #include <unordered_set>
+#include <map>
 #include <vector>
 #include <atomic>
+#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 
@@ -66,6 +68,8 @@ namespace RexVM {
 
 #ifdef DEBUG
         std::unordered_set<OopHolder *> holders;
+        SpinLock ttlock;
+        std::map<ref, cstring> ttDesc;
 #endif
     };
 

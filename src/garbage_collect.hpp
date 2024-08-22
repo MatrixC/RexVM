@@ -23,7 +23,7 @@ namespace RexVM {
     struct GarbageCollect;
 
     //wait 100ms
-    constexpr size_t GC_STOP_WAIT_TIME_OUT = 50;
+    constexpr size_t GC_STOP_WAIT_TIME_OUT = 10;
 
     constexpr size_t GC_ROOT_START_SIZE = 8192;
     //10MB
@@ -57,8 +57,8 @@ namespace RexVM {
 
         explicit GarbageCollectContext(VM &vm);
 
-        size_t allocatedOopCount{0};
-        size_t allocatedOopMemory{0};
+        size_t tempAllocatedOopCount{0};
+        size_t tempAllocatedOopMemory{0};
         std::atomic_size_t collectedOopCount{0};
         std::atomic_size_t collectedOopMemory{0};
 

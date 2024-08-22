@@ -37,7 +37,7 @@ namespace RexVM {
         static SpinLock monitorLock;
     private:
         //classPtr, dataLength
-        Composite<Class *, size_t> comClass;
+        Composite<Class *, size_t> comClass{};
 
         //low [oopMonitor(48), traced(1) isMirror (1) finalized(1) ...(3) {hasHash(1) hash(9)}] high
         Composite<OopMonitor *, u2> comFlags{};

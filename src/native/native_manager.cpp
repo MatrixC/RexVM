@@ -2,6 +2,7 @@
 #include "core/native_core.hpp"
 #include "sun/native_sun.hpp"
 #include "misc/native_misc.hpp"
+#include "rex/native_rex.hpp"
 
 
 namespace RexVM {
@@ -43,6 +44,7 @@ namespace RexVM {
         Native::Core::registerCoreMethods(*this);
         Native::Misc::registerMiscMethods(*this);
         Native::Sun::registerSunMethods(*this);
+        Native::Rex::registerRexMethods(*this);
     }
 
 

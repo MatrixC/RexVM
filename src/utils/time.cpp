@@ -1,5 +1,4 @@
 #include "time.hpp"
-#include <iomanip>
 #include <ostream>
 
 namespace RexVM {
