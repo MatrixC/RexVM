@@ -379,6 +379,7 @@ namespace RexVM {
             ++deleteCount;
             deleteOop(item);
         }
+        (void)deleteCount;
 
 #ifdef DEBUG
         cprintln("collectedMemory:{}KB, startCount:{}, successCount:{}", 

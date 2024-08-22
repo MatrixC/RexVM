@@ -302,7 +302,7 @@ namespace RexVM::Native::Core {
         auto [klass, name, type, flags, kind, isStatic, descriptor]
             = methodHandleGetFieldFromMemberName(memberNameOop);
 
-        const auto memberNameMirrorOop = CAST_MIRROR_OOP(memberNameOop);
+        //const auto memberNameMirrorOop = CAST_MIRROR_OOP(memberNameOop);
         //const auto methodPtr = memberNameMirrorOop->getMemberNameMethod();
         const auto methodPtr = klass->getMethod(name, descriptor, isStatic);
 
