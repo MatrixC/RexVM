@@ -39,7 +39,6 @@ namespace RexVM {
         std::atomic_bool interrupted{false};
         volatile bool stopForCollect{false};
         volatile bool gcSafe{true};
-        
 
 #ifdef DEBUG
         cstring threadName{};

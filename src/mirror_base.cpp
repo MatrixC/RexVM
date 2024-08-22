@@ -151,8 +151,6 @@ namespace RexVM {
     }
 
     void MirrorBase::initConstantPoolMirrorOop(Frame &frame, Class *klass) const {
-//        mirOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(klass->getMirror(&frame)));
-//        mirOop->setFieldValue("constantPoolOop", "Ljava/lang/Object;", Slot(std::bit_cast<i8>(klass)));
     }
 
     MirrorBase::MirrorBase() = default;

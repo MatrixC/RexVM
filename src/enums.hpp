@@ -60,7 +60,7 @@ namespace RexVM {
     };
 
     //标记在InstanceClass上, 用于在new指令上提升效率
-    enum class SpecialInstanceClass : u1 {
+    enum class SpecialClassEnum : u1 {
         NONE,
         THREAD_CLASS,
         CLASS_LOADER_CLASS,

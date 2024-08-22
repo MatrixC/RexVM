@@ -55,6 +55,7 @@ namespace RexVM {
         [[nodiscard]] size_t getInterfaceSize() const;
         [[nodiscard]] InstanceClass *getInterfaceByIndex(size_t index) const;
         [[nodiscard]] InstanceClass *getSuperClass() const;
+        [[nodiscard]] SpecialClassEnum getSpecialClassType() const;
 
         [[nodiscard]] bool isInstanceClass() const;
         [[nodiscard]] bool isInterface() const;
@@ -70,7 +71,7 @@ namespace RexVM {
         [[nodiscard]] bool isSuperClassOf(const Class *that) const;
         [[nodiscard]] bool isSuperInterfaceOf(const Class *that) const;
         [[nodiscard]] bool isSubClassOf(const Class *that) const;
-
+        
         MirrorBase mirrorBase{};
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
@@ -91,7 +92,7 @@ namespace RexVM {
     };
 
     struct InstanceClass : Class {
-        SpecialInstanceClass specialInstanceClass{SpecialInstanceClass::NONE};
+        SpecialClassEnum specialClassType{SpecialClassEnum::NONE};
         u2 instanceSlotCount{};
         u2 staticSlotCount{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;

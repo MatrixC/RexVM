@@ -130,11 +130,11 @@ namespace RexVM {
     constexpr u2 HASH_MASK = 0x3ff;      //1111111111
     constexpr u2 HASH_VAL_MASK = 0x1ff;  //0111111111
     void Oop::setStringHash(u2 hashCode) {
-        #ifdef DEBUG
+#ifdef DEBUG
         if (hashCode >= HAS_HASH_MASK) {
             panic("error HashCode");
         }
-        #endif
+#endif
         hashCode |= HAS_HASH_MASK; //final hashCode
 
         const auto flags = (getFlags() & ~HASH_MASK) | hashCode;

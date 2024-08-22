@@ -40,6 +40,13 @@ namespace RexVM {
         return superClass;
     }
 
+    SpecialClassEnum Class::getSpecialClassType() const {
+        if (type != ClassTypeEnum::INSTANCE_CLASS) {
+            return SpecialClassEnum::NONE;
+        }
+        return (static_cast<const InstanceClass *>(this))->specialClassType;
+    }
+
     bool Class::isInstanceClass() const {
         return type == ClassTypeEnum::INSTANCE_CLASS;
     }
@@ -435,9 +442,9 @@ namespace RexVM {
         const auto threadClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
         const auto memberNameClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_MEMBER_NAME);
         if (this == threadClass || this->isSubClassOf(threadClass)) {
-            specialInstanceClass = SpecialInstanceClass::THREAD_CLASS;
+            specialClassType = SpecialClassEnum::THREAD_CLASS;
         } else if (this == memberNameClass) {
-            specialInstanceClass = SpecialInstanceClass::MEMBER_NAME_CLASS;
+            specialClassType = SpecialClassEnum::MEMBER_NAME_CLASS;
         }
     }
 

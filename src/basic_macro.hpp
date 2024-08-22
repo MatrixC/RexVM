@@ -1,11 +1,7 @@
 #ifndef BASIC_MACRO_HPP
 #define BASIC_MACRO_HPP
 
-#ifdef DEBUG
-#define INSTANCE_CAST dynamic_cast
-#else
 #define INSTANCE_CAST static_cast
-#endif
 
 #define CAST_U1(x) static_cast<u1>(x)
 #define CAST_U2(x) static_cast<u2>(x)

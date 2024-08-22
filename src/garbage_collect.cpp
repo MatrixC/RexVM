@@ -161,14 +161,6 @@ namespace RexVM {
 
     void GarbageCollect::deleteOop(ref oop) {
         const auto klass = oop->getClass();
-#ifdef DEBUG
-        vm.oopManager->ttlock.lock();
-        vm.oopManager->ttDesc.erase(oop);
-        vm.oopManager->ttlock.unlock();
-
-        const auto desc = cformat("{}:{}", klass->name, oop->isMirror());
-        collectedOopDesc.emplace(oop, desc);
-#endif
         if (klass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
             delete CAST_OBJ_ARRAY_OOP(oop);
             return;
@@ -207,12 +199,11 @@ namespace RexVM {
 
         if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
             const auto instanceClass = CAST_INSTANCE_CLASS(klass);
-            const auto specialType = instanceClass->specialInstanceClass;
             if (oop->isMirror()) {
                 delete CAST_MIRROR_OOP(oop);
                 return;
             }
-            if (specialType == SpecialInstanceClass::THREAD_CLASS) {
+            if (instanceClass->specialClassType == SpecialClassEnum::THREAD_CLASS) {
                 delete CAST_VM_THREAD_OOP(oop);
                 return;
             }
@@ -240,12 +231,9 @@ namespace RexVM {
                 //     finalizeRunner.add(CAST_INSTANCE_OOP(oop));
                 //     continue;
                 // }
-                if (oop->getClass()->type == ClassTypeEnum::INSTANCE_CLASS) {
-                    const auto instanceClass = CAST_INSTANCE_CLASS(oop->getClass());
-                    if (instanceClass->specialInstanceClass == SpecialInstanceClass::THREAD_CLASS) {
-                        survives.emplace_back(oop);
-                        continue;
-                    }
+                if (oop->getClass()->getSpecialClassType() == SpecialClassEnum::THREAD_CLASS) {
+                    survives.emplace_back(oop);
+                    continue;
                 }
 
                 const auto memorySize = oop->getMemorySize();
@@ -360,11 +348,7 @@ namespace RexVM {
     }
 
     void GarbageCollect::collectAll() {
-        cprintln("collectedMemory:{}KB, startCount:{}, successCount:{}", 
-            CAST_F4(sumCollectedMemory) / 1024,
-            collectStartCount,
-            collectSuccessCount
-        );
+
 
         std::vector<OopHolder *> oopHolders;
         oopHolders.emplace_back(&vm.oopManager->defaultOopHolder);
@@ -372,47 +356,38 @@ namespace RexVM {
             oopHolders.emplace_back(&item->oopHolder);
         }
 
-        cprintln("start oopDesc size:{}", vm.oopManager->ttDesc.size());
-
         size_t deleteCount{0};
         std::vector<ref> lastCollect;
         for (const auto &item : oopHolders) {
             for (const auto &oop : item->oops) {
                 const auto klass = oop->getClass();
-                if (klass->name == "java/lang/ref/Reference$ReferenceHandler") {
-                    int i = 10;
-                }
-
-                if (klass->type == ClassTypeEnum::INSTANCE_CLASS) {
-                    const auto instanceClass = CAST_INSTANCE_CLASS(klass);
-                    if (instanceClass->specialInstanceClass == SpecialInstanceClass::THREAD_CLASS) {
-                        lastCollect.emplace_back(oop);
-                        cprintln("=1 {}", oop->getClass()->name);
-                        continue;
-                    }
+                if (klass->getSpecialClassType() == SpecialClassEnum::THREAD_CLASS) {
+                    //因为thread里有oopHolder 直接清理了会有问题
+                    lastCollect.emplace_back(oop);
+                    continue;
                 }
                 ++deleteCount;
-                //vm.oopManager->ttDesc.erase(oop);
                 deleteOop(oop);
             }
         }
 
         for (const auto &item : lastCollect) {
             ++deleteCount;
-            //vm.oopManager->ttDesc.erase(item);
             deleteOop(item);
         }
 
-
-
-        for (const auto &pair : vm.oopManager->ttDesc) {
-            cprintln("remain: {}, {}", CAST_VOID_PTR(pair.first), pair.second);
-        }
+#ifdef DEBUG
+        cprintln("collectedMemory:{}KB, startCount:{}, successCount:{}", 
+            CAST_F4(sumCollectedMemory) / 1024,
+            collectStartCount,
+            collectSuccessCount
+        );
 
         cprintln("collectAll {}({}), oopHolder {}({}), oopDescSize:{}", 
             vm.oopManager->allocatedOopCount.load(), deleteCount,
             vm.oopManager->holders.size(), oopHolders.size(), vm.oopManager->ttDesc.size()
         );
+#endif
     }
 
     void GarbageCollect::join() {
@@ -516,6 +491,6 @@ namespace RexVM {
         }
         return "not found";
     }
-#endif 
+#endif
 
 }

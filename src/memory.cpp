@@ -38,19 +38,19 @@ namespace RexVM {
     }
 
     InstanceOop *OopManager::newInstance(VMThread *thread, InstanceClass * klass) {
-        const auto specialType = klass->specialInstanceClass;
+        const auto specialType = klass->specialClassType;
         InstanceOop *oop = nullptr;
         switch (specialType) {
-            case SpecialInstanceClass::NONE:
-            case SpecialInstanceClass::MEMBER_NAME_CLASS:
+            case SpecialClassEnum::NONE:
+            case SpecialClassEnum::MEMBER_NAME_CLASS:
                 oop = new InstanceOop(klass, klass->instanceSlotCount);
                 break;
 
-            case SpecialInstanceClass::THREAD_CLASS:
+            case SpecialClassEnum::THREAD_CLASS:
                 oop = new VMThread(vm, klass);
                 break;
 
-            case SpecialInstanceClass::CLASS_LOADER_CLASS:
+            case SpecialClassEnum::CLASS_LOADER_CLASS:
                 panic("not implement");
                 break;
 
@@ -237,16 +237,6 @@ namespace RexVM {
     }
 
     void OopManager::addToOopHolder(VMThread *thread, ref oop) {
-#ifdef DEBUG
-        holders.insert(&thread->oopHolder);
-        ttlock.lock();
-        ttDesc.emplace(oop, oop->getClass()->name);
-        ttlock.unlock();
-
-        if (oop->getClass()->name == "java/lang/ref/Reference$ReferenceHandler") {
-            int i = 10;
-        }
-#endif
         thread->oopHolder.addOop(oop);
         ++allocatedOopCount;
 
