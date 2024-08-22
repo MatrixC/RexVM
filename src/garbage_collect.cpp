@@ -462,25 +462,25 @@ namespace RexVM {
         const auto &vm = collector.vm;
         const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
         finalizeThread = CAST_VM_THREAD_OOP(vm.oopManager->newInstance(mainThread, threadClass));
-        std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
+        const std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
         finalizeThread->addMethod(func);
 
         const auto threadConstructor = threadClass->getMethod("<init>", "(Ljava/lang/String;)V", false);
         const auto setDaemonMethod = threadClass->getMethod("setDaemon", "(Z)V", false);
         const auto threadNameOop = vm.stringPool->getInternString(mainThread, "Finalize Thread");
 
-        std::vector<Slot> constructorParams = { 
+        const std::vector<Slot> constructorParams = { 
             Slot(finalizeThread), 
             Slot(threadNameOop) 
         };
 
-        std::vector<Slot> setDaemonParams = { 
+        const std::vector<Slot> setDaemonParams = { 
             Slot(finalizeThread), 
             Slot(CAST_I4(1))
         };
         
-        createFrameAndRunMethod(*finalizeThread, *threadConstructor, nullptr, constructorParams);
-        createFrameAndRunMethod(*finalizeThread, *setDaemonMethod, nullptr, setDaemonParams);
+        createFrameAndRunMethod(*mainThread, *threadConstructor, nullptr, constructorParams);
+        createFrameAndRunMethod(*mainThread, *setDaemonMethod, nullptr, setDaemonParams);
         finalizeThread->start(nullptr, false);
 
     }
