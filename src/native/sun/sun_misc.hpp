@@ -54,7 +54,7 @@ namespace RexVM::Native::Sun::Misc {
         const auto srcClassOop = CAST_MIRROR_OOP(constructor->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
         const auto slotId = constructor->getFieldValue("slot", "I").i4Val;
         const auto srcClass = CAST_INSTANCE_CLASS(srcClassOop->getMirrorClass());
-        const auto &constructMethod = srcClass->methods.at(slotId);
+        const auto &constructMethod = srcClass->methods[slotId];
 
         const auto instance = frame.mem.newInstance(srcClass);
         std::vector<Slot> constructorParams;

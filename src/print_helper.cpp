@@ -15,7 +15,7 @@ namespace RexVM {
 
     void printConstant(ClassFile &cf) {
         for (auto i = 0; i < cf.constantPoolCount; ++i) {
-            const auto &constantPtr = cf.constantPool.at(i);
+            const auto &constantPtr = cf.constantPool[i];
             if (constantPtr != nullptr) {
                 cprintln("{:>2} = {}", i, constantPtr->toString());
             }

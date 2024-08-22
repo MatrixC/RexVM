@@ -89,7 +89,7 @@ namespace RexVM {
     std::tuple<std::vector<cstring>, cstring> parseMethodDescriptor(const cview str) {
         const auto paramBegin = str.find('(');
         const auto paramEnd = str.find(')');
-        const auto returnType = parseDescriptor(str, paramEnd + 1, str.size()).at(0);
+        const auto returnType = parseDescriptor(str, paramEnd + 1, str.size())[0];
         return std::make_tuple(parseDescriptor(str, paramBegin + 1, paramEnd), cstring(returnType));
     }
 

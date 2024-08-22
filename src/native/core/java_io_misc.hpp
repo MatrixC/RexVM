@@ -32,7 +32,7 @@ namespace RexVM::Native::Core {
                 attribute |= 0x04;
             }
 
-            if (filePath.filename().string().at(0) == '.') {
+            if (filePath.filename().string()[0] == '.') {
                 attribute |= 0x08;
             }
         }

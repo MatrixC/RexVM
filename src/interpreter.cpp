@@ -90,7 +90,7 @@ namespace RexVM {
 
         void ldc_(Frame &frame, u2 index) {
             const auto &constantPool = frame.constantPool;
-            const auto valPtr = constantPool.at(index).get();
+            const auto valPtr = constantPool[index].get();
             const auto constantTagEnum = CAST_CONSTANT_TAG_ENUM(valPtr->tag);
 
             switch (constantTagEnum) {

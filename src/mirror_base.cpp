@@ -14,35 +14,32 @@ namespace RexVM {
                 return nullptr;
             }
             {
-                //SpinLockGuard guard(lock);
                 std::lock_guard<SpinLock> guard(lock);
-                if (mirOop == nullptr) {
-                    if (frame != nullptr) {
-                        mirOop = frame->mem.newMirror(nullptr, mirrorObj, type);
-                        switch (type) {
-                            case MirrorObjectTypeEnum::CLASS:
-                                initClassMirrorOop(*frame, CAST_CLASS(mirrorObj));
-                                break;
+                if (mirOop == nullptr && frame != nullptr) {
+                    mirOop = frame->mem.newMirror(nullptr, mirrorObj, type);
+                    switch (type) {
+                        case MirrorObjectTypeEnum::CLASS:
+                            initClassMirrorOop(*frame, CAST_CLASS(mirrorObj));
+                            break;
 
-                            case MirrorObjectTypeEnum::FIELD:
-                                initFieldMirrorOop(*frame, CAST_FIELD(mirrorObj));
-                                break;
-                            
-                            case MirrorObjectTypeEnum::METHOD:
-                                initMethodMirrorOop(*frame, CAST_METHOD(mirrorObj), false);
-                                break;
+                        case MirrorObjectTypeEnum::FIELD:
+                            initFieldMirrorOop(*frame, CAST_FIELD(mirrorObj));
+                            break;
+                        
+                        case MirrorObjectTypeEnum::METHOD:
+                            initMethodMirrorOop(*frame, CAST_METHOD(mirrorObj), false);
+                            break;
 
-                            case MirrorObjectTypeEnum::CONSTRUCTOR:
-                                initMethodMirrorOop(*frame, CAST_METHOD(mirrorObj), true);
-                                break;
+                        case MirrorObjectTypeEnum::CONSTRUCTOR:
+                            initMethodMirrorOop(*frame, CAST_METHOD(mirrorObj), true);
+                            break;
 
-                            case MirrorObjectTypeEnum::CONSTANT_POOL:
-                                initConstantPoolMirrorOop(*frame, CAST_CLASS(mirrorObj));
-                                break;
+                        case MirrorObjectTypeEnum::CONSTANT_POOL:
+                            initConstantPoolMirrorOop(*frame, CAST_CLASS(mirrorObj));
+                            break;
 
-                            default:
-                                break;
-                        }
+                        default:
+                            break;
                     }
                 }
             }
@@ -70,12 +67,12 @@ namespace RexVM {
         const auto paramClasses = method->getParamClasses();
         const auto paramClassesArrayOop = frame.mem.newClassObjArrayOop(paramClasses.size());
         FOR_FROM_ZERO(paramClasses.size()) {
-            paramClassesArrayOop->data[i] = paramClasses.at(i)->getMirror(&frame);
+            paramClassesArrayOop->data[i] = paramClasses[i]->getMirror(&frame);
         }
 
         const auto exceptionArrayOop = frame.mem.newClassObjArrayOop(method->exceptionsIndex.size());
         FOR_FROM_ZERO(method->exceptionsIndex.size()) {
-            const auto exceptionIdx = method->exceptionsIndex.at(i);
+            const auto exceptionIdx = method->exceptionsIndex[i];
             const auto exceptionClassName = 
                 getConstantStringFromPoolByIndexInfo(klass.constantPool, exceptionIdx);
             exceptionArrayOop->data[i] = frame.mem.getClass(exceptionClassName)->getMirror(&frame);

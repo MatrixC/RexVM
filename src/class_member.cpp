@@ -254,7 +254,7 @@ namespace RexVM {
     }
 
     SlotTypeEnum Method::getParamSlotType(size_t slotIdx) const {
-        return paramSlotType.at(slotIdx);
+        return paramSlotType[slotIdx];
     }
 
     std::vector<Class *> Method::getParamClasses() const {
@@ -299,16 +299,12 @@ namespace RexVM {
     }
 
     u4 Method::getLineNumber(u4 pc) const {
-        if (isNative()) {
-            return 0;
-        }
-
-        if (lineNumbers.empty()) {
+        if (isNative() || lineNumbers.empty()) {
             return 0;
         }
 
         for (i4 i = CAST_I4(lineNumbers.size()) - 1; i >= 0; --i) {
-            const auto &item = lineNumbers.at(i);
+            const auto &item = lineNumbers[i];
             if (pc > item->start) {
                 return item->lineNumber;
             }

@@ -14,16 +14,17 @@
 #include "memory.hpp"
 #include "file_system.hpp"
 #include "garbage_collect.hpp"
+#include "bootstrap_helper.hpp"
 
 
 namespace RexVM {
 
-    void VM::initVM() {
+    bool VM::initVM() {
         //init JAVA_HOME
         javaHome = getJavaHome();
         if (javaHome.empty()) {
             cprintlnErr("Error: JAVA_HOME environment variable not found");
-            std::exit(0);
+            return false;
         }
 
         //init basic class path
@@ -52,46 +53,14 @@ namespace RexVM {
         mainThread->setName("main"); //like openjdk
         garbageCollector->start();
 
-        //init Finalize Thread
-        //garbageCollector->finalizeRunner.initFinalizeThread(mainThread.get());
+        if (!initVMBootstrapMethods(*this)) {
+            return false;
+        }
+
+        return true;
     }
 
     void VM::runMainMethod() const {
-        const auto userParams = params.userParams;
-
-        const auto &className = getJVMClassName(userParams[0]);
-        const auto runClass = bootstrapClassLoader->getInstanceClass(className);
-        if (runClass == nullptr) {
-            cprintlnErr("Error: Could not find or load main class {}", userParams[0]);
-            std::exit(0);
-        }
-        const auto mainMethod = runClass->getMethod("main", "([Ljava/lang/String;)V", true);
-        if (mainMethod == nullptr) {
-            cprintlnErr("Error: Main method not found in class {}, please define the main method as:", userParams[0]);
-            cprintlnErr("   public static void main(String[] args)");
-            std::exit(0);
-        }
-        const auto mainMethodParmSize = userParams.size() - 1;
-        const auto stringArray = oopManager->newStringObjArrayOop(mainThread.get(), mainMethodParmSize);
-
-        if (userParams.size() > 1) {
-            for (size_t i = 1; i < userParams.size(); ++i) {
-                stringArray->data[i - 1] = stringPool->getInternString(mainThread.get(), userParams.at(i));
-            }
-        }
-
-        const auto initMethod =
-                bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM)
-                ->getMethod("initializeSystemClass", "()V", true);
-
-        std::function<void()> initFinalizeThread = [this]() {
-            garbageCollector->finalizeRunner.initFinalizeThread(mainThread.get());
-        };
-
-        mainThread->addMethod(initMethod, {});
-        //mainThread->addMethod(initFinalizeThread);
-        mainThread->addMethod(mainMethod, {Slot(stringArray)});
-
         mainThread->start(nullptr, true);
     }
 

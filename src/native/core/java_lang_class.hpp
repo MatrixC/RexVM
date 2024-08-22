@@ -197,6 +197,7 @@ namespace RexVM::Native::Core {
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
         const auto &fields = instanceMirrorClass->fields;
         std::vector<InstanceOop *> fieldInstances;
+        fieldInstances.reserve(fields.size());
         for (const auto &field : fields) {
             if (publicOnly && !field->isPublic()) {
                 continue;
@@ -208,7 +209,7 @@ namespace RexVM::Native::Core {
 
         const auto retArrayOop = frame.mem.newObjArrayOop(retArrayTypeClass, fieldInstances.size());
         for (size_t i = 0; i < fieldInstances.size(); ++i) {
-            retArrayOop->data[i] = fieldInstances.at(i);
+            retArrayOop->data[i] = fieldInstances[i];
         }
 
         frame.returnRef(retArrayOop);
@@ -286,7 +287,7 @@ namespace RexVM::Native::Core {
 
         const auto retArrayOop = frame.mem.newObjArrayOop(retTypeArrayClass, methodInstances.size());
         for (size_t i = 0; i < methodInstances.size(); ++i) {
-            retArrayOop->data[i] = methodInstances.at(i);
+            retArrayOop->data[i] = methodInstances[i];
         }
 
         frame.returnRef(retArrayOop);
@@ -458,7 +459,10 @@ namespace RexVM::Native::Core {
         const auto retArrayOop = frame.mem.newClassObjArrayOop(innerClassesAttr->classes.size());
         for (size_t i = 0; i < innerClassesAttr->classes.size(); ++i) {
             const auto innerClassName = 
-                getConstantStringFromPoolByIndexInfo(constantPool, innerClassesAttr->classes.at(i)->innerClassInfoIndex);
+                getConstantStringFromPoolByIndexInfo(
+                    constantPool, 
+                    innerClassesAttr->classes[i]->innerClassInfoIndex
+                );
             retArrayOop->data[i] = frame.mem.getClass(innerClassName)->getMirror(&frame);
         }
             

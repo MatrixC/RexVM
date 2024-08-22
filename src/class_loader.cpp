@@ -128,6 +128,7 @@ namespace RexVM {
 
 
     void ClassLoader::initMirrorClass(Class *klass) {
+        //lazy init
         // if (klass->mirror == nullptr) {
         //     if (mirrorClass != nullptr) {
         //         /*
@@ -200,7 +201,7 @@ namespace RexVM {
     }
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {
-        return basicJavaClass.at(CAST_SIZE_T(classEnum));
+        return basicJavaClass[CAST_SIZE_T(classEnum)];
     }
 
     InstanceClass *ClassLoader::loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous) {

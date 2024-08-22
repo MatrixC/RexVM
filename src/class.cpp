@@ -391,7 +391,7 @@ namespace RexVM {
             }
             const auto slotType = field->getFieldSlotType();
             if (field->isFinal() && field->constantValueIndex > 0) {
-                const auto &constValue = constantPool.at(field->constantValueIndex);
+                const auto &constValue = constantPool[field->constantValueIndex];
                 const auto descriptor = field->descriptor;
                 Slot data;
                 if (descriptor == "Z" || descriptor == "B" || descriptor == "C" ||

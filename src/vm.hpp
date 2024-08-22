@@ -46,7 +46,7 @@ namespace RexVM {
         void start();
 
     private:
-        void initVM();
+        bool initVM();
         void runMainMethod() const;
         void joinThreads();
         void exitVM();
