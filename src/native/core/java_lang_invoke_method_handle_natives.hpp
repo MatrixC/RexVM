@@ -37,9 +37,6 @@ namespace RexVM::Native::Core {
         const auto constructorMirrorClass = 
             frame.vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_CONSTRUCTOR);
 
-
-        const auto refClassName = refOop->getClass()->name;
-
         if (refClass == methodMirrorClass) {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
             const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
