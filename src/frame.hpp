@@ -37,14 +37,13 @@ namespace RexVM {
 
     struct Frame {
         Frame *previous{nullptr};
-        size_t localVariableTableSize;
         size_t methodParamSlotSize{}; //仅在MethodHandle.invoke的时候需要使用 因为method.paramSlotSize是不准确的
+        size_t localVariableTableSize;
         Slot *localVariableTable;
         SlotTypeEnum *localVariableTableType;
         StackContext operandStackContext;
         u1 currentByteCode{};
         u2 level{};
-        bool nativeCall{false};
 
         VM &vm;
         VMThread &thread;
@@ -65,8 +64,7 @@ namespace RexVM {
         //std::unique_ptr<FrameThrowable> throwObject;
         InstanceOop *throwObject{nullptr};
 
-        explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize);
-        explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame);
+        explicit Frame(VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize = 0);
         ~Frame();
 
         [[nodiscard]] ClassLoader *getCurrentClassLoader() const;

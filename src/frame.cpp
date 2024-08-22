@@ -23,27 +23,40 @@ namespace RexVM {
 
     FrameThrowable::~FrameThrowable() = default;
 
-    Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame) : Frame(vm, thread, method, previousFrame, 0) {
-    }
-
-    Frame::Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize) :
+    Frame::Frame(
+        VMThread &thread,
+        Method &method, 
+        Frame *previousFrame, 
+        size_t fixMethodParamSlotSize
+    ) :
             previous(previousFrame),
             //非native函数直接取method.maxLocals native函数取method.paramSlotSize 如像MethodHandle#invoke一样的特殊函数取fixMethodParamSlotSize
-            localVariableTableSize(!method.isNative() ? method.maxLocals : std::max(method.paramSlotSize, fixMethodParamSlotSize)),
-            localVariableTable(
-                    previous == nullptr ?
-                        thread.stackMemory.get() :
-                        previous->operandStackContext.getCurrentSlotPtr() + 1), //Previous last operand slot + 1
-            localVariableTableType(
-                    previous == nullptr ?
-                        thread.stackMemoryType.get() :
-                        previous->operandStackContext.getCurrentSlotTypePtr() + 1), //Previous last operand slot + 1
-            operandStackContext(
-                    localVariableTable + localVariableTableSize,
-                    localVariableTableType + localVariableTableSize,
-                    -1
+            methodParamSlotSize(
+                fixMethodParamSlotSize == 0 ?
+                    method.paramSlotSize :
+                    fixMethodParamSlotSize
             ),
-            vm(vm),
+            localVariableTableSize(
+                !method.isNative() ? 
+                    method.maxLocals : 
+                    std::max(method.paramSlotSize, fixMethodParamSlotSize)
+            ),
+            localVariableTable(
+                previous == nullptr ?
+                    thread.stackMemory.get() :
+                    previous->operandStackContext.getCurrentSlotPtr() + 1
+            ), //Previous last operand slot + 1
+            localVariableTableType(
+                previous == nullptr ?
+                    thread.stackMemoryType.get() :
+                    previous->operandStackContext.getCurrentSlotTypePtr() + 1
+            ), //Previous last operand slot + 1
+            operandStackContext(
+                localVariableTable + localVariableTableSize,
+                localVariableTableType + localVariableTableSize,
+                -1
+            ),
+            vm(thread.vm),
             thread(thread),
             method(method),
             klass(method.klass),
@@ -89,7 +102,7 @@ namespace RexVM {
 
     //手动调用java方法用,创建新Frame,用params向其传递参数
     std::tuple<Slot, SlotTypeEnum> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
-        createFrameAndRunMethod(thread, runMethod, std::move(params), this, true);
+        createFrameAndRunMethod(thread, runMethod, this, std::move(params));
         //Method可能有返回值,需要处理返回值的pop
         if (runMethod.returnSlotType == SlotTypeEnum::NONE) {
             //void函数，无返回
@@ -397,7 +410,7 @@ namespace RexVM {
 
     void Frame::printCollectRoots() {
         std::vector<ref> result;
-        thread.getThreadGCRoots(result);
+        thread.getCollectRoots(result);
 
         auto index = 0;
         for (const auto &refVal : result) {

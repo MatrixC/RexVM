@@ -148,50 +148,53 @@ namespace RexVM {
         }
     }
 
-    inline void monitorExecuteFrame(Frame &frame, const cstring &methodName) {
+    //备份/恢复线程的currentFrame 以及 对于处理synchronized标记的方法
+    inline void monitorExecuteFrame(Frame &frame) {
+        auto &thread = frame.thread;
+        //backup frame ptr
+        const auto backupFrame = thread.currentFrame;
+        thread.currentFrame = &frame;
+
+        
         const auto &method = frame.method;
         EXCLUDE_EXECUTE_METHODS(method)
         auto lock = false;
+
+        //monitor execute start
         ref monitorHandler = nullptr;
         if (method.isSynchronized()) [[unlikely]] {
             monitorHandler = method.isStatic() ? method.klass.getMirror(&frame) : frame.getThis();
             monitorHandler->lock();
             lock = true;
         }
-        executeFrame(frame, methodName);
+        executeFrame(frame, method.klass.name + "#" + method.name);
         if (lock) {
             monitorHandler->unlock();
         }
-    }
+        //monitor execute end
 
-    void createFrameAndRunMethod(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous, bool nativeCall) {
-        Frame nextFrame(thread.vm, thread, method_, previous);
-        nextFrame.nativeCall = nativeCall;
-        const auto slotSize = method_.paramSlotSize;
-        nextFrame.methodParamSlotSize = slotSize;
-        if (slotSize != params.size()) {
-             panic("createFrameAndRunMethod error: params length " + method_.name);
-        }
-        FOR_FROM_ZERO(params.size()) {
-            const auto slotType = method_.getParamSlotType(i);
-            nextFrame.setLocal(i, params[i], slotType);
-        }
-        const auto backupFrame = thread.currentFrame;
-        thread.currentFrame = &nextFrame;
-        const auto methodName = method_.klass.name + "#" + method_.name;
-        monitorExecuteFrame(nextFrame, methodName);
+        //recovery currentFrame
         thread.currentFrame = backupFrame;
     }
 
-    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous, size_t paramSlotSize, bool nativeCall) {
-        Frame nextFrame(thread.vm, thread, method_, previous, paramSlotSize);
-        nextFrame.nativeCall = nativeCall;
-        nextFrame.methodParamSlotSize = paramSlotSize;
-        const auto backupFrame = thread.currentFrame;
-        thread.currentFrame = &nextFrame;
-        const auto methodName = method_.klass.name + "#" + method_.name;
-        monitorExecuteFrame(nextFrame, methodName);
-        thread.currentFrame = backupFrame;
+    void createFrameAndRunMethod(VMThread &thread, Method &method, Frame *previous, std::vector<Slot> params) {
+        Frame nextFrame(thread, method, previous);
+        if (method.paramSlotSize != params.size()) [[unlikely]] {
+             panic("createFrameAndRunMethod error: params length " + method.name);
+        }
+
+        if (!params.empty()) {
+            std::copy(method.paramSlotType.cbegin(), method.paramSlotType.cend(), nextFrame.localVariableTableType);
+            std::copy(params.cbegin(), params.cend(), nextFrame.localVariableTable);
+        }
+
+        monitorExecuteFrame(nextFrame);
+    }
+
+    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method, Frame *previous, size_t paramSlotSize) {
+        Frame nextFrame(thread, method, previous, paramSlotSize);
+
+        monitorExecuteFrame(nextFrame);
     }
 
 }

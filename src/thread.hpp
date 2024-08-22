@@ -66,9 +66,8 @@ namespace RexVM {
         [[nodiscard]] bool isDaemon() const;
         [[nodiscard]] bool isAlive() const;
         void setDaemon(bool on);
-        void getThreadGCRoots(std::vector<ref> &result) const;
         void getCollectRoots(std::vector<ref> &result) const;
-        [[nodiscard]] bool hasNativeCall() const;
+        void getCollectRootsBak(std::vector<ref> &result) const;
 
         void setGCSafe(bool val);
         [[nodiscard]] bool isGCSafe() const;

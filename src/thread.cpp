@@ -84,7 +84,7 @@ namespace RexVM {
         setStatus(ThreadStatusEnum::RUNNABLE);
         for (const auto &item: runMethods) {
             if (item->method != nullptr) {
-                createFrameAndRunMethod(*this, *item->method, item->params, nullptr);
+                createFrameAndRunMethod(*this, *item->method, nullptr, item->params);
             } else if (item->nativeMethod != nullptr) {
                 item->nativeMethod();
             }
@@ -95,7 +95,7 @@ namespace RexVM {
                 ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
                 ->methods[threadClassExitMethodSlotId].get();
 
-        createFrameAndRunMethod(*this, *exitMethod, {Slot(this)}, nullptr);
+        createFrameAndRunMethod(*this, *exitMethod, nullptr, {Slot(this)});
 
         setStatus(ThreadStatusEnum::TERMINATED);
         std::lock_guard<std::recursive_mutex> lock(getAndInitMonitor()->monitorMtx);
@@ -153,13 +153,6 @@ namespace RexVM {
         }
     }
 
-    void VMThread::getThreadGCRoots(std::vector<ref> &result) const {
-        for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
-            cur->getLocalObjects(result);
-            cur->operandStackContext.getStackObjects(result);
-        }
-    }
-
     void VMThread::getCollectRoots(std::vector<ref> &result) const {
         if (currentFrame == nullptr) {
             return;
@@ -178,25 +171,23 @@ namespace RexVM {
         }
     }
 
-    bool VMThread::hasNativeCall() const {
+    void VMThread::getCollectRootsBak(std::vector<ref> &result) const {
         for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
-            if (cur->nativeCall) {
-                return true;
-            }
+            cur->getLocalObjects(result);
+            cur->operandStackContext.getStackObjects(result);
         }
-        return false;
     }
 
     void VMThread::setGCSafe(bool val) {
         gcSafe = val;
     }
+
     [[nodiscard]] bool VMThread::isGCSafe() const {
         return gcSafe;
     }
 
 
     ThreadManager::ThreadManager(VM &vm) : vm(vm) {
-
     }
 
     void ThreadManager::addThread(VMThread *thread, bool userThread) {

@@ -111,6 +111,10 @@ namespace RexVM {
         while (!vm.threadManager->checkAllThreadStopForCollect() && !vm.exit) {
             if ((getCurrentTimeMillis() - stopTime) > collectStopWaitTimeout) {
                 //stop wait timeout
+                //GC Thread跟UserThread可能出现互相死锁的情况 假设
+                // 1. GC Thread发起StopTheWorld
+                // 2. main Thread启动了两个其他的thread并且join他们 但他们被checkStop了
+                // 所以join无法运行过去，main线程走不到checkStop位置 导致死锁
                 return false;
             }
         }
@@ -282,7 +286,7 @@ namespace RexVM {
         for (const auto &thread: vm.threadManager->getThreads()) {
             const auto status = thread->getStatus();
             if (status != ThreadStatusEnum::TERMINATED) {
-                thread->getThreadGCRoots(gcRoots);
+                thread->getCollectRoots(gcRoots);
                 gcRoots.emplace_back(thread);
             } else {
                 //TODO 考虑在这里回收Thread
@@ -415,7 +419,7 @@ namespace RexVM {
         if (finalizeMethod == nullptr) [[unlikely]] {
             cprintlnErr("run finalize error: get finalizeMethod fail");
         } else {
-            createFrameAndRunMethod(*finalizeThread, *finalizeMethod, {Slot(oop)}, nullptr);
+            createFrameAndRunMethod(*finalizeThread, *finalizeMethod, nullptr, {Slot(oop)});
         }
         oop->setFinalized(true);
     }
@@ -475,8 +479,8 @@ namespace RexVM {
             Slot(CAST_I4(1))
         };
         
-        createFrameAndRunMethod(*finalizeThread, *threadConstructor, constructorParams, nullptr, true);
-        createFrameAndRunMethod(*finalizeThread, *setDaemonMethod, setDaemonParams, nullptr, true);
+        createFrameAndRunMethod(*finalizeThread, *threadConstructor, nullptr, constructorParams);
+        createFrameAndRunMethod(*finalizeThread, *setDaemonMethod, nullptr, setDaemonParams);
         finalizeThread->start(nullptr, false);
 
     }
