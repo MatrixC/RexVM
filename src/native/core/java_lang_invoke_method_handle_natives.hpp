@@ -27,9 +27,20 @@ namespace RexVM::Native::Core {
     void methodHandlerInit(Frame &frame) {
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto refOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
+        const auto refClass = refOop->getClass();
+        const auto methodMirrorClass = 
+            frame.vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_METHOD);
+
+        const auto fieldMirrorClass = 
+            frame.vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_FIELD);
+
+        const auto constructorMirrorClass = 
+            frame.vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_CONSTRUCTOR);
+
+
         const auto refClassName = refOop->getClass()->name;
 
-        if (refClassName == "java/lang/reflect/Method") {
+        if (refClass == methodMirrorClass) {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
             const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
             const auto methodPtr = klass->methods[slotId].get();
@@ -47,7 +58,7 @@ namespace RexVM::Native::Core {
                 }
             }
             setMemberNameClazzAndFlags(memberNameOop, methodPtr->klass.getMirror(&frame), newFlags);
-        } else if (refClassName == "java/lang/reflect/Field") {
+        } else if (refClass == fieldMirrorClass) {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
             const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
             const auto fieldPtr = klass->fields[slotId].get();
@@ -55,7 +66,7 @@ namespace RexVM::Native::Core {
             (void)newFlags;
 
             panic("error");
-        } else if (refClassName == "java/lang/reflect/Constructor") {
+        } else if (refClass == constructorMirrorClass) {
             panic("error");
         } else {
             panic("error");

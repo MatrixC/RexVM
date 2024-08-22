@@ -462,7 +462,7 @@ namespace RexVM {
         const auto &vm = collector.vm;
         const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
         finalizeThread = CAST_VM_THREAD_OOP(vm.oopManager->newInstance(mainThread, threadClass));
-        const std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
+        std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
         finalizeThread->addMethod(func);
 
         const auto threadConstructor = threadClass->getMethod("<init>", "(Ljava/lang/String;)V", false);
