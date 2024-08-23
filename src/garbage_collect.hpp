@@ -75,9 +75,12 @@ namespace RexVM {
 
         VM &vm;
         FinalizeRunner finalizeRunner;
-        bool markCollect{false};
-        std::mutex mtx;
-        std::condition_variable cv;
+        bool checkStop{false};
+        std::mutex checkStopMtx;
+        std::condition_variable checkStopCv;
+        bool notifyCollect{false};
+        std::mutex notifyCollectMtx;
+        std::condition_variable notifyCollectCv;
         std::thread gcThread;
         size_t collectMemoryThreshold{GC_MEMORY_THRESHOLD};
         size_t collectStopWaitTimeout{GC_STOP_WAIT_TIME_OUT};
@@ -96,15 +99,21 @@ namespace RexVM {
         bool stopTheWorld();
         void startTheWorld();
         void run();
+        void notify();
 
         void getClassStaticRef(std::vector<ref> &gcRoots) const;
-        void getThreadRef(std::vector<ref> &gcRoots);
-        std::vector<ref> getGarbageCollectRoots();
+        void getThreadRef(std::vector<ref> &gcRoots) const;
+        std::vector<ref> getGarbageCollectRoots() const;
+        std::vector<OopHolder *> getHolders() const;
 
+        void process();
+
+        void processTrace(GarbageCollectContext &context);
         void traceMarkOop(ref oop) const;
         void traceMarkInstanceOopChild(InstanceOop *oop) const;
         void traceMarkObjArrayOopChild(ObjArrayOop * oop) const;
 
+        void processCollect(GarbageCollectContext &context);
         void collectOopHolder(OopHolder &holder, GarbageCollectContext &context);
         void deleteOop(ref oop);
         void collectAll();

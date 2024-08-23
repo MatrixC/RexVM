@@ -1,6 +1,7 @@
 #ifndef REX_PRINT_HPP
 #define REX_PRINT_HPP
 #include <string>
+#include <array>
 #include "../../config.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
@@ -42,13 +43,15 @@ namespace RexVM::Native::Rex {
     void print_float(Frame &frame) {
         ASSERT_IF_NULL_THROW_NPE(frame.getThis())
         const auto val = frame.getLocalF4(1);
-        cprint("{}", val);
+        //展示float和double 在用科学计数法表示时E的最后会有个加号 跟openjdk不一致
+        //暂时没有找到去掉的办法
+        cprint("{:E}", val);
     }
 
     void print_double(Frame &frame) {
         ASSERT_IF_NULL_THROW_NPE(frame.getThis())
         const auto val = frame.getLocalF8(1);
-        cprint("{}", val);
+        cprint("{:E}", val);
     }
 
     void print_char_arr(Frame &frame) {
@@ -121,13 +124,13 @@ namespace RexVM::Native::Rex {
     void println_float(Frame &frame) {
         ASSERT_IF_NULL_THROW_NPE(frame.getThis())
         const auto val = frame.getLocalF4(1);
-        cprintln("{}", val);
+        cprintln("{:E}", val);
     }
 
     void println_double(Frame &frame) {
         ASSERT_IF_NULL_THROW_NPE(frame.getThis())
         const auto val = frame.getLocalF8(1);
-        cprintln("{}", val);
+        cprintln("{:E}", val);
     }
 
     void println_char_arr(Frame &frame) {

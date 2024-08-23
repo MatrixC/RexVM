@@ -72,6 +72,7 @@ namespace RexVM {
     }
 
     void VM::exitVM() {
+        garbageCollector->notify();
         garbageCollector->join();
         stringPool->clear();
         garbageCollector->collectAll();

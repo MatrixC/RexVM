@@ -53,6 +53,11 @@ namespace RexVM {
     GarbageCollect::GarbageCollect(VM &vm) : vm(vm), finalizeRunner(vm, *this) {
     }
 
+    void GarbageCollect::notify() {
+        notifyCollect = true;
+        notifyCollectCv.notify_all();
+    }
+
     void GarbageCollect::start() {
         if (!enableGC) {
             return;
@@ -63,6 +68,14 @@ namespace RexVM {
         gcThread = std::thread([this]() {
             setThreadName("GC Thread");
             while (!this->vm.exit) {
+                // {
+                //     std::unique_lock<std::mutex> guard(notifyCollectMtx);
+                //     notifyCollectCv.wait(guard, [this] { return notifyCollect; });
+                // }
+                // if (!this->vm.exit) {
+                //     this->run();
+                // }
+                // notifyCollect = false;
                 std::this_thread::sleep_for(std::chrono::milliseconds(collectSleepTime));
                 if (vm.oopManager->allocatedOopMemory > collectMemoryThreshold) {
                     this->run();
@@ -71,18 +84,16 @@ namespace RexVM {
             //finalize中有wait 防止因为wait而无法退出线程
             finalizeRunner.cv.notify_all();
         });
-
-        //finalizeRunner.start();
     }
 
     void GarbageCollect::checkStopForCollect(VMThread &thread) {
-        if (!markCollect) [[likely]] {
+        if (!checkStop) [[likely]] {
             return;
         }
 
-        std::unique_lock<std::mutex> lock(mtx);
+        std::unique_lock<std::mutex> lock(checkStopMtx);
         thread.stopForCollect = true;
-        cv.wait(lock, [this] { return !markCollect; });
+        checkStopCv.wait(lock, [this] { return !checkStop; });
         thread.stopForCollect = false;
     }
 
@@ -96,7 +107,7 @@ namespace RexVM {
         const auto threads = vm.threadManager->getThreads();
         for (const auto &thread: threads) {
             if (!thread->isGCSafe()) {
-                //线程内有GC不安全的代码区块
+                //线程内有GC不安全的代码区块ni
                 return false;
             }
         }
@@ -105,7 +116,7 @@ namespace RexVM {
     }
 
     bool GarbageCollect::stopTheWorld() {
-        markCollect = true;
+        checkStop = true;
         finalizeRunner.cv.notify_all();
         const auto stopTime = getCurrentTimeMillis();
         while (!vm.threadManager->checkAllThreadStopForCollect() && !vm.exit) {
@@ -122,8 +133,22 @@ namespace RexVM {
     }
 
     void GarbageCollect::startTheWorld() {
-        markCollect = false;
-        cv.notify_all();
+        checkStop = false;
+        checkStopCv.notify_all();
+    }
+
+    void GarbageCollect::process() {
+        GarbageCollectContext context(vm);
+        processTrace(context);
+        processCollect(context);
+
+        sumCollectedMemory += context.tempAllocatedOopMemory;
+        if (enableLog) {
+            context.printLog(vm);
+        }
+
+        vm.mainThread->clearTraced();
+        ++collectSuccessCount;
     }
 
     void GarbageCollect::run() {
@@ -134,37 +159,18 @@ namespace RexVM {
             return;
         }
 
-        GarbageCollectContext context(vm);
-
-        const auto gcRoots = getGarbageCollectRoots();
-        context.endGetRoots();
-
-        for (const auto &item: gcRoots) {
-            traceMarkOop(item);
-        }
-        context.endTraceOop();
-
-        collectOopHolder(vm.oopManager->defaultOopHolder, context);
-        for (const auto &item: vm.threadManager->getThreads()) {
-            collectOopHolder(item->oopHolder, context);
-        }
-
-        context.collectFinish(vm);
-        sumCollectedMemory += context.tempAllocatedOopMemory;
-        if (enableLog) {
-            context.printLog(vm);
-        }
-
-        //or gcRoots all clearTraced()
-        vm.mainThread->clearTraced();
-
-        ++collectSuccessCount;
+        process();
 
         startTheWorld();
     }
 
     void GarbageCollect::deleteOop(ref oop) {
         const auto klass = oop->getClass();
+
+#ifdef DEBUG
+        collectedOopDesc.emplace(oop, klass->name);
+#endif
+
         if (klass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
             delete CAST_OBJ_ARRAY_OOP(oop);
             return;
@@ -218,6 +224,14 @@ namespace RexVM {
         panic("error");
     }
 
+    void GarbageCollect::processCollect(GarbageCollectContext &context) {
+        const auto holders = getHolders();
+        for (const auto &holder : holders) {
+            collectOopHolder(*holder, context);
+        }
+        context.collectFinish(vm);
+    }
+
     void GarbageCollect::collectOopHolder(OopHolder &holder, GarbageCollectContext &context) {
         const auto &oops = holder.oops;
         std::vector<ref> survives;
@@ -227,19 +241,6 @@ namespace RexVM {
                 survives.emplace_back(oop);
                 oop->clearTraced();
             } else {
-                // if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
-                //     //need to run finalize
-                //     survives.emplace_back(oop);
-                //     oop->clearTraced();
-                //     //add to run finalize
-                //     finalizeRunner.add(CAST_INSTANCE_OOP(oop));
-                //     continue;
-                // }
-                if (oop->getClass()->getSpecialClassType() == SpecialClassEnum::THREAD_CLASS) {
-                    survives.emplace_back(oop);
-                    continue;
-                }
-
                 const auto memorySize = oop->getMemorySize();
 
                 ++context.collectedOopCount;
@@ -281,7 +282,7 @@ namespace RexVM {
         }
     }
 
-    void GarbageCollect::getThreadRef(std::vector<ref> &gcRoots) {
+    void GarbageCollect::getThreadRef(std::vector<ref> &gcRoots) const {
         //是否要考虑gc线程?
         for (const auto &thread: vm.threadManager->getThreads()) {
             const auto status = thread->getStatus();
@@ -294,12 +295,55 @@ namespace RexVM {
         }
     }
 
-    std::vector<ref> GarbageCollect::getGarbageCollectRoots() {
+    std::vector<ref> GarbageCollect::getGarbageCollectRoots() const {
         std::vector<ref> gcRoots;
         gcRoots.reserve(GC_ROOT_START_SIZE);
         getClassStaticRef(gcRoots);
         getThreadRef(gcRoots);
         return gcRoots;
+    }
+
+    std::vector<OopHolder *> GarbageCollect::getHolders() const {
+        std::vector<OopHolder *> oopHolders;
+        oopHolders.emplace_back(&vm.oopManager->defaultOopHolder);
+        for (const auto &item: vm.threadManager->getThreads()) {
+            oopHolders.emplace_back(&item->oopHolder);
+        }
+        return oopHolders;
+    }
+
+    void GarbageCollect::processTrace(GarbageCollectContext &context) {
+        //trace 有以下几个阶段
+        //1. 先traceMark所有gcroot
+        //2. 有两类oop有可能幸存
+        //  2.1 重写了finalize方法的 需要先执行finalize 所以不能回收 并且要将它traceMark 避免影响finalize的运行 
+        //      但因为finalize只会执行一次 所以如果没有在finalize讲this和其他对象建立关系 则下次gc会回收
+        //  2.2 VMThread对象 thread对象因为内部有OopHolder 所以暂时放在最后回收 如果要提前回收需要考虑将它的oopHolder
+        //      里的对象先移动到别的地方
+
+        const auto gcRoots = getGarbageCollectRoots();
+        context.endGetRoots();
+
+        for (const auto &item: gcRoots) {
+            traceMarkOop(item);
+        }
+
+        const auto oopHolders = getHolders();
+        for (const auto &holder : oopHolders) {
+            for (const auto &oop : holder->oops) {
+                if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
+                    traceMarkOop(oop);
+                    finalizeRunner.add(CAST_INSTANCE_OOP(oop));
+                    continue;
+                }
+
+                if (oop->getClass()->getSpecialClassType() == SpecialClassEnum::THREAD_CLASS) {
+                    traceMarkOop(oop);
+                }
+            }
+        }
+
+        context.endTraceOop();
     }
 
     void GarbageCollect::traceMarkOop(ref oop) const {
@@ -352,13 +396,9 @@ namespace RexVM {
     }
 
     void GarbageCollect::collectAll() {
+        //这里被collect 则finalize方法无法被执行
 
-
-        std::vector<OopHolder *> oopHolders;
-        oopHolders.emplace_back(&vm.oopManager->defaultOopHolder);
-        for (const auto &item: vm.threadManager->getThreads()) {
-            oopHolders.emplace_back(&item->oopHolder);
-        }
+        const auto oopHolders = getHolders();
 
         size_t deleteCount{0};
         std::vector<ref> lastCollect;
@@ -452,7 +492,7 @@ namespace RexVM {
                 std::unique_lock<std::mutex> lock(dequeMtx);
                 cv.wait(lock, [this] { 
                     return !oopDeque.empty() 
-                            || collector.markCollect
+                            || collector.checkStop
                             || collector.vm.exit; 
                 });
             }

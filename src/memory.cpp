@@ -9,6 +9,7 @@
 #include "class_loader.hpp"
 #include "string_pool.hpp"
 #include "utils/format.hpp"
+#include "garbage_collect.hpp"
 
 namespace RexVM {
 
@@ -239,7 +240,6 @@ namespace RexVM {
     void OopManager::addToOopHolder(VMThread *thread, ref oop) {
         thread->oopHolder.addOop(oop);
         ++allocatedOopCount;
-
         allocatedOopMemory += oop->getMemorySize();
     }
 }

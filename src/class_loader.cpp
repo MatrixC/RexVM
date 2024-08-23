@@ -14,6 +14,7 @@
 #include "memory.hpp"
 #include "basic_java_class.hpp"
 #include "key_slot_id.hpp"
+#include "native/rex/rex_classes.hpp"
 
 namespace RexVM {
 
@@ -36,6 +37,9 @@ namespace RexVM {
         for (const auto &classItem: classMap) {
             initMirrorClass(classItem.second.get());
         }
+
+        //load RexVM runtime class
+        loadInstanceClass(REX_PRINT_STREAM_CLASS_FILE.data(), REX_PRINT_STREAM_CLASS_FILE.size(), false);
     }
 
     constexpr auto ANONYMOUS_CLASS_NAME_PREFIX = "ANONYMOUS";
@@ -204,7 +208,7 @@ namespace RexVM {
         return basicJavaClass[CAST_SIZE_T(classEnum)];
     }
 
-    InstanceClass *ClassLoader::loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous) {
+    InstanceClass *ClassLoader::loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous) {
         cstring buffer(length, 0);
         auto bufferPtr = CAST_VOID_PTR(buffer.data());
         std::memcpy(bufferPtr, ptr, length * sizeof(u1));
