@@ -1032,7 +1032,8 @@ namespace RexVM {
             const cstring &methodDescriptor
         ) {
             const auto invokeMethod = 
-                    frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
+                    frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
+                        ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
             //1第一个参数为MethodHandle Object
             const auto popLength = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
             frame.runMethodInner(*invokeMethod, popLength);
