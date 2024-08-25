@@ -39,9 +39,9 @@ namespace RexVM::Native::Misc {
         const auto nameBytes = CAST_BYTE_TYPE_ARRAY_OOP(frame.getLocalRef(2));
         ASSERT_IF_NULL_THROW_NPE(nameBytes);
         //传进来的参数没有以\0结尾 miniz中用了strlen 会有问题 自己处理下
-        std::vector<char> nameBytesVec(nameBytes->dataLength + 1, '\0');
+        std::vector<char> nameBytesVec(nameBytes->getDataLength() + 1, '\0');
         const auto nameBytesPtr = nameBytes->data.get();
-        std::copy(nameBytesPtr, nameBytesPtr + nameBytes->dataLength, nameBytesVec.data());
+        std::copy(nameBytesPtr, nameBytesPtr + nameBytes->getDataLength(), nameBytesVec.data());
         const auto nameBytesFixPtr = nameBytesVec.data();
 
         const auto fileIndex = mz_zip_reader_locate_file(archive, nameBytesFixPtr, nullptr, 0);
@@ -160,11 +160,10 @@ namespace RexVM::Native::Misc {
         const auto jzentry = frame.getLocalI8(0);
         const auto fileStat = zipGetFieStat(jzentry);
         const auto type = frame.getLocalI4(2);
-        auto &oopManager = frame.vm.oopManager;
 
         switch (type) {
             case 0: {//JZENTRY_NAME
-                const auto fileNameOop = oopManager->newByteArrayOop(MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE);
+                const auto fileNameOop = frame.mem.newByteArrayOop(MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE);
                 std::copy(fileStat->m_filename, fileStat->m_filename + MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE, fileNameOop->data.get());
                 frame.returnRef(fileNameOop);
                 return;
@@ -198,7 +197,7 @@ namespace RexVM::Native::Misc {
         std::vector<cstring> fileNames;
 
         for (decltype(archive->m_total_files) i = 0; i < archive->m_total_files; ++i) {
-            std::array<char, 512> nameBuffer;
+            std::array<char, 512> nameBuffer{};
             if (!mz_zip_reader_get_filename(archive, i, nameBuffer.data(), sizeof(nameBuffer))) {
                 frame.returnRef(nullptr);
                 return;
@@ -209,9 +208,9 @@ namespace RexVM::Native::Misc {
             }
         }
 
-        const auto result = frame.vm.oopManager->newStringObjArrayOop(fileNames.size());
+        const auto result = frame.mem.newStringObjArrayOop(fileNames.size());
         for (size_t i = 0; i < fileNames.size(); ++i) {
-            result->data[i] = frame.vm.stringPool->getInternString(fileNames[i]);
+            result->data[i] = frame.mem.getInternString(fileNames[i]);
         }
 
         frame.returnRef(result);
@@ -228,7 +227,7 @@ namespace RexVM::Native::Misc {
         const auto len = CAST_SIZE_T(frame.getLocalI4(8));
         const auto fileStat = zipGetFieStat(jzentry);
 
-        if (len > b->dataLength - off) {
+        if (len > b->getDataLength() - off) {
             throwIOException(frame, "len > byte[] size - off");
             return;  
         }

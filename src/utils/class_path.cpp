@@ -1,10 +1,11 @@
 #include "class_path.hpp"
 #include <filesystem>
 #include <sstream>
+#include <cstdlib>
+#include <ranges>
 #include "string_utils.hpp"
 #include "../exception.hpp"
 #include "../file_system.hpp"
-#include <ranges>
 
 namespace RexVM {
 
@@ -58,7 +59,8 @@ namespace RexVM {
         return std::make_unique<std::istringstream>(buffer);
     }
 
-    CombineClassPath::CombineClassPath(const cstring &path) : ClassPath(ClassPathTypeEnum::COMBINE, path) {
+    CombineClassPath::CombineClassPath(const cstring &path, const cstring &javaHome) 
+        : ClassPath(ClassPathTypeEnum::COMBINE, path), javaHome(javaHome) {
         const auto fileSep = cstring{FILE_SEPARATOR};
         const auto paths = splitString(path, PATH_SEPARATOR);
         for (const auto &pathView: paths) {
@@ -103,5 +105,31 @@ namespace RexVM {
 
     cstring CombineClassPath::getVMClassPath() const {
         return joinString(processedPath, {PATH_SEPARATOR});
+    }
+
+    std::unique_ptr<CombineClassPath> CombineClassPath::getDefaultCombineClassPath(
+        const cstring &javaHome,
+        const cstring &userClassPath
+    ) {
+        std::vector<cstring> pathList;
+        pathList.emplace_back(".");
+        pathList.emplace_back(buildRtPath(javaHome));
+        pathList.emplace_back(buildCharsetsPath(javaHome));
+        const auto userEnvClassPath = std::getenv("CLASSPATH");
+        if (userEnvClassPath != nullptr) {
+            const auto envClassPath = cstring(userEnvClassPath);
+            const auto cps = splitString(envClassPath, PATH_SEPARATOR);
+            for (const auto &item: cps) {
+                pathList.emplace_back(item);
+            }
+        }
+        if (!userClassPath.empty()) {
+            const auto cps = splitString(userClassPath, PATH_SEPARATOR);
+            for (const auto &item: cps) {
+                pathList.emplace_back(item);
+            }
+        }
+
+        return std::make_unique<CombineClassPath>(joinString(pathList, cstring{PATH_SEPARATOR}), javaHome);
     }
 }

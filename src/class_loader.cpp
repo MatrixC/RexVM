@@ -8,13 +8,13 @@
 #include "constant_info.hpp"
 #include "class_file.hpp"
 #include "class.hpp"
+#include "class_member.hpp"
 #include "vm.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
 #include "basic_java_class.hpp"
 #include "key_slot_id.hpp"
-
-
+#include "native/rex/rex_classes.hpp"
 
 namespace RexVM {
 
@@ -37,13 +37,15 @@ namespace RexVM {
         for (const auto &classItem: classMap) {
             initMirrorClass(classItem.second.get());
         }
+
+        //load RexVM runtime class
+        loadInstanceClass(REX_PRINT_STREAM_CLASS_FILE.data(), REX_PRINT_STREAM_CLASS_FILE.size(), false);
     }
 
     constexpr auto ANONYMOUS_CLASS_NAME_PREFIX = "ANONYMOUS";
     InstanceClass *ClassLoader::loadInstanceClass(std::istream &is, bool notAnonymous) {
         ClassFile cf(is);
         auto instanceClass = std::make_unique<InstanceClass>(*this, cf);
-        instanceClass->anonymous = true;
         const auto rawPtr = instanceClass.get();
         initMirrorClass(rawPtr);
         //const auto className = notAnonymous ? instanceClass->name : ANONYMOUS_CLASS_NAME_PREFIX + std::to_string(anonymousClassIndex.fetch_add(1));
@@ -83,7 +85,11 @@ namespace RexVM {
             loadInstanceClass(name);
         }
 
-        return classMap[name].get();
+        if (const auto iter = classMap.find(name); iter != classMap.end()) {
+            return iter->second.get();
+        }
+
+        return nullptr;
     }
 
 
@@ -126,19 +132,20 @@ namespace RexVM {
 
 
     void ClassLoader::initMirrorClass(Class *klass) {
-        if (klass->mirror == nullptr) {
-            if (mirrorClass != nullptr) {
-                /*
-                auto mirror = new MirrorOop(mirrorClass, klass);
-                if (classLoaderInstance != nullptr) {
-                    //mirror->setFieldValue("classLoader", "Ljava/lang/ClassLoader;", Slot(classLoaderInstance));
-                    //TODO bootstrapLoader or application loader is different
-                }
-                klass->mirror = mirror;
-                */
-                klass->mirror = std::make_unique<MirrorOop>(mirrorClass, klass);
-            }
-        }
+        //lazy init
+        // if (klass->mirror == nullptr) {
+        //     if (mirrorClass != nullptr) {
+        //         /*
+        //         auto mirror = new MirrorOop(mirrorClass, klass);
+        //         if (classLoaderInstance != nullptr) {
+        //             //mirror->setFieldValue("classLoader", "Ljava/lang/ClassLoader;", Slot(classLoaderInstance));
+        //             //TODO bootstrapLoader or application loader is different
+        //         }
+        //         klass->mirror = mirror;
+        //         */
+        //         klass->mirror = std::make_unique<MirrorOop>(mirrorClass, klass);
+        //     }
+        // }
     }
 
     InstanceClass *ClassLoader::getInstanceClass(const cstring &name) {
@@ -172,23 +179,36 @@ namespace RexVM {
 
     void ClassLoader::initKeySlotId() const {
         stringClassValueFieldSlotId =
-                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING)
-                        ->getField("value", "[C", false)->slotId;
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING)
+                ->getField("value", "[C", false)->slotId;
 
         throwableClassDetailMessageFieldSlotId =
-                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE)
-                        ->getField("detailMessage", "Ljava/lang/String;",false)->slotId;
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE)
+                ->getField("detailMessage", "Ljava/lang/String;", false)->slotId;
 
         threadClassThreadStatusFieldSlotId =
-                getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
-                        ->getField("threadStatus", "I",false)->slotId;
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->getField("threadStatus", "I", false)->slotId;
+
+        threadClassExitMethodSlotId =
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->getMethod("exit", "()V", false)->index;
+
+        threadClassDeamonFieldSlotId =
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->getField("daemon", "Z", false)->slotId;
+        
+        threadClassNameFieldSlotId =
+            getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
+                ->getField("name", "Ljava/lang/String;", false)->slotId;
+
     }
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {
-        return basicJavaClass.at(CAST_SIZE_T(classEnum));
+        return basicJavaClass[CAST_SIZE_T(classEnum)];
     }
 
-    InstanceClass *ClassLoader::loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous) {
+    InstanceClass *ClassLoader::loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous) {
         cstring buffer(length, 0);
         auto bufferPtr = CAST_VOID_PTR(buffer.data());
         std::memcpy(bufferPtr, ptr, length * sizeof(u1));

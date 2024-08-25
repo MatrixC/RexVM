@@ -9,7 +9,7 @@
 namespace RexVM::Native::Core {
 
     void getSystemTimeZoneID(Frame &frame) {
-        frame.returnRef(frame.vm.stringPool->getInternString(getSystemTimeZoneId()));
+        frame.returnRef(frame.mem.getInternString(getSystemTimeZoneId()));
     }
 
 

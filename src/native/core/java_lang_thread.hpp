@@ -60,13 +60,13 @@ namespace RexVM::Native::Core {
     //private native void start0();
     void start0(Frame &frame) {
         const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
-        ASSERT_IF_NULL_THROW_NPE(self);
-        const auto threadClass = self->getInstanceClass();
-        if (threadClass->name == "java/lang/ref/Reference$ReferenceHandler") [[unlikely]] {
-            // endless loop tryHandlePending
-            return;
-        }
-        self->start(&frame);
+        ASSERT_IF_NULL_THROW_NPE(self)
+        // const auto threadClass = self->getInstanceClass();
+        // if (threadClass->name == "java/lang/ref/Reference$ReferenceHandler") [[unlikely]] {
+        //     // endless loop tryHandlePending
+        //     return;
+        // }
+        self->start(&frame, true);
     }
 
     //public native int countStackFrames();
@@ -106,6 +106,8 @@ namespace RexVM::Native::Core {
     //private native void setNativeName(String name);
     //useless
     void setNativeName(Frame &frame) {
+        const auto self = frame.getThisInstance();
+        ASSERT_IF_NULL_THROW_NPE(self)
     }
 
     //private native void stop0(Object o);

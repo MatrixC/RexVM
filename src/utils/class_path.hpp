@@ -54,14 +54,18 @@ namespace RexVM {
     };
 
     struct CombineClassPath : ClassPath {
+        cstring javaHome{};
         std::vector<std::unique_ptr<ClassPath>> classPaths;
         std::unordered_set<cstring> processedPath;
 
-        explicit CombineClassPath(const cstring &path);
+        explicit CombineClassPath(const cstring &path, const cstring &javaHome = {});
         cstring getVMClassPath() const override;
 
         std::unique_ptr<std::istream> getStream(const cstring &filePath) override;
+
+        static std::unique_ptr<CombineClassPath> getDefaultCombineClassPath(const cstring &javaHome, const cstring &userClassPath);
     };
+
 
 
 }

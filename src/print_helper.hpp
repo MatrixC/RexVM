@@ -1,18 +1,18 @@
 #ifndef PRINT_HELPER_HPP
 #define PRINT_HELPER_HPP
 
-#include "utils/format.hpp"
-#include "constant_info.hpp"
-#include "attribute_info.hpp"
-#include "class_file.hpp"
-
+#include "config.hpp"
+#include <vector>
+#include <tuple>
 
 namespace RexVM {
 
+    struct ClassFile;
     struct Class;
     struct ObjArrayOop;
-    struct Oop;
+    class Oop;
     struct InstanceOop;
+    struct Frame;
 
     void printConstant(ClassFile &cf);
 
@@ -22,6 +22,7 @@ namespace RexVM {
 
     void pObjArray(Oop *oop);
 
+    cstring formatArray(Frame &frame, ref oop);
     cstring formatSlot(Frame &frame, Slot val, SlotTypeEnum type);
 
     void pio(Frame &frame, ref oop);

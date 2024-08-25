@@ -1,9 +1,6 @@
 #include "utils/format.hpp"
-#include "utils/string_utils.hpp"
-#include "utils/descriptor_parser.hpp"
 #include "vm.hpp"
 #include <vector>
-#include <filesystem>
 
 using namespace RexVM;
 
@@ -33,7 +30,6 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
     applicationParameter.userParams = params;
     return 0;
 }
-
 
 int main(int argc, char *argv[]) {
     ApplicationParameter applicationParameter;

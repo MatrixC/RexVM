@@ -1,6 +1,6 @@
 # RexVM
 
-[RexVM](https://github.com/MatrixC/RexVM) 一个基于解释器的Java虚拟机(JVM)，使用C++开发。
+一个基于解释器的Java虚拟机(JVM)，使用C++开发。
 
 ## 支持特性
 * 异常(Exception)，包括异常的throw，catch，fillInStackTrace等
@@ -12,6 +12,7 @@
 * 部分IO功能(IO)，FileInputStream，FileOutputStream
 * 绝大部分Unsafe函数，包括Direct Memory、CompareAndSwap相关函数，支持Atomic、ConcurrentHashMap等concurrent类
 * java.util.ServiceLoader
+* Tracing垃圾回收(Tracing garbage collection)以及finalize机制(Since v1.1)
 
 ## 已验证的操作系统及编译环境
 ### 操作系统及CPU架构

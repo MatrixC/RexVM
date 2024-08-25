@@ -4,54 +4,112 @@
 #include <vector>
 #include <memory>
 #include <thread>
+#include <queue>
+#include <mutex>
 #include "config.hpp"
-#include "class.hpp"
 #include "oop.hpp"
+#include "memory.hpp"
 
 namespace RexVM {
 
+    class Oop;
     struct VM;
     struct Frame;
     struct Method;
     struct InstanceOop;
-    struct Oop;
+    struct OopHolder;
 
-    enum class ThreadStatusEnum : u2 {
-        NEW = 0x0000,
-        RUNNABLE = 0x0004,
-        BLOCKED = 0x0400,
-        WAITING = 0x0010,
-        TIMED_WAITING = 0x0020,
-        TERMINATED = 0x0002,
+    struct VMThreadMethod {
+        explicit VMThreadMethod(Method *method, std::vector<Slot> params);
+        explicit VMThreadMethod(VMTheadNativeHandler nativeMethod);
+        Method *method{nullptr};
+        VMTheadNativeHandler nativeMethod;
+        std::vector<Slot> params;
     };
 
     struct VMThread : InstanceOop {
         VM &vm;
-        bool isMainThread{false};
         std::thread nativeThread;
-        Frame *currentFrame{nullptr};
-        Method &runMethod;
-        std::atomic_bool interrupted{false};
-        std::vector<Slot> params;
+        std::vector<std::unique_ptr<VMThreadMethod>> runMethods;
         std::unique_ptr<Slot[]> stackMemory;
         std::unique_ptr<SlotTypeEnum[]> stackMemoryType;
+        OopHolder oopHolder;
 
-        explicit VMThread(VM &vm, InstanceClass * klass, Method *runnableMethod, std::vector<Slot> runnableMethodParams);
-        ~VMThread() override;
+        Frame *currentFrame{nullptr};
+        std::atomic_bool interrupted{false};
+        volatile bool stopForCollect{false};
+        volatile bool gcSafe{true};
 
-        
-        void start(Frame *frame);
+#ifdef DEBUG
+        cstring threadName{};
+#endif
+
+        //Normal
+        explicit VMThread(VM &vm, InstanceClass * klass);
+
+        //Main
+        explicit VMThread(VM &vm);
+        ~VMThread();
+
+        void setName(const cstring &name);
+        cstring getName() const;
+
+        static VMThread *createOriginVMThread(VM &vm);
+
+        void addMethod(Method *method, const std::vector<Slot>& params);
+        void addMethod(VMTheadNativeHandler &method);
+        void start(Frame *currentFrame_, bool userThread);
         void join();
 
-        [[nodiscard]] cstring getName() const;
         void setStatus(ThreadStatusEnum status);
         [[nodiscard]] ThreadStatusEnum getStatus() const;
+        [[nodiscard]] bool isDaemon() const;
         [[nodiscard]] bool isAlive() const;
-        [[nodiscard]] std::vector<Oop *> getThreadGCRoots() const;
+        void setDaemon(bool on);
+        void getCollectRoots(std::vector<ref> &result) const;
+        void getCollectRootsBak(std::vector<ref> &result) const;
+
+        void setGCSafe(bool val);
+        [[nodiscard]] bool isGCSafe() const;
+        
 
         private:
             void run();
 
+    };
+
+    struct ThreadManager {
+
+        VM &vm;
+
+        explicit ThreadManager(VM &vm);
+
+        std::mutex threadsMtx;
+        std::vector<VMThread *> threads;
+
+        std::mutex joinListMtx;
+        std::queue<VMThread *> joinThreads;
+
+        void addThread(VMThread *thread, bool userThread);
+
+        void joinUserThreads();
+        bool checkAllThreadStopForCollect();
+        std::vector<VMThread *> getThreads();
+    };
+
+    struct ThreadSafeGuard {
+        //设置线程的GCSafe状态
+        //在线程进入native方法时 因为native方法中会创建对象
+        //但虚拟机跟踪不到native方法中创建的对象 所以就有可能在
+        //[创建对象 - 使用这个对象] 这个过程中因为对用的了别的方法
+        //进入gc状态而导致创建的对象还未被使用就回收 而指针还停留在
+        //native方法栈中 进而导致core
+
+        VMThread &thread;
+
+        explicit ThreadSafeGuard(VMThread &thread);
+
+        ~ThreadSafeGuard();
     };
 
 }

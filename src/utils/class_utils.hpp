@@ -4,7 +4,7 @@
 
 namespace RexVM {
 
-    struct Oop;
+    class Oop;
     struct ClassLoader;
     struct ByteTypeArrayOop;
     struct Class;

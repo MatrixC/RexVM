@@ -22,13 +22,12 @@ namespace RexVM::Native::Core {
 
         const auto buffer = CAST_BYTE_TYPE_ARRAY_OOP(bufferOop);
         if (useArrayLength) [[unlikely]] {
-            len = buffer->dataLength;
+            len = buffer->getDataLength();
         }
         const auto bufferPtr = buffer->data.get() + off;
 
-        auto &classLoader = *frame.getCurrentClassLoader();
-        const auto classOop = classLoader.loadInstanceClass(bufferPtr, len, notAnonymous);
-        frame.returnRef(classOop->getMirrorOop());
+        const auto classOop = frame.mem.loadInstanceClass(bufferPtr, len, notAnonymous);
+        frame.returnRef(classOop->getMirror(&frame));
     }
 
     //native Class<?> defineClass0(String name, byte[] b, int off, int len, ProtectionDomain pd);

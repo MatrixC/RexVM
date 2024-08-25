@@ -32,7 +32,7 @@ namespace RexVM::Native::Core {
                 attribute |= 0x04;
             }
 
-            if (filePath.filename().string().at(0) == '.') {
+            if (filePath.filename().string()[0] == '.') {
                 attribute |= 0x08;
             }
         }
@@ -72,7 +72,7 @@ namespace RexVM::Native::Core {
         if (realpath(path.c_str(), resolvedPath) == nullptr) {
             throwNullPointException(frame);
         }
-        frame.returnRef(frame.vm.stringPool->getInternString(cstring{resolvedPath}));
+        frame.returnRef(frame.mem.getInternString(cstring{resolvedPath}));
     }
 
     //public native long getLastModifiedTime(File f);

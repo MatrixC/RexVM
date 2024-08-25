@@ -7,53 +7,55 @@
 #include <memory>
 #include <unordered_map>
 #include <atomic>
-#include "class_member.hpp"
-#include "attribute_info.hpp"
+#include "utils/spin_lock.hpp"
+#include "mirror_base.hpp"
 
 namespace RexVM {
 
     struct ClassFile;
     struct ClassLoader;
     struct ConstantInfo;
-    struct Oop;
+    class Oop;
     struct InstanceOop;
     struct MirrorOop;
     struct InstanceClass;
     struct Frame;
     struct OopManager;
+    struct VMThread;
+    struct MirOop;
+    struct MirrorBase;
+    struct BootstrapMethodsAttribute;
+    struct EnclosingMethodAttribute;
+    struct InnerClassesAttribute;
+    struct ClassMember;
+    struct Method;
+    struct Field;
+    struct AttributeInfo;
 
-    enum class ClassInitStatusEnum {
-        LOADED,
-        INIT,
-        INITED,
-    };
 
-    enum class ClassTypeEnum {
-        PRIMITIVE_CLASS,
-        INSTANCE_CLASS,
-        TYPE_ARRAY_CLASS,
-        OBJ_ARRAY_CLASS,
-    };
-
-    //标记在InstanceClass上, 用于在new指令上提升效率
-    enum class SpecialInstanceClass {
-        NONE,
-        THREAD_CLASS,
-        CLASS_LOADER_CLASS,
-    };
 
     struct Class {
+        
+        const cstring name;
+        std::vector<InstanceClass *> interfaces;
+        InstanceClass *superClass{nullptr};
+
         const ClassTypeEnum type;
         const u2 accessFlags{};
-        const cstring name;
-        std::unique_ptr<MirrorOop> mirror;
+        
         ClassLoader &classLoader;
         std::atomic<ClassInitStatusEnum> initStatus{ClassInitStatusEnum::LOADED};
 
-        InstanceClass *superClass{nullptr};
-        std::vector<InstanceClass *> interfaces;
+        //flags: low[accessFlags(16), type(2), anonymous(1), special(3), dimension, basicType(elementType) ]high
 
         explicit Class(ClassTypeEnum type, u2 accessFlags, cstring name, ClassLoader &classLoader);
+
+        [[nodiscard]] ClassTypeEnum getType() const;
+        [[nodiscard]] u2 getAccessFlags() const;
+        [[nodiscard]] size_t getInterfaceSize() const;
+        [[nodiscard]] InstanceClass *getInterfaceByIndex(size_t index) const;
+        [[nodiscard]] InstanceClass *getSuperClass() const;
+        [[nodiscard]] SpecialClassEnum getSpecialClassType() const;
 
         [[nodiscard]] bool isInstanceClass() const;
         [[nodiscard]] bool isInterface() const;
@@ -69,9 +71,11 @@ namespace RexVM {
         [[nodiscard]] bool isSuperClassOf(const Class *that) const;
         [[nodiscard]] bool isSuperInterfaceOf(const Class *that) const;
         [[nodiscard]] bool isSubClassOf(const Class *that) const;
+        
+        MirrorBase mirrorBase{};
+        [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
-        [[nodiscard]] MirrorOop *getMirrorOop() const;
-
+        
         virtual ~Class();
     };
 
@@ -84,15 +88,19 @@ namespace RexVM {
         [[nodiscard]] BasicType getBasicType() const;
         [[nodiscard]] bool isWideType() const;
         [[nodiscard]] Slot getValueFromBoxingOop(InstanceOop *oop) const;
-        [[nodiscard]] InstanceOop *getBoxingOopFromValue(Slot value, OopManager &oopManager) const;
+        [[nodiscard]] InstanceOop *getBoxingOopFromValue(Slot value, Frame &frame) const;
     };
 
     struct InstanceClass : Class {
-        bool anonymous{false};
-        SpecialInstanceClass specialInstanceClass{SpecialInstanceClass::NONE};
+        SpecialClassEnum specialClassType{SpecialClassEnum::NONE};
         u2 instanceSlotCount{};
         u2 staticSlotCount{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
+        bool overrideFinalize{false};
+
+        MirrorBase constantPoolMirrorBase{};
+
+        [[nodiscard]] MirOop *getConstantPoolMirror(Frame *frame, bool init = true);
 
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<std::unique_ptr<Method>> methods;
@@ -119,7 +127,7 @@ namespace RexVM {
 
     private:
         void calcFieldSlotId();
-        void initStaticField();
+        void initStaticField(VMThread &thread);
         void initAttributes(ClassFile &cf);
         void initFields(ClassFile &cf);
         void initMethods(ClassFile &cf);
@@ -149,7 +157,6 @@ namespace RexVM {
         void setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const;
         [[nodiscard]] Slot getFieldValue(size_t index) const;
         [[nodiscard]] Slot getFieldValue(const cstring &name, const cstring &descriptor) const;
-
 
     };
 

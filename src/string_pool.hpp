@@ -7,6 +7,7 @@
 #include <tuple>
 #include <vector>
 #include "config.hpp"
+#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 
@@ -15,6 +16,8 @@ namespace RexVM {
     struct InstanceOop;
     struct ClassLoader;
     struct ConstantUTF8Info;
+    struct Frame;
+    struct VMThread;
 
     struct StringTable {
         using Key = const cstring &;
@@ -37,9 +40,9 @@ namespace RexVM {
         bool find(Key key, Value &ret);
         void insert(Key key, Value value);
         void erase(Value value);
+        void clear();
 
-    private:
-        [[nodiscard]] size_t getKeyIndex(Key key) const;
+        [[nodiscard]] u2 getKeyIndex(Key key) const;
 
     };
 
@@ -48,23 +51,26 @@ namespace RexVM {
         ClassLoader &classLoader;
         std::unique_ptr<StringTable> stringTable;
         std::unordered_map<cstring, InstanceOop *> internMap;
-        std::mutex mtx;
+        SpinLock lock;
+
 
         [[nodiscard]] static cstring getJavaString(InstanceOop *oop) ;
         [[nodiscard]] static bool equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t length);
-        void eraseString(InstanceOop *oop);
+        //void eraseString(InstanceOop *oop);
 
-        InstanceOop *getInternString(const cstring &str);
-        InstanceOop *getInternStringOld(const cstring &str);
+        InstanceOop *getInternString(VMThread *thread, const cstring &str);
+        //InstanceOop *getInternStringOld(const cstring &str);
         void gcStringOop(InstanceOop *oop);
 
         explicit StringPool(VM &vm, ClassLoader &classLoader);
 
         ~StringPool();
 
+        void clear() const;
+
     private:
         InstanceClass *stringClass;
-        [[nodiscard]] InstanceOop *createJavaString(const cstring &str) const;
+        [[nodiscard]] InstanceOop *createJavaString(VMThread *thread, const cstring &str) const;
     };
 
 

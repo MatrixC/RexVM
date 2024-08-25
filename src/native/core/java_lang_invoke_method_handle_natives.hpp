@@ -24,31 +24,20 @@ namespace RexVM::Native::Core {
         memberNameOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(mirrirOop)); 
     }
 
-    std::tuple<
-        InstanceClass *, 
-        cstring,
-        InstanceOop *,
-        i4,
-        MethodHandleEnum,
-        bool,
-        cstring
-    > methodHandleGetFieldFromMemberName(InstanceOop *memberName) {
-        const auto klass = GET_MIRROR_INSTANCE_CLASS(memberName->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberName->getFieldValue("name", "Ljava/lang/String;").refVal));
-        const auto type = CAST_INSTANCE_OOP(memberName->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto flags = memberName->getFieldValue("flags", "I").i4Val;
-        const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
-        const auto isStatic = kind == MethodHandleEnum::REF_invokeStatic;
-        const auto descriptor = methodHandleGetDescriptor(klass, type, name);
-        return std::make_tuple(klass, name, type, flags, kind, isStatic, descriptor);
-    }
-
     void methodHandlerInit(Frame &frame) {
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto refOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto refClassName = refOop->klass->name;
+        const auto refClass = refOop->getClass();
+        const auto methodMirrorClass = 
+            frame.vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_METHOD);
 
-        if (refClassName == "java/lang/reflect/Method") {
+        const auto fieldMirrorClass = 
+            frame.vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_FIELD);
+
+        const auto constructorMirrorClass = 
+            frame.vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_CONSTRUCTOR);
+
+        if (refClass == methodMirrorClass) {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
             const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
             const auto methodPtr = klass->methods[slotId].get();
@@ -65,8 +54,8 @@ namespace RexVM::Native::Core {
                     newFlags |= (CAST_I4(MethodHandleEnum::REF_invokeVirtual) << MN_REFERENCE_KIND_SHIFT);
                 }
             }
-            setMemberNameClazzAndFlags(memberNameOop, methodPtr->klass.getMirrorOop(), newFlags);
-        } else if (refClassName == "java/lang/reflect/Field") {
+            setMemberNameClazzAndFlags(memberNameOop, methodPtr->klass.getMirror(&frame), newFlags);
+        } else if (refClass == fieldMirrorClass) {
             const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
             const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
             const auto fieldPtr = klass->fields[slotId].get();
@@ -74,7 +63,7 @@ namespace RexVM::Native::Core {
             (void)newFlags;
 
             panic("error");
-        } else if (refClassName == "java/lang/reflect/Constructor") {
+        } else if (refClass == constructorMirrorClass) {
             panic("error");
         } else {
             panic("error");
@@ -88,7 +77,6 @@ namespace RexVM::Native::Core {
             panic("can't be nullptr error throws");
             return;
         }
-        auto &classLoader = *frame.getCurrentClassLoader();
 
         auto clazz = GET_MIRROR_CLASS(memberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
         const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
@@ -98,8 +86,8 @@ namespace RexVM::Native::Core {
 
         if (clazz == nullptr) {
             panic("resolve error");
-        } else if (clazz->type == ClassTypeEnum::TYPE_ARRAY_CLASS || clazz->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
-            clazz = classLoader.getClass(JAVA_LANG_OBJECT_NAME);
+        } else if (clazz->getType() == ClassTypeEnum::TYPE_ARRAY_CLASS || clazz->getType() == ClassTypeEnum::OBJ_ARRAY_CLASS) {
+            clazz = frame.mem.getClass(JAVA_LANG_OBJECT_NAME);
         }
         const auto instanceClass = CAST_INSTANCE_CLASS(clazz);
         const auto descriptor = methodHandleGetDescriptor(clazz, type, name);
@@ -118,11 +106,11 @@ namespace RexVM::Native::Core {
                 return;
             }
             const auto newFlags = flags | CAST_I4(resolveMethod->accessFlags);
-            setMemberNameClazzAndFlags(memberNameOop, resolveMethod->klass.getMirrorOop(), newFlags);
+            setMemberNameClazzAndFlags(memberNameOop, resolveMethod->klass.getMirror(&frame), newFlags);
         } else if (flags & MN_IS_FIELD) {
             const auto resolveField = instanceClass->getField(name, descriptor, isStatic);
             const auto newFlags = flags | CAST_I4(resolveField->accessFlags);
-            setMemberNameClazzAndFlags(memberNameOop, resolveField->klass.getMirrorOop(), newFlags);
+            setMemberNameClazzAndFlags(memberNameOop, resolveField->klass.getMirror(&frame), newFlags);
         } else if (flags & MN_IS_TYPE) {
             panic("error");
         }
@@ -131,7 +119,7 @@ namespace RexVM::Native::Core {
 
 
     std::tuple<InstanceOop *, bool> methodHandleGetMemberName(Frame &frame, InstanceOop *self, std::vector<Slot> &prefixParam) {
-        const auto className = self->klass->name;
+        const auto className = self->getClass()->name;
         const auto methodParamSlotSize = frame.methodParamSlotSize;
         InstanceOop *memberNameOop = nullptr;
         if (startWith(className, "java/lang/invoke/DirectMethodHandle")) {
@@ -160,7 +148,7 @@ namespace RexVM::Native::Core {
             memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
 
             const auto passParams = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(2));
-            for (size_t i = 0; i < passParams->dataLength; ++i) {
+            for (size_t i = 0; i < passParams->getDataLength(); ++i) {
                 prefixParam.emplace_back(passParams->data[i]);
             }
         } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle"
@@ -182,8 +170,6 @@ namespace RexVM::Native::Core {
         size_t index,
         std::vector<Slot> &params
     ) {
-        auto &classLoader = *frame.getCurrentClassLoader();
-        const auto &oopManager = frame.vm.oopManager;
         //const auto paramSlotType = methodPtr->paramSlotType[index];
 
         const auto &methodParamType = methodPtr->paramType;
@@ -202,7 +188,7 @@ namespace RexVM::Native::Core {
             }
             return;
         }
-        const auto paramClass = classLoader.getClass(paramType);
+        const auto paramClass = frame.mem.getClass(paramType);
         const auto className = paramClass->name;
         //两种情况 传参是REF 函数需要Primitive 或者相反
         if (type == SlotTypeEnum::REF) {
@@ -219,21 +205,21 @@ namespace RexVM::Native::Core {
         } else {
             //Box
             if (className == JAVA_LANG_INTEGER_NAME) {
-                params.emplace_back(oopManager->newIntegerOop(val.i4Val));
+                params.emplace_back(frame.mem.newIntegerOop(val.i4Val));
             } else if (className == JAVA_LANG_LONG_NAME) {
-                params.emplace_back(oopManager->newLongOop(val.i8Val));
+                params.emplace_back(frame.mem.newLongOop(val.i8Val));
             } else if (className == JAVA_LANG_FLOAT_NAME) {
-                params.emplace_back(oopManager->newFloatOop(val.f4Val));
+                params.emplace_back(frame.mem.newFloatOop(val.f4Val));
             } else if (className == JAVA_LANG_DOUBLE_NAME) {
-                params.emplace_back(oopManager->newDoubleOop(val.f8Val));
+                params.emplace_back(frame.mem.newDoubleOop(val.f8Val));
             } else if (className == JAVA_LANG_BOOLEAN_NAME) {
-                params.emplace_back(oopManager->newBooleanOop(val.i4Val));
+                params.emplace_back(frame.mem.newBooleanOop(val.i4Val));
             } else if (className == JAVA_LANG_BYTE_NAME) {
-                params.emplace_back(oopManager->newByteOop(val.i4Val));
+                params.emplace_back(frame.mem.newByteOop(val.i4Val));
             } else if (className == JAVA_LANG_CHARACTER_NAME) {
-                params.emplace_back(oopManager->newCharOop(val.i4Val));
+                params.emplace_back(frame.mem.newCharOop(val.i4Val));
             } else if (className == JAVA_LANG_SHORT_NAME) {
-                params.emplace_back(oopManager->newShortOop(val.i4Val));
+                params.emplace_back(frame.mem.newShortOop(val.i4Val));
             } else {
                 panic("error");
             }
@@ -255,7 +241,7 @@ namespace RexVM::Native::Core {
         if (lastParamType == "[Ljava/lang/Object;") {
             //最后一个参数是数组
             const auto foldParamSize = params.size() - methodPtr->paramSlotSize + 1;
-            const auto arrayOop = frame.vm.oopManager->newObjectObjArrayOop(foldParamSize);
+            const auto arrayOop = frame.mem.newObjectObjArrayOop(foldParamSize);
             for (size_t i = 0; i < foldParamSize; ++i) {
                 arrayOop->data[i] = params[methodPtr->paramSlotSize - 1 + i].refVal;
             }
@@ -300,9 +286,8 @@ namespace RexVM::Native::Core {
     }
 
     void methodHandleInvoke(Frame &frame) {
-        auto &classLoader = *frame.getCurrentClassLoader();
-        const auto &oopManager = frame.vm.oopManager;
         const auto self = frame.getThisInstance();
+        ASSERT_IF_NULL_THROW_NPE(self)
 
         std::vector<Slot> prefixParam;
         const auto [memberNameOop, exitInvoke] = methodHandleGetMemberName(frame, self, prefixParam);
@@ -314,10 +299,13 @@ namespace RexVM::Native::Core {
             panic("error: memberName is null");
         }
 
-        auto [klass, name, type, flags, kind, isStatic, descriptor] 
+        auto [klass, name, type, flags, kind, isStatic, descriptor]
             = methodHandleGetFieldFromMemberName(memberNameOop);
 
+        //const auto memberNameMirrorOop = CAST_MIRROR_OOP(memberNameOop);
+        //const auto methodPtr = memberNameMirrorOop->getMemberNameMethod();
         const auto methodPtr = klass->getMethod(name, descriptor, isStatic);
+
         if (methodPtr == nullptr) {
             panic("error: methodPtr is null");
         }
@@ -325,7 +313,7 @@ namespace RexVM::Native::Core {
         if ((kind == MethodHandleEnum::REF_invokeSpecial || kind == MethodHandleEnum::REF_newInvokeSpecial) 
                 && methodPtr->name == "<init>") {
             //Constructor
-            const auto newInstance = oopManager->newInstance(&methodPtr->klass);
+            const auto newInstance = frame.mem.newInstance( &methodPtr->klass);
             const auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) }, true);
             frame.runMethodManualTypes(*methodPtr, paramsWithType);
             frame.returnRef(newInstance);
@@ -367,12 +355,12 @@ namespace RexVM::Native::Core {
         if (frame.markThrow) {
             return;
         }
-        const auto returnClass = classLoader.getClass(methodPtr->returnType);
+        const auto returnClass = frame.mem.getClass(methodPtr->returnType);
         ref oopResult = nullptr;
         if (slotType != SlotTypeEnum::NONE) {
             if (returnClass->type == ClassTypeEnum::PRIMITIVE_CLASS) {
                 const auto returnPrimitiveClass = CAST_PRIMITIVE_CLASS(returnClass);
-                oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, *oopManager);
+                oopResult = returnPrimitiveClass->getBoxingOopFromValue(result, frame);
             } else {
                 oopResult = result.refVal;
             }
@@ -391,6 +379,7 @@ namespace RexVM::Native::Core {
 
     void methodHandleObjectFieldOffset(Frame &frame) {
         const auto memberNameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        ASSERT_IF_NULL_THROW_NPE(memberNameOop)
         auto [klass, name, type, flags, kind, isStatic, descriptor] = methodHandleGetFieldFromMemberName(memberNameOop);
         const auto typeClass = GET_MIRROR_INSTANCE_CLASS(type);
         const auto field = klass->getField(name, getDescriptorByClass(typeClass), isStatic);

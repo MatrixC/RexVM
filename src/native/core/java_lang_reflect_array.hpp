@@ -16,26 +16,25 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto length = frame.getLocalI4(1);
-        const auto &oopManager = frame.vm.oopManager;
-        const auto mirrorClass = mirrorOop->mirrorClass;
+        const auto mirrorClass = mirrorOop->getMirrorClass();
         switch (mirrorClass->type) {
             case ClassTypeEnum::PRIMITIVE_CLASS: {
                 const auto primitiveClass = CAST_PRIMITIVE_CLASS(mirrorClass);
-                const auto arrayObj = oopManager->newTypeArrayOop(primitiveClass->getBasicType(), length);
+                const auto arrayObj = frame.mem.newTypeArrayOop(primitiveClass->getBasicType(), length);
                 frame.returnRef(arrayObj);
                 return;
             }
 
             case ClassTypeEnum::INSTANCE_CLASS: {
-                const auto arrayClass = frame.getCurrentClassLoader()->getObjectArrayClass(mirrorClass->name);
-                const auto arrayObj = oopManager->newObjArrayOop(arrayClass, length);
+                const auto arrayClass = frame.mem.getObjectArrayClass(mirrorClass->name);
+                const auto arrayObj = frame.mem.newObjArrayOop(arrayClass, length);
                 frame.returnRef(arrayObj);
                 return;
             }
 
             default:
-                const auto arrayClass = frame.getCurrentClassLoader()->getObjectArrayClass("[" + mirrorClass->name);
-                const auto arrayObj = oopManager->newObjArrayOop(arrayClass, length);
+                const auto arrayClass = frame.mem.getObjectArrayClass("[" + mirrorClass->name);
+                const auto arrayObj = frame.mem.newObjArrayOop(arrayClass, length);
                 frame.returnRef(arrayObj);
                 return;
         }

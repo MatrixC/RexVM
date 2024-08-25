@@ -12,12 +12,39 @@
 #include "thread.hpp"
 #include "frame.hpp"
 #include "exception.hpp"
-#include "memory.hpp"
+#include "attribute_info.hpp"
 
 namespace RexVM {
 
     Class::Class(const ClassTypeEnum type, const u2 accessFlags, cstring name, ClassLoader &classLoader) :
-            type(type), accessFlags(accessFlags), name(std::move(name)), classLoader(classLoader) {
+            name(std::move(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
+    }
+
+    ClassTypeEnum Class::getType() const {
+        return type;
+    }
+
+    u2 Class::getAccessFlags() const {
+        return accessFlags;
+    }
+
+    size_t Class::getInterfaceSize() const {
+        return interfaces.size();
+    }
+
+    InstanceClass *Class::getInterfaceByIndex(size_t index) const {
+        return interfaces.data()[index];
+    }
+
+    InstanceClass *Class::getSuperClass() const {
+        return superClass;
+    }
+
+    SpecialClassEnum Class::getSpecialClassType() const {
+        if (type != ClassTypeEnum::INSTANCE_CLASS) {
+            return SpecialClassEnum::NONE;
+        }
+        return (static_cast<const InstanceClass *>(this))->specialClassType;
     }
 
     bool Class::isInstanceClass() const {
@@ -102,7 +129,7 @@ namespace RexVM {
 
 
     bool Class::isSubClassOf(const Class *that) const {
-        for (auto c = this->superClass; c != nullptr; c = c->superClass) {
+        for (auto c = this->getSuperClass(); c != nullptr; c = c->getSuperClass()) {
             if (c == that) {
                 return true;
             }
@@ -116,8 +143,9 @@ namespace RexVM {
         }
         auto self = static_cast<const InstanceClass *>(this);
         auto interface = static_cast<const InstanceClass *>(that);
-        for (auto c = self; c != nullptr; c = c->superClass) {
-            for (const auto &item: c->interfaces) {
+        for (auto c = self; c != nullptr; c = c->getSuperClass()) {
+            FOR_FROM_ZERO(c->getInterfaceSize()) {
+                const auto item = c->getInterfaceByIndex(i);
                 if (item == interface || item->isSubInterfaceOf(interface)) {
                     return true;
                 }
@@ -132,7 +160,8 @@ namespace RexVM {
         }
         auto self = static_cast<const InstanceClass *>(this);
         auto interface = static_cast<const InstanceClass *>(that);
-        for (const auto &item: self->interfaces) {
+        FOR_FROM_ZERO(self->getInterfaceSize()) { 
+            const auto item = self->getInterfaceByIndex(i);
             if (item == interface || item->isSubInterfaceOf(interface)) {
                 return true;
             }
@@ -148,6 +177,14 @@ namespace RexVM {
     bool Class::isSuperInterfaceOf(const Class *that) const {
         return that->isSubInterfaceOf(this);
     }
+
+    MirOop *Class::getMirror(Frame *frame, bool init) {
+        static SpinLock lock;
+        return mirrorBase.getBaseMirror(frame, MirrorObjectTypeEnum::CLASS, this, lock, init);
+    }
+
+
+    Class::~Class() = default;
 
     constexpr auto PRIMITIVE_CLASS_ACCESS_FLAGS = 
         CAST_U2(AccessFlagEnum::ACC_PUBLIC) |
@@ -189,16 +226,16 @@ namespace RexVM {
         }
     }
 
-    InstanceOop *PrimitiveClass::getBoxingOopFromValue(Slot value, OopManager &oopManager) const {
+    InstanceOop *PrimitiveClass::getBoxingOopFromValue(Slot value, Frame &frame) const {
         switch (basicType) {
-            case BasicType::T_BOOLEAN: return oopManager.newBooleanOop(value.i4Val);
-            case BasicType::T_CHAR: return oopManager.newCharOop(value.i4Val);
-            case BasicType::T_FLOAT: return oopManager.newFloatOop(value.f4Val);
-            case BasicType::T_DOUBLE: return oopManager.newDoubleOop(value.f8Val);
-            case BasicType::T_BYTE: return oopManager.newByteOop(value.i4Val);
-            case BasicType::T_SHORT: return oopManager.newShortOop(value.i4Val);
-            case BasicType::T_INT: return oopManager.newIntegerOop(value.i4Val);
-            case BasicType::T_LONG: return oopManager.newLongOop(value.i4Val);
+            case BasicType::T_BOOLEAN: return frame.mem.newBooleanOop(value.i4Val);
+            case BasicType::T_CHAR: return frame.mem.newCharOop(value.i4Val);
+            case BasicType::T_FLOAT: return frame.mem.newFloatOop(value.f4Val);
+            case BasicType::T_DOUBLE: return frame.mem.newDoubleOop(value.f8Val);
+            case BasicType::T_BYTE: return frame.mem.newByteOop(value.i4Val);
+            case BasicType::T_SHORT: return frame.mem.newShortOop(value.i4Val);
+            case BasicType::T_INT: return frame.mem.newIntegerOop(value.i4Val);
+            case BasicType::T_LONG: return frame.mem.newLongOop(value.i4Val);
             case BasicType::T_VOID: panic("error type void");
             default:
                 panic("error basicType");
@@ -206,11 +243,6 @@ namespace RexVM {
         }
     }
 
-    MirrorOop * Class::getMirrorOop() const {
-        return mirror.get();
-    }
-
-    Class::~Class() = default;
 
     InstanceClass::InstanceClass(ClassLoader &classLoader, ClassFile &cf) :
             Class(ClassTypeEnum::INSTANCE_CLASS, cf.accessFlags, cf.getThisClassName(), classLoader) {
@@ -223,9 +255,6 @@ namespace RexVM {
         initInterfaceAndSuperClass(cf);
         moveConstantPool(cf);
         calcFieldSlotId();
-        initStaticField();
-
-
     }
 
     void InstanceClass::initAttributes(ClassFile &cf) {
@@ -282,18 +311,23 @@ namespace RexVM {
         methods.reserve(cf.methodCount);
         u2 index = 0;
         for (const auto &methodInfo: cf.methods) {
-            auto method =
-                    std::make_unique<Method>(
-                            *this,
-                            methodInfo.get(),
-                            cf,
-                            index++
-                    );
+            auto method = std::make_unique<Method>(*this,methodInfo.get(),cf,index++);
+            if (!overrideFinalize && name != JAVA_LANG_OBJECT_NAME
+                    && method->name == "finalize" && method->descriptor == "()V") {
+                overrideFinalize = true;
+            }
             methods.emplace_back(std::move(method));
         }
     }
 
     void InstanceClass::initInterfaceAndSuperClass(ClassFile &cf) {
+        // using InstanceClassPtr = InstanceClass *;
+        // auto interfaceArray = new InstanceClassPtr[cf.interfaceCount];
+        // const auto &interfaceNames = cf.getInterfaceNames();
+        // FOR_FROM_ZERO(interfaceNames.size()) {
+        //     interfaceArray[i] = classLoader.getInstanceClass(interfaceNames[i]);
+        // }
+
         interfaces.reserve(cf.interfaceCount);
         for (const auto &interfaceName: cf.getInterfaceNames()) {
             interfaces.emplace_back(classLoader.getInstanceClass(interfaceName));
@@ -334,7 +368,7 @@ namespace RexVM {
         staticDataType = std::make_unique<SlotTypeEnum[]>(staticSlotCount);
         staticData = std::make_unique<Slot[]>(staticSlotCount);
 
-        for (auto klass = this; klass != nullptr; klass = klass->superClass) {
+        for (auto klass = this; klass != nullptr; klass = klass->getSuperClass()) {
             for (const auto &field: klass->fields) {
                 if (field->isStatic()) {
                     if (klass == this) {
@@ -347,7 +381,7 @@ namespace RexVM {
         }
     }
 
-    void InstanceClass::initStaticField() {
+    void InstanceClass::initStaticField(VMThread &thread) {
         if (staticSlotCount <= 0) {
             return;
         }
@@ -358,7 +392,7 @@ namespace RexVM {
             }
             const auto slotType = field->getFieldSlotType();
             if (field->isFinal() && field->constantValueIndex > 0) {
-                const auto &constValue = constantPool.at(field->constantValueIndex);
+                const auto &constValue = constantPool[field->constantValueIndex];
                 const auto descriptor = field->descriptor;
                 Slot data;
                 if (descriptor == "Z" || descriptor == "B" || descriptor == "C" ||
@@ -372,6 +406,7 @@ namespace RexVM {
                     data = Slot(CAST_CONSTANT_DOUBLE_INFO(constValue.get())->value);
                 } else if (descriptor == "Ljava/lang/String;") {
                     auto strOop = classLoader.vm.stringPool->getInternString(
+                        &thread,
                         getConstantStringFromPoolByIndexInfo(constantPool, field->constantValueIndex)
                     );
                     data = Slot(strOop);
@@ -406,8 +441,11 @@ namespace RexVM {
     
     void InstanceClass::initSpecialType() {
         const auto threadClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
+        const auto memberNameClass = classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_MEMBER_NAME);
         if (this == threadClass || this->isSubClassOf(threadClass)) {
-            specialInstanceClass = SpecialInstanceClass::THREAD_CLASS;
+            specialClassType = SpecialClassEnum::THREAD_CLASS;
+        } else if (this == memberNameClass) {
+            specialClassType = SpecialClassEnum::MEMBER_NAME_CLASS;
         }
     }
 
@@ -425,6 +463,8 @@ namespace RexVM {
         if (superClass != nullptr) {
            superClass->clinit(frame);
         }
+
+        initStaticField(frame.thread);
 
         const auto clinitMethod = getMethod("<clinit>", "()V", true);
         if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
@@ -557,6 +597,11 @@ namespace RexVM {
     void InstanceClass::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const {
         auto field = getField(name, descriptor, true);
         staticData[field->slotId] = value;
+    }
+
+    MirOop *InstanceClass::getConstantPoolMirror(Frame *frame, bool init) {
+        static SpinLock lock;
+        return constantPoolMirrorBase.getBaseMirror(frame, MirrorObjectTypeEnum::CONSTANT_POOL, this, lock, init);
     }
 
     ArrayClass::ArrayClass(const ClassTypeEnum type, const cstring &name,

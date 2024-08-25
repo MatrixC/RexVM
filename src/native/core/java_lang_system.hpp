@@ -11,6 +11,7 @@
 #include "../../memory.hpp"
 #include "../../string_pool.hpp"
 #include "../../file_system.hpp"
+#include "../../utils/time.hpp"
 #include <thread>
 #include <chrono>
 #include <filesystem>
@@ -19,9 +20,7 @@
 namespace RexVM::Native::Core {
 
     void currentTimeMillis(Frame &frame) {
-        const auto now = std::chrono::system_clock::now();
-        const auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
-        frame.returnI8(CAST_I8(ms));
+        frame.returnI8(getCurrentTimeMillis());
     }
 
     //java/lang/System#nanoTime:()J
@@ -44,8 +43,8 @@ namespace RexVM::Native::Core {
         const auto length = frame.getLocalI4(4);
         const auto srcEndPos = srcPos + length;
 
-        const auto arrayType = src->klass->type;
-        const auto destArrayType = dest->klass->type;
+        const auto arrayType = src->getClass()->type;
+        const auto destArrayType = dest->getClass()->type;
         if (arrayType != ClassTypeEnum::OBJ_ARRAY_CLASS && arrayType != ClassTypeEnum::TYPE_ARRAY_CLASS) {
             panic("obj is not array type");
         }
@@ -58,9 +57,9 @@ namespace RexVM::Native::Core {
             std::copy(relSrc->data.get() + srcPos, relSrc->data.get() + srcEndPos, relDest->data.get() + destPos);
         } else {
             const auto basicTypeArray = CAST_TYPE_ARRAY_OOP(src);
-            const auto basicTypeArrayClass = CAST_TYPE_ARRAY_CLASS(basicTypeArray->klass);
+            const auto basicTypeArrayClass = CAST_TYPE_ARRAY_CLASS(basicTypeArray->getClass());
             const auto basicType = basicTypeArrayClass->elementType;
-            if (basicType != CAST_TYPE_ARRAY_CLASS(dest->klass)->elementType) {
+            if (basicType != CAST_TYPE_ARRAY_CLASS(dest->getClass())->elementType) {
                 panic("type array is different");
             }
             switch (basicType) {
@@ -125,7 +124,16 @@ namespace RexVM::Native::Core {
     }
 
     void setOut0(Frame &frame) {
-        frame.klass.setFieldValue("out", "Ljava/io/PrintStream;", Slot(frame.getLocalRef(0)));
+        const auto defaultPrintStream = CAST_INSTANCE_OOP(frame.getLocalRef(0));
+        const auto rexPrintStreamClass = frame.mem.getInstanceClass("RexPrintStream");
+        if (rexPrintStreamClass != nullptr) {
+            rexPrintStreamClass->clinit(frame);
+            const auto getMethod = rexPrintStreamClass->getMethod("get", "(Ljava/io/PrintStream;)Ljava/io/PrintStream;", true);
+            const auto [retVal, retType] = frame.runMethodManual(*getMethod, { Slot(defaultPrintStream) });
+            frame.klass.setFieldValue("out", "Ljava/io/PrintStream;", retVal);
+        } else {
+            frame.klass.setFieldValue("out", "Ljava/io/PrintStream;", Slot(frame.getLocalRef(0)));
+        }
     }
 
     void setErr0(Frame &frame) {
@@ -139,29 +147,30 @@ namespace RexVM::Native::Core {
 
     void initProperties(Frame &frame) {
         const auto props = CAST_INSTANCE_OOP(frame.getLocalRef(0));
-        const auto propsClass = CAST_INSTANCE_CLASS(props->klass);
+        const auto propsClass = CAST_INSTANCE_CLASS(props->getClass());
         const auto setPropertyMethod = propsClass->getMethod("setProperty", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", false);
-        const auto &stringPool = frame.vm.stringPool;
-        const auto utf8ConstString = stringPool->getInternString("UTF-8");
+        const auto utf8ConstString = frame.mem.getInternString("UTF-8");
 
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.vm.name")), Slot(stringPool->getInternString("RexVM")) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.specification.version")), Slot(stringPool->getInternString("1.8")) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("java.vm.name")), Slot(frame.mem.getInternString("RexVM")) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("java.specification.version")), Slot(frame.mem.getInternString("1.8")) });
 
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("file.encoding")), Slot(utf8ConstString) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.stdout.encoding")), Slot(utf8ConstString) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.stderr.encoding")), Slot(utf8ConstString) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("sun.jnu.encoding")), Slot(utf8ConstString) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("file.encoding")), Slot(utf8ConstString) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("sun.stdout.encoding")), Slot(utf8ConstString) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("sun.stderr.encoding")), Slot(utf8ConstString) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("sun.jnu.encoding")), Slot(utf8ConstString) });
         
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("file.separator")), Slot(stringPool->getInternString(cstring{FILE_SEPARATOR})) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("path.separator")), Slot(stringPool->getInternString(cstring{PATH_SEPARATOR})) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("line.separator")), Slot(stringPool->getInternString(cstring{LINE_SEPARATOR})) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.home")), Slot(stringPool->getInternString(frame.vm.javaHome)) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("file.separator")), Slot(frame.mem.getInternString(cstring{FILE_SEPARATOR})) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("path.separator")), Slot(frame.mem.getInternString(cstring{PATH_SEPARATOR})) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("line.separator")), Slot(frame.mem.getInternString(cstring{LINE_SEPARATOR})) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("java.home")), Slot(frame.mem.getInternString(frame.vm.javaHome)) });
 
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("java.class.path")), Slot(stringPool->getInternString(frame.vm.javaClassPath)) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("user.dir")), Slot(stringPool->getInternString(std::filesystem::current_path().string())) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("java.class.path")), Slot(frame.mem.getInternString(frame.vm.javaClassPath)) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("user.dir")), Slot(frame.mem.getInternString(std::filesystem::current_path().string())) });
 
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.arch")), Slot(stringPool->getInternString(OS_ARCH_IMPL)) });
-        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(stringPool->getInternString("os.name")), Slot(stringPool->getInternString(OS_NAME)) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("os.arch")), Slot(frame.mem.getInternString(OS_ARCH_IMPL)) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("os.name")), Slot(frame.mem.getInternString(OS_NAME)) });
+
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("sun.reflect.noCaches")), Slot(frame.mem.getInternString("true")) });
 
         frame.returnRef(props);
     }

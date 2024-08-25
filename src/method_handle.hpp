@@ -3,11 +3,8 @@
 #include "config.hpp"
 #include <vector>
 #include <memory>
-
 #include "vm.hpp"
 #include "class.hpp"
-#include "attribute_info.hpp"
-#include "constant_info.hpp"
 
 namespace RexVM {
 
@@ -43,6 +40,16 @@ namespace RexVM {
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
 
     cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name);
+
+    std::tuple<
+            InstanceClass *,
+            cstring,
+            InstanceOop *,
+            i4,
+            MethodHandleEnum,
+            bool,
+            cstring
+    > methodHandleGetFieldFromMemberName(InstanceOop *memberName);
 }
 
 #endif

@@ -9,7 +9,7 @@ namespace RexVM::Native::Core {
 
     void intern(Frame &frame) {
         const auto str = StringPool::getJavaString(frame.getThisInstance());
-        const auto strRef = frame.vm.stringPool->getInternString(str);
+        const auto strRef = frame.mem.getInternString(str);
         frame.returnRef(strRef);
     }
 

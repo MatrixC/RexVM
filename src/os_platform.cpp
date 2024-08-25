@@ -5,6 +5,7 @@
 #include <Windows.h>
 #else
 #include <unistd.h>
+#include <pthread.h>
 #endif
 
 
@@ -27,7 +28,7 @@ namespace RexVM {
     std::string getSystemTimeZoneId() {
         std::string timeZoneId;
     
-#if defined(_WIN32)
+#if defined(_MSC_VER)
         TIME_ZONE_INFORMATION tzInfo;
         if (GetTimeZoneInformation(&tzInfo) != TIME_ZONE_ID_INVALID) {
             wchar_t *wTimeZoneName = tzInfo.StandardName;
@@ -53,6 +54,15 @@ namespace RexVM {
         }
 #endif
         return timeZoneId;
+    }
+
+    void setThreadName(const char *name) {
+#if defined(_MSC_VER)
+#elif defined(__APPLE__)
+        pthread_setname_np(name);
+#else
+        pthread_setname_np(pthread_self(), name);
+#endif
     }
 
 }

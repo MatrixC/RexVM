@@ -4,14 +4,16 @@
 #include "utils/class_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "vm.hpp"
+#include "class.hpp"
+#include "class_member.hpp"
+#include "mirror_oop.hpp"
 #include "opcode.hpp"
 #include "frame.hpp"
-#include "memory.hpp"
 #include "interpreter.hpp"
 #include "thread.hpp"
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
-#include "method_handle.hpp"
+#include "garbage_collect.hpp"
 
 namespace RexVM {
 
@@ -28,7 +30,7 @@ namespace RexVM {
     bool handleThrowValue(Frame &frame) {
         //const auto throwInstance = frame.throwObject->throwValue;
         const auto throwInstance = frame.throwObject;
-        const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->klass);
+        const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->getClass());
         auto &method = frame.method;
         const auto handler =
             method.findExceptionHandler(
@@ -103,6 +105,8 @@ namespace RexVM {
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
 
+        frame.vm.garbageCollector->checkStopForCollect(frame.thread);
+
         if (notNativeMethod) [[likely]] {
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
@@ -144,54 +148,53 @@ namespace RexVM {
         }
     }
 
-    void monitorExecuteFrame(Frame &frame, const cstring &methodName) {
+    //备份/恢复线程的currentFrame 以及 对于处理synchronized标记的方法
+    inline void monitorExecuteFrame(Frame &frame) {
+        auto &thread = frame.thread;
+        //backup frame ptr
+        const auto backupFrame = thread.currentFrame;
+        thread.currentFrame = &frame;
+
+        
         const auto &method = frame.method;
         EXCLUDE_EXECUTE_METHODS(method)
         auto lock = false;
+
+        //monitor execute start
         ref monitorHandler = nullptr;
         if (method.isSynchronized()) [[unlikely]] {
-            monitorHandler = method.isStatic() ? method.klass.getMirrorOop() : frame.getThis();
-            monitorHandler->monitorMtx.lock();
+            monitorHandler = method.isStatic() ? method.klass.getMirror(&frame) : frame.getThis();
+            monitorHandler->lock();
             lock = true;
         }
-        executeFrame(frame, methodName);
+        executeFrame(frame, method.klass.name + "#" + method.name);
         if (lock) {
-            monitorHandler->monitorMtx.unlock();
+            monitorHandler->unlock();
         }
-    }
+        //monitor execute end
 
-    void createFrameAndRunMethod(VMThread &thread, Method &method_, std::vector<Slot> params, Frame *previous) {
-        Frame nextFrame(thread.vm, thread, method_, previous);
-        const auto slotSize = method_.paramSlotSize;
-        nextFrame.methodParamSlotSize = slotSize;
-        if (slotSize != params.size()) {
-             panic("createFrameAndRunMethod error: params length " + method_.name);
-        }
-        for (size_t i = 0; i < params.size(); ++i) {
-            const auto slotType = method_.getParamSlotType(i);
-            nextFrame.setLocal(i, params.at(i), slotType);
-        }
-        const auto backupFrame = thread.currentFrame;
-        thread.currentFrame = &nextFrame;
-        const auto methodName = method_.klass.name + "#" + method_.name;
-        monitorExecuteFrame(nextFrame, methodName);
+        //recovery currentFrame
         thread.currentFrame = backupFrame;
     }
 
-    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method_, Frame *previous, size_t paramSlotSize) {
-        Frame nextFrame(thread.vm, thread, method_, previous, paramSlotSize);
-        nextFrame.methodParamSlotSize = paramSlotSize;
-        const auto backupFrame = thread.currentFrame;
-        thread.currentFrame = &nextFrame;
-        const auto methodName = method_.klass.name + "#" + method_.name;
-        monitorExecuteFrame(nextFrame, methodName);
-        thread.currentFrame = backupFrame;
+    void createFrameAndRunMethod(VMThread &thread, Method &method, Frame *previous, std::vector<Slot> params) {
+        Frame nextFrame(thread, method, previous);
+        if (method.paramSlotSize != params.size()) [[unlikely]] {
+             panic("createFrameAndRunMethod error: params length " + method.name);
+        }
+
+        if (!params.empty()) {
+            std::copy(method.paramSlotType.cbegin(), method.paramSlotType.cend(), nextFrame.localVariableTableType);
+            std::copy(params.cbegin(), params.cend(), nextFrame.localVariableTable);
+        }
+
+        monitorExecuteFrame(nextFrame);
     }
 
-    void runStaticMethodOnMainThread(VM &vm, Method &method, std::vector<Slot> params) {
-        const auto vmThread = vm.oopManager->newMainVMThread(method, std::move(params));
-        vmThread->start(nullptr);
-        vmThread->join();
+    void createFrameAndRunMethodNoPassParams(VMThread &thread, Method &method, Frame *previous, size_t paramSlotSize) {
+        Frame nextFrame(thread, method, previous, paramSlotSize);
+
+        monitorExecuteFrame(nextFrame);
     }
 
 }

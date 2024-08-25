@@ -160,6 +160,7 @@ namespace RexVM::Native::Core {
 
     void registerRuntimeCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_RUNTIME_NAME, "availableProcessors", "()I", true, Native::Core::availableProcessors);
+        manager.regNativeMethod(JAVA_LANG_RUNTIME_NAME, "gc", "()V", true, Native::Core::_gc);
     }
 
     void registerInvokeCoreMethods(NativeManager &manager) {

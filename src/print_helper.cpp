@@ -1,17 +1,21 @@
 #include "print_helper.hpp"
 #include "class.hpp"
+#include "class_member.hpp"
 #include "class_loader.hpp"
 #include "oop.hpp"
 #include "frame.hpp"
 #include "basic_type.hpp"
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
+#include "class_file.hpp"
+#include "constant_info.hpp"
+
 
 namespace RexVM {
 
     void printConstant(ClassFile &cf) {
         for (auto i = 0; i < cf.constantPoolCount; ++i) {
-            const auto &constantPtr = cf.constantPool.at(i);
+            const auto &constantPtr = cf.constantPool[i];
             if (constantPtr != nullptr) {
                 cprintln("{:>2} = {}", i, constantPtr->toString());
             }
@@ -27,7 +31,7 @@ namespace RexVM {
     }
 
     void pClass(Class *klass) {
-        switch (klass->type) {
+        switch (klass->getType()) {
             case ClassTypeEnum::PRIMITIVE_CLASS: {
                 const auto clazz = CAST_PRIMITIVE_CLASS(klass);
                 cprintln("PrimitiveClass({}): {}", getPrimitiveClassNameByBasicType(clazz->basicType), clazz->name);
@@ -45,14 +49,13 @@ namespace RexVM {
                     cprintln("Method: {}, descritpro: {}", item->name, item->descriptor);
                 }
                 cprintln("");
-                if (clazz->superClass != nullptr) {
-                    cprintln("SuperClass: {}", clazz->superClass->name);
+                if (clazz->getSuperClass() != nullptr) {
+                    cprintln("SuperClass: {}", clazz->getSuperClass()->name);
                 }
                 cprintln("");
-                if (!clazz->interfaces.empty()) {
-                    for (const auto &item : clazz->interfaces) {
-                        cprintln("Interface: {}", item->name);
-                    }
+                FOR_FROM_ZERO(clazz->getInterfaceSize()) {
+                    const auto item = clazz->getInterfaceByIndex(i);
+                    cprintln("Interface: {}", item->name);
                 }
                 break;
             }
@@ -72,21 +75,21 @@ namespace RexVM {
     }
 
     void pObjArray(ref oop) {
-        const auto clazz = CAST_OBJ_ARRAY_CLASS(oop->klass);
+        const auto clazz = CAST_OBJ_ARRAY_CLASS(oop->getClass());
         const auto arrayOop = CAST_OBJ_ARRAY_OOP(oop);
-        cprintln("className :{}, dataLength: {}", clazz->name, arrayOop->dataLength); 
+        cprintln("className :{}, dataLength: {}", clazz->name, arrayOop->getDataLength());
         cprintln("type: ObjArrayClass, elementClass: {}", clazz->elementClass->name);
     }
 
     cstring formatArray(Frame &frame, ref oop) {
-        const auto klass = oop->klass;
+        const auto klass = oop->getClass();
         if (!klass->isArray()) {
             panic("oop is not array type");
         }
 
-        const auto arraysClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Arrays");
+        const auto arraysClass = frame.mem.getInstanceClass("java/util/Arrays");
         const auto arrayClassName = 
-            klass->type == ClassTypeEnum::TYPE_ARRAY_CLASS ? 
+            klass->getType() == ClassTypeEnum::TYPE_ARRAY_CLASS ? 
                 cformat("({})Ljava/lang/String;", klass->name) :
                 "([Ljava/lang/Object;)Ljava/lang/String;";
         const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);
@@ -96,8 +99,8 @@ namespace RexVM {
     }
 
     cstring formatInstance(Frame &frame, InstanceOop *oop) {
-        const auto className = oop->klass->name;
-        const auto objectsClass = frame.getCurrentClassLoader()->getInstanceClass("java/util/Objects");
+        const auto className = oop->getClass()->name;
+        const auto objectsClass = frame.mem.getInstanceClass("java/util/Objects");
         const auto toStringMethod = objectsClass->getMethod("toString", "(Ljava/lang/Object;)Ljava/lang/String;", true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
         auto ret = val.refVal == nullptr ? "null" : StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
@@ -120,7 +123,7 @@ namespace RexVM {
                 if (refVal == nullptr) {
                     return "null";
                 }
-                const auto klass = refVal->klass;
+                const auto klass = refVal->getClass();
                 if (klass->isArray()) {
                     return formatArray(frame, refVal);
                 } else {

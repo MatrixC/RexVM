@@ -1,6 +1,3 @@
-//
-// Created by ch on 12/17/23.
-//
 #include "utils/format.hpp"
 #include "attribute_info.hpp"
 #include "constant_info.hpp"
@@ -171,7 +168,7 @@ namespace RexVM {
     }
 
     cstring ClassFile::getClassName(u2 classIndex) const {
-        auto classInfo = CAST_CONSTANT_CLASS_INFO(constantPool.at(classIndex).get());
+        auto classInfo = CAST_CONSTANT_CLASS_INFO(constantPool[classIndex].get());
         return getConstantStringFromPool(constantPool, classInfo->index);
     }
 

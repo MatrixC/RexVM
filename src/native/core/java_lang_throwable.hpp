@@ -15,22 +15,19 @@ namespace RexVM::Native::Core {
         const cstring &fileName,
         i4 lineNumber
     ) {
-        const auto classLoader = frame.getCurrentClassLoader();
-        const auto &stringPool = frame.vm.stringPool;
-        const auto stackTraceElementClass = classLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STACK_TRACE_ELEMENT);
-        const auto stackTraceElementOop = frame.vm.oopManager->newInstance(stackTraceElementClass);
-        stackTraceElementOop->setFieldValue("declaringClass", "Ljava/lang/String;", Slot(stringPool->getInternString(declaringClass)));
-        stackTraceElementOop->setFieldValue("methodName", "Ljava/lang/String;", Slot(stringPool->getInternString(methodName)));
-        stackTraceElementOop->setFieldValue("fileName", "Ljava/lang/String;", Slot(stringPool->getInternString(fileName)));
+        const auto stackTraceElementClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STACK_TRACE_ELEMENT);
+        const auto stackTraceElementOop = frame.mem.newInstance(stackTraceElementClass);
+        stackTraceElementOop->setFieldValue("declaringClass", "Ljava/lang/String;", Slot(frame.mem.getInternString(declaringClass)));
+        stackTraceElementOop->setFieldValue("methodName", "Ljava/lang/String;", Slot(frame.mem.getInternString(methodName)));
+        stackTraceElementOop->setFieldValue("fileName", "Ljava/lang/String;", Slot(frame.mem.getInternString(fileName)));
         stackTraceElementOop->setFieldValue("lineNumber", "I", Slot(lineNumber));
         return stackTraceElementOop;
     }
 
     void fillInStackTrace(Frame &frame) {
         const auto self = frame.getThisInstance();
-        const auto classLoader = frame.getCurrentClassLoader();
-        const auto throwableClass = classLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE);
-        const auto stackTraceElementArrayClass = classLoader->getObjectArrayClass(JAVA_LANG_STACK_TRACE_ELEMENT_NAME);
+        const auto throwableClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE);
+        const auto stackTraceElementArrayClass = frame.mem.getObjectArrayClass(JAVA_LANG_STACK_TRACE_ELEMENT_NAME);
         std::vector<InstanceOop *> stackTraceElements;
         auto notCheck = false; //用于少进行一些 isSubClassOf 检测 提升性能 跳过Exception的栈后就不用再check了
         //frame is native fillInStackTrace
@@ -51,7 +48,7 @@ namespace RexVM::Native::Core {
             stackTraceElements.emplace_back(createStackTraceElement(frame, className, methodName, sourceFileName, CAST_I4(lineNumber)));
         }
 
-        const auto arrayOop = frame.vm.oopManager->newObjArrayOop(stackTraceElementArrayClass, stackTraceElements.size());
+        const auto arrayOop = frame.mem.newObjArrayOop(stackTraceElementArrayClass, stackTraceElements.size());
         std::copy(stackTraceElements.begin(), stackTraceElements.end(), arrayOop->data.get());
         self->setFieldValue("stackTrace", "[Ljava/lang/StackTraceElement;", Slot(nullptr));
         self->setFieldValue("backtrace", "Ljava/lang/Object;", Slot(arrayOop));
@@ -78,7 +75,7 @@ namespace RexVM::Native::Core {
             frame.returnI4(0);
             return;
         }
-        frame.returnI4(CAST_I4(stackTraceElements->dataLength));
+        frame.returnI4(CAST_I4(stackTraceElements->getDataLength()));
     }
 }
 

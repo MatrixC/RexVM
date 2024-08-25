@@ -31,12 +31,13 @@ namespace RexVM {
 
     cstring
     getConstantStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index) {
-        return getConstantString(pool.at(index).get());
+        const auto info = pool[index].get();
+        return getConstantString(info);
     }
 
     std::tuple<const u1 *, u2>
     getConstantStringBytesFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index) {
-        return getConstantStringBytes(pool.at(index).get());
+        return getConstantStringBytes(pool[index].get());
     }
 
     cstring getConstantStringFromPoolByIndexInfo(

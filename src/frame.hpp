@@ -7,6 +7,7 @@
 #include "basic_type.hpp"
 #include "utils/stack.hpp"
 #include "utils/byte_reader.hpp"
+#include "frame_memory_handler.hpp"
 
 namespace RexVM {
 
@@ -15,9 +16,15 @@ namespace RexVM {
     struct ClassLoader;
     struct ConstantInfo;
     struct InstanceClass;
+    struct ObjArrayClass;
     struct Method;
-    struct Oop;
+    class Oop;
     struct InstanceOop;
+    struct FrameMemoryHandler;
+    struct ObjArrayOop;
+    struct TypeArrayOop;
+    struct CharTypeArrayOop;
+    struct OopManager;
 
     struct FrameThrowable {
         InstanceOop *throwValue{nullptr};
@@ -30,8 +37,8 @@ namespace RexVM {
 
     struct Frame {
         Frame *previous{nullptr};
-        size_t localVariableTableSize;
         size_t methodParamSlotSize{}; //仅在MethodHandle.invoke的时候需要使用 因为method.paramSlotSize是不准确的
+        size_t localVariableTableSize;
         Slot *localVariableTable;
         SlotTypeEnum *localVariableTableType;
         StackContext operandStackContext;
@@ -42,6 +49,7 @@ namespace RexVM {
         VMThread &thread;
         Method &method;
         InstanceClass &klass;
+        FrameMemoryHandler mem;
         ByteReader reader{};
 
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
@@ -56,8 +64,7 @@ namespace RexVM {
         //std::unique_ptr<FrameThrowable> throwObject;
         InstanceOop *throwObject{nullptr};
 
-        explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize);
-        explicit Frame(VM &vm, VMThread &thread, Method &method, Frame *previousFrame);
+        explicit Frame(VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize = 0);
         ~Frame();
 
         [[nodiscard]] ClassLoader *getCurrentClassLoader() const;
@@ -127,16 +134,16 @@ namespace RexVM {
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
         
-        
-
         [[nodiscard]] ref getThis() const;
         [[nodiscard]] InstanceOop *getThisInstance() const;
-        [[nodiscard]] std::vector<Oop *> getLocalObjects() const;
+        void getLocalObjects(std::vector<ref> &result) const;
   
         void printCallStack();
         void printLocalSlot();
         void printStackSlot();
+        void printCollectRoots();
         void printReturn();
+        void printStr(ref oop);
         void print();
     };
 

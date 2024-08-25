@@ -8,7 +8,7 @@
 
 namespace RexVM {
 
-    struct Oop;
+    class Oop;
 
     struct StackContext {
         i4 sp;
@@ -30,7 +30,7 @@ namespace RexVM {
         void reset();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
-        [[nodiscard]] std::vector<Oop *> getObjects() const;
+        void getStackObjects(std::vector<ref> &result) const;
 
         [[nodiscard]] Slot *getCurrentSlotPtr() const;
         [[nodiscard]] SlotTypeEnum *getCurrentSlotTypePtr() const;
