@@ -23,13 +23,13 @@ namespace RexVM {
     struct GarbageCollect;
 
     //wait 100ms
-    constexpr size_t GC_STOP_WAIT_TIME_OUT = 10;
+    constexpr size_t GC_STOP_WAIT_TIME_OUT = 100;
 
     constexpr size_t GC_ROOT_START_SIZE = 8192;
-    //10MB
-    constexpr size_t GC_MEMORY_THRESHOLD = 1;
-    //Frequency 2s
-    constexpr size_t GC_SLEEP_TIME = 500;
+    //100MB
+    constexpr size_t GC_MEMORY_THRESHOLD = 100 * 1024 * 1024;
+    //Frequency 5s
+    constexpr size_t GC_SLEEP_TIME = 5000;
 
     struct FinalizeRunner {
 

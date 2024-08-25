@@ -76,6 +76,7 @@ namespace RexVM {
                 //     this->run();
                 // }
                 // notifyCollect = false;
+                //TODO GC的启动机制暂时使用定时方式 待优化
                 std::this_thread::sleep_for(std::chrono::milliseconds(collectSleepTime));
                 if (vm.oopManager->allocatedOopMemory > collectMemoryThreshold) {
                     this->run();
