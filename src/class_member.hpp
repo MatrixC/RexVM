@@ -8,6 +8,8 @@
 #include <optional>
 #include "utils/spin_lock.hpp"
 #include "mirror_base.hpp"
+#include "composite_ptr.hpp"
+#include "class_annotation_container.hpp"
 
 namespace RexVM {
 
@@ -20,6 +22,7 @@ namespace RexVM {
     struct ClassFile;
     struct MirrorBase;
 
+
     struct ClassMember {
         const ClassMemberTypeEnum type;
         const u2 accessFlags{};
@@ -27,12 +30,17 @@ namespace RexVM {
         const cstring descriptor;
         cstring signature;
         InstanceClass &klass;
+        SlotTypeEnum slotType{SlotTypeEnum::NONE}; //returnSlotTyoe for method
 
-        size_t runtimeVisibleAnnotationLength{};
-        std::unique_ptr<u1[]> runtimeVisibleAnnotation;
+        u2 slotId{};
 
-        size_t runtimeVisibleTypeAnnotationLength{};
-        std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
+        // size_t runtimeVisibleAnnotationLength{};
+        // std::unique_ptr<u1[]> runtimeVisibleAnnotation;
+
+        // size_t runtimeVisibleTypeAnnotationLength{};
+        // std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
+
+        std::unique_ptr<BasicAnnotationContainer> basicAnnotationContainer;
 
         explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
                              InstanceClass &klass);
@@ -52,13 +60,11 @@ namespace RexVM {
         MirrorBase mirrorBase{};
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
-        virtual ~ClassMember();
+        ~ClassMember();
     };
 
     struct Field : ClassMember {
         u2 constantValueIndex{};
-        u2 slotId{};
-        SlotTypeEnum slotType{SlotTypeEnum::NONE};
  
         explicit Field(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
 
@@ -89,7 +95,6 @@ namespace RexVM {
     };
 
     struct Method : ClassMember {
-        u2 index{};
         u2 maxStack{};
         u2 maxLocals{};
         u4 codeLength{};
@@ -98,18 +103,19 @@ namespace RexVM {
         std::vector<std::unique_ptr<LineNumberItem>> lineNumbers;
         std::vector<u2> exceptionsIndex;
 
-        size_t runtimeVisibleParameterAnnotationLength{};
-        std::unique_ptr<u1[]> runtimeVisibleParameterAnnotation;
+        // size_t runtimeVisibleParameterAnnotationLength{};
+        // std::unique_ptr<u1[]> runtimeVisibleParameterAnnotation;
 
-        size_t annotationDefaultLength{};
-        std::unique_ptr<u1[]> annotationDefault;
+        // size_t annotationDefaultLength{};
+        // std::unique_ptr<u1[]> annotationDefault;
+
+        std::unique_ptr<MethodAnnotationContainer> methodAnnotationContainer;
 
         std::vector<cstring> paramType;
         cstring returnType;
         size_t paramSize{0};
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
-        SlotTypeEnum returnSlotType{SlotTypeEnum::NONE};
 
         [[nodiscard]] std::vector<Class *> getParamClasses() const;
 
@@ -126,7 +132,7 @@ namespace RexVM {
         std::optional<i4> findExceptionHandler(const InstanceClass *exClass, u4 pc);
         [[nodiscard]] u4 getLineNumber(u4 pc) const;
 
-        ~Method() override;
+        ~Method();
 
         private:
         void initParamSlotSize();

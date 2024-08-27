@@ -192,7 +192,7 @@ namespace RexVM {
 
         threadClassExitMethodSlotId =
             getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)
-                ->getMethod("exit", "()V", false)->index;
+                ->getMethod("exit", "()V", false)->slotId;
 
         threadClassDeamonFieldSlotId =
             getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD)

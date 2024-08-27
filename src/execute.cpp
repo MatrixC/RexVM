@@ -143,7 +143,8 @@ namespace RexVM {
                 return;
             }
         }
-        if (method.returnSlotType != SlotTypeEnum::NONE) {
+        if (method.slotType != SlotTypeEnum::NONE) {
+            //not return but return slot type is not none
             panic("Method stack error: " + method.name);
         }
     }

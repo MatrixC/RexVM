@@ -9,6 +9,7 @@
 #include <atomic>
 #include "utils/spin_lock.hpp"
 #include "mirror_base.hpp"
+#include "class_annotation_container.hpp"
 
 namespace RexVM {
 

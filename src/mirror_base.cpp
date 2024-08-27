@@ -79,7 +79,7 @@ namespace RexVM {
         }
         mirOop->setFieldValue("override", "Z", Slot(CAST_I4(0)));
         mirOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(klass.getMirror(&frame)));
-        mirOop->setFieldValue("slot", "I", Slot(method->index));
+        mirOop->setFieldValue("slot", "I", Slot(method->slotId));
         mirOop->setFieldValue("parameterTypes", "[Ljava/lang/Class;", Slot(paramClassesArrayOop));
         mirOop->setFieldValue("exceptionTypes", "[Ljava/lang/Class;", Slot(exceptionArrayOop));
         mirOop->setFieldValue("modifiers", "I", Slot(method->getModifier()));
@@ -91,33 +91,65 @@ namespace RexVM {
             mirOop->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(method->name)));
             mirOop->setFieldValue("returnType", "Ljava/lang/Class;", Slot(frame.mem.getClass(method->returnType)->getMirror(&frame)));
         }
-        
-        if (method->runtimeVisibleAnnotation != nullptr) {
+
+        if (method->basicAnnotationContainer != nullptr 
+            && method->basicAnnotationContainer->getAnnotationPtr() != nullptr) {
             const auto byteArrayOop = 
                 frame.mem.newByteArrayOop(
-                    method->runtimeVisibleAnnotationLength, 
-                    method->runtimeVisibleAnnotation.get()
+                    method->basicAnnotationContainer->getAnnotationLength(),
+                    method->basicAnnotationContainer->getAnnotationPtr()
                 );
             mirOop->setFieldValue("annotations", "[B", Slot(byteArrayOop));
         }
         
-        if (method->runtimeVisibleParameterAnnotation != nullptr) {
-            const auto byteArrayOop = 
-                frame.mem.newByteArrayOop(
-                    method->runtimeVisibleParameterAnnotationLength, 
-                    method->runtimeVisibleParameterAnnotation.get()
-                );
-            mirOop->setFieldValue("parameterAnnotations", "[B", Slot(byteArrayOop));
+        // if (method->runtimeVisibleAnnotation != nullptr) {
+        //     const auto byteArrayOop = 
+        //         frame.mem.newByteArrayOop(
+        //             method->runtimeVisibleAnnotationLength, 
+        //             method->runtimeVisibleAnnotation.get()
+        //         );
+        //     mirOop->setFieldValue("annotations", "[B", Slot(byteArrayOop));
+        // }
+
+        if (method->methodAnnotationContainer != nullptr) {
+            if (method->methodAnnotationContainer->getParameterAnnotationPtr() != nullptr) {
+                const auto byteArrayOop = 
+                    frame.mem.newByteArrayOop(
+                        method->methodAnnotationContainer->getParameterAnnotationLength(),
+                        method->methodAnnotationContainer->getParameterAnnotationPtr()
+                    );
+                mirOop->setFieldValue("parameterAnnotations", "[B", Slot(byteArrayOop));
+            }
+
+            if (method->methodAnnotationContainer->getAnnotationDefaultPtr() != nullptr && !isConstructor) {
+                const auto byteArrayOop = 
+                    frame.mem.newByteArrayOop(
+                        method->methodAnnotationContainer->getAnnotationDefaultLength(),
+                        method->methodAnnotationContainer->getAnnotationDefaultPtr()
+                    );
+                mirOop->setFieldValue("annotationDefault", "[B", Slot(byteArrayOop));
+            }
         }
         
-        if (!isConstructor && method->annotationDefault != nullptr) {
-            const auto byteArrayOop = 
-                frame.mem.newByteArrayOop(
-                    method->annotationDefaultLength, 
-                    method->annotationDefault.get()
-                );
-            mirOop->setFieldValue("annotationDefault", "[B", Slot(byteArrayOop));
-        }
+        // if (method->runtimeVisibleParameterAnnotation != nullptr) {
+        //     const auto byteArrayOop = 
+        //         frame.mem.newByteArrayOop(
+        //             method->runtimeVisibleParameterAnnotationLength, 
+        //             method->runtimeVisibleParameterAnnotation.get()
+        //         );
+        //     mirOop->setFieldValue("parameterAnnotations", "[B", Slot(byteArrayOop));
+        // }
+
+
+        
+        // if (!isConstructor && method->annotationDefault != nullptr) {
+        //     const auto byteArrayOop = 
+        //         frame.mem.newByteArrayOop(
+        //             method->annotationDefaultLength, 
+        //             method->annotationDefault.get()
+        //         );
+        //     mirOop->setFieldValue("annotationDefault", "[B", Slot(byteArrayOop));
+        // }
 
         #ifdef DEBUG
         mirOop->mirrorName = klass.name + "." + method->name;
@@ -132,14 +164,25 @@ namespace RexVM {
         mirOop->setFieldValue("type", "Ljava/lang/Class;", Slot(field->getTypeClass()->getMirror(&frame)));
         mirOop->setFieldValue("modifiers", "I", Slot(field->getModifier()));
         mirOop->setFieldValue("signature", "Ljava/lang/String;", Slot(frame.mem.getInternString(field->signature)));
-        if (field->runtimeVisibleAnnotation != nullptr) {
+
+        if (field->basicAnnotationContainer != nullptr) {
             const auto byteArrayOop = 
                 frame.mem.newByteArrayOop(
-                    field->runtimeVisibleAnnotationLength, 
-                    field->runtimeVisibleAnnotation.get()
+                    field->basicAnnotationContainer->getAnnotationLength(),
+                    field->basicAnnotationContainer->getAnnotationPtr()
                 );
             mirOop->setFieldValue("annotations", "[B", Slot(byteArrayOop));
         }
+
+
+        // if (field->runtimeVisibleAnnotation != nullptr) {
+        //     const auto byteArrayOop = 
+        //         frame.mem.newByteArrayOop(
+        //             field->runtimeVisibleAnnotationLength, 
+        //             field->runtimeVisibleAnnotation.get()
+        //         );
+        //     mirOop->setFieldValue("annotations", "[B", Slot(byteArrayOop));
+        // }
 
         #ifdef DEBUG
         mirOop->mirrorName = klass.name + "." + field->name;

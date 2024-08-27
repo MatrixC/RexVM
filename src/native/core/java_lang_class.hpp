@@ -409,16 +409,27 @@ namespace RexVM::Native::Core {
         const auto fieldClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(self->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->getMirrorClass());
         const auto fieldPtr = fieldClass->fields[slotId].get();
 
-        if (fieldPtr->runtimeVisibleTypeAnnotation != nullptr) {
+        if (fieldPtr->basicAnnotationContainer != nullptr) {
             const auto byteArrayOop = 
                 frame.mem.newByteArrayOop(
-                    fieldPtr->runtimeVisibleTypeAnnotationLength, 
-                    fieldPtr->runtimeVisibleTypeAnnotation.get()
+                    fieldPtr->basicAnnotationContainer->getTypeAnnotationLength(), 
+                    fieldPtr->basicAnnotationContainer->getTypeAnnotationPtr()
                 );
 
             frame.returnRef(byteArrayOop);
             return;
         }
+
+        // if (fieldPtr->runtimeVisibleTypeAnnotation != nullptr) {
+        //     const auto byteArrayOop = 
+        //         frame.mem.newByteArrayOop(
+        //             fieldPtr->runtimeVisibleTypeAnnotationLength, 
+        //             fieldPtr->runtimeVisibleTypeAnnotation.get()
+        //         );
+
+        //     frame.returnRef(byteArrayOop);
+        //     return;
+        // }
 
         frame.returnRef(nullptr);
     }

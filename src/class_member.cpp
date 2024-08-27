@@ -28,21 +28,38 @@ namespace RexVM {
             signature = getConstantStringFromPool(cf.constantPool, signatureAttribute->signatureIndex);
         }
 
-        if (const auto runtimeVisibleAnnotationAttribute =
-                    CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
-                            AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS));
-                runtimeVisibleAnnotationAttribute != nullptr) {
-            runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
-            runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes);
+        const auto runtimeVisibleAnnotationAttribute =
+            CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS));
+
+        const auto runtimeVisibleTypeAnnotationAttribute =
+            CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
+
+        if (runtimeVisibleAnnotationAttribute != nullptr || runtimeVisibleTypeAnnotationAttribute != nullptr) {
+            basicAnnotationContainer = 
+                std::make_unique<BasicAnnotationContainer>(
+                    runtimeVisibleAnnotationAttribute, 
+                    runtimeVisibleTypeAnnotationAttribute
+                );
         }
 
-        if (const auto runtimeVisibleTypeAnnotationAttribute =
-                    CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
-                            AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
-                runtimeVisibleTypeAnnotationAttribute != nullptr) {
-            runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
-            runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
-        }
+        // if (const auto runtimeVisibleAnnotationAttribute =
+        //             CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
+        //                     AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS));
+        //         runtimeVisibleAnnotationAttribute != nullptr) {
+        //     // runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
+        //     // runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes);
+        //     if (basicAnnotationContainer == nullptr) {
+        //         basicAnnotationContainer = std::make_unique<BasicAnnotationContainer>();
+        //     }
+        // }
+
+        // if (const auto runtimeVisibleTypeAnnotationAttribute =
+        //             CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
+        //                     AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
+        //         runtimeVisibleTypeAnnotationAttribute != nullptr) {
+        //     runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
+        //     runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
+        // }
     }
 
     bool ClassMember::isStatic() const {
@@ -131,8 +148,8 @@ namespace RexVM {
     }
 
     Method::Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index) :
-            ClassMember(ClassMemberTypeEnum::METHOD, klass, info, cf), index(index) {
-        
+            ClassMember(ClassMemberTypeEnum::METHOD, klass, info, cf) {
+        slotId = index;
         initParamSlotSize();
         initAnnotations(info);
         initCode(info);
@@ -158,25 +175,40 @@ namespace RexVM {
                 paramSlotType.push_back(slotType);
             }
         }
-        returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
+        slotType = getSlotTypeByPrimitiveClassName(returnType);
     }
 
     void Method::initAnnotations(FMBaseInfo *info) {
-        if (const auto runtimeVisibleParameterAnnotationAttribute =
-                    CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
-                            AttributeTagEnum::RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS));
-                runtimeVisibleParameterAnnotationAttribute != nullptr) {
-            runtimeVisibleParameterAnnotationLength = runtimeVisibleParameterAnnotationAttribute->attributeLength;
-            runtimeVisibleParameterAnnotation = std::move(runtimeVisibleParameterAnnotationAttribute->bytes);
+        const auto runtimeVisibleParameterAnnotationAttribute =
+            CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS));
+
+        const auto annotationDefaultAttribute =
+            CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::ANNOTATION_DEFAULT));
+
+        if (runtimeVisibleParameterAnnotationAttribute != nullptr || annotationDefaultAttribute != nullptr) {
+            methodAnnotationContainer = 
+                std::make_unique<MethodAnnotationContainer>(
+                    runtimeVisibleParameterAnnotationAttribute,
+                    annotationDefaultAttribute
+                );
         }
 
-        if (const auto annotationDefaultAttribute =
-                    CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
-                            AttributeTagEnum::ANNOTATION_DEFAULT));
-                annotationDefaultAttribute != nullptr) {
-            annotationDefaultLength = annotationDefaultAttribute->attributeLength;
-            annotationDefault = std::move(annotationDefaultAttribute->bytes);
-        }
+
+        // if (const auto runtimeVisibleParameterAnnotationAttribute =
+        //             CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
+        //                     AttributeTagEnum::RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS));
+        //         runtimeVisibleParameterAnnotationAttribute != nullptr) {
+        //     runtimeVisibleParameterAnnotationLength = runtimeVisibleParameterAnnotationAttribute->attributeLength;
+        //     runtimeVisibleParameterAnnotation = std::move(runtimeVisibleParameterAnnotationAttribute->bytes);
+        // }
+
+        // if (const auto annotationDefaultAttribute =
+        //             CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
+        //                     AttributeTagEnum::ANNOTATION_DEFAULT));
+        //         annotationDefaultAttribute != nullptr) {
+        //     annotationDefaultLength = annotationDefaultAttribute->attributeLength;
+        //     annotationDefault = std::move(annotationDefaultAttribute->bytes);
+        // }
     }
 
     void Method::initCode(FMBaseInfo *info) {

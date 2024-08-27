@@ -104,17 +104,18 @@ namespace RexVM {
     std::tuple<Slot, SlotTypeEnum> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
         createFrameAndRunMethod(thread, runMethod, this, std::move(params));
         //Method可能有返回值,需要处理返回值的pop
-        if (runMethod.returnSlotType == SlotTypeEnum::NONE) {
+        const auto returnSlotType = runMethod.slotType;
+        if (returnSlotType == SlotTypeEnum::NONE) {
             //void函数，无返回
             return std::make_tuple(ZERO_SLOT, SlotTypeEnum::NONE);
         } else {
-            if (runMethod.returnSlotType == SlotTypeEnum::I8) {
-                return std::make_tuple(Slot(popI8()), runMethod.returnSlotType);
-            } else if (runMethod.returnSlotType == SlotTypeEnum::F8) {
-                return std::make_tuple(Slot(popF8()), runMethod.returnSlotType);
+            if (returnSlotType == SlotTypeEnum::I8) {
+                return std::make_tuple(Slot(popI8()), returnSlotType);
+            } else if (returnSlotType == SlotTypeEnum::F8) {
+                return std::make_tuple(Slot(popF8()), returnSlotType);
             } else {
                 //除了I8和F8,其他类型只需要pop一个值
-                return std::make_tuple(pop(), runMethod.returnSlotType);
+                return std::make_tuple(pop(), returnSlotType);
             }
         }
     }
