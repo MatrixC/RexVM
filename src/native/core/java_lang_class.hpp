@@ -365,15 +365,15 @@ namespace RexVM::Native::Core {
         }
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
 
-        if (instanceMirrorClass->runtimeVisibleAnnotation != nullptr) {
+        if (instanceMirrorClass->basicAnnotationContainer != nullptr) {
             const auto byteArrayOop = 
-                frame.mem.newByteArrayOop(
-                    instanceMirrorClass->runtimeVisibleAnnotationLength, 
-                    instanceMirrorClass->runtimeVisibleAnnotation.get()
-                );
-
-            frame.returnRef(byteArrayOop);
-            return;
+                instanceMirrorClass
+                    ->basicAnnotationContainer
+                    ->runtimeVisibleAnnotation.createByteTypeArrayOop(frame);
+            if (byteArrayOop != nullptr) {
+                frame.returnRef(byteArrayOop);
+                return;
+            }
         }
         frame.returnRef(nullptr);
     }
@@ -387,16 +387,16 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
-
-        if (instanceMirrorClass->runtimeVisibleTypeAnnotation != nullptr) {
+        
+        if (instanceMirrorClass->basicAnnotationContainer != nullptr) {
             const auto byteArrayOop = 
-                frame.mem.newByteArrayOop(
-                    instanceMirrorClass->runtimeVisibleTypeAnnotationLength, 
-                    instanceMirrorClass->runtimeVisibleTypeAnnotation.get()
-                );
-
-            frame.returnRef(byteArrayOop);
-            return;
+                instanceMirrorClass
+                    ->basicAnnotationContainer
+                    ->runtimeVisibleTypeAnnotation.createByteTypeArrayOop(frame);
+            if (byteArrayOop != nullptr) {
+                frame.returnRef(byteArrayOop);
+                return;
+            }
         }
         frame.returnRef(nullptr);
     }
@@ -411,25 +411,12 @@ namespace RexVM::Native::Core {
 
         if (fieldPtr->basicAnnotationContainer != nullptr) {
             const auto byteArrayOop = 
-                frame.mem.newByteArrayOop(
-                    fieldPtr->basicAnnotationContainer->getTypeAnnotationLength(), 
-                    fieldPtr->basicAnnotationContainer->getTypeAnnotationPtr()
-                );
-
+                fieldPtr->basicAnnotationContainer
+                        ->runtimeVisibleTypeAnnotation.createByteTypeArrayOop(frame);
+            
             frame.returnRef(byteArrayOop);
             return;
         }
-
-        // if (fieldPtr->runtimeVisibleTypeAnnotation != nullptr) {
-        //     const auto byteArrayOop = 
-        //         frame.mem.newByteArrayOop(
-        //             fieldPtr->runtimeVisibleTypeAnnotationLength, 
-        //             fieldPtr->runtimeVisibleTypeAnnotation.get()
-        //         );
-
-        //     frame.returnRef(byteArrayOop);
-        //     return;
-        // }
 
         frame.returnRef(nullptr);
     }

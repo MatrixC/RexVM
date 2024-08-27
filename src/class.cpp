@@ -258,6 +258,9 @@ namespace RexVM {
     }
 
     void InstanceClass::initAttributes(ClassFile &cf) {
+        ByteStreamAttribute *annotation = nullptr;
+        ByteStreamAttribute *typeAnnotation = nullptr;
+
         for (auto &attribute: cf.attributes) {
             const auto attributeName = getConstantStringFromPool(cf.constantPool, (const size_t) attribute->attributeNameIndex);
             const auto attributeTypeEnum = ATTRIBUTE_NAME_TAG_MAP.at(attributeName);
@@ -275,22 +278,28 @@ namespace RexVM {
                 break;
 
                 case AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS: {
-                    const auto runtimeVisibleAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
-                    runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
-                    runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes); 
+                    annotation = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
+                    // const auto runtimeVisibleAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
+                    // runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
+                    // runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes); 
                     break;
                 }
 
                 case AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS: {
-                    const auto runtimeVisibleTypeAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
-                    runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
-                    runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
+                    typeAnnotation = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
+                    // const auto runtimeVisibleTypeAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
+                    // runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
+                    // runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
                     break;
                 }
 
                 default:
                     break;
             }
+        }
+
+        if (annotation != nullptr || typeAnnotation != nullptr) {
+            basicAnnotationContainer = std::make_unique<BasicAnnotationContainer>(annotation, typeAnnotation);
         }
     }
 

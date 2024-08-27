@@ -112,11 +112,7 @@ namespace RexVM {
         [[nodiscard]] EnclosingMethodAttribute *getEnclosingMethodAttr() const;
         [[nodiscard]] InnerClassesAttribute *getInnerClassesAttr() const;
 
-        size_t runtimeVisibleAnnotationLength{};
-        std::unique_ptr<u1[]> runtimeVisibleAnnotation;
-
-        size_t runtimeVisibleTypeAnnotationLength;
-        std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
+        std::unique_ptr<BasicAnnotationContainer> basicAnnotationContainer;
 
         std::unique_ptr<Slot[]> staticData;
         //跟实例offset一致 查询其SlotType

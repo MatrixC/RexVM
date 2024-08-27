@@ -34,12 +34,6 @@ namespace RexVM {
 
         u2 slotId{};
 
-        // size_t runtimeVisibleAnnotationLength{};
-        // std::unique_ptr<u1[]> runtimeVisibleAnnotation;
-
-        // size_t runtimeVisibleTypeAnnotationLength{};
-        // std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
-
         std::unique_ptr<BasicAnnotationContainer> basicAnnotationContainer;
 
         explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
@@ -102,12 +96,6 @@ namespace RexVM {
         std::vector<std::unique_ptr<ExceptionCatchItem>> exceptionCatches;
         std::vector<std::unique_ptr<LineNumberItem>> lineNumbers;
         std::vector<u2> exceptionsIndex;
-
-        // size_t runtimeVisibleParameterAnnotationLength{};
-        // std::unique_ptr<u1[]> runtimeVisibleParameterAnnotation;
-
-        // size_t annotationDefaultLength{};
-        // std::unique_ptr<u1[]> annotationDefault;
 
         std::unique_ptr<MethodAnnotationContainer> methodAnnotationContainer;
 
