@@ -24,17 +24,19 @@ namespace RexVM {
 
 
     struct ClassMember {
-        const ClassMemberTypeEnum type;
-        const u2 accessFlags{};
         const cstring name;
         const cstring descriptor;
         cstring signature;
-        InstanceClass &klass;
-        SlotTypeEnum slotType{SlotTypeEnum::NONE}; //returnSlotTyoe for method
 
+        InstanceClass &klass;
+        MirrorBase mirrorBase{};
+        std::unique_ptr<BasicAnnotationContainer> basicAnnotationContainer;
+
+        const u2 accessFlags{};
         u2 slotId{};
 
-        std::unique_ptr<BasicAnnotationContainer> basicAnnotationContainer;
+        const ClassMemberTypeEnum type;
+        SlotTypeEnum slotType{SlotTypeEnum::NONE}; //returnSlotTyoe for method
 
         explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
                              InstanceClass &klass);
@@ -51,8 +53,9 @@ namespace RexVM {
         [[nodiscard]] bool is(const cstring &name, const cstring &descriptor) const;
         [[nodiscard]] bool is(const cstring &name, const cstring &descriptor, bool isStatic) const;
 
-        MirrorBase mirrorBase{};
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
+
+        static bool compareClassMemberName(const ClassMember *a, const ClassMember *b);
 
         ~ClassMember();
     };
@@ -63,7 +66,6 @@ namespace RexVM {
         explicit Field(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
 
         [[nodiscard]] SlotTypeEnum getFieldSlotType();
-
         [[nodiscard]] cstring getTypeName() const;
         [[nodiscard]] Class *getTypeClass() const;
 
@@ -72,11 +74,11 @@ namespace RexVM {
     };
 
     struct ExceptionCatchItem {
+        InstanceClass *catchClass{};
         const u2 start;
         const u2 end;
         const u2 handler;
         const u2 catchType;
-        InstanceClass *catchClass{};
 
         explicit ExceptionCatchItem(u2 start, u2 end, u2 handler, u2 catchType);
     };
@@ -89,19 +91,18 @@ namespace RexVM {
     };
 
     struct Method : ClassMember {
-        u2 maxStack{};
         u2 maxLocals{};
         u4 codeLength{};
         std::unique_ptr<u1[]> code;
         std::vector<std::unique_ptr<ExceptionCatchItem>> exceptionCatches;
         std::vector<std::unique_ptr<LineNumberItem>> lineNumbers;
-        std::vector<u2> exceptionsIndex;
+
+        CompositeArray<u2> exceptionsIndex;
 
         std::unique_ptr<MethodAnnotationContainer> methodAnnotationContainer;
 
         std::vector<cstring> paramType;
         cstring returnType;
-        size_t paramSize{0};
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
 

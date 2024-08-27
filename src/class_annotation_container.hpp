@@ -11,16 +11,12 @@ namespace RexVM {
     struct Frame;
 
     struct AnnotationContainer {
-        Composite<u1 *, u2> composite;
+        CompositeArray<u1> composite;
 
         explicit AnnotationContainer(ByteStreamAttribute *stream) {
             if (stream != nullptr) {
-                composite.reset(stream->bytes.release(), CAST_U2(stream->attributeLength));
+                composite.data.reset(stream->bytes.release(), CAST_U2(stream->attributeLength));
             }
-        }
-
-        ~AnnotationContainer() {
-            delete[] composite.getPtr();
         }
 
         ByteTypeArrayOop *createByteTypeArrayOop(Frame &frame) const;
@@ -46,7 +42,6 @@ namespace RexVM {
             ByteStreamAttribute *parameterAnnotation,
             ByteStreamAttribute *defaultAnnotation
         ) : runtimeVisibleParameterAnnotation(parameterAnnotation), annotationDefault(defaultAnnotation) {
-            
         }
 
         AnnotationContainer runtimeVisibleParameterAnnotation;

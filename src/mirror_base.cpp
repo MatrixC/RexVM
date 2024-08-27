@@ -70,13 +70,15 @@ namespace RexVM {
             paramClassesArrayOop->data[i] = paramClasses[i]->getMirror(&frame);
         }
 
-        const auto exceptionArrayOop = frame.mem.newClassObjArrayOop(method->exceptionsIndex.size());
-        FOR_FROM_ZERO(method->exceptionsIndex.size()) {
-            const auto exceptionIdx = method->exceptionsIndex[i];
+        const auto exceptionsSize = CAST_SIZE_T(method->exceptionsIndex.data.getData());
+        const auto exceptionArrayOop = frame.mem.newClassObjArrayOop(exceptionsSize);
+        FOR_FROM_ZERO(exceptionsSize) {
+            const auto exceptionIdx = method->exceptionsIndex.data.getPtr()[i];
             const auto exceptionClassName = 
                 getConstantStringFromPoolByIndexInfo(klass.constantPool, exceptionIdx);
             exceptionArrayOop->data[i] = frame.mem.getClass(exceptionClassName)->getMirror(&frame);
         }
+
         mirOop->setFieldValue("override", "Z", Slot(CAST_I4(0)));
         mirOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(klass.getMirror(&frame)));
         mirOop->setFieldValue("slot", "I", Slot(method->slotId));

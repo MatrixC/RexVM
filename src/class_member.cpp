@@ -15,8 +15,7 @@ namespace RexVM {
 
     ClassMember::ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
                              InstanceClass &klass) :
-            type(type), accessFlags(accessFlags), name(std::move(name)), descriptor(std::move(descriptor)),
-            klass(klass) {
+        name(std::move(name)), descriptor(std::move(descriptor)), klass(klass), accessFlags(accessFlags), type(type) {
     }
 
     ClassMember::ClassMember(ClassMemberTypeEnum type, InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
@@ -41,25 +40,6 @@ namespace RexVM {
                     runtimeVisibleTypeAnnotationAttribute
                 );
         }
-
-        // if (const auto runtimeVisibleAnnotationAttribute =
-        //             CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
-        //                     AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS));
-        //         runtimeVisibleAnnotationAttribute != nullptr) {
-        //     // runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
-        //     // runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes);
-        //     if (basicAnnotationContainer == nullptr) {
-        //         basicAnnotationContainer = std::make_unique<BasicAnnotationContainer>();
-        //     }
-        // }
-
-        // if (const auto runtimeVisibleTypeAnnotationAttribute =
-        //             CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
-        //                     AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS));
-        //         runtimeVisibleTypeAnnotationAttribute != nullptr) {
-        //     runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
-        //     runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
-        // }
     }
 
     bool ClassMember::isStatic() const {
@@ -105,6 +85,10 @@ namespace RexVM {
             : (isConstructor() ? MirrorObjectTypeEnum::CONSTRUCTOR : MirrorObjectTypeEnum::METHOD);
 
         return mirrorBase.getBaseMirror(frame, mirrorType, this, lock, init);
+    }
+
+    bool ClassMember::compareClassMemberName(const ClassMember *a, const ClassMember *b) {
+        return a->name < b->name;
     }
 
     ClassMember::~ClassMember() = default;
@@ -158,21 +142,19 @@ namespace RexVM {
 
     void Method::initParamSlotSize() {
         if (!isStatic()) {
-            paramSize += 1;
             paramSlotSize += 1;
             paramSlotType.emplace_back(SlotTypeEnum::REF);
         }
         std::tie(paramType, returnType) = parseMethodDescriptor(descriptor);
-        paramSize += paramType.size();
         for (const auto &desc: paramType) {
             paramSlotSize += 1;
 
-            SlotTypeEnum slotType = getSlotTypeByPrimitiveClassName(desc);
+            const auto slotType = getSlotTypeByPrimitiveClassName(desc);
             paramSlotType.emplace_back(slotType);
 
             if (isWideSlotType(slotType)) {
                 paramSlotSize += 1;
-                paramSlotType.push_back(slotType);
+                paramSlotType.emplace_back(slotType);
             }
         }
         slotType = getSlotTypeByPrimitiveClassName(returnType);
@@ -192,23 +174,6 @@ namespace RexVM {
                     annotationDefaultAttribute
                 );
         }
-
-
-        // if (const auto runtimeVisibleParameterAnnotationAttribute =
-        //             CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
-        //                     AttributeTagEnum::RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS));
-        //         runtimeVisibleParameterAnnotationAttribute != nullptr) {
-        //     runtimeVisibleParameterAnnotationLength = runtimeVisibleParameterAnnotationAttribute->attributeLength;
-        //     runtimeVisibleParameterAnnotation = std::move(runtimeVisibleParameterAnnotationAttribute->bytes);
-        // }
-
-        // if (const auto annotationDefaultAttribute =
-        //             CAST_BYTE_STREAM_ATTRIBUTE(info->getAssignAttribute(
-        //                     AttributeTagEnum::ANNOTATION_DEFAULT));
-        //         annotationDefaultAttribute != nullptr) {
-        //     annotationDefaultLength = annotationDefaultAttribute->attributeLength;
-        //     annotationDefault = std::move(annotationDefaultAttribute->bytes);
-        // }
     }
 
     void Method::initCode(FMBaseInfo *info) {
@@ -225,7 +190,7 @@ namespace RexVM {
 
         if (const auto codeAttribute = CAST_CODE_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::CODE));
                 codeAttribute != nullptr) {
-            maxStack = codeAttribute->maxStack;
+            //maxStack = codeAttribute->maxStack;
             maxLocals = codeAttribute->maxLocals;
             codeLength = codeAttribute->codeLength;
             code = std::move(codeAttribute->code);
@@ -245,21 +210,21 @@ namespace RexVM {
 
             if (!codeAttribute->attributes.empty()) {
                 if (const auto lineNumberTableAttribute = CAST_LINE_NUMBER_ATTRIBUTE(
-                            getAssignAttributeByConstantPool(
-                                    info->cf.constantPool,
-                                    codeAttribute->attributes,
-                                    AttributeTagEnum::LINE_NUMBER_TABLE
-                            ));
-                        lineNumberTableAttribute != nullptr) {
+                    getAssignAttributeByConstantPool(
+                        info->cf.constantPool,
+                        codeAttribute->attributes,
+                        AttributeTagEnum::LINE_NUMBER_TABLE
+                    ));
+                    lineNumberTableAttribute != nullptr) {
+                        if (!lineNumberTableAttribute->lineNumberTables.empty()) {
 
-                    if (!lineNumberTableAttribute->lineNumberTables.empty()) {
-                        lineNumbers.reserve(lineNumberTableAttribute->lineNumberTables.size());
-                        for (const auto &attributeItem: lineNumberTableAttribute->lineNumberTables) {
-                            lineNumbers.emplace_back(
-                                    std::make_unique<LineNumberItem>(attributeItem->startPC, attributeItem->lineNumber));
+                            lineNumbers.reserve(lineNumberTableAttribute->lineNumberTables.size());
+                            for (const auto &attributeItem: lineNumberTableAttribute->lineNumberTables) {
+                                lineNumbers.emplace_back(
+                                        std::make_unique<LineNumberItem>(attributeItem->startPC, attributeItem->lineNumber));
+                            }
                         }
-                    }
-                    lineNumberTableAttribute->lineNumberTables.clear();
+                        lineNumberTableAttribute->lineNumberTables.clear();
                 }
             }
         }
@@ -268,8 +233,11 @@ namespace RexVM {
     void Method::initExceptions(FMBaseInfo *info) {
         const auto exceptionsAttribute = CAST_EXCEPTIONS_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::EXCEPTIONS));
         if (exceptionsAttribute != nullptr) {
-            exceptionsIndex.reserve(exceptionsAttribute->numberOfExceptions);
-            exceptionsIndex.assign(exceptionsAttribute->exceptionIndexTable.begin(), exceptionsAttribute->exceptionIndexTable.end());
+            exceptionsIndex.copy(
+                exceptionsAttribute->exceptionIndexTable.data(), 
+                CAST_U2(exceptionsAttribute->numberOfExceptions)
+            );
+            exceptionsAttribute->exceptionIndexTable.clear();
         }
     }
 

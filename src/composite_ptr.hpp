@@ -82,6 +82,28 @@ namespace RexVM {
 
     };
 
+    template<typename Element>
+    struct CompositeArray {
+        using ArrayPtr = Element *;
+        Composite<ArrayPtr, u2> data;
+
+        CompositeArray() = default;
+
+        CompositeArray(ArrayPtr ptr, u2 size) : data(ptr, size) {
+        }
+
+        void copy(ArrayPtr src, u2 size) {
+            const auto p = new Element[size];
+            std::memcpy(p, src, sizeof(Element) * size);
+            data.reset(p, size);
+        }
+
+        ~CompositeArray() {
+            delete[] data.getPtr();
+        }
+
+    };
+
 }
 
 #endif

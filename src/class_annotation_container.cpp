@@ -6,15 +6,15 @@
 namespace RexVM {
 
     ByteTypeArrayOop *AnnotationContainer::createByteTypeArrayOop(Frame &frame) const {
-        if (composite.getPtr() != nullptr) {
+        if (composite.data.getPtr() != nullptr) {
             return frame.mem.newByteArrayOop(
-                CAST_SIZE_T(composite.getData()), 
-                composite.getPtr()
+                CAST_SIZE_T(composite.data.getData()), 
+                composite.data.getPtr()
             );
         }
         return nullptr;
     }
 
-    
+
     
 }
