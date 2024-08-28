@@ -7,6 +7,7 @@
 #include <memory>
 #include <unordered_map>
 #include <atomic>
+#include "composite_string.hpp"
 #include "utils/spin_lock.hpp"
 #include "mirror_base.hpp"
 #include "class_annotation_container.hpp"
@@ -34,9 +35,7 @@ namespace RexVM {
     struct AttributeInfo;
 
 
-
     struct Class {
-        
         const cstring name;
         std::vector<InstanceClass *> interfaces;
         InstanceClass *superClass{nullptr};
@@ -96,6 +95,7 @@ namespace RexVM {
         SpecialClassEnum specialClassType{SpecialClassEnum::NONE};
         u2 instanceSlotCount{};
         u2 staticSlotCount{};
+        u2 signatureIndex{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
         bool overrideFinalize{false};
 
@@ -119,9 +119,8 @@ namespace RexVM {
         std::unique_ptr<SlotTypeEnum[]> instanceDataType;
         //跟类的static offset一致 查询其SlotType
         std::unique_ptr<SlotTypeEnum[]> staticDataType;
-        cstring sourceFile{};
-        cstring signature{};
-
+        rstring sourceFile{};
+        
     private:
         void calcFieldSlotId();
         void initStaticField(VMThread &thread);
@@ -149,6 +148,7 @@ namespace RexVM {
         [[nodiscard]] Method *getMethodSelf(const cstring &name, const cstring &descriptor, bool isStatic) const;
         [[nodiscard]] Method *getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const;
         [[nodiscard]] Method *getRefMethod(size_t refIndex, bool isStatic) const;
+        [[nodiscard]] cstring getSignature() const;
 
         void setFieldValue(size_t index, Slot value) const;
         void setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const;

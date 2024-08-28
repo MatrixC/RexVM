@@ -19,6 +19,7 @@ namespace RexVM {
                 const cstring &className, const cstring &methodName, const cstring &descriptor, bool isStatic
         );
 
+        //static safe
         static NativeManager instance;
 
         explicit NativeManager();

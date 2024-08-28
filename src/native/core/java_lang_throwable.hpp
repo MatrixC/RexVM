@@ -45,7 +45,7 @@ namespace RexVM::Native::Core {
             const auto methodName = method.name;
             const auto sourceFileName = method.klass.sourceFile;
             const auto lineNumber = method.getLineNumber(currentFrame->pc());
-            stackTraceElements.emplace_back(createStackTraceElement(frame, className, methodName, sourceFileName, CAST_I4(lineNumber)));
+            stackTraceElements.emplace_back(createStackTraceElement(frame, className, methodName, sourceFileName.toString(), CAST_I4(lineNumber)));
         }
 
         const auto arrayOop = frame.mem.newObjArrayOop(stackTraceElementArrayClass, stackTraceElements.size());

@@ -94,7 +94,7 @@ namespace RexVM {
                 "([Ljava/lang/Object;)Ljava/lang/String;";
         const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
-        const auto ret = val.refVal == nullptr ? "null" : StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
+        const auto ret = val.refVal == nullptr ? "null" : VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val.refVal));
         return "Array:" + klass->name + " " + ret;
     }
 
@@ -103,7 +103,7 @@ namespace RexVM {
         const auto objectsClass = frame.mem.getInstanceClass("java/util/Objects");
         const auto toStringMethod = objectsClass->getMethod("toString", "(Ljava/lang/Object;)Ljava/lang/String;", true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
-        auto ret = val.refVal == nullptr ? "null" : StringPool::getJavaString(CAST_INSTANCE_OOP(val.refVal));
+        auto ret = val.refVal == nullptr ? "null" : VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val.refVal));
         ret = ret.empty() ? "[EMPTY]" : ret;
         return className + " " + ret;
     }

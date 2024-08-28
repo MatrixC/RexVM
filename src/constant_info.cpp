@@ -24,6 +24,11 @@ namespace RexVM {
         return CAST_CONSTANT_UTF_8_INFO(info)->str;
     }
 
+    rstring getConstantRString(ConstantInfo *info) {
+        const auto utf8Info = CAST_CONSTANT_UTF_8_INFO(info);
+        return rstring(reinterpret_cast<char *>(utf8Info->bytes.get()), utf8Info->length);
+    }
+
     std::tuple<const u1 *, u2> getConstantStringBytes(ConstantInfo *info) {
         auto utf8info = CAST_CONSTANT_UTF_8_INFO(info);
         return std::make_tuple(utf8info->bytes.get(), utf8info->length);
@@ -33,6 +38,12 @@ namespace RexVM {
     getConstantStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index) {
         const auto info = pool[index].get();
         return getConstantString(info);
+    }
+
+    rstring
+    getConstantRStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, const size_t index) {
+        const auto info = pool[index].get();
+        return getConstantRString(info);
     }
 
     std::tuple<const u1 *, u2>
@@ -45,6 +56,16 @@ namespace RexVM {
         const size_t index
     ) {
         return getConstantStringFromPool(
+            pool,
+            CAST_CONSTANT_1_INDEX_INFO(pool[index].get())->index
+        );
+    }
+
+    rstring getConstantRStringFromPoolByIndexInfo(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool,
+        const size_t index
+    ) {
+        return getConstantRStringFromPool(
             pool,
             CAST_CONSTANT_1_INDEX_INFO(pool[index].get())->index
         );

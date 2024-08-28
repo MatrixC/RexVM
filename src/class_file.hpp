@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "config.hpp"
 #include "attribute_info.hpp"
+#include "composite_string.hpp"
 
 namespace RexVM {
 
@@ -99,7 +100,7 @@ namespace RexVM {
 
         [[nodiscard]] cstring getSuperClassName() const;
 
-        [[nodiscard]] cstring getSourceFile() const;
+        [[nodiscard]] rstring getSourceFile() const;
         
         [[nodiscard]] cstring getSignature() const;
 

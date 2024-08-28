@@ -263,7 +263,7 @@ namespace RexVM::Native::Misc {
     void zipOpen(Frame &frame) {
         const auto nameOop = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         ASSERT_IF_NULL_THROW_NPE(nameOop);
-        const auto pathStr = StringPool::getJavaString(nameOop);
+        const auto pathStr = VMStringHelper::getJavaString(nameOop);
 
         const auto archive = new mz_zip_archive();
         //cprintln("open {:p}\t{}", (void*)archive, pathStr);

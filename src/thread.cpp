@@ -74,7 +74,7 @@ namespace RexVM {
         if (nameOop == nullptr) {
             return {};
         }
-        return StringPool::getJavaString(CAST_INSTANCE_OOP(nameOop));
+        return VMStringHelper::getJavaString(CAST_INSTANCE_OOP(nameOop));
     }
 
     void VMThread::run() {

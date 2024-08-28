@@ -40,7 +40,7 @@ namespace RexVM::Native::Core {
     //native void open0(String name) throws FileNotFoundException;
     void openCommon(Frame &frame, FileOpenTypeEnum type, bool append) {
         const auto self = CAST_INSTANCE_OOP(frame.getThisInstance());
-        const auto pathStr = StringPool::getJavaString(CAST_INSTANCE_OOP(frame.getLocalRef(1)));
+        const auto pathStr = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(frame.getLocalRef(1)));
         std::filesystem::path filePath(pathStr);
         if (!std::filesystem::exists(filePath)) {
             throwFileNotFoundException(frame, pathStr);

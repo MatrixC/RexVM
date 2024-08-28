@@ -85,8 +85,8 @@ namespace RexVM {
         mirOop->setFieldValue("parameterTypes", "[Ljava/lang/Class;", Slot(paramClassesArrayOop));
         mirOop->setFieldValue("exceptionTypes", "[Ljava/lang/Class;", Slot(exceptionArrayOop));
         mirOop->setFieldValue("modifiers", "I", Slot(method->getModifier()));
-        if (!method->signature.empty()) {
-            mirOop->setFieldValue("signature", "Ljava/lang/String;", Slot(frame.mem.getInternString(method->signature)));
+        if (method->signatureIndex != 0) {
+            mirOop->setFieldValue("signature", "Ljava/lang/String;", Slot(frame.mem.getInternString(method->getSignature())));
         }
         
         if (!isConstructor) {
@@ -131,7 +131,9 @@ namespace RexVM {
         mirOop->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(field->name)));
         mirOop->setFieldValue("type", "Ljava/lang/Class;", Slot(field->getTypeClass()->getMirror(&frame)));
         mirOop->setFieldValue("modifiers", "I", Slot(field->getModifier()));
-        mirOop->setFieldValue("signature", "Ljava/lang/String;", Slot(frame.mem.getInternString(field->signature)));
+        if (field->signatureIndex != 0) {
+             mirOop->setFieldValue("signature", "Ljava/lang/String;", Slot(frame.mem.getInternString(field->getSignature())));
+        }
 
         if (field->basicAnnotationContainer != nullptr) {
             const auto byteArrayOop = field->basicAnnotationContainer->runtimeVisibleAnnotation.createByteTypeArrayOop(frame);

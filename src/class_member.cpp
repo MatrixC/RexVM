@@ -13,7 +13,7 @@
 
 namespace RexVM {
 
-    ClassMember::ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
+    ClassMember::ClassMember(ClassMemberTypeEnum type, u2 accessFlags, ClassMemberNameType name, ClassMemberNameType descriptor,
                              InstanceClass &klass) :
         name(std::move(name)), descriptor(std::move(descriptor)), klass(klass), accessFlags(accessFlags), type(type) {
     }
@@ -24,7 +24,8 @@ namespace RexVM {
         if (const auto signatureAttribute =
                     CAST_SIGNATURE_ATTRIBUTE(info->getAssignAttribute(AttributeTagEnum::SIGNATURE));
                 signatureAttribute != nullptr) {
-            signature = getConstantStringFromPool(cf.constantPool, signatureAttribute->signatureIndex);
+            signatureIndex = signatureAttribute->signatureIndex;
+            // signature = getConstantStringFromPool(cf.constantPool, signatureAttribute->signatureIndex);
         }
 
         const auto runtimeVisibleAnnotationAttribute =
@@ -66,11 +67,18 @@ namespace RexVM {
         return (accessFlags & ~(CAST_U2(AccessFlagEnum::ACC_ANNOTATION)));
     }
 
-    bool ClassMember::is(const cstring &name_, const cstring &descriptor_) const {
+    cstring ClassMember::getSignature() const {
+        if (signatureIndex == 0) {
+            return {};
+        }
+        return getConstantStringFromPool(klass.constantPool, signatureIndex);
+    }
+
+    bool ClassMember::is(const ClassMemberNameType &name_, const ClassMemberNameType &descriptor_) const {
         return this->name == name_ && this->descriptor == descriptor_;
     }
 
-    bool ClassMember::is(const cstring &name_, const cstring &descriptor_, bool isStatic) const {
+    bool ClassMember::is(const ClassMemberNameType &name_, const ClassMemberNameType &descriptor_, bool isStatic) const {
         return is(name_, descriptor_) && this->isStatic() == isStatic;
     }
 

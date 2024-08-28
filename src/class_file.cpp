@@ -183,15 +183,15 @@ namespace RexVM {
         return getClassName(superClass);
     }
 
-    cstring ClassFile::getSourceFile() const {
+    rstring ClassFile::getSourceFile() const {
         const auto sourceFileAttribute = getAssignAttribute(AttributeTagEnum::SOURCE_FILE);
 
         if (sourceFileAttribute == nullptr) {
-            return {};
+            return rstring::EMPTY;
         }
 
         const auto nameIndex = (CAST_SOURCE_FILE_ATTRIBUTE(sourceFileAttribute))->sourceFileIndex;
-        return getConstantStringFromPool(constantPool, nameIndex);
+        return getConstantRStringFromPool(constantPool, nameIndex);
     }
 
     cstring ClassFile::getSignature() const {

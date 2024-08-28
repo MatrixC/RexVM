@@ -1178,14 +1178,12 @@ namespace RexVM {
         void monitorenter(Frame &frame) {
             const auto oop = frame.popRef();
             ASSERT_IF_NULL_THROW_NPE(oop);
-            //oop->monitorMtx.lock();
             oop->lock();
         }
 
         void monitorexit(Frame &frame) {
             const auto oop = frame.popRef();
             ASSERT_IF_NULL_THROW_NPE(oop);
-            //oop->monitorMtx.unlock();
             oop->unlock();
         }
 

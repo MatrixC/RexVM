@@ -38,7 +38,7 @@ namespace RexVM::Native::Core {
     void forName0(Frame &frame) {
         const auto classNameOop = frame.getLocalRef(0);
         ASSERT_IF_NULL_THROW_NPE(classNameOop)
-        const auto className = StringPool::getJavaString(CAST_INSTANCE_OOP(classNameOop));
+        const auto className = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(classNameOop));
         const auto initialize = frame.getLocalI4(1);
 
         const auto jvmClassName = getJVMClassName(className);
@@ -57,7 +57,7 @@ namespace RexVM::Native::Core {
     void getPrimitiveClass(Frame &frame) {
         const auto classNameOop = frame.getThisInstance();
         ASSERT_IF_NULL_THROW_NPE(classNameOop)
-        const auto className = StringPool::getJavaString(classNameOop);
+        const auto className = VMStringHelper::getJavaString(classNameOop);
         const auto klass = frame.mem.getClass(className);
         frame.returnRef(klass->getMirror(&frame));
     }
@@ -346,7 +346,7 @@ namespace RexVM::Native::Core {
             frame.returnRef(nullptr);
             return;
         }
-        const auto signature = (CAST_INSTANCE_CLASS(mirrorClass))->signature;
+        const auto signature = (CAST_INSTANCE_CLASS(mirrorClass))->getSignature();
         if (!signature.empty()) {
             frame.returnRef(frame.mem.getInternString(signature));
             return;

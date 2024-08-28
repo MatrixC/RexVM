@@ -248,7 +248,6 @@ namespace RexVM {
             Class(ClassTypeEnum::INSTANCE_CLASS, cf.accessFlags, cf.getThisClassName(), classLoader) {
 
         sourceFile = cf.getSourceFile();
-        signature = cf.getSignature();
         initAttributes(cf);
         initFields(cf);
         initMethods(cf);
@@ -290,6 +289,11 @@ namespace RexVM {
                     // const auto runtimeVisibleTypeAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
                     // runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
                     // runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
+                    break;
+                }
+
+                case AttributeTagEnum::SIGNATURE: {
+                    signatureIndex = (CAST_SIGNATURE_ATTRIBUTE(attribute.get()))->signatureIndex;
                     break;
                 }
 
@@ -538,6 +542,13 @@ namespace RexVM {
 
     Method *InstanceClass::getRefMethod(size_t refIndex, bool isStatic) const {
         return static_cast<Method *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::METHOD, isStatic));
+    }
+
+    cstring InstanceClass::getSignature() const {
+        if (signatureIndex == 0) {
+            return {};
+        }
+        return getConstantStringFromPool(constantPool, signatureIndex);
     }
 
     Method *InstanceClass::getMethodSelf(const cstring &name, const cstring &descriptor, bool isStatic) const {

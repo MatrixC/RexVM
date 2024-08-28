@@ -22,11 +22,16 @@ namespace RexVM {
     struct ClassFile;
     struct MirrorBase;
 
+    using ClassMemberNameType = cstring;
+
 
     struct ClassMember {
-        const cstring name;
-        const cstring descriptor;
-        cstring signature;
+        const ClassMemberNameType name;
+        const ClassMemberNameType descriptor;
+
+        // const rstring name;
+        // const rstring descriptor;
+        // cstring signature;
 
         InstanceClass &klass;
         MirrorBase mirrorBase{};
@@ -34,11 +39,12 @@ namespace RexVM {
 
         const u2 accessFlags{};
         u2 slotId{};
+        u2 signatureIndex{};
 
         const ClassMemberTypeEnum type;
         SlotTypeEnum slotType{SlotTypeEnum::NONE}; //returnSlotTyoe for method
 
-        explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cstring name, cstring descriptor,
+        explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, ClassMemberNameType name, ClassMemberNameType descriptor,
                              InstanceClass &klass);
 
         explicit ClassMember(ClassMemberTypeEnum type, InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
@@ -49,9 +55,10 @@ namespace RexVM {
         [[nodiscard]] bool isPrivate() const;
         [[nodiscard]] bool isConstructor() const;
         [[nodiscard]] i4 getModifier() const;
+        [[nodiscard]] cstring getSignature() const;
 
-        [[nodiscard]] bool is(const cstring &name, const cstring &descriptor) const;
-        [[nodiscard]] bool is(const cstring &name, const cstring &descriptor, bool isStatic) const;
+        [[nodiscard]] bool is(const ClassMemberNameType &name, const ClassMemberNameType &descriptor) const;
+        [[nodiscard]] bool is(const ClassMemberNameType &name, const ClassMemberNameType &descriptor, bool isStatic) const;
 
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
@@ -105,10 +112,8 @@ namespace RexVM {
         cstring returnType;
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
-
-        [[nodiscard]] std::vector<Class *> getParamClasses() const;
-
         NativeMethodHandler nativeMethodHandler{};
+
 
         explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index);
 
@@ -116,6 +121,7 @@ namespace RexVM {
         [[nodiscard]] bool isAbstract() const;
         [[nodiscard]] bool isSynchronized() const;
 
+        [[nodiscard]] std::vector<Class *> getParamClasses() const;
         [[nodiscard]] SlotTypeEnum getParamSlotType(size_t slotIdx) const;
 
         std::optional<i4> findExceptionHandler(const InstanceClass *exClass, u4 pc);

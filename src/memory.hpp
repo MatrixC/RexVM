@@ -60,6 +60,7 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *newFloatOop(VMThread *thread, f4 value);
         [[nodiscard]] InstanceOop *newLongOop(VMThread *thread, i8 value);
         [[nodiscard]] InstanceOop *newDoubleOop(VMThread *thread, f8 value);
+        [[nodiscard]] InstanceOop *newStringOop(VMThread *thread, CharTypeArrayOop *value);
 
         void addToOopHolder(VMThread *thread, ref oop);
 

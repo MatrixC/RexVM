@@ -7,8 +7,6 @@
 
 namespace RexVM {
 
-    SpinLock Oop::monitorLock;
-
     Oop::Oop(Class *klass, size_t dataLength) :
             comClass(klass, dataLength),
             comFlags(nullptr, FINALIZED_MASK) {
@@ -60,12 +58,13 @@ namespace RexVM {
     }
 
     OopMonitor *Oop::getAndInitMonitor() {
+        static SpinLock monitorLock;
+
         if (getMonitor() == nullptr) [[unlikely]] {
-            Oop::monitorLock.lock();
+            std::lock_guard<SpinLock> guard(monitorLock);
             if (getMonitor() == nullptr) {
                 comFlags.setPtr(new OopMonitor);
             }
-            Oop::monitorLock.unlock();
         }
         return getMonitor();
     }

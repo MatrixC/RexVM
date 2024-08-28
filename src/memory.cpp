@@ -10,6 +10,7 @@
 #include "string_pool.hpp"
 #include "utils/format.hpp"
 #include "garbage_collect.hpp"
+#include "key_slot_id.hpp"
 
 namespace RexVM {
 
@@ -234,6 +235,15 @@ namespace RexVM {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_DOUBLE);
         const auto oop = newInstance(thread, klass);
         oop->setFieldValue("value", "D", Slot(value));
+        return oop;
+    }
+
+    InstanceOop *OopManager::newStringOop(VMThread *thread, CharTypeArrayOop *value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
+        const auto oop = newInstance(thread, klass);
+        if (value != nullptr) {
+            oop->setFieldValue(stringClassValueFieldSlotId, Slot(value));
+        }
         return oop;
     }
 

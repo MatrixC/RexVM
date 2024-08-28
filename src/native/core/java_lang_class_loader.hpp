@@ -33,7 +33,7 @@ namespace RexVM::Native::Core {
             frame.returnRef(nullptr);
             return;
         }
-        const auto className = StringPool::getJavaString(classNameOop);
+        const auto className = VMStringHelper::getJavaString(classNameOop);
         const auto mirrorOop = frame.mem.getClass(className)->getMirror(&frame);
         frame.returnRef(mirrorOop);
     }
@@ -45,7 +45,7 @@ namespace RexVM::Native::Core {
             frame.returnRef(nullptr);
             return;
         }
-        const auto className = getJVMClassName(StringPool::getJavaString(classNameOop));
+        const auto className = getJVMClassName(VMStringHelper::getJavaString(classNameOop));
         const auto mirrorOop = frame.mem.getClass(className)->getMirror(&frame);
         frame.returnRef(mirrorOop);
     }

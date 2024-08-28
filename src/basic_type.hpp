@@ -5,6 +5,7 @@
 #include <array>
 #include "config.hpp"
 #include "exception.hpp"
+#include "composite_ptr.hpp"
 
 namespace RexVM {
 

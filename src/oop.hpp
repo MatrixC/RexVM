@@ -34,7 +34,7 @@ namespace RexVM {
     constexpr u2 FINALIZED_MASK = 0x2000;  //0010000000000000
 
     class Oop {
-        static SpinLock monitorLock;
+
     private:
         //classPtr, dataLength
         Composite<Class *, size_t> comClass{};

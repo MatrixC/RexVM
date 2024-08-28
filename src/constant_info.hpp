@@ -7,6 +7,7 @@
 #include <tuple>
 #include "basic_macro.hpp"
 #include "config.hpp"
+#include "composite_string.hpp"
 #include "utils/binary.hpp"
 
 namespace RexVM {
@@ -234,10 +235,12 @@ namespace RexVM {
     };
 
     cstring getConstantString(ConstantInfo *info);
+    rstring getConstantRString(ConstantInfo *info);
 
     std::tuple<const u1 *, u2> getConstantStringBytes(ConstantInfo *info);
 
     cstring getConstantStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, size_t index);
+    rstring getConstantRStringFromPool(const std::vector<std::unique_ptr<ConstantInfo>> &pool, size_t index);
 
     std::tuple<const u1 *, u2> getConstantStringBytesFromPool(
         const std::vector<std::unique_ptr<ConstantInfo>> &pool, 
@@ -245,6 +248,10 @@ namespace RexVM {
     );
 
     cstring getConstantStringFromPoolByIndexInfo(
+        const std::vector<std::unique_ptr<ConstantInfo>> &pool,
+        const size_t index
+    );
+    rstring getConstantRStringFromPoolByIndexInfo(
         const std::vector<std::unique_ptr<ConstantInfo>> &pool,
         const size_t index
     );

@@ -436,7 +436,7 @@ namespace RexVM {
     }
 
     void Frame::printStr(ref oop) {
-        cprintln("{}", StringPool::getJavaString(CAST_INSTANCE_OOP(oop)));
+        cprintln("{}", VMStringHelper::getJavaString(CAST_INSTANCE_OOP(oop)));
     }
 
     void Frame::print() {
