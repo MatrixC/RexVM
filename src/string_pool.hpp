@@ -77,11 +77,7 @@ namespace RexVM {
 
         InstanceOop *getInternString(VMThread *thread, ccstr str, size_t size);
         InstanceOop *getInternString(VMThread *thread, ccstr str);
-
-        template<typename TStr>
-        InstanceOop *getInternString(VMThread *thread, const TStr &str) {
-            return getInternString(thread, str.c_str(), str.size());
-        }
+        InstanceOop *getInternString(VMThread *thread, cview str);
 
         void gcStringOop(InstanceOop *oop);
         void clear() const;

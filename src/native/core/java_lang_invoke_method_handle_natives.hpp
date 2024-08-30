@@ -311,7 +311,7 @@ namespace RexVM::Native::Core {
         }
 
         if ((kind == MethodHandleEnum::REF_invokeSpecial || kind == MethodHandleEnum::REF_newInvokeSpecial) 
-                && methodPtr->name == "<init>") {
+                && methodPtr->isConstructor()) {
             //Constructor
             const auto newInstance = frame.mem.newInstance( &methodPtr->klass);
             const auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) }, true);

@@ -26,8 +26,11 @@ namespace RexVM {
 
 
     struct ClassMember {
-        const ClassMemberNameType name;
-        const ClassMemberNameType descriptor;
+        const ClassMemberNameType name__;
+        const ClassMemberNameType descriptor__;
+
+        cview getName() const;
+        cview getDescriptor() const;
 
         // const rstring name;
         // const rstring descriptor;
@@ -53,12 +56,17 @@ namespace RexVM {
         [[nodiscard]] bool isFinal() const;
         [[nodiscard]] bool isPublic() const;
         [[nodiscard]] bool isPrivate() const;
-        [[nodiscard]] bool isConstructor() const;
         [[nodiscard]] i4 getModifier() const;
         [[nodiscard]] cstring getSignature() const;
 
         [[nodiscard]] bool is(const ClassMemberNameType &name, const ClassMemberNameType &descriptor) const;
         [[nodiscard]] bool is(const ClassMemberNameType &name, const ClassMemberNameType &descriptor, bool isStatic) const;
+
+        [[nodiscard]] bool isConstructor() const;
+        [[nodiscard]] bool isClInit() const;
+        [[nodiscard]] bool isFinalize() const;
+
+        [[nodiscard]] cview toView() const;
 
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 

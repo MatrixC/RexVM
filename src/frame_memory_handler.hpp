@@ -55,7 +55,7 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *newLongOop(i8 value);
         [[nodiscard]] InstanceOop *newDoubleOop(f8 value);
 
-        [[nodiscard]] InstanceOop *getInternString(const cstring &str);
+        [[nodiscard]] InstanceOop *getInternString(cview str);
 
         [[nodiscard]] Class *getClass(const cstring &name);
         [[nodiscard]] InstanceClass *getInstanceClass(const cstring &name);

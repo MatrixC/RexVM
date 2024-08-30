@@ -58,6 +58,7 @@ namespace RexVM {
     }
 
     bool StringTable::find(ccstr str, size_t size, Value &ret) const {
+        //TODO 对于size为0的是不是还可以优化
         const auto index = VMStringHelper::getKeyIndex(str, size);
         auto current = table[index];
         if (current == nullptr) {
@@ -141,6 +142,7 @@ namespace RexVM {
         if (str == nullptr) {
             panic("point nullptr");
         }
+
         std::lock_guard<SpinLock> guard(lock);
         InstanceOop *result = nullptr;
 
@@ -160,6 +162,19 @@ namespace RexVM {
         }
 
         return getInternString(thread, str, strlen(str));
+    }
+
+    InstanceOop *StringPool::getInternString(VMThread *thread, cview str) {
+        if (str.data() == nullptr) {
+            if (str.size() == 0) {
+                //cview可能是CompositeString 产生的
+                //空的CompositeString 指针部分为nullptr 会因为后续函数异常
+                return getInternString(thread, "", 0);
+            } else {
+                panic("point nullptr");
+            }
+        }
+        return getInternString(thread, str.data(), str.size());
     }
 
     void StringPool::gcStringOop(InstanceOop *oop) {

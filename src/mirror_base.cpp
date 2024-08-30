@@ -90,7 +90,7 @@ namespace RexVM {
         }
         
         if (!isConstructor) {
-            mirOop->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(method->name)));
+            mirOop->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(method->getName())));
             mirOop->setFieldValue("returnType", "Ljava/lang/Class;", Slot(frame.mem.getClass(method->returnType)->getMirror(&frame)));
         }
 
@@ -120,7 +120,7 @@ namespace RexVM {
         }
         
         #ifdef DEBUG
-        mirOop->mirrorName = klass.name + "." + method->name;
+        mirOop->mirrorName = cformat("{}#{}", klass.name, method->toView());
         #endif
     }
 
@@ -128,7 +128,7 @@ namespace RexVM {
         auto &klass = field->klass;
         mirOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(klass.getMirror(&frame)));
         mirOop->setFieldValue("slot", "I", Slot(field->slotId));
-        mirOop->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(field->name)));
+        mirOop->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(field->getName())));
         mirOop->setFieldValue("type", "Ljava/lang/Class;", Slot(field->getTypeClass()->getMirror(&frame)));
         mirOop->setFieldValue("modifiers", "I", Slot(field->getModifier()));
         if (field->signatureIndex != 0) {
@@ -143,7 +143,7 @@ namespace RexVM {
         }
 
         #ifdef DEBUG
-        mirOop->mirrorName = klass.name + "." + field->name;
+        mirOop->mirrorName = cformat("{}#{}", klass.name, field->toView());
         #endif
 
     }

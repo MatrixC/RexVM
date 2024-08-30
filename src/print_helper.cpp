@@ -42,11 +42,11 @@ namespace RexVM {
                 const auto clazz = CAST_INSTANCE_CLASS(klass);
                 cprintln("InstanceClass: {}", clazz->name);
                 for (const auto& item : clazz->fields) {
-                    cprintln("Field: {}, descritpro: {}", item->name, item->descriptor);
+                    cprintln("Field: {}", item->toView());
                 }
                 cprintln("");
                 for (const auto &item : clazz->methods) {
-                    cprintln("Method: {}, descritpro: {}", item->name, item->descriptor);
+                    cprintln("Method: {}", item->toView());
                 }
                 cprintln("");
                 if (clazz->getSuperClass() != nullptr) {
@@ -145,7 +145,7 @@ namespace RexVM {
                 klass->getFieldValue(field->slotId) :
                 oop->getFieldValue(field->slotId);
             const auto formatValue = formatSlot(frame, fieldValue, fieldType);
-            cprintln("Field {}: {}", field->name, formatValue);
+            cprintln("Field {}: {}", field->toView(), formatValue);
         }
     }
 

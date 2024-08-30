@@ -15,7 +15,7 @@ namespace RexVM {
 
     ClassMember::ClassMember(ClassMemberTypeEnum type, u2 accessFlags, ClassMemberNameType name, ClassMemberNameType descriptor,
                              InstanceClass &klass) :
-        name(std::move(name)), descriptor(std::move(descriptor)), klass(klass), accessFlags(accessFlags), type(type) {
+        name__(std::move(name)), descriptor__(std::move(descriptor)), klass(klass), accessFlags(accessFlags), type(type) {
     }
 
     ClassMember::ClassMember(ClassMemberTypeEnum type, InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
@@ -43,6 +43,14 @@ namespace RexVM {
         }
     }
 
+    cview ClassMember::getName() const {
+        return cview(name__);
+    }
+
+    cview ClassMember::getDescriptor() const {
+        return cview(descriptor__);
+    }
+
     bool ClassMember::isStatic() const {
         return (accessFlags & CAST_U2(AccessFlagEnum::ACC_STATIC)) != 0;
     }
@@ -59,10 +67,6 @@ namespace RexVM {
         return (accessFlags & CAST_U2(AccessFlagEnum::ACC_PRIVATE)) != 0;
     }
 
-    bool ClassMember::isConstructor() const {
-        return type == ClassMemberTypeEnum::METHOD && name == "<init>";
-    }
-
     i4 ClassMember::getModifier() const {
         return (accessFlags & ~(CAST_U2(AccessFlagEnum::ACC_ANNOTATION)));
     }
@@ -75,12 +79,29 @@ namespace RexVM {
     }
 
     bool ClassMember::is(const ClassMemberNameType &name_, const ClassMemberNameType &descriptor_) const {
-        return this->name == name_ && this->descriptor == descriptor_;
+        return this->getName() == name_ && this->getDescriptor() == descriptor_;
     }
 
     bool ClassMember::is(const ClassMemberNameType &name_, const ClassMemberNameType &descriptor_, bool isStatic) const {
         return is(name_, descriptor_) && this->isStatic() == isStatic;
     }
+
+    bool ClassMember::isConstructor() const {
+        return type == ClassMemberTypeEnum::METHOD && getName() == "<init>";
+    }
+
+    bool ClassMember::isClInit() const {
+        return type == ClassMemberTypeEnum::METHOD && getName() == "<clinit>";
+    }
+
+    bool ClassMember::isFinalize() const {
+        return type == ClassMemberTypeEnum::METHOD && getName() == "finalize" && getDescriptor() == "()V";
+    }
+
+    cview ClassMember::toView() const {
+        return cview(name__);
+    }
+
 
     MirOop *ClassMember::getMirror(Frame *frame, bool init) {
         static SpinLock fieldLock;
@@ -96,7 +117,8 @@ namespace RexVM {
     }
 
     bool ClassMember::compareClassMemberName(const ClassMember *a, const ClassMember *b) {
-        return a->name < b->name;
+        //return a->name < b->name;
+        return true;
     }
 
     ClassMember::~ClassMember() = default;
@@ -114,13 +136,13 @@ namespace RexVM {
         if (slotType != SlotTypeEnum::NONE) {
             return slotType;
         }
-        auto const first = descriptor[0];
+        auto const first = getDescriptor().front();
         slotType = getSlotTypeByDescriptorFirstChar(first);
         return slotType;
     }
 
     cstring Field::getTypeName() const {
-        return getClassNameByFieldDescriptor(descriptor);
+        return getClassNameByFieldDescriptor(getDescriptor());
     }
 
     Class *Field::getTypeClass() const {
@@ -153,7 +175,7 @@ namespace RexVM {
             paramSlotSize += 1;
             paramSlotType.emplace_back(SlotTypeEnum::REF);
         }
-        std::tie(paramType, returnType) = parseMethodDescriptor(descriptor);
+        std::tie(paramType, returnType) = parseMethodDescriptor(getDescriptor());
         for (const auto &desc: paramType) {
             paramSlotSize += 1;
 
@@ -189,8 +211,8 @@ namespace RexVM {
             nativeMethodHandler =
                     NativeManager::instance.getNativeMethod(
                             klass.name,
-                            name,
-                            descriptor,
+                            cstring(getName()),
+                            cstring(getDescriptor()),
                             isStatic()
                     );
             return;

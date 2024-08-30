@@ -385,7 +385,7 @@ namespace RexVM {
     void Frame::printCallStack() {
         for (auto f = this; f != nullptr; f = f->previous) {
             const auto nativeMethod = f->method.isNative();
-            cprintln("  {}#{}:{} {}", f->klass.name, f->method.name, f->method.descriptor, nativeMethod ? "[Native]" : "");
+            cprintln("  {}#{} {}", f->klass.name, f->method.toView(), nativeMethod ? "[Native]" : "");
         }
     }
 
@@ -440,7 +440,7 @@ namespace RexVM {
     }
 
     void Frame::print() {
-        cprintln("Method: {}.{}#{}", method.klass.name, method.name, method.descriptor);
+        cprintln("Method: {}.{}", method.klass.name, method.toView());
         printLocalSlot();
         printStackSlot();
         printCollectRoots();

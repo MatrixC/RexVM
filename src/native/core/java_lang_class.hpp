@@ -271,12 +271,15 @@ namespace RexVM::Native::Core {
             if (publicOnly && !method->isPublic()) {
                 continue;
             }
+            if (method->isClInit()) {
+                continue;
+            }
             if (isConstructor) {
-                if (method->name != "<init>") {
+                if (!method->isConstructor()) {
                     continue;
                 }
             } else {
-                if (method->name == "<init>" || method->name == "<clinit>") {
+                if (method->isConstructor()) {
                     continue;
                 }
             }

@@ -325,8 +325,7 @@ namespace RexVM {
         u2 index = 0;
         for (const auto &methodInfo: cf.methods) {
             auto method = std::make_unique<Method>(*this,methodInfo.get(),cf,index++);
-            if (!overrideFinalize && name != JAVA_LANG_OBJECT_NAME
-                    && method->name == "finalize" && method->descriptor == "()V") {
+            if (!overrideFinalize && name != JAVA_LANG_OBJECT_NAME && method->isFinalize()) {
                 overrideFinalize = true;
             }
             methods.emplace_back(std::move(method));
@@ -406,7 +405,7 @@ namespace RexVM {
             const auto slotType = field->getFieldSlotType();
             if (field->isFinal() && field->constantValueIndex > 0) {
                 const auto &constValue = constantPool[field->constantValueIndex];
-                const auto descriptor = field->descriptor;
+                const auto descriptor = field->getDescriptor();
                 Slot data;
                 if (descriptor == "Z" || descriptor == "B" || descriptor == "C" ||
                     descriptor == "S" || descriptor == "I") {

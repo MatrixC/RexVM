@@ -132,7 +132,7 @@ namespace RexVM {
             const auto nativeMethodHandler = method.nativeMethodHandler;
             if (nativeMethodHandler == nullptr) {
                 frame.printCallStack();
-                panic("executeFrame error, method " + method.klass.name + "#" + method.name + ":" + method.descriptor + " nativeMethodHandler is nullptr");
+                panic(cformat("executeFrame error, method {}#{} nativeMethodHandler is nullptr", method.klass.name, method.toView()));
             }
             nativeMethodHandler(frame);
             if (frame.markThrow && handleThrowValue(frame)) {
@@ -145,7 +145,7 @@ namespace RexVM {
         }
         if (method.slotType != SlotTypeEnum::NONE) {
             //not return but return slot type is not none
-            panic("Method stack error: " + method.name);
+            panic(cformat("Method stack error: {}", method.toView()));
         }
     }
 
@@ -168,7 +168,7 @@ namespace RexVM {
             monitorHandler->lock();
             lock = true;
         }
-        executeFrame(frame, method.klass.name + "#" + method.name);
+        executeFrame(frame, cformat("{}#{}", method.klass.name, method.toView()));
         if (lock) {
             monitorHandler->unlock();
         }
@@ -181,7 +181,7 @@ namespace RexVM {
     void createFrameAndRunMethod(VMThread &thread, Method &method, Frame *previous, std::vector<Slot> params) {
         Frame nextFrame(thread, method, previous);
         if (method.paramSlotSize != params.size()) [[unlikely]] {
-             panic("createFrameAndRunMethod error: params length " + method.name);
+             panic(cformat("createFrameAndRunMethod error: params length {}", method.toView()));
         }
 
         if (!params.empty()) {

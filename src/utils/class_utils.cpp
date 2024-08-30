@@ -10,14 +10,14 @@ namespace RexVM {
         return "L" + className + ";";
     }
 
-    cstring getClassNameByFieldDescriptor(const cstring &descriptor) {
+    cstring getClassNameByFieldDescriptor(cview descriptor) {
         const auto first = descriptor[0];
         if (first == '[') {
-            return descriptor;
+            return cstring(descriptor);
         }
 
         if (first == 'L') {
-            return descriptor.substr(1, descriptor.size() - 2);
+            return cstring(descriptor.substr(1, descriptor.size() - 2));
         }
 
         return getPrimitiveClassNameByDescriptor(first);

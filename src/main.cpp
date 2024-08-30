@@ -34,22 +34,10 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
 #include "composite_string.hpp"
 
 int main(int argc, char *argv[]) {
-    // ApplicationParameter applicationParameter;
-    // if (parseArgs(argc, argv, applicationParameter) == 0) {
-    //     vmMain(applicationParameter);
-    // }
-
-    CompositeString tt = "陈哲是abcdefg爱橙科技！@#";
-    cprintln("{}, {}", tt.size(), tt.unicodeSize());
-
-    const auto kk = "abdefg";
-    char jj[3];
-    jj[0] = 'a';
-    jj[1] = 'b';
-    jj[2] = 'c';
-    cprintln("{}, {}", std::strlen(kk), std::strlen(jj));
-    cprintln("{}, {}", typeid(tt).name(), typeid("abd").name());
-
+    ApplicationParameter applicationParameter;
+    if (parseArgs(argc, argv, applicationParameter) == 0) {
+        vmMain(applicationParameter);
+    }
 
     return 0;
 }
