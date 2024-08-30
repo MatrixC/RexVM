@@ -50,6 +50,7 @@ namespace RexVM {
 
         explicit Class(ClassTypeEnum type, u2 accessFlags, cstring name, ClassLoader &classLoader);
 
+        [[nodiscard]] cview getClassName() const;
         [[nodiscard]] ClassTypeEnum getType() const;
         [[nodiscard]] u2 getAccessFlags() const;
         [[nodiscard]] size_t getInterfaceSize() const;

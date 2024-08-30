@@ -6,8 +6,8 @@
 
 namespace RexVM {
 
-    cstring getDescriptorClassName(const cstring &className) {
-        return "L" + className + ";";
+    cstring getDescriptorClassName(cview className) {
+        return "L" + cstring(className) + ";";
     }
 
     cstring getClassNameByFieldDescriptor(cview descriptor) {

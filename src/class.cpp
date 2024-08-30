@@ -20,6 +20,10 @@ namespace RexVM {
             name(std::move(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
     }
 
+    cview Class::getClassName() const {
+        return name;
+    }
+
     ClassTypeEnum Class::getType() const {
         return type;
     }

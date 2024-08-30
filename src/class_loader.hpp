@@ -33,26 +33,25 @@ namespace RexVM {
         std::vector<InstanceClass *> basicJavaClass;
         std::atomic_int anonymousClassIndex{0};
 
+        explicit ClassLoader(VM &vm, ClassPath &classPath);
+        ~ClassLoader();
+        void initBasicJavaClass();
+
         Class *getClass(const cstring &name);
+        InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
         InstanceClass *getInstanceClass(const cstring &name);
         ArrayClass *getArrayClass(const cstring &name);
         TypeArrayClass *getTypeArrayClass(BasicType type);
         ObjArrayClass *getObjectArrayClass(const cstring &name);
         InstanceClass *loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous);
-        
-        void initBasicJavaClass();
-        void initKeySlotId() const;
-        InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
-        explicit ClassLoader(VM &vm, ClassPath &classPath);
-        ~ClassLoader();
-
 
     private:
-        void loadBasicClass();
 
+        void initKeySlotId() const;
+        void loadBasicClass();
         void loadArrayClass(const cstring &name);
 
-        InstanceClass *loadInstanceClass(const cstring &name);
+        InstanceClass *loadInstanceClass(cview name);
         InstanceClass *loadInstanceClass(std::istream &is, bool notAnonymous);
         InstanceClass *loadInstanceClass(std::istream &is);
 

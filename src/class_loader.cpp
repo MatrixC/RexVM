@@ -61,8 +61,13 @@ namespace RexVM {
         return loadInstanceClass(is, true);
     }
 
-    InstanceClass *ClassLoader::loadInstanceClass(const cstring &name) {
-        auto streamPtr = classPath.getStream(name + ".class");
+    InstanceClass *ClassLoader::loadInstanceClass(cview name) {
+        cstring fileName;
+        const auto suffix = ".class";
+        fileName.reserve(name.size() + 7);
+        fileName.append(name);
+        fileName.append(suffix);
+        auto streamPtr = classPath.getStream(fileName);
         if (streamPtr == nullptr) {
             return nullptr;
         }
