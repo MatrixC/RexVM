@@ -1056,6 +1056,16 @@ namespace RexVM {
             const auto instance = frame.getStackOffset(paramSlotSize - 1).refVal;
             ASSERT_IF_NULL_THROW_NPE(instance);
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
+            if (instanceClass->isArray()) {
+                const auto objectClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
+                const auto realInvokeMethod = objectClass->getMethod(methodName, methodDescriptor, false);
+                if (realInvokeMethod == nullptr) {
+                    panic("array invoke error");
+                }
+                frame.runMethodInner(*realInvokeMethod);
+                return;
+            }
+
             for (auto k = instanceClass; k != nullptr; k = k->getSuperClass()) {
                 const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
                 if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {

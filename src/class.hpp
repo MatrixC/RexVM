@@ -36,7 +36,7 @@ namespace RexVM {
 
 
     struct Class {
-        const cstring name__;
+        cstring name__;
         cstring descriptor_;
         std::vector<InstanceClass *> interfaces;
         InstanceClass *superClass{nullptr};
@@ -50,6 +50,8 @@ namespace RexVM {
         //flags: low[accessFlags(16), type(2), anonymous(1), special(3), dimension, basicType(elementType) ]high
 
         explicit Class(ClassTypeEnum type, u2 accessFlags, cview name, ClassLoader &classLoader);
+
+        void setName(cview name);
 
         [[nodiscard]] cview getClassName() const;
         [[nodiscard]] cview getClassDescriptor() const;
@@ -155,19 +157,18 @@ namespace RexVM {
         [[nodiscard]] cstring getSignature() const;
 
         void setFieldValue(size_t index, Slot value) const;
-        void setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const;
+        void setFieldValue(cview name, cview descriptor, Slot value) const;
         [[nodiscard]] Slot getFieldValue(size_t index) const;
-        [[nodiscard]] Slot getFieldValue(const cstring &name, const cstring &descriptor) const;
+        [[nodiscard]] Slot getFieldValue(cview name, cview descriptor) const;
 
     };
 
-    struct ArrayClass : InstanceClass {
+    struct ArrayClass : Class {
         size_t dimension{1};
         ArrayClass *higherDimension{};
         ArrayClass *lowerDimension{};
 
-        explicit ArrayClass(ClassTypeEnum type, const cstring &name, ClassLoader &classLoader,
-                            size_t dimension);
+        explicit ArrayClass(ClassTypeEnum type, cview name, ClassLoader &classLoader, size_t dimension);
 
         ~ArrayClass() override = default;
 
@@ -177,7 +178,7 @@ namespace RexVM {
     struct TypeArrayClass : ArrayClass {
         const BasicType elementType;
 
-        explicit TypeArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
+        explicit TypeArrayClass(cview name, ClassLoader &classLoader, size_t dimension,
                                 BasicType elementType);
 
     };
@@ -185,7 +186,7 @@ namespace RexVM {
     struct ObjArrayClass : ArrayClass {
         const InstanceClass *elementClass;
 
-        explicit ObjArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
+        explicit ObjArrayClass(cview name, ClassLoader &classLoader, size_t dimension,
                                const InstanceClass *elementClass);
 
     };

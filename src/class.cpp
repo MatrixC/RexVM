@@ -31,6 +31,10 @@ namespace RexVM {
         }
     }
 
+    void Class::setName(cview name) {
+        name__ = name;
+    }
+
     cview Class::getClassName() const {
         return name__;
     }
@@ -627,7 +631,7 @@ namespace RexVM {
         return staticData[index];
     }
 
-    Slot InstanceClass::getFieldValue(const cstring &name, const cstring &descriptor) const {
+    Slot InstanceClass::getFieldValue(cview name, cview descriptor) const {
         auto field = getField(name, descriptor, true);
         return staticData[field->slotId];
     }
@@ -636,7 +640,7 @@ namespace RexVM {
         staticData[index] = value;
     }
 
-    void InstanceClass::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const {
+    void InstanceClass::setFieldValue(cview name, cview descriptor, Slot value) const {
         auto field = getField(name, descriptor, true);
         staticData[field->slotId] = value;
     }
@@ -646,9 +650,11 @@ namespace RexVM {
         return constantPoolMirrorBase.getBaseMirror(frame, MirrorObjectTypeEnum::CONSTANT_POOL, this, lock, init);
     }
 
-    ArrayClass::ArrayClass(const ClassTypeEnum type, const cstring &name,
+    ArrayClass::ArrayClass(const ClassTypeEnum type, cview name,
                            ClassLoader &classLoader, size_t dimension) :
-            InstanceClass(type, CAST_U2(AccessFlagEnum::ACC_PUBLIC), name, classLoader), dimension(dimension) {
+            //InstanceClass(type, CAST_U2(AccessFlagEnum::ACC_PUBLIC), name, classLoader), 
+            Class(type, CAST_U2(AccessFlagEnum::ACC_PUBLIC), name, classLoader),
+            dimension(dimension) {
     }
 
     cview ArrayClass::getComponentClassName() const {
@@ -656,13 +662,13 @@ namespace RexVM {
         return getClassNameByFieldDescriptor(componentClassName);
     }
 
-    TypeArrayClass::TypeArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
+    TypeArrayClass::TypeArrayClass(cview name, ClassLoader &classLoader, size_t dimension,
                                    const BasicType elementType) :
             ArrayClass(ClassTypeEnum::TYPE_ARRAY_CLASS, name, classLoader, dimension),
             elementType(elementType) {
     }
 
-    ObjArrayClass::ObjArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
+    ObjArrayClass::ObjArrayClass(cview name, ClassLoader &classLoader, size_t dimension,
                                  const InstanceClass *elementClass) :
             ArrayClass(ClassTypeEnum::OBJ_ARRAY_CLASS, name, classLoader, dimension),
             elementClass(elementClass) {

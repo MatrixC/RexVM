@@ -267,7 +267,7 @@ namespace RexVM {
 
     void GarbageCollect::getClassStaticRef(std::vector<ref> &gcRoots) const {
         auto &classLoader = *vm.bootstrapClassLoader;
-        for (const auto &[name, klass]: classLoader.classMap) {
+        for (const auto &[name, klass]: classLoader.classMap2) {
             const auto mirror = klass->getMirror(nullptr, false);
             if (mirror != nullptr) {
                 gcRoots.emplace_back(mirror);

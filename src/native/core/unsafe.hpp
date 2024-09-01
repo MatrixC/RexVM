@@ -47,7 +47,9 @@ namespace RexVM::Native::Core {
         if (arrayClassOop->getClass() != classClass) {
             panic("not class");
         }
-        const auto arrayClass = GET_MIRROR_INSTANCE_CLASS(arrayClassOop);
+        //const auto arrayClass = GET_MIRROR_INSTANCE_CLASS(arrayClassOop);
+        const auto arrayClass = GET_MIRROR_CLASS(arrayClassOop);
+        
         if (!arrayClass->isArray()) {
             panic("is not array class");
         }

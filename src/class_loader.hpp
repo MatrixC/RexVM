@@ -38,11 +38,9 @@ namespace RexVM {
     struct ClassLoader {
         VM &vm;
         ClassPath &classPath;
-        std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
+        //std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
         std::unordered_map<cview, std::unique_ptr<Class>, CViewHash, CViewEqual> classMap2;
         std::recursive_mutex clMutex;
-        InstanceClass *mirrorClass{nullptr}; // java/lang/Class
-        InstanceClass *mirrorClassLoader{nullptr};
         std::vector<InstanceClass *> basicJavaClass;
         std::atomic_int anonymousClassIndex{0};
 
@@ -50,7 +48,7 @@ namespace RexVM {
         ~ClassLoader();
         void initBasicJavaClass();
 
-        Class *getClass(const cstring &name);
+        Class *getClass(cview name);
         InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
 
         template<typename T>
@@ -66,21 +64,16 @@ namespace RexVM {
         TypeArrayClass *getTypeArrayClass(BasicType type);
         ObjArrayClass *getObjectArrayClass(const Class &klass);
         InstanceClass *loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous);
-
-
-        Class *getClass(cview name);
+        
 
     private:
 
         void initKeySlotId() const;
         void loadBasicClass();
-        void loadArrayClass(const cstring &name);
+        ArrayClass *loadArrayClass(cview name);
 
         InstanceClass *loadInstanceClass(cview name);
         InstanceClass *loadInstanceClass(std::istream &is, bool notAnonymous);
-        InstanceClass *loadInstanceClass(std::istream &is);
-
-        void initMirrorClass(Class *klass);
     };
 
 
