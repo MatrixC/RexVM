@@ -11,7 +11,6 @@ namespace RexVM {
 
     cstring getDescriptorClassName(cview className);
     cstring getClassNameByFieldDescriptor(cview descriptor);
-    cstring getDescriptorByClass(Class *klass);
     cstring getJVMClassName(const cstring &javaClassName);
     cstring getJavaClassName(const cstring &jvmClassName);
     bool isWideClassName(const cstring &className);

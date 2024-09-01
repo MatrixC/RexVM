@@ -78,11 +78,11 @@ namespace RexVM {
         return getConstantStringFromPool(klass.constantPool, signatureIndex);
     }
 
-    bool ClassMember::is(const ClassMemberNameType &name_, const ClassMemberNameType &descriptor_) const {
+    bool ClassMember::is(cview name_, cview descriptor_) const {
         return this->getName() == name_ && this->getDescriptor() == descriptor_;
     }
 
-    bool ClassMember::is(const ClassMemberNameType &name_, const ClassMemberNameType &descriptor_, bool isStatic) const {
+    bool ClassMember::is(cview name_, cview descriptor_, bool isStatic) const {
         return is(name_, descriptor_) && this->isStatic() == isStatic;
     }
 

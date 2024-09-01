@@ -23,17 +23,6 @@ namespace RexVM {
         return getPrimitiveClassNameByDescriptor(first);
     }
 
-    cstring getDescriptorByClass(Class *klass) {
-        if (klass->getType() == ClassTypeEnum::PRIMITIVE_CLASS) {
-            const auto descriptor = getDescriptorByPrimitiveClassName(klass->name);
-            return cstring{CAST_CHAR(descriptor)};
-        } else if (klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
-            return getDescriptorClassName(klass->name);
-        } else {
-            return klass->name;
-        }
-    }
-
     cstring getJVMClassName(const cstring &javaClassName) {
         return replace(javaClassName, ".", "/");
     }

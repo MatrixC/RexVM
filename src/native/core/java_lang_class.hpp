@@ -192,7 +192,8 @@ namespace RexVM::Native::Core {
             return;
         }
 
-        const auto retArrayTypeClass = frame.mem.getObjectArrayClass("java/lang/reflect/Field");
+        const auto fieldClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_FIELD);
+        const auto retArrayTypeClass = frame.mem.getObjectArrayClass(*fieldClass);
 
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
         const auto &fields = instanceMirrorClass->fields;
@@ -258,12 +259,12 @@ namespace RexVM::Native::Core {
 
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
 
-        const auto retTypeClassName = 
-            isConstructor ? 
-                "java/lang/reflect/Constructor" : 
-                "java/lang/reflect/Method";
+        const auto retTypeClass = 
+            isConstructor ?
+                frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_CONSTRUCTOR) :
+                frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_METHOD);
 
-        const auto retTypeArrayClass = frame.mem.getObjectArrayClass(retTypeClassName);
+        const auto retTypeArrayClass = frame.mem.getObjectArrayClass(*retTypeClass);
         
         const auto &methods = instanceMirrorClass->methods;
         std::vector<InstanceOop *> methodInstances;
@@ -478,7 +479,10 @@ namespace RexVM::Native::Core {
         const auto slotId = method->getFieldValue("slot", "I").i4Val;
         const auto methodPtr = methodClass->methods[slotId].get();
         const auto parameterClass = frame.mem.getInstanceClass("java/lang/reflect/Parameter");
-        const auto result = frame.mem.newObjArrayOop(frame.mem.getObjectArrayClass("java/lang/reflect/Parameter"), methodPtr->paramType.size());
+        const auto result = frame.mem.newObjArrayOop(
+            frame.mem.getObjectArrayClass(*parameterClass), 
+            methodPtr->paramType.size()
+        );
 
         for (size_t i = 0; i < methodPtr->paramType.size(); ++i) {
             const auto parameter = frame.mem.newInstance(parameterClass);

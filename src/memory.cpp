@@ -106,17 +106,20 @@ namespace RexVM {
     }
 
     ObjArrayOop *OopManager::newObjectObjArrayOop(VMThread *thread, size_t length) {
-        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_OBJECT_NAME);
+        const auto elementClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(*elementClass);
         return newObjArrayOop(thread, klass, length);
     }
 
     ObjArrayOop *OopManager::newClassObjArrayOop(VMThread *thread, size_t length) {
-        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_CLASS_NAME);
+        const auto elementClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_CLASS);
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(*elementClass);
         return newObjArrayOop(thread, klass, length);
     }
 
     ObjArrayOop *OopManager::newStringObjArrayOop(VMThread *thread, size_t length) {
-        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_STRING_NAME);
+        const auto elementClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(*elementClass);
         return newObjArrayOop(thread, klass, length);
     }
 

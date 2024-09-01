@@ -13,7 +13,7 @@ namespace RexVM {
     extern const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY;
 
     cstring getPrimitiveClassNameByDescriptor(cchar descriptor);
-    cchar getDescriptorByPrimitiveClassName(const cstring &className);
+    cchar getDescriptorByPrimitiveClassName(cview lassName);
     BasicType getBasicTypeByDescriptor(cchar descriptor);
     BasicType getBasicTypeByTypeArrayClassName(const cstring &className);
 

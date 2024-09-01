@@ -1125,8 +1125,11 @@ namespace RexVM {
             const auto length = frame.popI4();
             const auto &constantPool = frame.constantPool;
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, classIndex);
+
+            //TODO 优化 lazy解析constant pool
+            const auto elementClass = frame.mem.getClass(className);
             
-            const auto array = frame.mem.getObjectArrayClass(className);
+            const auto array = frame.mem.getObjectArrayClass(*elementClass);
             frame.pushRef(frame.mem.newObjArrayOop(array, length));
         }
 

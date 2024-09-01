@@ -382,7 +382,7 @@ namespace RexVM::Native::Core {
         ASSERT_IF_NULL_THROW_NPE(memberNameOop)
         auto [klass, name, type, flags, kind, isStatic, descriptor] = methodHandleGetFieldFromMemberName(memberNameOop);
         const auto typeClass = GET_MIRROR_INSTANCE_CLASS(type);
-        const auto field = klass->getField(name, getDescriptorByClass(typeClass), isStatic);
+        const auto field = klass->getField(name, typeClass->getClassDescriptor(), isStatic);
         frame.returnI8(field->slotId);
     }
 

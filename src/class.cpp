@@ -16,12 +16,30 @@
 
 namespace RexVM {
 
-    Class::Class(const ClassTypeEnum type, const u2 accessFlags, cstring name, ClassLoader &classLoader) :
-            name(std::move(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
+    Class::Class(const ClassTypeEnum type, const u2 accessFlags, cview name, ClassLoader &classLoader) :
+            name(cstring(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
+        if (type == ClassTypeEnum::PRIMITIVE_CLASS) {
+            descriptor_ = cstring{getDescriptorByPrimitiveClassName(name)};
+        } else if (type == ClassTypeEnum::INSTANCE_CLASS) {
+            descriptor_.reserve(name.size() + 2);
+            descriptor_ += 'L';
+            descriptor_.append(name);
+            descriptor_ += ';';
+        } else {
+            descriptor_ = name;
+        }
     }
 
     cview Class::getClassName() const {
         return name;
+    }
+
+    cview Class::getClassDescriptor() const {
+        return descriptor_;
+    }
+
+    cview Class::toView() const {
+        return getClassName();
     }
 
     ClassTypeEnum Class::getType() const {
@@ -504,7 +522,7 @@ namespace RexVM {
         return CAST_INNER_CLASSES_ATTRIBUTE(innerClassesAttr.get());
     }
 
-    Field *InstanceClass::getFieldSelf(const cstring &name, const cstring &descriptor, bool isStatic) const {
+    Field *InstanceClass::getFieldSelf(cview name, cview descriptor, bool isStatic) const {
         for (const auto &item : fields) {
             if (item->is(name, descriptor, isStatic)) {
                 return item.get();
@@ -515,7 +533,7 @@ namespace RexVM {
     }
 
 
-    Field *InstanceClass::getField(const cstring &name, const cstring &descriptor, bool isStatic) const {
+    Field *InstanceClass::getField(cview name, cview descriptor, bool isStatic) const {
         for (const auto &item : fields) {
             if (item->is(name, descriptor, isStatic)) {
                 return item.get();
@@ -554,7 +572,7 @@ namespace RexVM {
         return getConstantStringFromPool(constantPool, signatureIndex);
     }
 
-    Method *InstanceClass::getMethodSelf(const cstring &name, const cstring &descriptor, bool isStatic) const {
+    Method *InstanceClass::getMethodSelf(cview name, cview descriptor, bool isStatic) const {
         for (const auto &item : methods) {
             if (item->is(name, descriptor, isStatic)) {
                 return item.get();
@@ -564,7 +582,7 @@ namespace RexVM {
         return nullptr;
     }
 
-    Method *InstanceClass::getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const {
+    Method *InstanceClass::getMethod(cview name, cview descriptor, bool isStatic) const {
         for (const auto &item : methods) {
             if (item->is(name, descriptor, isStatic)) {
                 return item.get();

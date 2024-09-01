@@ -174,6 +174,16 @@ namespace RexVM {
         return CAST_OBJ_ARRAY_CLASS(getClass(arrayClassName));
     }
 
+    ObjArrayClass *ClassLoader::getObjectArrayClass(const Class &klass) {
+        // const auto className = klass.getClassName();
+        // const auto firstChar = className[0];
+        // const auto prefix = "[";
+        // const auto elementName = firstChar == '[' ? className : getDescriptorClassName(className);
+        // const auto arrayClassName = prefix + elementName;
+        const auto arrayClassName = cformat("[{}", klass.getClassDescriptor());
+        return CAST_OBJ_ARRAY_CLASS(getClass(arrayClassName));
+    }
+
     void ClassLoader::initBasicJavaClass() {
         for (const auto &item : BASIC_JAVA_CLASS_NAMES) {
             basicJavaClass.emplace_back(getInstanceClass(item));

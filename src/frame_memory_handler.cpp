@@ -111,6 +111,10 @@ namespace RexVM {
         return classLoader.getObjectArrayClass(name);
     }
 
+    ObjArrayClass *FrameMemoryHandler::getObjectArrayClass(const Class &klass) {
+        return classLoader.getObjectArrayClass(klass);
+    }
+
     InstanceClass *FrameMemoryHandler::loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous) {
         return classLoader.loadInstanceClass(ptr, length, notAnonymous);
     }

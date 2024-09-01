@@ -285,14 +285,14 @@ namespace RexVM {
                 for (size_t i = 0; i < ptypes->getDataLength(); ++i) {
                     const auto classMirrorOop = CAST_MIRROR_OOP(ptypes->data[i]);
                     const auto mirrorClass = classMirrorOop->getMirrorClass();
-                    descriptor += getDescriptorByClass(mirrorClass);
+                    descriptor += mirrorClass->getClassDescriptor();
                 }
                 descriptor += ")";
                 const auto rtype = CAST_MIRROR_OOP(type->getFieldValue("rtype", "Ljava/lang/Class;").refVal);
-                descriptor += getDescriptorByClass(rtype->getMirrorClass());
+                descriptor += rtype->getMirrorClass()->getClassDescriptor();
             } else if (typeClassName == JAVA_LANG_CLASS_NAME) {
                 const auto mirrorClass = CAST_MIRROR_OOP(type)->getMirrorClass();
-                descriptor = getDescriptorByClass(mirrorClass);
+                descriptor = mirrorClass->getClassDescriptor();
             } else {
                 panic("error typeClassName");
             }

@@ -28,7 +28,8 @@ namespace RexVM::Native::Core {
     void fillInStackTrace(Frame &frame) {
         const auto self = frame.getThisInstance();
         const auto throwableClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE);
-        const auto stackTraceElementArrayClass = frame.mem.getObjectArrayClass(JAVA_LANG_STACK_TRACE_ELEMENT_NAME);
+        const auto stackTraceElementClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STACK_TRACE_ELEMENT);
+        const auto stackTraceElementArrayClass = frame.mem.getObjectArrayClass(*stackTraceElementClass);
         std::vector<InstanceOop *> stackTraceElements;
         auto notCheck = false; //用于少进行一些 isSubClassOf 检测 提升性能 跳过Exception的栈后就不用再check了
         //frame is native fillInStackTrace

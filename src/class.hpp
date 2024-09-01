@@ -37,6 +37,7 @@ namespace RexVM {
 
     struct Class {
         const cstring name;
+        cstring descriptor_;
         std::vector<InstanceClass *> interfaces;
         InstanceClass *superClass{nullptr};
 
@@ -48,9 +49,11 @@ namespace RexVM {
 
         //flags: low[accessFlags(16), type(2), anonymous(1), special(3), dimension, basicType(elementType) ]high
 
-        explicit Class(ClassTypeEnum type, u2 accessFlags, cstring name, ClassLoader &classLoader);
+        explicit Class(ClassTypeEnum type, u2 accessFlags, cview name, ClassLoader &classLoader);
 
         [[nodiscard]] cview getClassName() const;
+        [[nodiscard]] cview getClassDescriptor() const;
+        [[nodiscard]] cview toView() const;
         [[nodiscard]] ClassTypeEnum getType() const;
         [[nodiscard]] u2 getAccessFlags() const;
         [[nodiscard]] size_t getInterfaceSize() const;
@@ -143,11 +146,11 @@ namespace RexVM {
         void clinit(Frame &frame);
 
         [[nodiscard]] ClassMember *getMemberByRefIndex(size_t refIndex, ClassMemberTypeEnum type, bool isStatic) const;
-        [[nodiscard]] Field *getFieldSelf(const cstring &name, const cstring &descriptor, bool isStatic) const;
-        [[nodiscard]] Field *getField(const cstring &name, const cstring &descriptor, bool isStatic) const;
+        [[nodiscard]] Field *getFieldSelf(cview name, cview descriptor, bool isStatic) const;
+        [[nodiscard]] Field *getField(cview name, cview descriptor, bool isStatic) const;
         [[nodiscard]] Field *getRefField(size_t refIndex, bool isStatic) const;
-        [[nodiscard]] Method *getMethodSelf(const cstring &name, const cstring &descriptor, bool isStatic) const;
-        [[nodiscard]] Method *getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const;
+        [[nodiscard]] Method *getMethodSelf(cview name, cview descriptor, bool isStatic) const;
+        [[nodiscard]] Method *getMethod(cview name, cview descriptor, bool isStatic) const;
         [[nodiscard]] Method *getRefMethod(size_t refIndex, bool isStatic) const;
         [[nodiscard]] cstring getSignature() const;
 

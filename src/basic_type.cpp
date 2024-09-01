@@ -14,7 +14,7 @@ namespace RexVM {
             {"double",  "D"},
     };
 
-    cchar getDescriptorByPrimitiveClassName(const cstring &className) {
+    cchar getDescriptorByPrimitiveClassName(cview className) {
         if (className == "void") {
             return 'V';
         } else if (className == "boolean") {

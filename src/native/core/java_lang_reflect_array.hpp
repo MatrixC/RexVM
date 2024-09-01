@@ -26,14 +26,16 @@ namespace RexVM::Native::Core {
             }
 
             case ClassTypeEnum::INSTANCE_CLASS: {
-                const auto arrayClass = frame.mem.getObjectArrayClass(mirrorClass->name);
+                const auto arrayClass = frame.mem.getObjectArrayClass(*mirrorClass);
                 const auto arrayObj = frame.mem.newObjArrayOop(arrayClass, length);
                 frame.returnRef(arrayObj);
                 return;
             }
 
             default:
-                const auto arrayClass = frame.mem.getObjectArrayClass("[" + mirrorClass->name);
+                //Array Class
+                //const auto arrayClass = frame.mem.getObjectArrayClass("[" + mirrorClass->name);
+                const auto arrayClass = frame.mem.getObjectArrayClass(*mirrorClass);
                 const auto arrayObj = frame.mem.newObjArrayOop(arrayClass, length);
                 frame.returnRef(arrayObj);
                 return;

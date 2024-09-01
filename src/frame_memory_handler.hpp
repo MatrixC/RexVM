@@ -62,6 +62,7 @@ namespace RexVM {
         [[nodiscard]] ArrayClass *getArrayClass(const cstring &name);
         [[nodiscard]] TypeArrayClass *getTypeArrayClass(BasicType type);
         [[nodiscard]] ObjArrayClass *getObjectArrayClass(const cstring &name);
+        [[nodiscard]] ObjArrayClass *getObjectArrayClass(const Class &klass);
         [[nodiscard]] InstanceClass *loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous);
         [[nodiscard]] InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
 

@@ -43,6 +43,7 @@ namespace RexVM {
         ArrayClass *getArrayClass(const cstring &name);
         TypeArrayClass *getTypeArrayClass(BasicType type);
         ObjArrayClass *getObjectArrayClass(const cstring &name);
+        ObjArrayClass *getObjectArrayClass(const Class &klass);
         InstanceClass *loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous);
 
     private:
