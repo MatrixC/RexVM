@@ -2,17 +2,26 @@
 #include "exception.hpp"
 
 namespace RexVM {
-    const std::unordered_map<cstring, cstring> PRIMITIVE_TYPE_MAP{
-            {"void",    "V"},
-            {"boolean", "Z"},
-            {"byte",    "B"},
-            {"short",   "S"},
-            {"int",     "I"},
-            {"long",    "J"},
-            {"char",    "C"},
-            {"float",   "F"},
-            {"double",  "D"},
-    };
+
+    const cview PRIMITIVE_VOID_CLASS_NAME = "void";
+    const cview PRIMITIVE_BOOLEAN_CLASS_NAME = "boolean";
+    const cview PRIMITIVE_BYTE_CLASS_NAME = "byte";
+    const cview PRIMITIVE_SHORT_CLASS_NAME = "short";
+    const cview PRIMITIVE_INT_CLASS_NAME = "int";
+    const cview PRIMITIVE_LONG_CLASS_NAME = "long";
+    const cview PRIMITIVE_CHAR_CLASS_NAME = "char";
+    const cview PRIMITIVE_FLOAT_CLASS_NAME = "float";
+    const cview PRIMITIVE_DOUBLE_CLASS_NAME = "double";
+
+    const cview PRIMITIVE_BOOLEAN_ARRAY_CLASS_NAME = "[Z";
+    const cview PRIMITIVE_BYTE_ARRAY_CLASS_NAME = "[B";
+    const cview PRIMITIVE_SHORT_ARRAY_CLASS_NAME = "[S";
+    const cview PRIMITIVE_INT_ARRAY_CLASS_NAME = "[I";
+    const cview PRIMITIVE_LONG_ARRAY_CLASS_NAME = "[J";
+    const cview PRIMITIVE_CHAR_ARRAY_CLASS_NAME = "[C";
+    const cview PRIMITIVE_FLOAT_ARRAY_CLASS_NAME = "[F";
+    const cview PRIMITIVE_DOUBLE_ARRAY_CLASS_NAME = "[D";
+    
 
     cchar getDescriptorByPrimitiveClassName(cview className) {
         if (className == "void") {
@@ -38,30 +47,58 @@ namespace RexVM {
         return 'V';
     }
 
-    cstring getPrimitiveClassNameByDescriptor(cchar descriptor) {
+    cview getPrimitiveClassNameByDescriptor(cchar descriptor) {
         switch (descriptor) {
             case 'V':
-                return "void";
+                return PRIMITIVE_VOID_CLASS_NAME;
             case 'Z':
-                return "boolean";
+                return PRIMITIVE_BOOLEAN_CLASS_NAME;
             case 'B':
-                return "byte";
+                return PRIMITIVE_BYTE_CLASS_NAME;
             case 'S':
-                return "short";
+                return PRIMITIVE_SHORT_CLASS_NAME;
             case 'I':
-                return "int";
+                return PRIMITIVE_INT_CLASS_NAME;
             case 'J':
-                return "long";
+                return PRIMITIVE_LONG_CLASS_NAME;
             case 'C':
-                return "char";
+                return PRIMITIVE_CHAR_CLASS_NAME;
             case 'F':
-                return "float";
+                return PRIMITIVE_FLOAT_CLASS_NAME;
             case 'D':
-                return "double";
+                return PRIMITIVE_DOUBLE_CLASS_NAME;
             default:
                 panic("error descriptor descriptor");
         }
-        return {};
+        return PRIMITIVE_VOID_CLASS_NAME;
+    }
+
+    cview getPrimitiveClassNameByBasicType(BasicType type) {
+        switch (type) {
+            case BasicType::T_VOID:
+                return PRIMITIVE_VOID_CLASS_NAME;
+            case BasicType::T_BOOLEAN:
+                return PRIMITIVE_BOOLEAN_CLASS_NAME;
+            case BasicType::T_BYTE:
+                return PRIMITIVE_BYTE_CLASS_NAME;
+            case BasicType::T_SHORT:
+                return PRIMITIVE_SHORT_CLASS_NAME;
+            case BasicType::T_INT:
+                return PRIMITIVE_INT_CLASS_NAME;
+            case BasicType::T_LONG:
+                return PRIMITIVE_LONG_CLASS_NAME;
+            case BasicType::T_CHAR:
+                return PRIMITIVE_CHAR_CLASS_NAME;
+            case BasicType::T_FLOAT:
+                return PRIMITIVE_FLOAT_CLASS_NAME;
+            case BasicType::T_DOUBLE:
+                return PRIMITIVE_DOUBLE_CLASS_NAME;
+            
+            default:
+                panic("type error");
+                break;
+        }
+        return PRIMITIVE_VOID_CLASS_NAME;
     }
 
     BasicType getBasicTypeByDescriptor(cchar descriptor) {
@@ -90,7 +127,7 @@ namespace RexVM {
         return BasicType::T_ILLEGAL;
     }
 
-    BasicType getBasicTypeByTypeArrayClassName(const cstring &className) {
+    BasicType getBasicTypeByTypeArrayClassName(cview className) {
         if (className == "[Z") {
             return BasicType::T_BOOLEAN;
         } else if (className == "[B") {
@@ -108,7 +145,7 @@ namespace RexVM {
         } else if (className == "[D") {
             return BasicType::T_DOUBLE;
         }
-        panic("getBasicTypeByTypeArrayClassName error: error className " + className);
+        panic(cformat("getBasicTypeByTypeArrayClassName error: error className {}", className));
         return BasicType::T_VOID;
     }
 
@@ -117,57 +154,31 @@ namespace RexVM {
                type == 'J' || type == 'C' || type == 'F' || type == 'D' || type == 'V';
     }
 
-    cstring getTypeArrayClassNameByBasicType(BasicType type) {
+    cview getTypeArrayClassNameByBasicType(BasicType type) {
         switch (type) {
             case BasicType::T_BOOLEAN:
-                return "[Z";
+                return PRIMITIVE_BOOLEAN_ARRAY_CLASS_NAME;
             case BasicType::T_CHAR:
-                return "[C";
+                return PRIMITIVE_CHAR_ARRAY_CLASS_NAME;
             case BasicType::T_FLOAT:
-                return "[F";
+                return PRIMITIVE_FLOAT_ARRAY_CLASS_NAME;
             case BasicType::T_DOUBLE:
-                return "[D";
+                return PRIMITIVE_DOUBLE_ARRAY_CLASS_NAME;
             case BasicType::T_BYTE:
-                return "[B";
+                return PRIMITIVE_BYTE_ARRAY_CLASS_NAME;
             case BasicType::T_SHORT:
-                return "[S";
+                return PRIMITIVE_SHORT_ARRAY_CLASS_NAME;
             case BasicType::T_INT:
-                return "[I";
+                return PRIMITIVE_INT_ARRAY_CLASS_NAME;
             case BasicType::T_LONG:
-                return "[J";
+                return PRIMITIVE_LONG_ARRAY_CLASS_NAME;
             default:
                 panic("type error");
                 break;
         }
-        return {};
+        return PRIMITIVE_BOOLEAN_ARRAY_CLASS_NAME;
     }
 
-    cstring getPrimitiveClassNameByBasicType(BasicType type) {
-        switch (type) {
-            case BasicType::T_BOOLEAN:
-                return "boolean";
-            case BasicType::T_CHAR:
-                return "char";
-            case BasicType::T_FLOAT:
-                return "float";
-            case BasicType::T_DOUBLE:
-                return "double";
-            case BasicType::T_BYTE:
-                return "byte";
-            case BasicType::T_SHORT:
-                return "short";
-            case BasicType::T_INT:
-                return "int";
-            case BasicType::T_LONG:
-                return "long";
-            case BasicType::T_VOID:
-                return "void";
-            default:
-                panic("type error");
-                break;
-        }
-        return {};
-    }
 
     bool isWideBasicType(BasicType type) {
         return type == BasicType::T_LONG || type == BasicType::T_DOUBLE;
@@ -185,7 +196,7 @@ namespace RexVM {
             BasicType::T_VOID,
     };
 
-    SlotTypeEnum getSlotTypeByPrimitiveClassName(const cstring &className) {
+    SlotTypeEnum getSlotTypeByPrimitiveClassName(cview className) {
         SlotTypeEnum slotType;
         if (className == "boolean" || className == "byte" || className == "short" || className == "int" ||
             className == "char") {

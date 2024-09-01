@@ -12,7 +12,7 @@ namespace RexVM {
             comFlags(nullptr, FINALIZED_MASK) {
         //dataLength >= 65535, not support
 #ifdef DEBUG
-        className = klass->name;
+        className = klass->getClassName();
 #endif
     }
 

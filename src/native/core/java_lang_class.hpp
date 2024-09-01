@@ -28,7 +28,7 @@ namespace RexVM::Native::Core {
     void getName0(Frame &frame) {
         ASSERT_IF_NULL_THROW_NPE(frame.getThis())
         const auto mirrorClass = getMirrorClass(frame);
-        const auto className = mirrorClass->name;
+        const auto className = mirrorClass->getClassName();
         const auto javaClassName = getJavaClassName(className);
         auto strOop = frame.mem.getInternString(javaClassName);
         frame.returnRef(strOop);
@@ -234,7 +234,7 @@ namespace RexVM::Native::Core {
         for (const auto &item : innerClassesAttr->classes) {
             if (item->innerClassInfoIndex != 0) {
                 const auto innerClassName = getConstantStringFromPoolByIndexInfo(constantPool, item->innerClassInfoIndex);
-                if (innerClassName == mirrorInstanceClass->name) {
+                if (innerClassName == mirrorInstanceClass->getClassName()) {
                     if (item->outerClassInfoIndex == 0) {
                         frame.returnRef(nullptr);
                         return;

@@ -34,13 +34,13 @@ namespace RexVM {
         switch (klass->getType()) {
             case ClassTypeEnum::PRIMITIVE_CLASS: {
                 const auto clazz = CAST_PRIMITIVE_CLASS(klass);
-                cprintln("PrimitiveClass({}): {}", getPrimitiveClassNameByBasicType(clazz->basicType), clazz->name);
+                cprintln("PrimitiveClass({}): {}", getPrimitiveClassNameByBasicType(clazz->basicType), clazz->toView());
                 break;
             }
 
             case ClassTypeEnum::INSTANCE_CLASS: {
                 const auto clazz = CAST_INSTANCE_CLASS(klass);
-                cprintln("InstanceClass: {}", clazz->name);
+                cprintln("InstanceClass: {}", clazz->toView());
                 for (const auto& item : clazz->fields) {
                     cprintln("Field: {}", item->toView());
                 }
@@ -50,25 +50,25 @@ namespace RexVM {
                 }
                 cprintln("");
                 if (clazz->getSuperClass() != nullptr) {
-                    cprintln("SuperClass: {}", clazz->getSuperClass()->name);
+                    cprintln("SuperClass: {}", clazz->getSuperClass()->toView());
                 }
                 cprintln("");
                 FOR_FROM_ZERO(clazz->getInterfaceSize()) {
                     const auto item = clazz->getInterfaceByIndex(i);
-                    cprintln("Interface: {}", item->name);
+                    cprintln("Interface: {}", item->toView());
                 }
                 break;
             }
 
             case ClassTypeEnum::TYPE_ARRAY_CLASS: {
                 const auto clazz = CAST_TYPE_ARRAY_CLASS(klass);
-                cprintln("TypeArrayClass({}): {}", getPrimitiveClassNameByBasicType(clazz->elementType), clazz->name);
+                cprintln("TypeArrayClass({}): {}", getPrimitiveClassNameByBasicType(clazz->elementType), clazz->toView());
                 break;
             }
 
             case ClassTypeEnum::OBJ_ARRAY_CLASS: {
                 const auto clazz = CAST_OBJ_ARRAY_CLASS(klass);
-                cprintln("TypeArrayClass({}): {}", clazz->elementClass->name, clazz->name);
+                cprintln("TypeArrayClass({}): {}", clazz->elementClass->toView(), clazz->toView());
                 break;
             }
         }
@@ -77,8 +77,8 @@ namespace RexVM {
     void pObjArray(ref oop) {
         const auto clazz = CAST_OBJ_ARRAY_CLASS(oop->getClass());
         const auto arrayOop = CAST_OBJ_ARRAY_OOP(oop);
-        cprintln("className :{}, dataLength: {}", clazz->name, arrayOop->getDataLength());
-        cprintln("type: ObjArrayClass, elementClass: {}", clazz->elementClass->name);
+        cprintln("className :{}, dataLength: {}", clazz->toView(), arrayOop->getDataLength());
+        cprintln("type: ObjArrayClass, elementClass: {}", clazz->elementClass->toView());
     }
 
     cstring formatArray(Frame &frame, ref oop) {
@@ -90,22 +90,22 @@ namespace RexVM {
         const auto arraysClass = frame.mem.getInstanceClass("java/util/Arrays");
         const auto arrayClassName = 
             klass->getType() == ClassTypeEnum::TYPE_ARRAY_CLASS ? 
-                cformat("({})Ljava/lang/String;", klass->name) :
+                cformat("({})Ljava/lang/String;", klass->toView()) :
                 "([Ljava/lang/Object;)Ljava/lang/String;";
         const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
         const auto ret = val.refVal == nullptr ? "null" : VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val.refVal));
-        return "Array:" + klass->name + " " + ret;
+        return cformat("Array: {} {}", klass->toView(), ret);
     }
 
     cstring formatInstance(Frame &frame, InstanceOop *oop) {
-        const auto className = oop->getClass()->name;
+        const auto className = oop->getClass()->toView();
         const auto objectsClass = frame.mem.getInstanceClass("java/util/Objects");
         const auto toStringMethod = objectsClass->getMethod("toString", "(Ljava/lang/Object;)Ljava/lang/String;", true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
         auto ret = val.refVal == nullptr ? "null" : VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val.refVal));
         ret = ret.empty() ? "[EMPTY]" : ret;
-        return className + " " + ret;
+        return cformat("{} {}", className, ret);
     }
 
     cstring formatSlot(Frame &frame, Slot val, SlotTypeEnum type) {

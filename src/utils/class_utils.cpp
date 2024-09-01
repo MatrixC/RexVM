@@ -6,32 +6,41 @@
 
 namespace RexVM {
 
-    cstring getDescriptorClassName(cview className) {
-        return "L" + cstring(className) + ";";
-    }
-
-    cstring getClassNameByFieldDescriptor(cview descriptor) {
+    cview getClassNameByFieldDescriptor(cview descriptor) {
         const auto first = descriptor[0];
         if (first == '[') {
-            return cstring(descriptor);
+            //Array
+            return descriptor;
         }
 
         if (first == 'L') {
-            return cstring(descriptor.substr(1, descriptor.size() - 2));
+            //InstanceClass
+            return descriptor.substr(1, descriptor.size() - 2);
         }
 
+        //Primitive
         return getPrimitiveClassNameByDescriptor(first);
     }
 
-    cstring getJVMClassName(const cstring &javaClassName) {
-        return replace(javaClassName, ".", "/");
+    cstring getJVMClassName(cview javaClassName) {
+        cstring result;
+        result.reserve(javaClassName.size());
+        for (const auto &c : javaClassName) {
+            result += c == '.' ? '/' : c;
+        }
+        return result;
     }
 
-    cstring getJavaClassName(const cstring &jvmClassName) {
-        return replace(jvmClassName, "/", ".");
+    cstring getJavaClassName(cview jvmClassName) {
+        cstring result;
+        result.reserve(jvmClassName.size());
+        for (const auto &c : jvmClassName) {
+            result += c == '/' ? '.' : c;
+        }
+        return result;
     }
 
-    bool isWideClassName(const cstring &className) {
+    bool isWideClassName(cview className) {
         return className == "long" || className == "double";
     }
 

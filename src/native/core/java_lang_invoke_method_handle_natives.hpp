@@ -94,14 +94,15 @@ namespace RexVM::Native::Core {
         const auto isStatic = isStaticMethodHandleType(kind);
         if ((flags & MN_IS_METHOD) || (flags & MN_IS_CONSTRUCTOR)) {
             if (kind == MethodHandleEnum::REF_invokeInterface && !instanceClass->isInterface()) {
-                throwAssignException(frame, "java/lang/IncompatibleClassChangeError", "Found class " + instanceClass->name + " but interface was expected");
+                const auto message = cformat("Found class {} but interface was expected", instanceClass->getClassName());
+                throwAssignException(frame, "java/lang/IncompatibleClassChangeError", message);
                 return;
             }
 
             const auto resolveMethod = instanceClass->getMethod(name, descriptor, isStatic);
             if (resolveMethod == nullptr) {
                 //throwReflectiveOperationException(frame, instanceClass->name, name, descriptor);
-                const auto message = cformat("{}.{}{}", getJavaClassName(instanceClass->name), name, descriptor);
+                const auto message = cformat("{}.{}{}", getJavaClassName(instanceClass->getClassName()), name, descriptor);
                 throwAssignException(frame, "java/lang/NoSuchMethodError", message);
                 return;
             }
@@ -119,7 +120,7 @@ namespace RexVM::Native::Core {
 
 
     std::tuple<InstanceOop *, bool> methodHandleGetMemberName(Frame &frame, InstanceOop *self, std::vector<Slot> &prefixParam) {
-        const auto className = self->getClass()->name;
+        const auto className = self->getClass()->getClassName();
         const auto methodParamSlotSize = frame.methodParamSlotSize;
         InstanceOop *memberNameOop = nullptr;
         if (startWith(className, "java/lang/invoke/DirectMethodHandle")) {
@@ -189,7 +190,7 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto paramClass = frame.mem.getClass(paramType);
-        const auto className = paramClass->name;
+        const auto className = paramClass->getClassName();
         //两种情况 传参是REF 函数需要Primitive 或者相反
         if (type == SlotTypeEnum::REF) {
             //Unbox

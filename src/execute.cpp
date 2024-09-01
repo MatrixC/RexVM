@@ -99,7 +99,7 @@ namespace RexVM {
         }
     }
 
-    void executeFrame(Frame &frame, [[maybe_unused]] const cstring& methodName) {
+    void executeFrame(Frame &frame, [[maybe_unused]] cview methodName) {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
 
@@ -132,7 +132,7 @@ namespace RexVM {
             const auto nativeMethodHandler = method.nativeMethodHandler;
             if (nativeMethodHandler == nullptr) {
                 frame.printCallStack();
-                panic(cformat("executeFrame error, method {}#{} nativeMethodHandler is nullptr", method.klass.name, method.toView()));
+                panic(cformat("executeFrame error, method {}#{} nativeMethodHandler is nullptr", method.klass.toView(), method.toView()));
             }
             nativeMethodHandler(frame);
             if (frame.markThrow && handleThrowValue(frame)) {
@@ -168,7 +168,7 @@ namespace RexVM {
             monitorHandler->lock();
             lock = true;
         }
-        executeFrame(frame, cformat("{}#{}", method.klass.name, method.toView()));
+        executeFrame(frame, cformat("{}#{}", method.klass.toView(), method.toView()));
         if (lock) {
             monitorHandler->unlock();
         }

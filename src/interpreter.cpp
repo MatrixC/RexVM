@@ -1156,7 +1156,7 @@ namespace RexVM {
             const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             const auto checkClass = frame.mem.getClass(className);
             if (!ref->isInstanceOf(checkClass)) {
-                throwClassCastException(frame, ref->getClass()->name, className);
+                throwClassCastException(frame, ref->getClass()->getClassName(), className);
                 return;
             }
         }

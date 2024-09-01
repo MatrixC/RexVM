@@ -9,11 +9,10 @@ namespace RexVM {
     struct ByteTypeArrayOop;
     struct Class;
 
-    cstring getDescriptorClassName(cview className);
-    cstring getClassNameByFieldDescriptor(cview descriptor);
-    cstring getJVMClassName(const cstring &javaClassName);
-    cstring getJavaClassName(const cstring &jvmClassName);
-    bool isWideClassName(const cstring &className);
+    cview getClassNameByFieldDescriptor(cview descriptor);
+    cstring getJVMClassName(cview javaClassName);
+    cstring getJavaClassName(cview jvmClassName);
+    bool isWideClassName(cview className);
 }
 
 #endif

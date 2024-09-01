@@ -34,7 +34,6 @@ namespace RexVM::Native::Core {
 
             default:
                 //Array Class
-                //const auto arrayClass = frame.mem.getObjectArrayClass("[" + mirrorClass->name);
                 const auto arrayClass = frame.mem.getObjectArrayClass(*mirrorClass);
                 const auto arrayObj = frame.mem.newObjArrayOop(arrayClass, length);
                 frame.returnRef(arrayObj);

@@ -95,22 +95,30 @@ namespace RexVM {
         return classLoader.getClass(name);
     }
 
-    InstanceClass *FrameMemoryHandler::getInstanceClass(const cstring &name) {
+    Class *FrameMemoryHandler::getClass(cview name) {
+        return classLoader.getClass(name);
+    }
+
+    // InstanceClass *FrameMemoryHandler::getInstanceClass(const cstring &name) {
+    //     return classLoader.getInstanceClass(name);
+    // }
+
+    // ArrayClass *FrameMemoryHandler::getArrayClass(const cstring &name) {
+    //     return classLoader.getArrayClass(name);
+    // }
+
+    InstanceClass *FrameMemoryHandler::getInstanceClass(cview name) {
         return classLoader.getInstanceClass(name);
     }
 
-    ArrayClass *FrameMemoryHandler::getArrayClass(const cstring &name) {
+    ArrayClass *FrameMemoryHandler::getArrayClass(cview name) {
         return classLoader.getArrayClass(name);
     }
 
     TypeArrayClass *FrameMemoryHandler::getTypeArrayClass(BasicType type) {
         return classLoader.getTypeArrayClass(type);
     }
-
-    ObjArrayClass *FrameMemoryHandler::getObjectArrayClass(const cstring &name) {
-        return classLoader.getObjectArrayClass(name);
-    }
-
+    
     ObjArrayClass *FrameMemoryHandler::getObjectArrayClass(const Class &klass) {
         return classLoader.getObjectArrayClass(klass);
     }

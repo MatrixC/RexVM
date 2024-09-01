@@ -23,10 +23,23 @@ namespace RexVM {
     struct MirrorOop;
     struct InstanceOop;
 
+    struct CViewHash {
+        size_t operator()(cview cv) const noexcept {
+            return std::hash<cview>{}(cv);
+        }
+    };
+
+    struct CViewEqual {
+        bool operator()(cview lhs, cview rhs) const noexcept {
+            return lhs == rhs;
+        }
+    };
+
     struct ClassLoader {
         VM &vm;
         ClassPath &classPath;
         std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
+        std::unordered_map<cview, std::unique_ptr<Class>, CViewHash, CViewEqual> classMap2;
         std::recursive_mutex clMutex;
         InstanceClass *mirrorClass{nullptr}; // java/lang/Class
         InstanceClass *mirrorClassLoader{nullptr};
@@ -39,12 +52,23 @@ namespace RexVM {
 
         Class *getClass(const cstring &name);
         InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
-        InstanceClass *getInstanceClass(const cstring &name);
-        ArrayClass *getArrayClass(const cstring &name);
+
+        template<typename T>
+        InstanceClass *getInstanceClass(T name) {
+            return CAST_INSTANCE_CLASS(getClass(name));
+        }
+
+        template<typename T>
+        ArrayClass *getArrayClass(T name) {
+            return CAST_ARRAY_CLASS(getClass(name));
+        }
+
         TypeArrayClass *getTypeArrayClass(BasicType type);
-        ObjArrayClass *getObjectArrayClass(const cstring &name);
         ObjArrayClass *getObjectArrayClass(const Class &klass);
         InstanceClass *loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous);
+
+
+        Class *getClass(cview name);
 
     private:
 

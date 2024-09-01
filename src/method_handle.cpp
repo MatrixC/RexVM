@@ -15,7 +15,7 @@
 
 namespace RexVM {
 
-    bool isMethodHandleInvoke(const cstring &className, const cstring &memberName) {
+    bool isMethodHandleInvoke(cview className, cview memberName) {
         return (className == "java/lang/invoke/MethodHandle" && 
             (memberName == "invoke"
                 || memberName == "invokeBasic"
@@ -34,7 +34,7 @@ namespace RexVM {
     }
 
     //代替MethodType.fromMethodDescriptorString
-    InstanceOop *createMethodType(Frame &frame, const cstring &methodDescriptor) {
+    InstanceOop *createMethodType(Frame &frame, cview methodDescriptor) {
         const auto [paramType, returnTypeType] = parseMethodDescriptor(methodDescriptor);
         const auto returnTypeOop = frame.mem.getClass(returnTypeType)->getMirror(&frame);
         const auto classArrayOop = frame.mem.newClassObjArrayOop(paramType.size());
@@ -122,8 +122,8 @@ namespace RexVM {
     InstanceOop *createCallSite(
         Frame &frame, 
         InstanceOop *methodHandle, 
-        const cstring &invokeName, 
-        const cstring &invokeDescriptor, 
+        cview invokeName, 
+        cview invokeDescriptor, 
         InstanceClass *callerClass,
         const std::vector<u2> &bootstrapArguments
     ) {
@@ -272,13 +272,13 @@ namespace RexVM {
         frame.pushRef(callSiteObj);
     }
 
-    cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name) {
+    cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, cview name) {
         cstring descriptor{};
-        if (isMethodHandleInvoke(clazz->name, name)) {
+        if (isMethodHandleInvoke(clazz->getClassName(), name)) {
             descriptor = METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR;
         } else {
             const auto typeClass = type->getClass();
-            const auto typeClassName = typeClass->name;
+            const auto typeClassName = typeClass->getClassName();
             if (typeClassName == JAVA_LANG_INVOKE_METHOD_TYPE_NAME) {
                 descriptor += "(";
                 const auto ptypes = CAST_OBJ_ARRAY_OOP(type->getFieldValue("ptypes", "[Ljava/lang/Class;").refVal);

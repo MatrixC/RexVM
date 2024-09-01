@@ -36,7 +36,7 @@ namespace RexVM {
 
 
     struct Class {
-        const cstring name;
+        const cstring name__;
         cstring descriptor_;
         std::vector<InstanceClass *> interfaces;
         InstanceClass *superClass{nullptr};
@@ -171,7 +171,7 @@ namespace RexVM {
 
         ~ArrayClass() override = default;
 
-        [[nodiscard]] cstring getComponentClassName() const;
+        [[nodiscard]] cview getComponentClassName() const;
     };
 
     struct TypeArrayClass : ArrayClass {

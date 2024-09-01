@@ -81,7 +81,7 @@ namespace RexVM {
         explicit Field(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
 
         [[nodiscard]] SlotTypeEnum getFieldSlotType();
-        [[nodiscard]] cstring getTypeName() const;
+        [[nodiscard]] cview getTypeName() const;
         [[nodiscard]] Class *getTypeClass() const;
 
         //Long or Double

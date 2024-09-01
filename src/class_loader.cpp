@@ -29,7 +29,7 @@ namespace RexVM {
         for (const auto item : PRIMITIVE_TYPE_ARRAY) {
             auto klass = std::make_unique<PrimitiveClass>(item, *this);
             klass->superClass = getInstanceClass(JAVA_LANG_OBJECT_NAME);
-            classMap.emplace(klass->name, std::move(klass));
+            classMap.emplace(cstring(klass->getClassName()), std::move(klass));
         }
     
         mirrorClass = getInstanceClass(JAVA_LANG_CLASS_NAME);
@@ -49,7 +49,7 @@ namespace RexVM {
         const auto rawPtr = instanceClass.get();
         initMirrorClass(rawPtr);
         //const auto className = notAnonymous ? instanceClass->name : ANONYMOUS_CLASS_NAME_PREFIX + std::to_string(anonymousClassIndex.fetch_add(1));
-        auto className = instanceClass->name;
+        auto className = cstring(instanceClass->getClassName());
         if (!notAnonymous && classMap.contains(className)) {
             className = ANONYMOUS_CLASS_NAME_PREFIX + std::to_string(anonymousClassIndex.fetch_add(1));
         }
@@ -132,7 +132,7 @@ namespace RexVM {
         arrayClass->initStatus = ClassInitStatusEnum::INITED;
         arrayClass->superClass = getInstanceClass(JAVA_LANG_OBJECT_NAME);
         initMirrorClass(arrayClass.get());
-        classMap.emplace(arrayClass->name, std::move(arrayClass));
+        classMap.emplace(cstring(arrayClass->getClassName()), std::move(arrayClass));
     }
 
 
@@ -153,25 +153,17 @@ namespace RexVM {
         // }
     }
 
-    InstanceClass *ClassLoader::getInstanceClass(const cstring &name) {
-        return CAST_INSTANCE_CLASS(getClass(name));
-    }
+    // InstanceClass *ClassLoader::getInstanceClass(const cstring &name) {
+    //     return CAST_INSTANCE_CLASS(getClass(name));
+    // }
 
-    ArrayClass *ClassLoader::getArrayClass(const cstring &name) {
-        return CAST_ARRAY_CLASS(getClass(name));
-    }
+    // ArrayClass *ClassLoader::getArrayClass(const cstring &name) {
+    //     return CAST_ARRAY_CLASS(getClass(name));
+    // }
 
     TypeArrayClass *ClassLoader::getTypeArrayClass(BasicType type) {
         const auto className = getTypeArrayClassNameByBasicType(type);
         return CAST_TYPE_ARRAY_CLASS(getClass(className));
-    }
-
-    ObjArrayClass *ClassLoader::getObjectArrayClass(const cstring &name) {
-        const auto firstChar = name[0];
-        const auto prefix = "[";
-        const auto elementName = firstChar == '[' ? name : getDescriptorClassName(name);
-        const auto arrayClassName = prefix + elementName;
-        return CAST_OBJ_ARRAY_CLASS(getClass(arrayClassName));
     }
 
     ObjArrayClass *ClassLoader::getObjectArrayClass(const Class &klass) {
@@ -225,5 +217,12 @@ namespace RexVM {
         std::memcpy(bufferPtr, ptr, length * sizeof(u1));
         const auto classStream = std::make_unique<std::istringstream>(buffer);
         return loadInstanceClass(*classStream, notAnonymous);
+    }
+
+
+
+
+    Class *ClassLoader::getClass(cview name) {
+        return getClass(cstring(name));
     }
 }

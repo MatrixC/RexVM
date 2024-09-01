@@ -177,7 +177,7 @@ namespace RexVM {
         const auto klass = oop->getClass();
 
 #ifdef DEBUG
-        collectedOopDesc.emplace(oop, klass->name);
+        collectedOopDesc.emplace(oop, klass->getClassName());
 #endif
 
         if (klass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {

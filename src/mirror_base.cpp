@@ -58,7 +58,7 @@ namespace RexVM {
 
     void MirrorBase::initClassMirrorOop(Frame &frame, Class *klass) const {
         #ifdef DEBUG
-        mirOop->mirrorName = klass->name;
+        mirOop->mirrorName = klass->getClassName();
         #endif
     }
 
@@ -120,7 +120,7 @@ namespace RexVM {
         }
         
         #ifdef DEBUG
-        mirOop->mirrorName = cformat("{}#{}", klass.name, method->toView());
+        mirOop->mirrorName = cformat("{}#{}", klass.toView(), method->toView());
         #endif
     }
 
@@ -143,7 +143,7 @@ namespace RexVM {
         }
 
         #ifdef DEBUG
-        mirOop->mirrorName = cformat("{}#{}", klass.name, field->toView());
+        mirOop->mirrorName = cformat("{}#{}", klass.toView(), field->toView());
         #endif
 
     }

@@ -43,7 +43,8 @@ namespace RexVM::Native::Core {
             throwNullPointException(frame);
             return;
         }
-        if (arrayClassOop->getClass()->name != JAVA_LANG_CLASS_NAME) {
+        const auto classClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_CLASS);
+        if (arrayClassOop->getClass() != classClass) {
             panic("not class");
         }
         const auto arrayClass = GET_MIRROR_INSTANCE_CLASS(arrayClassOop);

@@ -26,7 +26,7 @@ namespace RexVM {
             vm(vm),
             stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
             stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
-        if (klass->name == "java/lang/ref/Reference$ReferenceHandler") {
+        if (klass->getClassName() == "java/lang/ref/Reference$ReferenceHandler") {
             //disable ReferenceHandler
             //这个方法一直在wait 不好让它进入safepoint
             return;

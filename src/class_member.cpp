@@ -141,7 +141,7 @@ namespace RexVM {
         return slotType;
     }
 
-    cstring Field::getTypeName() const {
+    cview Field::getTypeName() const {
         return getClassNameByFieldDescriptor(getDescriptor());
     }
 
@@ -210,7 +210,7 @@ namespace RexVM {
         if (isNative()) {
             nativeMethodHandler =
                     NativeManager::instance.getNativeMethod(
-                            klass.name,
+                            cstring(klass.getClassName()),
                             cstring(getName()),
                             cstring(getDescriptor()),
                             isStatic()
@@ -311,7 +311,7 @@ namespace RexVM {
                 if (item->catchClass == nullptr) {
                     const auto &constantPool = klass.constantPool;
                     const auto exClassName = getConstantStringFromPoolByIndexInfo(constantPool, item->catchType);
-                    if (exClass->name == exClassName) {
+                    if (exClass->getClassName() == exClassName) {
                         //Optimize[catchClass == exClass], needn't load Exception Class
                         return item->handler;
                     }

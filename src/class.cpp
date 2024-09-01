@@ -13,11 +13,12 @@
 #include "frame.hpp"
 #include "exception.hpp"
 #include "attribute_info.hpp"
+#include "utils/class_utils.hpp"
 
 namespace RexVM {
 
     Class::Class(const ClassTypeEnum type, const u2 accessFlags, cview name, ClassLoader &classLoader) :
-            name(cstring(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
+            name__(cstring(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
         if (type == ClassTypeEnum::PRIMITIVE_CLASS) {
             descriptor_ = cstring{getDescriptorByPrimitiveClassName(name)};
         } else if (type == ClassTypeEnum::INSTANCE_CLASS) {
@@ -31,7 +32,7 @@ namespace RexVM {
     }
 
     cview Class::getClassName() const {
-        return name;
+        return name__;
     }
 
     cview Class::getClassDescriptor() const {
@@ -82,15 +83,15 @@ namespace RexVM {
     }
 
     bool Class::isJavaObjectClass() const {
-        return name == JAVA_LANG_OBJECT_NAME;
+        return getClassName() == JAVA_LANG_OBJECT_NAME;
     }
 
     bool Class::isJavaCloneable() const {
-        return name == JAVA_LANG_CLONEABLE_NAME;
+        return getClassName() == JAVA_LANG_CLONEABLE_NAME;
     }
 
     bool Class::isSerializable() const {
-        return name == JAVA_IO_SERIALIZABLE_NAME;
+        return getClassName() == JAVA_IO_SERIALIZABLE_NAME;
     }
 
     bool Class::isAssignableFrom(const Class *that) const {
@@ -347,7 +348,7 @@ namespace RexVM {
         u2 index = 0;
         for (const auto &methodInfo: cf.methods) {
             auto method = std::make_unique<Method>(*this,methodInfo.get(),cf,index++);
-            if (!overrideFinalize && name != JAVA_LANG_OBJECT_NAME && method->isFinalize()) {
+            if (!overrideFinalize && !isJavaObjectClass() && method->isFinalize()) {
                 overrideFinalize = true;
             }
             methods.emplace_back(std::move(method));
@@ -650,19 +651,9 @@ namespace RexVM {
             InstanceClass(type, CAST_U2(AccessFlagEnum::ACC_PUBLIC), name, classLoader), dimension(dimension) {
     }
 
-    cstring ArrayClass::getComponentClassName() const {
-        auto componentClassName = name.substr(1);
-        const auto firstChar = componentClassName[0];
-        switch (firstChar) {
-            case '[':
-                return componentClassName;
-
-            case 'L':
-                return componentClassName.substr(1, componentClassName.size() - 2);
-
-            default:
-                return getPrimitiveClassNameByDescriptor(firstChar);
-        }
+    cview ArrayClass::getComponentClassName() const {
+        auto componentClassName = getClassName().substr(1);
+        return getClassNameByFieldDescriptor(componentClassName);
     }
 
     TypeArrayClass::TypeArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
