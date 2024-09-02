@@ -18,29 +18,33 @@
 namespace RexVM {
 
     Class::Class(const ClassTypeEnum type, const u2 accessFlags, cview name, ClassLoader &classLoader) :
-            name__(cstring(name)), type(type), accessFlags(accessFlags),  classLoader(classLoader) {
-        if (type == ClassTypeEnum::PRIMITIVE_CLASS) {
-            descriptor_ = cstring{getDescriptorByPrimitiveClassName(name)};
-        } else if (type == ClassTypeEnum::INSTANCE_CLASS) {
-            descriptor_.reserve(name.size() + 2);
-            descriptor_ += 'L';
-            descriptor_.append(name);
-            descriptor_ += ';';
-        } else {
-            descriptor_ = name;
-        }
+            //name__(cstring(name)), 
+            id(name, type),
+            type(type), 
+            accessFlags(accessFlags), 
+            classLoader(classLoader) {
+        // if (type == ClassTypeEnum::PRIMITIVE_CLASS) {
+        //     descriptor_ = cstring{getDescriptorByPrimitiveClassName(name)};
+        // } else if (type == ClassTypeEnum::INSTANCE_CLASS) {
+        //     descriptor_.reserve(name.size() + 2);
+        //     descriptor_ += 'L';
+        //     descriptor_.append(name);
+        //     descriptor_ += ';';
+        // } else {
+        //     descriptor_ = name;
+        // }
     }
 
     void Class::setName(cview name) {
-        name__ = name;
+        id.setName(name, type);
     }
 
     cview Class::getClassName() const {
-        return name__;
+        return id.getName();
     }
 
     cview Class::getClassDescriptor() const {
-        return descriptor_;
+        return id.getDescritpor();
     }
 
     cview Class::toView() const {

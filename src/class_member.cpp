@@ -7,6 +7,7 @@
 #include "class.hpp"
 #include "class_file.hpp"
 #include "class_loader.hpp"
+#include "mirror_base.hpp"
 #include "utils/descriptor_parser.hpp"
 #include "utils/class_utils.hpp"
 #include "native/native_manager.hpp"
@@ -15,7 +16,11 @@ namespace RexVM {
 
     ClassMember::ClassMember(ClassMemberTypeEnum type, u2 accessFlags, ClassMemberNameType name, ClassMemberNameType descriptor,
                              InstanceClass &klass) :
-        name__(std::move(name)), descriptor__(std::move(descriptor)), klass(klass), accessFlags(accessFlags), type(type) {
+        //name__(std::move(name)), descriptor__(std::move(descriptor)), 
+        id(name, descriptor),
+        klass(klass), 
+        accessFlags(accessFlags), 
+        type(type) {
     }
 
     ClassMember::ClassMember(ClassMemberTypeEnum type, InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf) :
@@ -44,11 +49,11 @@ namespace RexVM {
     }
 
     cview ClassMember::getName() const {
-        return cview(name__);
+        return id.getName();
     }
 
     cview ClassMember::getDescriptor() const {
-        return cview(descriptor__);
+        return id.getDescritpor();
     }
 
     bool ClassMember::isStatic() const {
@@ -99,7 +104,7 @@ namespace RexVM {
     }
 
     cview ClassMember::toView() const {
-        return cview(name__);
+        return id.getName();
     }
 
 

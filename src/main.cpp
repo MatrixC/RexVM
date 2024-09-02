@@ -32,6 +32,7 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
 }
 
 #include "composite_string.hpp"
+#include "class_attribute_container.hpp"
 
 int main(int argc, char *argv[]) {
     ApplicationParameter applicationParameter;

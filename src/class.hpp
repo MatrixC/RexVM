@@ -10,7 +10,7 @@
 #include "composite_string.hpp"
 #include "utils/spin_lock.hpp"
 #include "mirror_base.hpp"
-#include "class_annotation_container.hpp"
+#include "class_attribute_container.hpp"
 
 namespace RexVM {
 
@@ -36,8 +36,7 @@ namespace RexVM {
 
 
     struct Class {
-        cstring name__;
-        cstring descriptor_;
+        NameDescriptorIdentifier id;
         std::vector<InstanceClass *> interfaces;
         InstanceClass *superClass{nullptr};
 
@@ -52,7 +51,6 @@ namespace RexVM {
         explicit Class(ClassTypeEnum type, u2 accessFlags, cview name, ClassLoader &classLoader);
 
         void setName(cview name);
-
         [[nodiscard]] cview getClassName() const;
         [[nodiscard]] cview getClassDescriptor() const;
         [[nodiscard]] cview toView() const;
@@ -82,7 +80,7 @@ namespace RexVM {
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
         
-        virtual ~Class();
+        void ~Class();
     };
 
     //Hotspot对Primitive类型没有建立Class, 只有对应的MirrorOop

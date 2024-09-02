@@ -1,4 +1,4 @@
-#include "class_annotation_container.hpp"
+#include "class_attribute_container.hpp"
 #include "frame.hpp"
 #include "frame_memory_handler.hpp"
 #include "oop.hpp"

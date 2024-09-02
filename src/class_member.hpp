@@ -9,7 +9,7 @@
 #include "utils/spin_lock.hpp"
 #include "mirror_base.hpp"
 #include "composite_ptr.hpp"
-#include "class_annotation_container.hpp"
+#include "class_attribute_container.hpp"
 
 namespace RexVM {
 
@@ -26,15 +26,10 @@ namespace RexVM {
 
 
     struct ClassMember {
-        const ClassMemberNameType name__;
-        const ClassMemberNameType descriptor__;
+        NameDescriptorIdentifier id;
 
         cview getName() const;
         cview getDescriptor() const;
-
-        // const rstring name;
-        // const rstring descriptor;
-        // cstring signature;
 
         InstanceClass &klass;
         MirrorBase mirrorBase{};
