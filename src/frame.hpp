@@ -21,11 +21,7 @@ namespace RexVM {
     class Oop;
     struct InstanceOop;
     struct FrameMemoryHandler;
-    struct ObjArrayOop;
-    struct TypeArrayOop;
-    struct CharTypeArrayOop;
-    struct OopManager;
-
+    
     struct FrameThrowable {
         InstanceOop *throwValue{nullptr};
         std::vector<std::tuple<Method&, u4>> throwPath;
@@ -145,6 +141,7 @@ namespace RexVM {
         void printReturn();
         void printStr(ref oop);
         void print();
+
     };
 
 }

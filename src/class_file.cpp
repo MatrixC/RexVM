@@ -17,11 +17,11 @@ namespace RexVM {
 
     FMBaseInfo::~FMBaseInfo() = default;
 
-    cstring FMBaseInfo::getName() const {
+    cview FMBaseInfo::getName() const {
         return getConstantStringFromPool(cf.constantPool, nameIndex);
     }
 
-    cstring FMBaseInfo::getDescriptor() const {
+    cview FMBaseInfo::getDescriptor() const {
         return getConstantStringFromPool(cf.constantPool, descriptorIndex);
     }
 
@@ -167,16 +167,16 @@ namespace RexVM {
         return getAssignAttributeByConstantPool(constantPool, attributes, tagEnum);
     }
 
-    cstring ClassFile::getClassName(u2 classIndex) const {
+    cview ClassFile::getClassName(u2 classIndex) const {
         auto classInfo = CAST_CONSTANT_CLASS_INFO(constantPool[classIndex].get());
         return getConstantStringFromPool(constantPool, classInfo->index);
     }
 
-    cstring ClassFile::getThisClassName() const {
+    cview ClassFile::getThisClassName() const {
         return getClassName(thisClass);
     }
 
-    cstring ClassFile::getSuperClassName() const {
+    cview ClassFile::getSuperClassName() const {
         if (superClass == 0) {
             return {};
         }
@@ -194,7 +194,7 @@ namespace RexVM {
         return getConstantRStringFromPool(constantPool, nameIndex);
     }
 
-    cstring ClassFile::getSignature() const {
+    cview ClassFile::getSignature() const {
         const auto signatureAttribute = getAssignAttribute(AttributeTagEnum::SIGNATURE);
 
         if (signatureAttribute == nullptr) {

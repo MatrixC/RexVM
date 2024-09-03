@@ -155,7 +155,7 @@ namespace RexVM {
         [[nodiscard]] Method *getMethod(cview id, bool isStatic) const;
         [[nodiscard]] Method *getMethod(cview name, cview descriptor, bool isStatic) const;
         [[nodiscard]] Method *getRefMethod(size_t refIndex, bool isStatic) const;
-        [[nodiscard]] cstring getSignature() const;
+        [[nodiscard]] cview getSignature() const;
 
         void setFieldValue(size_t index, Slot value) const;
         void setFieldValue(cview id, Slot value) const;

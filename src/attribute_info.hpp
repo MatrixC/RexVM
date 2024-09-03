@@ -42,7 +42,7 @@ namespace RexVM {
         NEST_HOST = 24,
     };
 
-    extern const std::unordered_map<cstring, AttributeTagEnum> ATTRIBUTE_NAME_TAG_MAP;
+    extern const std::unordered_map<cview, AttributeTagEnum, CViewHash, CViewEqual> ATTRIBUTE_NAME_TAG_MAP;
 
     AttributeInfo *getAssignAttributeByConstantPool(
             const std::vector<std::unique_ptr<ConstantInfo>> &constantPool,

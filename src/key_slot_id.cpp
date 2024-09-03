@@ -18,4 +18,7 @@ namespace RexVM {
     u2 steClassFileNameFId;
     u2 steClassLineNumberFId;
 
+    u2 objClassCloneMID;
+    u2 objClassGetClassMID;
+
 }

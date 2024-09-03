@@ -14,7 +14,7 @@
 
 namespace RexVM {
 
-    ClassMember::ClassMember(ClassMemberTypeEnum type, u2 accessFlags, ClassMemberNameType name, ClassMemberNameType descriptor,
+    ClassMember::ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cview name, cview descriptor,
                              InstanceClass &klass) :
         //name__(std::move(name)), descriptor__(std::move(descriptor)), 
         id(name, descriptor),
@@ -76,7 +76,7 @@ namespace RexVM {
         return (accessFlags & ~(CAST_U2(AccessFlagEnum::ACC_ANNOTATION)));
     }
 
-    cstring ClassMember::getSignature() const {
+    cview ClassMember::getSignature() const {
         if (signatureIndex == 0) {
             return {};
         }

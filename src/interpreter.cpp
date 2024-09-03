@@ -14,6 +14,7 @@
 #include "memory.hpp"
 #include "method_handle.hpp"
 #include "thread.hpp"
+#include "key_slot_id.hpp"
 
 namespace RexVM {
 
@@ -981,9 +982,11 @@ namespace RexVM {
 
         void getstatic(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto fieldRef = frame.klass.getRefField(index, true);
+            // const auto fieldRef = frame.klass.getRefField(index, true);
+            // auto &fieldClass = fieldRef->klass;
+            // fieldClass.clinit(frame);
+            const auto fieldRef = frame.mem.getRefField(index, true);
             auto &fieldClass = fieldRef->klass;
-            fieldClass.clinit(frame);
             const auto value = fieldClass.getFieldValue(fieldRef->slotId);
             const auto type = fieldRef->getFieldSlotType();
             frame.push(value, type);
@@ -991,9 +994,11 @@ namespace RexVM {
 
         void putstatic(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto fieldRef = frame.klass.getRefField(index, true);
+            // const auto fieldRef = frame.klass.getRefField(index, true);
+            // auto &fieldClass = fieldRef->klass;
+            // fieldClass.clinit(frame);
+            const auto fieldRef = frame.mem.getRefField(index, true);
             auto &fieldClass = fieldRef->klass;
-            fieldClass.clinit(frame);
             if (fieldRef->isWideType()) {
                 frame.pop();
             }
@@ -1004,7 +1009,8 @@ namespace RexVM {
 
         void getfield(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto fieldRef = frame.klass.getRefField(index, false);
+            //const auto fieldRef = frame.klass.getRefField(index, false);
+            const auto fieldRef = frame.mem.getRefField(index, true);
             const auto instance = CAST_INSTANCE_OOP(frame.popRef());
             ASSERT_IF_NULL_THROW_NPE(instance);
             const auto value = instance->getFieldValue(fieldRef->slotId);
@@ -1014,22 +1020,22 @@ namespace RexVM {
 
         void putfield(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto fieldRef = frame.klass.getRefField(index, false);
+            //const auto fieldRef = frame.klass.getRefField(index, false);
+            const auto fieldRef = frame.mem.getRefField(index, true);
             if (fieldRef->isWideType()) {
                 frame.pop();
             }
             const auto value = frame.pop();
             const auto instance = CAST_INSTANCE_OOP(frame.popRef());
             ASSERT_IF_NULL_THROW_NPE(instance);
-
             instance->setFieldValue(fieldRef->slotId, value);
         }
         
         void invokeMethodHandle(
             Frame &frame, 
-            const cstring &className, 
-            const cstring &methodName, 
-            const cstring &methodDescriptor
+            cview className, 
+            cview methodName, 
+            cview methodDescriptor
         ) {
             const auto invokeMethod = 
                     frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
@@ -1041,47 +1047,29 @@ namespace RexVM {
 
         template<bool checkMethodHandle>
         void invokeVirtualCommon(Frame &frame, u2 index) {
-            const auto &constantPool = frame.constantPool;
-            auto [className, methodName, methodDescriptor] = 
-                    getConstantStringFromPoolByClassNameType(constantPool, index);
-
+            auto cache = frame.mem.resolveInvokeVirtualIndex(index, checkMethodHandle);
             if constexpr (checkMethodHandle) {
-                if (isMethodHandleInvoke(className, methodName)) {
-                    invokeMethodHandle(frame, className, methodName, methodDescriptor);
+                if (cache->mhMethod != nullptr) {
+                    frame.runMethodInner(*cache->mhMethod, cache->mhMethodPopSize);
                     return;
                 }
             }
-
-            const auto paramSlotSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
-            const auto instance = frame.getStackOffset(paramSlotSize - 1).refVal;
+            const auto instance = frame.getStackOffset(cache->paramSlotSize - 1).refVal;
             ASSERT_IF_NULL_THROW_NPE(instance);
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
-            if (instanceClass->isArray()) {
-                const auto objectClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
-                const auto realInvokeMethod = objectClass->getMethod(methodName, methodDescriptor, false);
-                if (realInvokeMethod == nullptr) {
-                    panic("array invoke error");
-                }
-                frame.runMethodInner(*realInvokeMethod);
-                return;
-            }
 
-            for (auto k = instanceClass; k != nullptr; k = k->getSuperClass()) {
-                const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
-                if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {
-                    frame.runMethodInner(*realInvokeMethod);
-                    return;
-                }
-            }
-            panic("invoke failed");
+            const auto realInvokeMethod = frame.mem.linkVirtualMethod(index, cache, instanceClass);
+            frame.runMethodInner(*realInvokeMethod);
         }
 
         template<bool clinit, bool isStatic>
         void invokeStaticCommon(Frame &frame, u2 index) {
-            const auto invokeMethod = frame.klass.getRefMethod(index, isStatic);
-            if constexpr (clinit) {
-                invokeMethod->klass.clinit(frame);
-            }
+            //const auto invokeMethod = frame.klass.getRefMethod(index, isStatic);
+            const auto invokeMethod = frame.mem.getRefMethod(index, isStatic);
+            //already execute in frame.getRefMethod
+            // if constexpr (clinit) {
+            //     invokeMethod->klass.clinit(frame);
+            // }
             frame.runMethodInner(*invokeMethod);
         }
 
@@ -1115,9 +1103,7 @@ namespace RexVM {
 
         void new_(Frame &frame) {
             const auto index = frame.reader.readU2();
-            const auto &constantPool = frame.constantPool;
-            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
-            const auto instanceClass = frame.mem.getInstanceClass(className);
+            const auto instanceClass = CAST_INSTANCE_CLASS(frame.mem.getRefClass(index));
             instanceClass->clinit(frame);
 
             frame.pushRef(frame.mem.newInstance(instanceClass));
@@ -1133,11 +1119,8 @@ namespace RexVM {
         void anewarray(Frame &frame) {
             const auto classIndex = frame.reader.readU2();
             const auto length = frame.popI4();
-            const auto &constantPool = frame.constantPool;
-            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, classIndex);
 
-            //TODO 优化 lazy解析constant pool
-            const auto elementClass = frame.mem.getClass(className);
+            const auto elementClass = frame.mem.getRefClass(classIndex);
             
             const auto array = frame.mem.getObjectArrayClass(*elementClass);
             frame.pushRef(frame.mem.newObjArrayOop(array, length));
@@ -1162,11 +1145,9 @@ namespace RexVM {
             if (ref == nullptr) {
                 return;
             }
-            const auto &constantPool = frame.constantPool;
-            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
-            const auto checkClass = frame.mem.getClass(className);
+            const auto checkClass = frame.mem.getRefClass(index);
             if (!ref->isInstanceOf(checkClass)) {
-                throwClassCastException(frame, ref->getClass()->getClassName(), className);
+                throwClassCastException(frame, ref->getClass()->getClassName(), checkClass->getClassName());
                 return;
             }
         }
@@ -1178,9 +1159,7 @@ namespace RexVM {
                 frame.pushI4(0);
                 return;
             }
-            const auto &constantPool = frame.constantPool;
-            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
-            const auto checkClass = frame.mem.getClass(className);
+            const auto checkClass = frame.mem.getRefClass(index);
             if (ref->isInstanceOf(checkClass)) {
                 frame.pushI4(1);
             } else {
@@ -1243,7 +1222,7 @@ namespace RexVM {
             }
         }
 
-        ref multiArrayHelper(Frame &frame, std::unique_ptr<i4[]> &dimLength, i4 dimCount, const cstring& name, i4 currentDim) {
+        ref multiArrayHelper(Frame &frame, std::unique_ptr<i4[]> &dimLength, i4 dimCount, cview name, i4 currentDim) {
             const auto arrayLength = dimLength[currentDim];
             const auto currentArrayClass = frame.mem.getArrayClass(name);
             ArrayOop *arrayOop;

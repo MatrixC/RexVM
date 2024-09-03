@@ -22,14 +22,8 @@ namespace RexVM {
     struct ClassFile;
     struct MirrorBase;
 
-    using ClassMemberNameType = cstring;
-
-
     struct ClassMember {
         const NameDescriptorIdentifier id;
-
-        cview getName() const;
-        cview getDescriptor() const;
 
         InstanceClass &klass;
         MirrorBase mirrorBase{};
@@ -42,17 +36,19 @@ namespace RexVM {
         const ClassMemberTypeEnum type;
         SlotTypeEnum slotType{SlotTypeEnum::NONE}; //returnSlotTyoe for method
 
-        explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, ClassMemberNameType name, ClassMemberNameType descriptor,
+        explicit ClassMember(ClassMemberTypeEnum type, u2 accessFlags, cview name, cview descriptor,
                              InstanceClass &klass);
 
         explicit ClassMember(ClassMemberTypeEnum type, InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf);
 
+        [[nodiscard]] cview getName() const;
+        [[nodiscard]] cview getDescriptor() const;
         [[nodiscard]] bool isStatic() const;
         [[nodiscard]] bool isFinal() const;
         [[nodiscard]] bool isPublic() const;
         [[nodiscard]] bool isPrivate() const;
         [[nodiscard]] i4 getModifier() const;
-        [[nodiscard]] cstring getSignature() const;
+        [[nodiscard]] cview getSignature() const;
 
         [[nodiscard]] bool is(cview name_,cview descriptor_) const;
         [[nodiscard]] bool is(cview name_, cview descriptor_, bool isStatic) const;
@@ -118,7 +114,6 @@ namespace RexVM {
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
         NativeMethodHandler nativeMethodHandler{};
-
 
         explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index = 0);
 

@@ -40,6 +40,8 @@ namespace RexVM {
         volatile bool stopForCollect{false};
         volatile bool gcSafe{true};
 
+        
+
 #ifdef DEBUG
         cstring threadName{};
 #endif

@@ -19,6 +19,9 @@ namespace RexVM {
     extern u2 steClassMethodNameFId;
     extern u2 steClassFileNameFId;
     extern u2 steClassLineNumberFId;
+
+    extern u2 objClassCloneMID;
+    extern u2 objClassGetClassMID;;
 }
 
 #endif

@@ -28,9 +28,9 @@ namespace RexVM {
 
         ~FMBaseInfo();
 
-        [[nodiscard]] cstring getName() const;
+        [[nodiscard]] cview getName() const;
 
-        [[nodiscard]] cstring getDescriptor() const;
+        [[nodiscard]] cview getDescriptor() const;
 
         [[nodiscard]] AttributeInfo *getAssignAttribute(AttributeTagEnum tagEnum) const;
     };
@@ -94,15 +94,15 @@ namespace RexVM {
 
         [[nodiscard]] AttributeInfo *getAssignAttribute(AttributeTagEnum tagEnum) const;
 
-        [[nodiscard]] cstring getClassName(u2 classIndex) const;
+        [[nodiscard]] cview getClassName(u2 classIndex) const;
 
-        [[nodiscard]] cstring getThisClassName() const;
+        [[nodiscard]] cview getThisClassName() const;
 
-        [[nodiscard]] cstring getSuperClassName() const;
+        [[nodiscard]] cview getSuperClassName() const;
 
         [[nodiscard]] rstring getSourceFile() const;
         
-        [[nodiscard]] cstring getSignature() const;
+        [[nodiscard]] cview getSignature() const;
 
         void getBootstrapMethods() const;
 

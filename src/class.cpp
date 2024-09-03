@@ -575,7 +575,7 @@ namespace RexVM {
         return static_cast<Method *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::METHOD, isStatic));
     }
 
-    cstring InstanceClass::getSignature() const {
+    cview InstanceClass::getSignature() const {
         if (signatureIndex == 0) {
             return {};
         }

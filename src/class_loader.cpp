@@ -163,6 +163,10 @@ namespace RexVM {
         throwableClassDetailMessageFieldSlotId = throwableClass->getField("detailMessage" "Ljava/lang/String;", false)->slotId;
         throwableClassBacktraceFID = throwableClass->getField("backtrace" "Ljava/lang/Object;", false)->slotId;
         throwableClassStacktraceFID = throwableClass->getField("stackTrace" "[Ljava/lang/StackTraceElement;", false)->slotId;
+
+        const auto objectClass = getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE);
+        objClassCloneMID = objectClass->getMethod("clone" "()Ljava/lang/Object;", false)->slotId;
+        objClassGetClassMID = objectClass->getMethod("getClass" "()Ljava/lang/Class;", false)->slotId;
     }
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {

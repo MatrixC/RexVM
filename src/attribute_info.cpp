@@ -3,7 +3,7 @@
 
 namespace RexVM {
 
-    const std::unordered_map<cstring, AttributeTagEnum> ATTRIBUTE_NAME_TAG_MAP{
+    const std::unordered_map<cview, AttributeTagEnum, CViewHash, CViewEqual> ATTRIBUTE_NAME_TAG_MAP{
             {"ConstantValue",                        AttributeTagEnum::CONSTANT_VALUE},
             {"Code",                                 AttributeTagEnum::CODE},
             {"StackMapTable",                        AttributeTagEnum::STACK_MAP_TABLE},
@@ -40,7 +40,7 @@ namespace RexVM {
         if (attrIter == ATTRIBUTE_NAME_TAG_MAP.end()) {
             //not found, not implement
             //return std::make_unique<SkipAttribute>(is); 
-            panic("not implement attribute " + attributeName);
+            panic(cformat("not implement attribute {}", attributeName));
         }
         const auto tagEnum = attrIter->second;
         switch (tagEnum) {
@@ -142,7 +142,7 @@ namespace RexVM {
     ) {
         for (auto &attribute: attributes) {
             const auto attributeName =
-                    getConstantStringFromPool(constantPool, (const size_t) attribute->attributeNameIndex);
+                    getConstantStringFromPool(constantPool, CAST_SIZE_T(attribute->attributeNameIndex));
             const auto currentTagEnum = ATTRIBUTE_NAME_TAG_MAP.at(attributeName);
             if (tagEnum == currentTagEnum) {
                 return attribute.get();

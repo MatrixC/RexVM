@@ -24,10 +24,24 @@ namespace RexVM {
     struct StringPool;
     struct ClassLoader;
     struct VMThread;
+    struct ClassMember;
+    struct Field;
+    struct Method;
+
+    struct ExecuteVirutalMethodCache {
+        explicit ExecuteVirutalMethodCache() {
+        }
+        Method *mhMethod;
+        cview methodName;
+        cview methodDescriptor;
+        u2 mhMethodPopSize;
+        u2 paramSlotSize;
+    };
 
     struct FrameMemoryHandler {
-        explicit FrameMemoryHandler(const Frame &frame);
+        explicit FrameMemoryHandler(Frame &frame);
 
+        Frame &frame;
         VMThread &vmThread;
         OopManager &oopManager;
         StringPool &stringPool;
@@ -68,6 +82,18 @@ namespace RexVM {
         [[nodiscard]] Class *getClass(cview name);
         [[nodiscard]] InstanceClass *getInstanceClass(cview name);
         [[nodiscard]] ArrayClass *getArrayClass(cview name);
+
+
+        //execute cache
+        std::unordered_map<u8, voidPtr> executeClassMemberCache{};
+        std::vector<std::unique_ptr<ExecuteVirutalMethodCache>> cacheVector{};
+
+        [[nodiscard]] Field *getRefField(u2 index, bool isStatic);
+        [[nodiscard]] Method *getRefMethod(u2 index, bool isStatic);
+        [[nodiscard]] Class *getRefClass(u2 index);
+        
+        [[nodiscard]] ExecuteVirutalMethodCache *resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle);
+        [[nodiscard]] Method *linkVirtualMethod(u2 index, ExecuteVirutalMethodCache *cache, InstanceClass *instanceClass);
 
     };
 

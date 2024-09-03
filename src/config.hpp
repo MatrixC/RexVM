@@ -115,6 +115,18 @@ namespace RexVM {
 
     constexpr size_t STRING_POOL_SIZE = 512;
 
+    struct CViewHash {
+        size_t operator()(cview cv) const noexcept {
+            return std::hash<cview>{}(cv);
+        }
+    };
+
+    struct CViewEqual {
+        bool operator()(cview lhs, cview rhs) const noexcept {
+            return lhs == rhs;
+        }
+    };
+
 }
 
 #include "enums.hpp"

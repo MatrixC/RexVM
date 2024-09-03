@@ -23,22 +23,9 @@ namespace RexVM {
     struct MirrorOop;
     struct InstanceOop;
 
-    struct CViewHash {
-        size_t operator()(cview cv) const noexcept {
-            return std::hash<cview>{}(cv);
-        }
-    };
-
-    struct CViewEqual {
-        bool operator()(cview lhs, cview rhs) const noexcept {
-            return lhs == rhs;
-        }
-    };
-
     struct ClassLoader {
         VM &vm;
         ClassPath &classPath;
-        //std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
         std::unordered_map<cview, std::unique_ptr<Class>, CViewHash, CViewEqual> classMap2;
         std::recursive_mutex clMutex;
         std::vector<InstanceClass *> basicJavaClass;
