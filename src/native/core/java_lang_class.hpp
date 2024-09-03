@@ -409,8 +409,8 @@ namespace RexVM::Native::Core {
     void fieldGetTypeAnnotationBytes0(Frame &frame) {
         const auto self = frame.getThisInstance();
         ASSERT_IF_NULL_THROW_NPE(self)
-        const auto slotId = self->getFieldValue("slot", "I").i4Val;
-        const auto fieldClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(self->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->getMirrorClass());
+        const auto slotId = self->getFieldValue("slot" "I").i4Val;
+        const auto fieldClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(self->getFieldValue("clazz" "Ljava/lang/Class;").refVal)->getMirrorClass());
         const auto fieldPtr = fieldClass->fields[slotId].get();
 
         if (fieldPtr->basicAnnotationContainer != nullptr) {
@@ -475,8 +475,8 @@ namespace RexVM::Native::Core {
     void getParameters0(Frame &frame) {
         const auto method = frame.getThisInstance();
         ASSERT_IF_NULL_THROW_NPE(method);
-        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->getMirrorClass());
-        const auto slotId = method->getFieldValue("slot", "I").i4Val;
+        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz" "Ljava/lang/Class;").refVal)->getMirrorClass());
+        const auto slotId = method->getFieldValue("slot" "I").i4Val;
         const auto methodPtr = methodClass->methods[slotId].get();
         const auto parameterClass = frame.mem.getInstanceClass("java/lang/reflect/Parameter");
         const auto result = frame.mem.newObjArrayOop(
@@ -487,10 +487,10 @@ namespace RexVM::Native::Core {
         for (size_t i = 0; i < methodPtr->paramType.size(); ++i) {
             const auto parameter = frame.mem.newInstance(parameterClass);
             const auto name = cformat("arg{}", i);
-            parameter->setFieldValue("name", "Ljava/lang/String;", Slot(frame.mem.getInternString(name)));
-            parameter->setFieldValue("modifiers", "I", Slot(CAST_I4(0)));
-            parameter->setFieldValue("executable", "Ljava/lang/reflect/Executable;", Slot(method));
-            parameter->setFieldValue("index", "I", Slot(CAST_I4(i)));
+            parameter->setFieldValue("name" "Ljava/lang/String;", Slot(frame.mem.getInternString(name)));
+            parameter->setFieldValue("modifiers" "I", Slot(CAST_I4(0)));
+            parameter->setFieldValue("executable" "Ljava/lang/reflect/Executable;", Slot(method));
+            parameter->setFieldValue("index" "I", Slot(CAST_I4(i)));
             result->data[i] = parameter;
         }
         
@@ -580,8 +580,8 @@ namespace RexVM::Native::Core {
         const auto obj = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         const auto args = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(2));
 
-        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz", "Ljava/lang/Class;").refVal)->getMirrorClass());
-        const auto slotId = method->getFieldValue("slot", "I").i4Val;
+        const auto methodClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(method->getFieldValue("clazz" "Ljava/lang/Class;").refVal)->getMirrorClass());
+        const auto slotId = method->getFieldValue("slot" "I").i4Val;
         const auto methodPtr = methodClass->methods[slotId].get();
 
         std::vector<Slot> params;

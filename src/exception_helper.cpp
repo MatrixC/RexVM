@@ -16,7 +16,10 @@ namespace RexVM {
         instanceClass->clinit(frame);
         const auto throwable = frame.mem.newInstance(instanceClass);
         const auto hasMessage = !message.empty();
-        const auto initMethod = instanceClass->getMethod("<init>", hasMessage ? "(Ljava/lang/String;)V" : "()V", false);
+        const auto initMethod = 
+            hasMessage ?
+                instanceClass->getMethod("<init>" "(Ljava/lang/String;)V", false) :
+                instanceClass->getMethod("<init>" "()V", false);
         std::vector<Slot> initParams;
         initParams.reserve(2);
         initParams.emplace_back(throwable);

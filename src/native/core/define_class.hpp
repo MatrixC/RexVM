@@ -44,7 +44,7 @@ namespace RexVM::Native::Core {
         if (byteBufferOop == nullptr) {
             panic("byteBufferOop can't be null");
         }
-        const auto bufferOop = byteBufferOop->getFieldValue("hb", "[B").refVal;
+        const auto bufferOop = byteBufferOop->getFieldValue("hb" "[B").refVal;
         const auto off = frame.getLocalI4(3);
         const auto len = frame.getLocalI4(4);
         defineClassCommon(frame, bufferOop, off, CAST_SIZE_T(len), false, true);

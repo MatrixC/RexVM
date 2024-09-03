@@ -101,7 +101,7 @@ namespace RexVM {
     cstring formatInstance(Frame &frame, InstanceOop *oop) {
         const auto className = oop->getClass()->toView();
         const auto objectsClass = frame.mem.getInstanceClass("java/util/Objects");
-        const auto toStringMethod = objectsClass->getMethod("toString", "(Ljava/lang/Object;)Ljava/lang/String;", true);
+        const auto toStringMethod = objectsClass->getMethod("toString" "(Ljava/lang/Object;)Ljava/lang/String;", true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
         auto ret = val.refVal == nullptr ? "null" : VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val.refVal));
         ret = ret.empty() ? "[EMPTY]" : ret;

@@ -32,7 +32,7 @@ namespace RexVM {
             return;
         }
 
-        const auto method = getInstanceClass()->getMethod("run", "()V", false);
+        const auto method = getInstanceClass()->getMethod("run" "()V", false);
         const std::vector<Slot> params = { Slot(this) };
         runMethods.emplace_back(std::make_unique<VMThreadMethod>(method, params));
     }
@@ -51,11 +51,11 @@ namespace RexVM {
 
         const auto threadGroupClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
         const auto vmThreadGroup = vm.oopManager->newInstance(vmThread, threadGroupClass);
-        vmThreadGroup->setFieldValue("name", "Ljava/lang/String;", Slot(stringPool->getInternString(vmThread, "system")));
-        vmThreadGroup->setFieldValue("maxPriority", "I", Slot(CAST_I4(10)));
+        vmThreadGroup->setFieldValue("name" "Ljava/lang/String;", Slot(stringPool->getInternString(vmThread, "system")));
+        vmThreadGroup->setFieldValue("maxPriority" "I", Slot(CAST_I4(10)));
 
-        vmThread->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
-        vmThread->setFieldValue("priority", "I", Slot(CAST_I8(1)));
+        vmThread->setFieldValue("group" "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
+        vmThread->setFieldValue("priority" "I", Slot(CAST_I8(1)));
         return vmThread;
     }
 
@@ -144,7 +144,7 @@ namespace RexVM {
     }
 
     void VMThread::setDaemon(bool on) {
-        setFieldValue("daemon", "Z", on ? Slot(CAST_I4(1)) : ZERO_SLOT);
+        setFieldValue("daemon" "Z", on ? Slot(CAST_I4(1)) : ZERO_SLOT);
     }
 
     void VMThread::join() {

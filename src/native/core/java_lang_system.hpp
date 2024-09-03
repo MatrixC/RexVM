@@ -120,7 +120,7 @@ namespace RexVM::Native::Core {
     }
 
     void setIn0(Frame &frame) {
-        frame.klass.setFieldValue("in", "Ljava/io/InputStream;", Slot(frame.getLocalRef(0)));
+        frame.klass.setFieldValue("in" "Ljava/io/InputStream;", Slot(frame.getLocalRef(0)));
     }
 
     void setOut0(Frame &frame) {
@@ -128,16 +128,16 @@ namespace RexVM::Native::Core {
         const auto rexPrintStreamClass = frame.mem.getInstanceClass("RexPrintStream");
         if (rexPrintStreamClass != nullptr) {
             rexPrintStreamClass->clinit(frame);
-            const auto getMethod = rexPrintStreamClass->getMethod("get", "(Ljava/io/PrintStream;)Ljava/io/PrintStream;", true);
+            const auto getMethod = rexPrintStreamClass->getMethod("get" "(Ljava/io/PrintStream;)Ljava/io/PrintStream;", true);
             const auto [retVal, retType] = frame.runMethodManual(*getMethod, { Slot(defaultPrintStream) });
-            frame.klass.setFieldValue("out", "Ljava/io/PrintStream;", retVal);
+            frame.klass.setFieldValue("out" "Ljava/io/PrintStream;", retVal);
         } else {
-            frame.klass.setFieldValue("out", "Ljava/io/PrintStream;", Slot(frame.getLocalRef(0)));
+            frame.klass.setFieldValue("out" "Ljava/io/PrintStream;", Slot(frame.getLocalRef(0)));
         }
     }
 
     void setErr0(Frame &frame) {
-        frame.klass.setFieldValue("err", "Ljava/io/PrintStream;", Slot(frame.getLocalRef(0)));
+        frame.klass.setFieldValue("err" "Ljava/io/PrintStream;", Slot(frame.getLocalRef(0)));
     }
 
     void mapLibraryName(Frame &frame) {
@@ -148,7 +148,7 @@ namespace RexVM::Native::Core {
     void initProperties(Frame &frame) {
         const auto props = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto propsClass = CAST_INSTANCE_CLASS(props->getClass());
-        const auto setPropertyMethod = propsClass->getMethod("setProperty", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", false);
+        const auto setPropertyMethod = propsClass->getMethod("setProperty" "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", false);
         const auto utf8ConstString = frame.mem.getInternString("UTF-8");
 
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("java.vm.name")), Slot(frame.mem.getInternString("RexVM")) });
@@ -181,7 +181,7 @@ namespace RexVM::Native::Core {
 
     void doPrivileged(Frame &frame) {
         const auto action = frame.getThisInstance();
-        const auto runMethod = action->getInstanceClass()->getMethod("run", "()Ljava/lang/Object;", false);
+        const auto runMethod = action->getInstanceClass()->getMethod("run" "()Ljava/lang/Object;", false);
         const auto [result , _] = frame.runMethodManual(*runMethod, { Slot(action) });
         if (!frame.markThrow) {
             frame.returnRef(result.refVal);

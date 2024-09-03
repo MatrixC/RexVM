@@ -145,24 +145,24 @@ namespace RexVM {
     void ClassLoader::initKeySlotId() const {
         stringClassValueFieldSlotId =
             getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING)
-                ->getField("value", "[C", false)->slotId;
+                ->getField("value" "[C", false)->slotId;
 
         const auto threadClass = getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
-        threadClassThreadStatusFieldSlotId = threadClass->getField("threadStatus", "I", false)->slotId;
-        threadClassExitMethodSlotId = threadClass->getMethod("exit", "()V", false)->slotId;
-        threadClassDeamonFieldSlotId = threadClass->getField("daemon", "Z", false)->slotId;
-        threadClassNameFieldSlotId = threadClass->getField("name", "Ljava/lang/String;", false)->slotId;
+        threadClassThreadStatusFieldSlotId = threadClass->getField("threadStatus" "I", false)->slotId;
+        threadClassExitMethodSlotId = threadClass->getMethod("exit" "()V", false)->slotId;
+        threadClassDeamonFieldSlotId = threadClass->getField("daemon" "Z", false)->slotId;
+        threadClassNameFieldSlotId = threadClass->getField("name" "Ljava/lang/String;", false)->slotId;
 
         const auto stackTraceElementClass = getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STACK_TRACE_ELEMENT);
-        steClassDeclaringClassFId = stackTraceElementClass->getField("declaringClass", "Ljava/lang/String;", false)->slotId;
-        steClassMethodNameFId = stackTraceElementClass->getField("methodName", "Ljava/lang/String;", false)->slotId;
-        steClassFileNameFId = stackTraceElementClass->getField("fileName", "Ljava/lang/String;", false)->slotId;
-        steClassLineNumberFId = stackTraceElementClass->getField("lineNumber", "I", false)->slotId;
+        steClassDeclaringClassFId = stackTraceElementClass->getField("declaringClass" "Ljava/lang/String;", false)->slotId;
+        steClassMethodNameFId = stackTraceElementClass->getField("methodName" "Ljava/lang/String;", false)->slotId;
+        steClassFileNameFId = stackTraceElementClass->getField("fileName" "Ljava/lang/String;", false)->slotId;
+        steClassLineNumberFId = stackTraceElementClass->getField("lineNumber" "I", false)->slotId;
 
         const auto throwableClass = getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE);
-        throwableClassDetailMessageFieldSlotId = throwableClass->getField("detailMessage", "Ljava/lang/String;", false)->slotId;
-        throwableClassBacktraceFID = throwableClass->getField("backtrace", "Ljava/lang/Object;", false)->slotId;
-        throwableClassStacktraceFID = throwableClass->getField("stackTrace", "[Ljava/lang/StackTraceElement;", false)->slotId;
+        throwableClassDetailMessageFieldSlotId = throwableClass->getField("detailMessage" "Ljava/lang/String;", false)->slotId;
+        throwableClassBacktraceFID = throwableClass->getField("backtrace" "Ljava/lang/Object;", false)->slotId;
+        throwableClassStacktraceFID = throwableClass->getField("stackTrace" "[Ljava/lang/StackTraceElement;", false)->slotId;
     }
 
     InstanceClass *ClassLoader::getBasicJavaClass(BasicJavaClassEnum classEnum) const {

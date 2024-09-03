@@ -106,6 +106,10 @@ namespace RexVM {
                 descriptorView = nameView;
             }
         }
+
+        static bool compare(NameDescriptorIdentifier *id1, NameDescriptorIdentifier *id2) {
+            return (id1->id) < (id2->id);
+        }
     };
 
 }

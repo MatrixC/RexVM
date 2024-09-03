@@ -23,16 +23,6 @@ namespace RexVM {
             type(type), 
             accessFlags(accessFlags), 
             classLoader(classLoader) {
-        // if (type == ClassTypeEnum::PRIMITIVE_CLASS) {
-        //     descriptor_ = cstring{getDescriptorByPrimitiveClassName(name)};
-        // } else if (type == ClassTypeEnum::INSTANCE_CLASS) {
-        //     descriptor_.reserve(name.size() + 2);
-        //     descriptor_ += 'L';
-        //     descriptor_.append(name);
-        //     descriptor_ += ';';
-        // } else {
-        //     descriptor_ = name;
-        // }
     }
 
     void Class::setName(cview name) {
@@ -242,14 +232,14 @@ namespace RexVM {
 
     Slot PrimitiveClass::getValueFromBoxingOop(InstanceOop *oop) const {
         switch (basicType) {
-            case BasicType::T_BOOLEAN: return oop->getFieldValue("value", "Z");
-            case BasicType::T_CHAR: return oop->getFieldValue("value", "C");
-            case BasicType::T_FLOAT: return oop->getFieldValue("value", "F");
-            case BasicType::T_DOUBLE: return oop->getFieldValue("value", "D");
-            case BasicType::T_BYTE: return oop->getFieldValue("value", "B");
-            case BasicType::T_SHORT: return oop->getFieldValue("value", "S");
-            case BasicType::T_INT: return oop->getFieldValue("value", "I");
-            case BasicType::T_LONG: return oop->getFieldValue("value", "J");
+            case BasicType::T_BOOLEAN: return oop->getFieldValue("value" "Z");
+            case BasicType::T_CHAR: return oop->getFieldValue("value" "C");
+            case BasicType::T_FLOAT: return oop->getFieldValue("value" "F");
+            case BasicType::T_DOUBLE: return oop->getFieldValue("value" "D");
+            case BasicType::T_BYTE: return oop->getFieldValue("value" "B");
+            case BasicType::T_SHORT: return oop->getFieldValue("value" "S");
+            case BasicType::T_INT: return oop->getFieldValue("value" "I");
+            case BasicType::T_LONG: return oop->getFieldValue("value" "J");
             case BasicType::T_VOID: panic("error type void");
             default:
                 panic("error basicType");
@@ -349,17 +339,22 @@ namespace RexVM {
                 );
             fields.emplace_back(std::move(field));
         }
+        std::sort(fields.begin(), fields.end(), Field::compare);
     }
 
     void InstanceClass::initMethods(ClassFile &cf) {
         methods.reserve(cf.methodCount);
-        u2 index = 0;
         for (const auto &methodInfo: cf.methods) {
-            auto method = std::make_unique<Method>(*this,methodInfo.get(),cf,index++);
+            auto method = std::make_unique<Method>(*this, methodInfo.get(), cf);
             if (!overrideFinalize && !isJavaObjectClass() && method->isFinalize()) {
                 overrideFinalize = true;
             }
             methods.emplace_back(std::move(method));
+        }
+        std::sort(methods.begin(), methods.end(), Method::compare);
+        u2 index = 0;
+        for (const auto &item : methods) {
+            item->slotId = index++;
         }
     }
 
@@ -509,7 +504,7 @@ namespace RexVM {
 
         initStaticField(frame.thread);
 
-        const auto clinitMethod = getMethod("<clinit>", "()V", true);
+        const auto clinitMethod = getMethod("<clinit>" "()V", true);
         if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
             frame.runMethodManual(*clinitMethod, {});
         }
@@ -530,34 +525,36 @@ namespace RexVM {
     InnerClassesAttribute *InstanceClass::getInnerClassesAttr() const {
         return CAST_INNER_CLASSES_ATTRIBUTE(innerClassesAttr.get());
     }
-
-    Field *InstanceClass::getFieldSelf(cview name, cview descriptor, bool isStatic) const {
-        for (const auto &item : fields) {
-            if (item->is(name, descriptor, isStatic)) {
-                return item.get();
-            }
+    
+    Field *InstanceClass::getFieldSelf(cview id, bool isStatic) const {
+        const auto iter = 
+            std::lower_bound(
+                fields.begin(), 
+                fields.end(), 
+                id, 
+                [](const std::unique_ptr<Field> &a, const cview &n) { return a->id.id < n; }
+            );
+        
+        if (iter != fields.end() && (*iter)->id.id == id) {
+            return (*iter).get();
         }
 
         return nullptr;
     }
 
-
-    Field *InstanceClass::getField(cview name, cview descriptor, bool isStatic) const {
-        for (const auto &item : fields) {
-            if (item->is(name, descriptor, isStatic)) {
-                return item.get();
-            }
+    Field *InstanceClass::getField(cview id, bool isStatic) const {
+        if (const auto selfMember = getFieldSelf(id, isStatic); selfMember != nullptr) {
+            return selfMember;
         }
 
         if (superClass != nullptr) {
-            if (const auto field = superClass->getField(name ,descriptor, isStatic); field != nullptr) {
+            if (const auto field = superClass->getField(id, isStatic); field != nullptr) {
                 return field;
             }
         }
 
         for (const auto &interface : interfaces) {
-            if (const auto interfaceField = interface->getField(name, descriptor, isStatic); 
-                    interfaceField != nullptr) {
+            if (const auto interfaceField = interface->getField(id, isStatic); interfaceField != nullptr) {
                 return interfaceField;
             }
         }
@@ -565,6 +562,10 @@ namespace RexVM {
         return nullptr;
     }
 
+    Field *InstanceClass::getField(cview name, cview descriptor, bool isStatic) const {
+        rstring combineId(name, descriptor);
+        return getField(combineId.toStringView(), isStatic);
+    }
 
     Field *InstanceClass::getRefField(size_t refIndex, bool isStatic) const {
         return static_cast<Field *>(getMemberByRefIndex(refIndex, ClassMemberTypeEnum::FIELD, isStatic));
@@ -581,10 +582,37 @@ namespace RexVM {
         return getConstantStringFromPool(constantPool, signatureIndex);
     }
 
-    Method *InstanceClass::getMethodSelf(cview name, cview descriptor, bool isStatic) const {
-        for (const auto &item : methods) {
-            if (item->is(name, descriptor, isStatic)) {
-                return item.get();
+    Method *InstanceClass::getMethodSelf(cview id, bool isStatic) const {
+        const auto iter = 
+            std::lower_bound(
+                methods.begin(), 
+                methods.end(), 
+                id, 
+                [](const std::unique_ptr<Method> &a, const cview &n) { return a->id.id < n; }
+            );
+        
+        if (iter != methods.end() && (*iter)->id.id == id) {
+            return (*iter).get();
+        }
+
+        return nullptr;
+    }
+
+    Method *InstanceClass::getMethod(cview id, bool isStatic) const {
+        if (const auto selfMember = getMethodSelf(id, isStatic); selfMember != nullptr) {
+            return selfMember;
+        }
+
+        if (superClass != nullptr) {
+            if (const auto method = superClass->getMethod(id, isStatic); method != nullptr) {
+                return method;
+            }
+        }
+
+        for (const auto &interface : interfaces) {
+            if (const auto interfaceMethod = interface->getMethod(id, isStatic); 
+                    interfaceMethod != nullptr) {
+                return interfaceMethod;
             }
         }
 
@@ -592,26 +620,8 @@ namespace RexVM {
     }
 
     Method *InstanceClass::getMethod(cview name, cview descriptor, bool isStatic) const {
-        for (const auto &item : methods) {
-            if (item->is(name, descriptor, isStatic)) {
-                return item.get();
-            }
-        }
-
-        if (superClass != nullptr) {
-            if (const auto method = superClass->getMethod(name ,descriptor, isStatic); method != nullptr) {
-                return method;
-            }
-        }
-
-        for (const auto &interface : interfaces) {
-            if (const auto interfaceMethod = interface->getMethod(name, descriptor, isStatic); 
-                    interfaceMethod != nullptr) {
-                return interfaceMethod;
-            }
-        }
-
-        return nullptr;
+        rstring combineId(name, descriptor);
+        return getMethod(combineId.toStringView(), isStatic);
     }
 
     ClassMember *InstanceClass::getMemberByRefIndex(size_t refIndex, ClassMemberTypeEnum type, bool isStatic) const {
@@ -621,22 +631,22 @@ namespace RexVM {
             memberClass->isArray() ? 
                 classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT) :
                 CAST_INSTANCE_CLASS(memberClass);
-            
+
+        rstring id(memberName, memberDescriptor);
+        
         if (type == ClassMemberTypeEnum::FIELD) {
-            return memberInstanceClass->getField(memberName, memberDescriptor, isStatic);
+            return memberInstanceClass->getField(id.toStringView(), isStatic);
         } else {
-            return memberInstanceClass->getMethod(memberName, memberDescriptor, isStatic);
+            return memberInstanceClass->getMethod(id.toStringView(), isStatic);
         }
-
     }
-
 
     Slot InstanceClass::getFieldValue(const size_t index) const {
         return staticData[index];
     }
 
-    Slot InstanceClass::getFieldValue(cview name, cview descriptor) const {
-        auto field = getField(name, descriptor, true);
+    Slot InstanceClass::getFieldValue(cview id) const {
+        auto field = getField(id, true);
         return staticData[field->slotId];
     }
 
@@ -644,8 +654,8 @@ namespace RexVM {
         staticData[index] = value;
     }
 
-    void InstanceClass::setFieldValue(cview name, cview descriptor, Slot value) const {
-        auto field = getField(name, descriptor, true);
+    void InstanceClass::setFieldValue(cview id, Slot value) const {
+        auto field = getField(id, true);
         staticData[field->slotId] = value;
     }
 

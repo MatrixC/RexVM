@@ -121,9 +121,9 @@ namespace RexVM {
         return mirrorBase.getBaseMirror(frame, mirrorType, this, lock, init);
     }
 
-    bool ClassMember::compareClassMemberName(const ClassMember *a, const ClassMember *b) {
-        //return a->name < b->name;
-        return true;
+    bool ClassMember::compare(const ClassMember *a, const ClassMember *b) {
+        return a->id.id < b->id.id;
+        //return NameDescriptorIdentifier::compare(a->id, b->id);
     }
 
     ClassMember::~ClassMember() = default;
@@ -156,6 +156,10 @@ namespace RexVM {
 
     bool Field::isWideType() const {
         return isWideSlotType(slotType);
+    }
+
+    bool Field::compare(const std::unique_ptr<Field>& a, const std::unique_ptr<Field>& b) {
+        return a->id.id < b->id.id;
     }
 
     ExceptionCatchItem::ExceptionCatchItem(u2 start, u2 end, u2 handler, u2 catchType) :
@@ -346,6 +350,10 @@ namespace RexVM {
         }
 
         return 0;
+    }
+
+    bool Method::compare(const std::unique_ptr<Method>& a, const std::unique_ptr<Method>& b) {
+        return a->id.id < b->id.id;
     }
 
     Method::~Method() = default;

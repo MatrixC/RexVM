@@ -22,7 +22,7 @@ namespace RexVM {
     //Print Exception stack on stdout
     void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
         const auto printStackTraceMethod = 
-            throwInstance->getInstanceClass()->getMethod("printStackTrace", "()V", false);
+            throwInstance->getInstanceClass()->getMethod("printStackTrace" "()V", false);
         frame.runMethodManual(*printStackTraceMethod, {Slot(throwInstance)});
     }
 

@@ -26,7 +26,7 @@ namespace RexVM {
 
 
     struct ClassMember {
-        NameDescriptorIdentifier id;
+        const NameDescriptorIdentifier id;
 
         cview getName() const;
         cview getDescriptor() const;
@@ -65,7 +65,7 @@ namespace RexVM {
 
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
-        static bool compareClassMemberName(const ClassMember *a, const ClassMember *b);
+        static bool compare(const ClassMember *a, const ClassMember *b);
 
         ~ClassMember();
     };
@@ -81,6 +81,8 @@ namespace RexVM {
 
         //Long or Double
         [[nodiscard]] bool isWideType() const;
+
+        static bool compare(const std::unique_ptr<Field>& a, const std::unique_ptr<Field>& b);
     };
 
     struct ExceptionCatchItem {
@@ -118,7 +120,7 @@ namespace RexVM {
         NativeMethodHandler nativeMethodHandler{};
 
 
-        explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index);
+        explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index = 0);
 
         [[nodiscard]] bool isNative() const;
         [[nodiscard]] bool isAbstract() const;
@@ -129,6 +131,8 @@ namespace RexVM {
 
         std::optional<i4> findExceptionHandler(const InstanceClass *exClass, u4 pc);
         [[nodiscard]] u4 getLineNumber(u4 pc) const;
+
+        static bool compare(const std::unique_ptr<Method>& a, const std::unique_ptr<Method>& b);
 
         ~Method();
 

@@ -97,6 +97,11 @@ namespace RexVM {
         _data.reset(newStr, static_cast<CompositeStringSize>(newSize));
     }
 
+
+    CompositeString::CompositeString(const std::string_view &str1, const std::string_view &str2) :
+        CompositeString(str1.data(), str1.size(), str2.data(), str2.size()) {
+    }
+
     CompositeString::CompositeString(CompositeString &&other) {
         _data.composite = other._data.composite;
         other._data.reset();
@@ -244,6 +249,14 @@ namespace RexVM {
 
     bool CompositeString::operator<(const CompositeString &other) const {
         return lt(other.c_str(), other.size());
+    }
+
+    bool CompositeString::operator==(const std::string_view &view) const {
+        return eq(view.data(), view.size());
+    }
+
+    bool CompositeString::operator<(const std::string_view &view) const {
+        return lt(view.data(), view.size());
     }
 
     CompositeString::HashType CompositeString::hashCode() const {

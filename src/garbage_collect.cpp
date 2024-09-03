@@ -471,7 +471,7 @@ namespace RexVM {
 
     void FinalizeRunner::runOopFinalize(InstanceOop *oop) const {
         const auto klass = oop->getInstanceClass();
-        const auto finalizeMethod = klass->getMethod("finalize", "()V", false);
+        const auto finalizeMethod = klass->getMethod("finalize" "()V", false);
         if (finalizeMethod == nullptr) [[unlikely]] {
             cprintlnErr("run finalize error: get finalizeMethod fail");
         } else {
@@ -525,8 +525,8 @@ namespace RexVM {
         std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
         finalizeThread->addMethod(func);
 
-        const auto threadConstructor = threadClass->getMethod("<init>", "(Ljava/lang/String;)V", false);
-        const auto setDaemonMethod = threadClass->getMethod("setDaemon", "(Z)V", false);
+        const auto threadConstructor = threadClass->getMethod("<init>" "(Ljava/lang/String;)V", false);
+        const auto setDaemonMethod = threadClass->getMethod("setDaemon" "(Z)V", false);
         const auto threadNameOop = vm.stringPool->getInternString(mainThread, "Finalize Thread");
 
         const std::vector<Slot> constructorParams = { 

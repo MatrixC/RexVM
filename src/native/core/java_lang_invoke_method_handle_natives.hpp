@@ -20,8 +20,8 @@
 namespace RexVM::Native::Core {
 
     void setMemberNameClazzAndFlags(InstanceOop *memberNameOop, InstanceOop *mirrirOop, i4 newFlags) {
-        memberNameOop->setFieldValue("flags", "I", Slot(newFlags));
-        memberNameOop->setFieldValue("clazz", "Ljava/lang/Class;", Slot(mirrirOop)); 
+        memberNameOop->setFieldValue("flags" "I", Slot(newFlags));
+        memberNameOop->setFieldValue("clazz" "Ljava/lang/Class;", Slot(mirrirOop)); 
     }
 
     void methodHandlerInit(Frame &frame) {
@@ -38,8 +38,8 @@ namespace RexVM::Native::Core {
             frame.vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_REFLECT_CONSTRUCTOR);
 
         if (refClass == methodMirrorClass) {
-            const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
-            const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+            const auto slotId = refOop->getFieldValue("slot" "I").i4Val;
+            const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz" "Ljava/lang/Class;").refVal);
             const auto methodPtr = klass->methods[slotId].get();
             auto newFlags = CAST_I4(methodPtr->accessFlags) | MN_IS_METHOD;
 
@@ -56,8 +56,8 @@ namespace RexVM::Native::Core {
             }
             setMemberNameClazzAndFlags(memberNameOop, methodPtr->klass.getMirror(&frame), newFlags);
         } else if (refClass == fieldMirrorClass) {
-            const auto slotId = refOop->getFieldValue("slot", "I").i4Val;
-            const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
+            const auto slotId = refOop->getFieldValue("slot" "I").i4Val;
+            const auto klass = GET_MIRROR_INSTANCE_CLASS(refOop->getFieldValue("clazz" "Ljava/lang/Class;").refVal);
             const auto fieldPtr = klass->fields[slotId].get();
             auto newFlags = CAST_I4(fieldPtr->accessFlags) | MN_IS_FIELD;
             (void)newFlags;
@@ -78,10 +78,10 @@ namespace RexVM::Native::Core {
             return;
         }
 
-        auto clazz = GET_MIRROR_CLASS(memberNameOop->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto name = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name", "Ljava/lang/String;").refVal));
-        const auto type = CAST_INSTANCE_OOP(memberNameOop->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto flags = memberNameOop->getFieldValue("flags", "I").i4Val;
+        auto clazz = GET_MIRROR_CLASS(memberNameOop->getFieldValue("clazz" "Ljava/lang/Class;").refVal);
+        const auto name = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(memberNameOop->getFieldValue("name" "Ljava/lang/String;").refVal));
+        const auto type = CAST_INSTANCE_OOP(memberNameOop->getFieldValue("type" "Ljava/lang/Object;").refVal);
+        const auto flags = memberNameOop->getFieldValue("flags" "I").i4Val;
         const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
 
         if (clazz == nullptr) {
@@ -125,15 +125,15 @@ namespace RexVM::Native::Core {
         InstanceOop *memberNameOop = nullptr;
         if (startWith(className, "java/lang/invoke/DirectMethodHandle")) {
             //DirectMethodHandle及其多个子类
-            memberNameOop = CAST_INSTANCE_OOP(self->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+            memberNameOop = CAST_INSTANCE_OOP(self->getFieldValue("member" "Ljava/lang/invoke/MemberName;").refVal);
         } else if (className == "java/lang/invoke/BoundMethodHandle$Species_LL") {
             //argL0.klass = java/lang/invoke/DirectMethodHandle
-            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
-            const auto argL1 = CAST_INSTANCE_OOP(self->getFieldValue("argL1", "Ljava/lang/Object;").refVal);
+            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0" "Ljava/lang/Object;").refVal);
+            const auto argL1 = CAST_INSTANCE_OOP(self->getFieldValue("argL1" "Ljava/lang/Object;").refVal);
             prefixParam.emplace_back(argL1);
-            memberNameOop = CAST_INSTANCE_OOP(argL0->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+            memberNameOop = CAST_INSTANCE_OOP(argL0->getFieldValue("member" "Ljava/lang/invoke/MemberName;").refVal);
         } else if (className == "java/lang/invoke/BoundMethodHandle$Species_L") {
-            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
+            const auto argL0 = CAST_INSTANCE_OOP(self->getFieldValue("argL0" "Ljava/lang/Object;").refVal);
             if (methodParamSlotSize == 1 || methodParamSlotSize == 2) {
                 //只有self和Species_L两个参数
                 frame.returnRef(argL0);
@@ -145,8 +145,8 @@ namespace RexVM::Native::Core {
                 frame.returnRef(argL0);
                 return std::make_tuple(nullptr, true);
             }
-            const auto directMethodHandle = CAST_INSTANCE_OOP(speciesL->getFieldValue("argL0", "Ljava/lang/Object;").refVal);
-            memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+            const auto directMethodHandle = CAST_INSTANCE_OOP(speciesL->getFieldValue("argL0" "Ljava/lang/Object;").refVal);
+            memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member" "Ljava/lang/invoke/MemberName;").refVal);
 
             const auto passParams = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(2));
             for (size_t i = 0; i < passParams->getDataLength(); ++i) {
@@ -155,8 +155,8 @@ namespace RexVM::Native::Core {
         } else if (className == "java/lang/invoke/MethodHandleImpl$IntrinsicMethodHandle"
                 || className == "java/lang/invoke/MethodHandleImpl$WrappedMember"
                 || className == "java/lang/invoke/MethodHandleImpl$AsVarargsCollector") {
-            const auto directMethodHandle = CAST_INSTANCE_OOP(self->getFieldValue("target", "Ljava/lang/invoke/MethodHandle;").refVal);
-            memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member", "Ljava/lang/invoke/MemberName;").refVal);
+            const auto directMethodHandle = CAST_INSTANCE_OOP(self->getFieldValue("target" "Ljava/lang/invoke/MethodHandle;").refVal);
+            memberNameOop = CAST_INSTANCE_OOP(directMethodHandle->getFieldValue("member" "Ljava/lang/invoke/MemberName;").refVal);
         } else {
             panic("error");
         }

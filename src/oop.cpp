@@ -218,16 +218,16 @@ namespace RexVM {
     void InstanceOop::setFieldValue(size_t index, Slot value) const {
         data[index] = value;
     }
-
-    void InstanceOop::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const {
-        auto instanceClass = getInstanceClass();
-        auto field = instanceClass->getField(name, descriptor, false);
+    
+    void InstanceOop::setFieldValue(const cview &id, Slot value) const {
+        const auto instanceClass = getInstanceClass();
+        auto field = instanceClass->getField(id, false);
         data[field->slotId] = value;
     }
 
-    Slot InstanceOop::getFieldValue(const cstring &name, const cstring &descriptor) const {
-        auto instanceClass = getInstanceClass();
-        auto field = instanceClass->getField(name, descriptor, false);
+    [[nodiscard]] Slot InstanceOop::getFieldValue(const cview &id) const {
+        const auto instanceClass = getInstanceClass();
+        auto field = instanceClass->getField(id, false);
         return data[field->slotId];
     }
 

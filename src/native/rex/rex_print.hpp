@@ -83,7 +83,7 @@ namespace RexVM::Native::Rex {
         const auto instance = CAST_INSTANCE_OOP(val);
         const auto toStringMethod = 
             instance->getInstanceClass()
-                    ->getMethod("toString", "()Ljava/lang/String;", false);
+                    ->getMethod("toString" "()Ljava/lang/String;", false);
 
         const auto [retVal, retSlotType] = frame.runMethodManual(*toStringMethod, { Slot(instance) });
         if (frame.markThrow) {
@@ -162,7 +162,7 @@ namespace RexVM::Native::Rex {
         const auto instance = CAST_INSTANCE_OOP(val);
         const auto toStringMethod = 
             instance->getInstanceClass()
-                    ->getMethod("toString", "()Ljava/lang/String;", false);
+                    ->getMethod("toString" "()Ljava/lang/String;", false);
 
         const auto [retVal, retSlotType] = frame.runMethodManual(*toStringMethod, { Slot(instance) });
         if (frame.markThrow) {

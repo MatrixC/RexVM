@@ -27,6 +27,7 @@ namespace RexVM {
         CompositeString(const std::string &str);
         CompositeString(const CompositeString &other);
         CompositeString(const Char *str1, CommonSize size1, const Char *str2, CommonSize size2);
+        CompositeString(const std::string_view &str1, const std::string_view &str2);
         CompositeString(CompositeString &&other);
         ~CompositeString();
 
@@ -60,8 +61,10 @@ namespace RexVM {
 
         bool operator==(const CompositeString &other) const;
         bool operator<(const CompositeString &other) const;
-        
 
+        bool operator==(const std::string_view &view) const;
+        bool operator<(const std::string_view &view) const;
+        
         friend std::ostream &operator<<(std::ostream &out, const CompositeString &str);
         
         //split

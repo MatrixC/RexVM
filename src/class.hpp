@@ -80,7 +80,7 @@ namespace RexVM {
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
         
-        void ~Class();
+        ~Class();
     };
 
     //Hotspot对Primitive类型没有建立Class, 只有对应的MirrorOop
@@ -140,24 +140,27 @@ namespace RexVM {
         explicit InstanceClass(ClassLoader &classLoader, ClassFile &cf);
         using Class::Class;
 
-        ~InstanceClass() override = default;
+        ~InstanceClass() = default;
 
         [[nodiscard]] bool notInitialize() const;
         void clinit(Frame &frame);
 
         [[nodiscard]] ClassMember *getMemberByRefIndex(size_t refIndex, ClassMemberTypeEnum type, bool isStatic) const;
-        [[nodiscard]] Field *getFieldSelf(cview name, cview descriptor, bool isStatic) const;
+        [[nodiscard]] Field *getFieldSelf(cview id, bool isStatic) const;
+        [[nodiscard]] Field *getField(cview id, bool isStatic) const;
         [[nodiscard]] Field *getField(cview name, cview descriptor, bool isStatic) const;
         [[nodiscard]] Field *getRefField(size_t refIndex, bool isStatic) const;
-        [[nodiscard]] Method *getMethodSelf(cview name, cview descriptor, bool isStatic) const;
+
+        [[nodiscard]] Method *getMethodSelf(cview id, bool isStatic) const;
+        [[nodiscard]] Method *getMethod(cview id, bool isStatic) const;
         [[nodiscard]] Method *getMethod(cview name, cview descriptor, bool isStatic) const;
         [[nodiscard]] Method *getRefMethod(size_t refIndex, bool isStatic) const;
         [[nodiscard]] cstring getSignature() const;
 
         void setFieldValue(size_t index, Slot value) const;
-        void setFieldValue(cview name, cview descriptor, Slot value) const;
+        void setFieldValue(cview id, Slot value) const;
         [[nodiscard]] Slot getFieldValue(size_t index) const;
-        [[nodiscard]] Slot getFieldValue(cview name, cview descriptor) const;
+        [[nodiscard]] Slot getFieldValue(cview id) const;
 
     };
 
@@ -168,7 +171,7 @@ namespace RexVM {
 
         explicit ArrayClass(ClassTypeEnum type, cview name, ClassLoader &classLoader, size_t dimension);
 
-        ~ArrayClass() override = default;
+        ~ArrayClass() = default;
 
         [[nodiscard]] cview getComponentClassName() const;
     };

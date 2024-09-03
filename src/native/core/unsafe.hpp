@@ -68,14 +68,14 @@ namespace RexVM::Native::Core {
 
     void objectFieldOffset(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto value = fieldMirror->getFieldValue("slot", "I").i4Val * 8;
+        const auto value = fieldMirror->getFieldValue("slot" "I").i4Val * 8;
         frame.returnI8(value);
     }
 
     //native long staticFieldOffset(Field f);
     void staticFieldOffset(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto value = fieldMirror->getFieldValue("slot", "I").i4Val * 8;
+        const auto value = fieldMirror->getFieldValue("slot" "I").i4Val * 8;
         //见unsafeCommon
         frame.returnI8(encodeStaticFieldOffset(value));
     }
@@ -83,7 +83,7 @@ namespace RexVM::Native::Core {
     //native Object staticFieldBase(Field f);
     void staticFieldBase(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto value = fieldMirror->getFieldValue("clazz", "Ljava/lang/Class;").refVal;
+        const auto value = fieldMirror->getFieldValue("clazz" "Ljava/lang/Class;").refVal;
         frame.returnRef(value);
     }
 

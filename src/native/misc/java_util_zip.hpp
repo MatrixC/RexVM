@@ -192,7 +192,7 @@ namespace RexVM::Native::Misc {
 
     void jarGetMetaInfEntryNames(Frame &frame) {
         const auto self = frame.getThisInstance();
-        const auto jzfile = self->getFieldValue("jzfile", "J").i8Val;
+        const auto jzfile = self->getFieldValue("jzfile" "J").i8Val;
         const auto archive = zipGetArchive(jzfile);
         std::vector<cstring> fileNames;
 
