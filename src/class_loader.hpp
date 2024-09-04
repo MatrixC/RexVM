@@ -2,10 +2,10 @@
 #define CLASS_LOADER_HPP
 
 #include <memory>
-#include <unordered_map>
 #include <vector>
 #include <mutex>
 #include <atomic>
+#include <hash_table8.hpp>
 #include "basic_type.hpp"
 #include "config.hpp"
 #include "basic_java_class.hpp"
@@ -26,7 +26,7 @@ namespace RexVM {
     struct ClassLoader {
         VM &vm;
         ClassPath &classPath;
-        std::unordered_map<cview, std::unique_ptr<Class>, CViewHash, CViewEqual> classMap2;
+        emhash8::HashMap<cview, std::unique_ptr<Class>> classMap;
         std::recursive_mutex clMutex;
         std::vector<InstanceClass *> basicJavaClass;
         std::atomic_int anonymousClassIndex{0};

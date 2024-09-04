@@ -14,10 +14,11 @@
 #include "../../class_loader.hpp"
 #include "../../string_pool.hpp"
 #include "../../utils/string_utils.hpp"
+#include <hash_table8.hpp>
 
 namespace RexVM::Native::Sun::Misc {
 
-    const std::unordered_map<cstring, i4> SIGNAL_NUMBER_MAP{
+    const emhash8::HashMap<cview, i4> SIGNAL_NUMBER_MAP{
             {"INT", 2},
             {"ILL", 4},
             {"ABRT", 6},

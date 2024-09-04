@@ -219,9 +219,9 @@ namespace RexVM {
         if (isNative()) {
             nativeMethodHandler =
                     NativeManager::instance.getNativeMethod(
-                            cstring(klass.getClassName()),
-                            cstring(getName()),
-                            cstring(getDescriptor()),
+                            klass.getClassName(),
+                            getName(),
+                            getDescriptor(),
                             isStatic()
                     );
             return;

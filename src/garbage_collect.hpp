@@ -8,8 +8,8 @@
 #include <atomic>
 #include <chrono>
 #include <deque>
-#include <unordered_map>
 #include <condition_variable>
+#include <hash_table8.hpp>
 
 namespace RexVM {
 
@@ -131,8 +131,8 @@ namespace RexVM {
     };
 
 #ifdef DEBUG
-    extern std::unordered_map<ref, cstring> collectedOopDesc;
-    cstring getCollectedOopDesc(ref oop);
+    extern emhash8::HashMap<ref, cview> collectedOopDesc;
+    cview getCollectedOopDesc(ref oop);
 #endif
 
 

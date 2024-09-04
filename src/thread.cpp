@@ -61,7 +61,7 @@ namespace RexVM {
 
     VMThread::~VMThread() = default;
 
-    void VMThread::setName(const cstring &name) {
+    void VMThread::setThreadName(cview name) {
 #ifdef DEBUG
         threadName = name;
 #endif

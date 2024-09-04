@@ -50,7 +50,7 @@ namespace RexVM {
 
         //init Main Thread
         mainThread = std::unique_ptr<VMThread>(VMThread::createOriginVMThread(*this));
-        mainThread->setName("main"); //like openjdk
+        mainThread->setThreadName("main"); //like openjdk
         garbageCollector->start();
 
         if (!initVMBootstrapMethods(*this)) {

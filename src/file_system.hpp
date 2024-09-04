@@ -7,9 +7,9 @@ namespace RexVM {
 
     extern const char FILE_SEPARATOR;
 
-    cstring buildRtPath(const cstring &javaHome);
+    cstring buildRtPath(cview javaHome);
 
-    cstring buildCharsetsPath(const cstring &javaHome);
+    cstring buildCharsetsPath(cview javaHome);
 
     cstring initJavaHome(const char *envJavaHome);
 

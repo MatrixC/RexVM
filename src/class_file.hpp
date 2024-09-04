@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <vector>
-#include <unordered_map>
 #include "config.hpp"
 #include "attribute_info.hpp"
 #include "composite_string.hpp"
@@ -100,13 +99,13 @@ namespace RexVM {
 
         [[nodiscard]] cview getSuperClassName() const;
 
-        [[nodiscard]] rstring getSourceFile() const;
+        [[nodiscard]] cview getSourceFile() const;
         
         [[nodiscard]] cview getSignature() const;
 
         void getBootstrapMethods() const;
 
-        [[nodiscard]] std::vector<cstring> getInterfaceNames() const;
+        [[nodiscard]] std::vector<cview> getInterfaceNames() const;
     };
 
 

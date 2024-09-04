@@ -1,5 +1,4 @@
 #include "garbage_collect.hpp"
-#include <unordered_set>
 #include <algorithm>
 #include "vm.hpp"
 #include "thread.hpp"
@@ -267,7 +266,7 @@ namespace RexVM {
 
     void GarbageCollect::getClassStaticRef(std::vector<ref> &gcRoots) const {
         auto &classLoader = *vm.bootstrapClassLoader;
-        for (const auto &[name, klass]: classLoader.classMap2) {
+        for (const auto &[name, klass]: classLoader.classMap) {
             const auto mirror = klass->getMirror(nullptr, false);
             if (mirror != nullptr) {
                 gcRoots.emplace_back(mirror);
@@ -547,8 +546,8 @@ namespace RexVM {
 
 
 #ifdef DEBUG
-    std::unordered_map<ref, cstring> collectedOopDesc;
-    cstring getCollectedOopDesc(ref oop) {
+    emhash8::HashMap<ref, cview> collectedOopDesc;
+    cview getCollectedOopDesc(ref oop) {
         const auto iter = collectedOopDesc.find(oop);
         if (iter != collectedOopDesc.end()) {
             return iter->second;

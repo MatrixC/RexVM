@@ -317,7 +317,8 @@ public class AtomicExample {
 ## 第三方依赖
 * [miniz](https://github.com/richgel999/miniz): zlib库，用于zip、jar包解压
 * [fmtlib](https://github.com/fmtlib/fmt): 格式化输出库，用于格式化打印，代替std::cout，printf等
+* [emhash](https://github.com/ktprime/emhash): 高性能hashmap实现
 
 ## 致谢
-* [wind_jvm](https://github.com/wind2412/wind_jvm): 感谢wind_jvm项目，帮我了解了invokedynamic的原理以及很多native方法的实现
+* [wind_jvm](https://github.com/wind2412/wind_jvm): 感谢wind_jvm项目帮我了解了invokedynamic的原理以及很多native方法的实现
 * [xmake](https://github.com/xmake-io/xmake): 感谢xmake提供了强大且简单易用的构建工具

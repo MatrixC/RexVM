@@ -36,7 +36,6 @@ namespace RexVM {
     using cchar_16 = char16_t;
     using rstring = CompositeString;
     using cstring = std::string;
-    //using cstring = rstring;
     using cview = std::string_view;
     using ustring = std::u16string;
 

@@ -1,7 +1,6 @@
 #ifndef STRING_POOL_HPP
 #define STRING_POOL_HPP
 
-#include <unordered_map>
 #include <memory>
 #include <mutex>
 #include <tuple>
@@ -69,7 +68,6 @@ namespace RexVM {
         VM &vm;
         ClassLoader &classLoader;
         std::unique_ptr<StringTable> stringTable;
-        std::unordered_map<cstring, InstanceOop *> internMap;
         SpinLock lock;
 
         explicit StringPool(VM &vm, ClassLoader &classLoader);

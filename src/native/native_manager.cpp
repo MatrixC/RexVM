@@ -19,21 +19,21 @@ namespace RexVM {
     NativeManager NativeManager::instance;
 
     void
-    NativeManager::regNativeMethod(const cstring &className, const cstring &methodName, const cstring &descriptor,
+    NativeManager::regNativeMethod(cview className, cview methodName, cview descriptor,
                                    bool isStatic, NativeMethodHandler handler) {
-        const auto key = className + ":" + methodName + ":" + descriptor;
+        const auto key = cformat("{}:{}:{}", className, methodName, descriptor);
         nativeMethods.emplace(key, handler);
     }
 
     NativeMethodHandler
-    NativeManager::getNativeMethod(const cstring &className, const cstring &methodName,
-                                   const cstring &descriptor, bool isStatic) {
+    NativeManager::getNativeMethod(cview className, cview methodName,
+                                   cview descriptor, bool isStatic) {
 
         if (methodName == "registerNatives" || methodName == "initIDs") {
             return nopMethod;
         }
 
-        const auto key = className + ":" + methodName + ":" + descriptor;
+        const auto key = cformat("{}:{}:{}", className, methodName, descriptor);
         if (const auto iter = nativeMethods.find(key); iter != nativeMethods.end()) {
             return iter->second;
         }

@@ -43,7 +43,7 @@ namespace RexVM {
         Composite<OopMonitor *, u2> comFlags{};
 
 #ifdef DEBUG
-        cstring className{};
+        cview className{};
 #endif
 
         [[nodiscard]] OopMonitor *getMonitor() const;

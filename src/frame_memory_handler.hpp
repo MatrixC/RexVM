@@ -3,6 +3,7 @@
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "basic_java_class.hpp"
+#include <hash_table8.hpp>
 
 namespace RexVM {
 
@@ -71,9 +72,6 @@ namespace RexVM {
 
         [[nodiscard]] InstanceOop *getInternString(cview str);
 
-        [[nodiscard]] Class *getClass(const cstring &name);
-        //[[nodiscard]] InstanceClass *getInstanceClass(const cstring &name);
-        //[[nodiscard]] ArrayClass *getArrayClass(const cstring &name);
         [[nodiscard]] TypeArrayClass *getTypeArrayClass(BasicType type);
         [[nodiscard]] ObjArrayClass *getObjectArrayClass(const Class &klass);
         [[nodiscard]] InstanceClass *loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous);
@@ -85,7 +83,8 @@ namespace RexVM {
 
 
         //execute cache
-        std::unordered_map<u8, voidPtr> executeClassMemberCache{};
+
+        emhash8::HashMap<u8, voidPtr> executeClassMemberCache{64};
         std::vector<std::unique_ptr<ExecuteVirutalMethodCache>> cacheVector{};
 
         [[nodiscard]] Field *getRefField(u2 index, bool isStatic);

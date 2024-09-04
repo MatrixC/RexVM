@@ -18,7 +18,6 @@
 namespace RexVM {
 
     Class::Class(const ClassTypeEnum type, const u2 accessFlags, cview name, ClassLoader &classLoader) :
-            //name__(cstring(name)), 
             id(name, type),
             type(type), 
             accessFlags(accessFlags), 

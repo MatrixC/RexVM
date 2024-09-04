@@ -1,22 +1,22 @@
 #ifndef NATIVE_MANAGER_HPP
 #define NATIVE_MANAGER_HPP
 
-#include <unordered_map>
+#include <hash_table8.hpp>
 #include "../config.hpp"
 
 namespace RexVM {
 
     struct NativeManager {
 
-        std::unordered_map<cstring, NativeMethodHandler> nativeMethods;
+        emhash8::HashMap<cstring, NativeMethodHandler> nativeMethods;
 
         void regNativeMethod(
-                const cstring &className, const cstring &methodName, const cstring &descriptor,
+                cview className, cview methodName, cview descriptor,
                 bool isStatic, NativeMethodHandler handler
         );
 
         NativeMethodHandler getNativeMethod(
-                const cstring &className, const cstring &methodName, const cstring &descriptor, bool isStatic
+                cview className, cview methodName, cview descriptor, bool isStatic
         );
 
         //static safe

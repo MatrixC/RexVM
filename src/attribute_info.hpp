@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <memory>
-#include <unordered_map>
+#include <hash_table8.hpp>
 #include "config.hpp"
 #include "utils/binary.hpp"
 #include "utils/format.hpp"
@@ -42,7 +42,7 @@ namespace RexVM {
         NEST_HOST = 24,
     };
 
-    extern const std::unordered_map<cview, AttributeTagEnum, CViewHash, CViewEqual> ATTRIBUTE_NAME_TAG_MAP;
+    extern const emhash8::HashMap<cview, AttributeTagEnum> ATTRIBUTE_NAME_TAG_MAP;
 
     AttributeInfo *getAssignAttributeByConstantPool(
             const std::vector<std::unique_ptr<ConstantInfo>> &constantPool,

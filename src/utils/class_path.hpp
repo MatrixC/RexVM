@@ -21,12 +21,12 @@ namespace RexVM {
         const ClassPathTypeEnum type;
         const cstring path;
 
-        explicit ClassPath(ClassPathTypeEnum type, cstring path) : type(type), path(std::move(path)) {
+        explicit ClassPath(ClassPathTypeEnum type, cview path) : type(type), path(path) {
         }
 
         virtual ~ClassPath() = default;
 
-        virtual std::unique_ptr<std::istream> getStream(const cstring &filePath) = 0;
+        virtual std::unique_ptr<std::istream> getStream(cview filePath) = 0;
         virtual cstring getVMClassPath() const;
 
         bool operator==(const ClassPath &other) const {
@@ -35,10 +35,10 @@ namespace RexVM {
     };
 
     struct DirClassPath : ClassPath {
-        explicit DirClassPath(const cstring &path) : ClassPath(ClassPathTypeEnum::DIR, path) {
+        explicit DirClassPath(cview path) : ClassPath(ClassPathTypeEnum::DIR, path) {
         }
 
-        std::unique_ptr<std::istream> getStream(const cstring &filePath) override;
+        std::unique_ptr<std::istream> getStream(cview filePath) override;
 
     };
 
@@ -46,24 +46,24 @@ namespace RexVM {
         bool isOpened{false};
         mz_zip_archive archive{0};
 
-        explicit ZipClassPath(const cstring &path);
+        explicit ZipClassPath(cview path);
 
         ~ZipClassPath() override;
 
-        std::unique_ptr<std::istream> getStream(const cstring &filePath) override;
+        std::unique_ptr<std::istream> getStream(cview filePath) override;
     };
 
     struct CombineClassPath : ClassPath {
-        cstring javaHome{};
+        cview javaHome{};
         std::vector<std::unique_ptr<ClassPath>> classPaths;
         std::unordered_set<cstring> processedPath;
 
-        explicit CombineClassPath(const cstring &path, const cstring &javaHome = {});
+        explicit CombineClassPath(cview path, cview javaHome = {});
         cstring getVMClassPath() const override;
 
-        std::unique_ptr<std::istream> getStream(const cstring &filePath) override;
+        std::unique_ptr<std::istream> getStream(cview filePath) override;
 
-        static std::unique_ptr<CombineClassPath> getDefaultCombineClassPath(const cstring &javaHome, const cstring &userClassPath);
+        static std::unique_ptr<CombineClassPath> getDefaultCombineClassPath(cview javaHome, cview userClassPath);
     };
 
 

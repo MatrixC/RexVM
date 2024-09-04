@@ -1,7 +1,7 @@
 #include "constant_info.hpp"
 
 namespace RexVM {
-    std::unordered_map<ConstantTagEnum, cstring> CONST_NAME_MAP = {
+    emhash8::HashMap<ConstantTagEnum, cview> CONST_NAME_MAP = {
             {ConstantTagEnum::CONSTANT_EMPTY,              "EMPTY"},
             {ConstantTagEnum::CONSTANT_Class,              "Class"},
             {ConstantTagEnum::CONSTANT_FieldRef,           "FieldRef"},

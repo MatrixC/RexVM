@@ -30,7 +30,7 @@ namespace RexVM {
         for (const auto item : PRIMITIVE_TYPE_ARRAY) {
             auto klass = std::make_unique<PrimitiveClass>(item, *this);
             klass->superClass = CAST_INSTANCE_CLASS(objectClass);
-            classMap2.emplace(klass->getClassName(), std::move(klass));
+            classMap.emplace_unique(klass->getClassName(), std::move(klass));
         }
 
         //load RexVM runtime class
@@ -43,21 +43,16 @@ namespace RexVM {
         auto instanceClass = std::make_unique<InstanceClass>(*this, cf);
         const auto rawPtr = instanceClass.get();
         auto className = instanceClass->getClassName();
-        if (!notAnonymous && classMap2.contains(className)) {
+        if (!notAnonymous && classMap.contains(className)) {
             const auto newClassName = ANONYMOUS_CLASS_NAME_PREFIX + std::to_string(anonymousClassIndex.fetch_add(1));
             instanceClass->setName(newClassName);
         }
-        //classMap.emplace(className, std::move(instanceClass));
-        classMap2.emplace(instanceClass->getClassName(), std::move(instanceClass));
+        classMap.emplace_unique(instanceClass->getClassName(), std::move(instanceClass));
         return rawPtr;
     }
 
     InstanceClass *ClassLoader::loadInstanceClass(cview name) {
-        cstring fileName;
-        const auto suffix = ".class";
-        fileName.reserve(name.size() + 7);
-        fileName.append(name);
-        fileName.append(suffix);
+        const auto fileName = cformat("{}.class", name);
         auto streamPtr = classPath.getStream(fileName);
         if (streamPtr == nullptr) {
             return nullptr;
@@ -71,8 +66,10 @@ namespace RexVM {
         if (name.empty()) {
             return nullptr;
         }
-        if (const auto iter = classMap2.find(name); iter != classMap2.end()) {
-            return iter->second.get();
+
+        const auto iter = classMap.try_get(name);
+        if (iter != nullptr) {
+            return (*iter).get();
         }
 
         if (name[0] == '[') {
@@ -120,7 +117,7 @@ namespace RexVM {
         const auto objectClass = getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
         arrayClass->superClass = objectClass;
         const auto rawPtr = arrayClass.get();
-        classMap2.emplace(arrayClass->getClassName(), std::move(arrayClass));
+        classMap.emplace_unique(arrayClass->getClassName(), std::move(arrayClass));
         return rawPtr;
     }
 

@@ -194,7 +194,7 @@ namespace RexVM::Native::Misc {
         const auto self = frame.getThisInstance();
         const auto jzfile = self->getFieldValue("jzfile" "J").i8Val;
         const auto archive = zipGetArchive(jzfile);
-        std::vector<cstring> fileNames;
+        std::vector<cview> fileNames;
 
         for (decltype(archive->m_total_files) i = 0; i < archive->m_total_files; ++i) {
             std::array<char, 512> nameBuffer{};

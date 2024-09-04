@@ -1,8 +1,6 @@
 #ifndef NATIVE_CORE_JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_HPP
 #define NATIVE_CORE_JAVA_LANG_INVOKE_METHOD_HANDLE_NATIVES_HPP
 
-#include <unordered_map>
-#include <unordered_set>
 #include <algorithm>
 #include <mutex>
 #include "../../config.hpp"

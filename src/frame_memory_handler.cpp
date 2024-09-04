@@ -18,6 +18,7 @@ namespace RexVM {
 
     FrameMemoryHandler::FrameMemoryHandler(Frame &frame) :
         frame(frame), vmThread(frame.thread), oopManager(*frame.vm.oopManager), stringPool(*frame.vm.stringPool), classLoader(*frame.getCurrentClassLoader()) {
+            executeClassMemberCache.reserve(100);
     }
 
     InstanceOop *FrameMemoryHandler::newInstance(InstanceClass * klass) {
@@ -96,21 +97,9 @@ namespace RexVM {
         return stringPool.getInternString(&vmThread, str);
     }
 
-    Class *FrameMemoryHandler::getClass(const cstring &name) {
-        return classLoader.getClass(name);
-    }
-
     Class *FrameMemoryHandler::getClass(cview name) {
         return classLoader.getClass(name);
     }
-
-    // InstanceClass *FrameMemoryHandler::getInstanceClass(const cstring &name) {
-    //     return classLoader.getInstanceClass(name);
-    // }
-
-    // ArrayClass *FrameMemoryHandler::getArrayClass(const cstring &name) {
-    //     return classLoader.getArrayClass(name);
-    // }
 
     InstanceClass *FrameMemoryHandler::getInstanceClass(cview name) {
         return classLoader.getInstanceClass(name);
@@ -138,53 +127,51 @@ namespace RexVM {
 
 
     Field *FrameMemoryHandler::getRefField(u2 index, bool isStatic) {
-        if (const auto iter = executeClassMemberCache.find(CAST_U8(index)); iter != executeClassMemberCache.end()) {
-            return CAST_FIELD(iter->second);
+        if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
+            return CAST_FIELD(*member);
         }
         auto &klass = frame.klass;
         const auto fieldRef = klass.getRefField(index, isStatic);
         if (isStatic) {
             fieldRef->klass.clinit(frame);
         }
-        executeClassMemberCache.emplace(index, fieldRef);
+        executeClassMemberCache.emplace_unique(index, fieldRef);
         return fieldRef;
     }
 
     Method *FrameMemoryHandler::getRefMethod(u2 index, bool isStatic) {
-        if (const auto iter = executeClassMemberCache.find(CAST_U8(index)); iter != executeClassMemberCache.end()) {
-            return CAST_METHOD(iter->second);
+        if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
+            return CAST_METHOD(*member);
         }
         auto &klass = frame.klass;
         const auto methodRef = klass.getRefMethod(index, isStatic);
         if (isStatic) {
             methodRef->klass.clinit(frame);
         }
-        executeClassMemberCache.emplace(index, methodRef);
+        executeClassMemberCache.emplace_unique(index, methodRef);
         return methodRef;
     }
 
     Class *FrameMemoryHandler::getRefClass(u2 index) {
-        if (const auto iter = executeClassMemberCache.find(CAST_U8(index)); iter != executeClassMemberCache.end()) {
-            return CAST_CLASS(iter->second);
+        if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
+            return CAST_CLASS(*member);
         }
         auto &klass = frame.klass;
         const auto className = getConstantStringFromPoolByIndexInfo(klass.constantPool, index);
         const auto refClass = klass.classLoader.getClass(className);
-        executeClassMemberCache.emplace(index, refClass);
+        executeClassMemberCache.emplace_unique(index, refClass);
         return refClass;
     }
 
     ExecuteVirutalMethodCache *FrameMemoryHandler::resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle) {
         ExecuteVirutalMethodCache *cachePtr = nullptr;
-        const auto iter = executeClassMemberCache.find(index);
-        if (iter != executeClassMemberCache.end()) {
-            cachePtr = static_cast<ExecuteVirutalMethodCache *>(iter->second);
-            return cachePtr;
+        if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
+            return static_cast<ExecuteVirutalMethodCache *>(*member);
         } else {
             auto cache = std::make_unique<ExecuteVirutalMethodCache>();
             cachePtr = cache.get();
             cacheVector.emplace_back(std::move(cache));
-            executeClassMemberCache.emplace(index, cachePtr);
+            executeClassMemberCache.emplace_unique(index, cachePtr);
         }
 
         auto &klass = frame.klass;
@@ -214,9 +201,8 @@ namespace RexVM {
      Method *FrameMemoryHandler::linkVirtualMethod(u2 index, ExecuteVirutalMethodCache *cache, InstanceClass *instanceClass) {
         Composite<InstanceClass *, u2> keyComposite(instanceClass, index);
         u8 key = keyComposite.composite;
-        const auto iter = executeClassMemberCache.find(key);
-        if (iter != executeClassMemberCache.end()) {
-            return CAST_METHOD(iter->second);
+        if (const auto member = executeClassMemberCache.try_get(key); member != nullptr) {
+            return CAST_METHOD(*member);
         }
 
         if (instanceClass->isArray()) {
@@ -226,13 +212,13 @@ namespace RexVM {
             if (realInvokeMethod == nullptr) {
                 panic("array invoke error");
             }
-            executeClassMemberCache.emplace(key, realInvokeMethod);
+            executeClassMemberCache.emplace_unique(key, realInvokeMethod);
             return realInvokeMethod;
         } else {
             for (auto k = instanceClass; k != nullptr; k = k->getSuperClass()) {
                 const auto realInvokeMethod = k->getMethod(cache->methodName, cache->methodDescriptor, false);
                 if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {
-                    executeClassMemberCache.emplace(key, realInvokeMethod);
+                    executeClassMemberCache.emplace_unique(key, realInvokeMethod);
                     return realInvokeMethod;
                 }
             }

@@ -73,12 +73,6 @@ namespace RexVM {
         std::map<ref, cstring> ttDesc;
 #endif
     };
-
-    void traceOop(Oop * root, std::unordered_set<Oop *> &tracedOop);
-    void traceInstanceOopChild(InstanceOop * oop, std::unordered_set<Oop *> &tracedOop);
-    void traceObjArrayOopChild(ObjArrayOop * oop, std::unordered_set<Oop *> &tracedOop);
-
-    void collectAll(VM &vm);
 }
 
 #endif

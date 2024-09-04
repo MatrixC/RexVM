@@ -183,15 +183,15 @@ namespace RexVM {
         return getClassName(superClass);
     }
 
-    rstring ClassFile::getSourceFile() const {
+    cview ClassFile::getSourceFile() const {
         const auto sourceFileAttribute = getAssignAttribute(AttributeTagEnum::SOURCE_FILE);
 
         if (sourceFileAttribute == nullptr) {
-            return rstring::EMPTY;
+            return cview("");
         }
 
         const auto nameIndex = (CAST_SOURCE_FILE_ATTRIBUTE(sourceFileAttribute))->sourceFileIndex;
-        return getConstantRStringFromPool(constantPool, nameIndex);
+        return getConstantStringFromPool(constantPool, nameIndex);
     }
 
     cview ClassFile::getSignature() const {
@@ -213,8 +213,8 @@ namespace RexVM {
         }
     }
 
-    std::vector<cstring> ClassFile::getInterfaceNames() const {
-        std::vector<cstring> list;
+    std::vector<cview> ClassFile::getInterfaceNames() const {
+        std::vector<cview> list;
         list.reserve(interfaces.size());
         for (auto interfaceIndex: interfaces) {
             list.emplace_back(getClassName(interfaceIndex));

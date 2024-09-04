@@ -1,7 +1,6 @@
 #ifndef BASIC_TYPE_HPP
 #define BASIC_TYPE_HPP
 
-#include <unordered_map>
 #include <array>
 #include "config.hpp"
 #include "exception.hpp"

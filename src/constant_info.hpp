@@ -2,7 +2,7 @@
 #define CONSTANT_INFO_HPP
 
 #include <bit>
-#include <unordered_map>
+#include <hash_table8.hpp>
 #include <vector>
 #include <tuple>
 #include "basic_macro.hpp"
@@ -33,7 +33,7 @@ namespace RexVM {
         CONSTANT_PACKAGE = 20,
     };
 
-    extern std::unordered_map<ConstantTagEnum, cstring> CONST_NAME_MAP;
+    extern emhash8::HashMap<ConstantTagEnum, cview> CONST_NAME_MAP;
 
     struct ConstantInfo {
         u1 tag = 0;
@@ -179,16 +179,14 @@ namespace RexVM {
     struct ConstantUTF8Info : public ConstantInfo {
         u2 length{};
         std::unique_ptr<u1[]> bytes;
-        cstring str;
 
         explicit ConstantUTF8Info(std::istream &is) : ConstantInfo(is) {
             read(length, is);
             bytes = readBuffer(is, length);
-            str = cstring(reinterpret_cast<char *>(bytes.get()), length);
         }
 
         cstring toString() override {
-            return cformat("{:<20}{}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)), str);
+            return cformat("{:<20}", CONST_NAME_MAP.at(CAST_CONSTANT_TAG_ENUM(tag)));
         }
     };
 

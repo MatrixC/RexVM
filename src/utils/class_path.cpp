@@ -13,17 +13,17 @@ namespace RexVM {
         return path;
     }
 
-    std::unique_ptr<std::istream> DirClassPath::getStream(const cstring &filePath) {
-        const auto fullPath = path + filePath;
+    std::unique_ptr<std::istream> DirClassPath::getStream(cview filePath) {
+        const auto fullPath = cformat("{}{}", path, filePath);
         if (std::filesystem::exists(fullPath)) {
             return std::make_unique<std::ifstream>(fullPath, std::ios::binary);
         }
         return nullptr;
     }
 
-    ZipClassPath::ZipClassPath(const cstring &path) : ClassPath(ClassPathTypeEnum::ZIP, path) {
+    ZipClassPath::ZipClassPath(cview path) : ClassPath(ClassPathTypeEnum::ZIP, path) {
         if (std::filesystem::exists(path)) {
-            isOpened = mz_zip_reader_init_file(&archive, path.c_str(), 0);
+            isOpened = mz_zip_reader_init_file(&archive, path.data(), 0);
         }
     }
 
@@ -34,13 +34,13 @@ namespace RexVM {
         }
     }
 
-    std::unique_ptr<std::istream> ZipClassPath::getStream(const cstring &filePath) {
+    std::unique_ptr<std::istream> ZipClassPath::getStream(cview filePath) {
 
         if (!isOpened) {
             return nullptr;
         }
 
-        const auto fileIndex = mz_zip_reader_locate_file(&archive, filePath.c_str(), nullptr, 0);
+        const auto fileIndex = mz_zip_reader_locate_file(&archive, filePath.data(), nullptr, 0);
         if (fileIndex == -1) {
             return nullptr;
         }
@@ -59,7 +59,7 @@ namespace RexVM {
         return std::make_unique<std::istringstream>(buffer);
     }
 
-    CombineClassPath::CombineClassPath(const cstring &path, const cstring &javaHome) 
+    CombineClassPath::CombineClassPath(cview path, cview javaHome) 
         : ClassPath(ClassPathTypeEnum::COMBINE, path), javaHome(javaHome) {
         const auto fileSep = cstring{FILE_SEPARATOR};
         const auto paths = splitString(path, PATH_SEPARATOR);
@@ -92,7 +92,7 @@ namespace RexVM {
         }
     }
 
-    std::unique_ptr<std::istream> CombineClassPath::getStream(const cstring &filePath) {
+    std::unique_ptr<std::istream> CombineClassPath::getStream(cview filePath) {
         for (auto &&cp: classPaths) {
             auto stream = cp->getStream(filePath);
             if (stream != nullptr) {
@@ -108,8 +108,8 @@ namespace RexVM {
     }
 
     std::unique_ptr<CombineClassPath> CombineClassPath::getDefaultCombineClassPath(
-        const cstring &javaHome,
-        const cstring &userClassPath
+        cview javaHome,
+        cview userClassPath
     ) {
         std::vector<cstring> pathList;
         pathList.emplace_back(".");

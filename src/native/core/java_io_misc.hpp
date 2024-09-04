@@ -72,7 +72,7 @@ namespace RexVM::Native::Core {
         if (realpath(path.c_str(), resolvedPath) == nullptr) {
             throwNullPointException(frame);
         }
-        frame.returnRef(frame.mem.getInternString(cstring{resolvedPath}));
+        frame.returnRef(frame.mem.getInternString(cview{resolvedPath}));
     }
 
     //public native long getLastModifiedTime(File f);

@@ -5,7 +5,6 @@
 #include "basic_type.hpp"
 #include <vector>
 #include <memory>
-#include <unordered_map>
 #include <atomic>
 #include "composite_string.hpp"
 #include "utils/spin_lock.hpp"
@@ -123,7 +122,7 @@ namespace RexVM {
         std::unique_ptr<SlotTypeEnum[]> instanceDataType;
         //跟类的static offset一致 查询其SlotType
         std::unique_ptr<SlotTypeEnum[]> staticDataType;
-        rstring sourceFile{};
+        cview sourceFile{};
         
     private:
         void calcFieldSlotId();

@@ -6,12 +6,14 @@ namespace RexVM {
 
     const char FILE_SEPARATOR = std::filesystem::path::preferred_separator;
 
-    cstring buildRtPath(const cstring &javaHome) {
-        return javaHome + FILE_SEPARATOR + "lib" + FILE_SEPARATOR + "rt.jar";
+    cstring buildRtPath(cview javaHome) {
+        return cformat("{}{}lib{}rt.jar", javaHome, FILE_SEPARATOR, FILE_SEPARATOR);
+        //return javaHome + FILE_SEPARATOR + "lib" + FILE_SEPARATOR + "rt.jar";
     }
 
-    cstring buildCharsetsPath(const cstring &javaHome) {
-        return javaHome + FILE_SEPARATOR + "lib" + FILE_SEPARATOR + "charsets.jar";
+    cstring buildCharsetsPath(cview javaHome) {
+        return cformat("{}{}lib{}charsets.jar", javaHome, FILE_SEPARATOR, FILE_SEPARATOR);
+        //return javaHome + FILE_SEPARATOR + "lib" + FILE_SEPARATOR + "charsets.jar";
     }
 
     cstring initJavaHome(const char *envJavaHome) {
