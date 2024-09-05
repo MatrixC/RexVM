@@ -34,7 +34,6 @@ namespace RexVM {
 
         AnnotationContainer runtimeVisibleAnnotation;
         AnnotationContainer runtimeVisibleTypeAnnotation;
-
     };
 
     struct MethodAnnotationContainer {
@@ -51,7 +50,11 @@ namespace RexVM {
     };
 
     struct ClassAttributeContainer {
+        std::unique_ptr<AttributeInfo> bootstrapMethodsAttr;
+        std::unique_ptr<AttributeInfo> enclosingMethodAttr;
+        std::unique_ptr<AttributeInfo> innerClassesAttr;
 
+        
     };
 
     struct NameDescriptorIdentifier {
@@ -59,6 +62,11 @@ namespace RexVM {
         rstring id;
         cview nameView;
         cview descriptorView;
+        cview idView;
+
+        cview getId() const {
+            return idView;
+        }
 
         cview getName() const {
             return nameView;
@@ -71,7 +79,8 @@ namespace RexVM {
         explicit NameDescriptorIdentifier(cview name, cview descriptor) :
             id(rstring(name.data(), name.size(), descriptor.data(), descriptor.size())),
             nameView(cview(id.c_str(), name.size())),
-            descriptorView(cview(id.c_str() + name.size(), descriptor.size())) {
+            descriptorView(cview(id.c_str() + name.size(), descriptor.size())),
+            idView(cview(id.c_str(), id.size())) {
             //Method
         }
 
@@ -105,6 +114,7 @@ namespace RexVM {
                 nameView = cview(id.c_str(), name.size());
                 descriptorView = nameView;
             }
+            idView = cview(id.c_str(), id.size());
         }
 
         static bool compare(NameDescriptorIdentifier *id1, NameDescriptorIdentifier *id2) {

@@ -17,6 +17,8 @@
 
 namespace RexVM {
 
+    constexpr u2 CLASS_MEMBER_SORT_THREAHOLD = 32;
+
     Class::Class(const ClassTypeEnum type, const u2 accessFlags, cview name, ClassLoader &classLoader) :
             id(name, type),
             type(type), 
@@ -277,38 +279,49 @@ namespace RexVM {
     }
 
     void InstanceClass::initAttributes(ClassFile &cf) {
+        //对于ByteStreamAttribute类Attribute来说 只要把其中的字节流move出来即可
+        //basicAnnotationContainer就干了这件事 所以不怕cf释放后attribute不存在
+        //ByteStreamAttribute这个壳子不在了 里面的数据都被move了
         ByteStreamAttribute *annotation = nullptr;
         ByteStreamAttribute *typeAnnotation = nullptr;
+        //其他类型的atribute 需要直接move出来
+
 
         for (auto &attribute: cf.attributes) {
-            const auto attributeName = getConstantStringFromPool(cf.constantPool, (const size_t) attribute->attributeNameIndex);
+            const auto attributeName = getConstantStringFromPool(cf.constantPool, CAST_SIZE_T(attribute->attributeNameIndex));
             const auto attributeTypeEnum = ATTRIBUTE_NAME_TAG_MAP.at(attributeName);
             switch (attributeTypeEnum) {
-                case AttributeTagEnum::BOOTSTRAP_METHODS:
-                    bootstrapMethodsAttr = std::move(attribute);
-                break;
+                case AttributeTagEnum::BOOTSTRAP_METHODS: {
+                    if (classAttributeContainer == nullptr) {
+                        classAttributeContainer = std::make_unique<ClassAttributeContainer>();
+                    }
+                    classAttributeContainer->bootstrapMethodsAttr = std::move(attribute);
+                    break;
+                }
 
-                case AttributeTagEnum::ENCLOSING_METHOD:
-                    enclosingMethodAttr = std::move(attribute);
-                break;
+                case AttributeTagEnum::ENCLOSING_METHOD: {
+                    if (classAttributeContainer == nullptr) {
+                        classAttributeContainer = std::make_unique<ClassAttributeContainer>();
+                    }
+                    classAttributeContainer->enclosingMethodAttr = std::move(attribute);
+                    break;
+                }
 
-                case AttributeTagEnum::INNER_CLASSES:
-                    innerClassesAttr = std::move(attribute);
-                break;
+                case AttributeTagEnum::INNER_CLASSES: {
+                    if (classAttributeContainer == nullptr) {
+                        classAttributeContainer = std::make_unique<ClassAttributeContainer>();
+                    }
+                    classAttributeContainer->innerClassesAttr = std::move(attribute);
+                    break;
+                }
 
                 case AttributeTagEnum::RUNTIME_VISIBLE_ANNOTATIONS: {
                     annotation = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
-                    // const auto runtimeVisibleAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
-                    // runtimeVisibleAnnotationLength = runtimeVisibleAnnotationAttribute->attributeLength;
-                    // runtimeVisibleAnnotation = std::move(runtimeVisibleAnnotationAttribute->bytes); 
                     break;
                 }
 
                 case AttributeTagEnum::RUNTIME_VISIBLE_TYPE_ANNOTATIONS: {
                     typeAnnotation = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
-                    // const auto runtimeVisibleTypeAnnotationAttribute = CAST_BYTE_STREAM_ATTRIBUTE(attribute.get());
-                    // runtimeVisibleTypeAnnotationLength = runtimeVisibleTypeAnnotationAttribute->attributeLength;
-                    // runtimeVisibleTypeAnnotation = std::move(runtimeVisibleTypeAnnotationAttribute->bytes);
                     break;
                 }
 
@@ -338,7 +351,9 @@ namespace RexVM {
                 );
             fields.emplace_back(std::move(field));
         }
-        std::sort(fields.begin(), fields.end(), Field::compare);
+        if (fields.size() > CLASS_MEMBER_SORT_THREAHOLD) {
+            std::sort(fields.begin(), fields.end(), Field::compare);
+        }
     }
 
     void InstanceClass::initMethods(ClassFile &cf) {
@@ -350,7 +365,9 @@ namespace RexVM {
             }
             methods.emplace_back(std::move(method));
         }
-        std::sort(methods.begin(), methods.end(), Method::compare);
+        if (methods.size() > CLASS_MEMBER_SORT_THREAHOLD) {
+            std::sort(methods.begin(), methods.end(), Method::compare);
+        }
         u2 index = 0;
         for (const auto &item : methods) {
             item->slotId = index++;
@@ -514,31 +531,49 @@ namespace RexVM {
     }
 
     BootstrapMethodsAttribute *InstanceClass::getBootstrapMethodAttr() const {
-        return CAST_BOOT_STRAP_METHODS_ATTRIBUTE(bootstrapMethodsAttr.get());
+        return classAttributeContainer == nullptr ? nullptr :
+                CAST_BOOT_STRAP_METHODS_ATTRIBUTE(classAttributeContainer->bootstrapMethodsAttr.get());
     }
 
     EnclosingMethodAttribute *InstanceClass::getEnclosingMethodAttr() const {
-        return CAST_ENCLOSING_METHOD_ATTRIBUTE(enclosingMethodAttr.get());
+        return classAttributeContainer == nullptr ? nullptr :
+            CAST_ENCLOSING_METHOD_ATTRIBUTE(classAttributeContainer->enclosingMethodAttr.get());
     }
 
     InnerClassesAttribute *InstanceClass::getInnerClassesAttr() const {
-        return CAST_INNER_CLASSES_ATTRIBUTE(innerClassesAttr.get());
+        return classAttributeContainer == nullptr ? nullptr :
+            CAST_INNER_CLASSES_ATTRIBUTE(classAttributeContainer->innerClassesAttr.get());
     }
-    
-    Field *InstanceClass::getFieldSelf(cview id, bool isStatic) const {
-        const auto iter = 
-            std::lower_bound(
-                fields.begin(), 
-                fields.end(), 
-                id, 
-                [](const std::unique_ptr<Field> &a, const cview &n) { return a->id.id < n; }
-            );
-        
-        if (iter != fields.end() && (*iter)->id.id == id) {
-            return (*iter).get();
+
+    template<typename T>
+    T *getClassMemberSelf(cview id, bool isStatic, const std::vector<std::unique_ptr<T>> &members) {
+        const auto sortMember = members.size() > CLASS_MEMBER_SORT_THREAHOLD;
+        if (sortMember) [[unlikely]] {
+            //排序过的使用二分查找
+            const auto iter = 
+                std::lower_bound(
+                    members.begin(), 
+                    members.end(), 
+                    id, 
+                    [](const std::unique_ptr<T> &a, const cview &n) { return a->id.id < n; }
+                );
+            
+            if (iter != members.end() && (*iter)->id.id == id) {
+                return (*iter).get();
+            }
+        } else {
+            for (const auto &item : members) {
+                if (item->is(id, isStatic)) {
+                    return item.get();
+                }
+            }
         }
 
         return nullptr;
+    }
+    
+    Field *InstanceClass::getFieldSelf(cview id, bool isStatic) const {
+        return getClassMemberSelf(id, isStatic, fields);
     }
 
     Field *InstanceClass::getField(cview id, bool isStatic) const {
@@ -582,19 +617,7 @@ namespace RexVM {
     }
 
     Method *InstanceClass::getMethodSelf(cview id, bool isStatic) const {
-        const auto iter = 
-            std::lower_bound(
-                methods.begin(), 
-                methods.end(), 
-                id, 
-                [](const std::unique_ptr<Method> &a, const cview &n) { return a->id.id < n; }
-            );
-        
-        if (iter != methods.end() && (*iter)->id.id == id) {
-            return (*iter).get();
-        }
-
-        return nullptr;
+        return getClassMemberSelf(id, isStatic, methods);
     }
 
     Method *InstanceClass::getMethod(cview id, bool isStatic) const {

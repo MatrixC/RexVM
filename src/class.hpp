@@ -33,7 +33,6 @@ namespace RexVM {
     struct Field;
     struct AttributeInfo;
 
-
     struct Class {
         NameDescriptorIdentifier id;
         std::vector<InstanceClass *> interfaces;
@@ -95,35 +94,32 @@ namespace RexVM {
     };
 
     struct InstanceClass : Class {
-        SpecialClassEnum specialClassType{SpecialClassEnum::NONE};
-        u2 instanceSlotCount{};
-        u2 staticSlotCount{};
-        u2 signatureIndex{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
-        bool overrideFinalize{false};
-
-        MirrorBase constantPoolMirrorBase{};
-
-        [[nodiscard]] MirOop *getConstantPoolMirror(Frame *frame, bool init = true);
-
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<std::unique_ptr<Method>> methods;
-        std::unique_ptr<AttributeInfo> bootstrapMethodsAttr;
-        std::unique_ptr<AttributeInfo> enclosingMethodAttr;
-        std::unique_ptr<AttributeInfo> innerClassesAttr;
-        [[nodiscard]] BootstrapMethodsAttribute *getBootstrapMethodAttr() const;
-        [[nodiscard]] EnclosingMethodAttribute *getEnclosingMethodAttr() const;
-        [[nodiscard]] InnerClassesAttribute *getInnerClassesAttr() const;
+
+        cview sourceFile{};
+        MirrorBase constantPoolMirrorBase{};
 
         std::unique_ptr<BasicAnnotationContainer> basicAnnotationContainer;
-
+        std::unique_ptr<ClassAttributeContainer> classAttributeContainer;
         std::unique_ptr<Slot[]> staticData;
         //跟实例offset一致 查询其SlotType
         std::unique_ptr<SlotTypeEnum[]> instanceDataType;
         //跟类的static offset一致 查询其SlotType
         std::unique_ptr<SlotTypeEnum[]> staticDataType;
-        cview sourceFile{};
-        
+
+        SpecialClassEnum specialClassType{SpecialClassEnum::NONE};
+        u2 instanceSlotCount{};
+        u2 staticSlotCount{};
+        u2 signatureIndex{};
+        bool overrideFinalize{false};
+
+        [[nodiscard]] MirOop *getConstantPoolMirror(Frame *frame, bool init = true);
+        [[nodiscard]] BootstrapMethodsAttribute *getBootstrapMethodAttr() const;
+        [[nodiscard]] EnclosingMethodAttribute *getEnclosingMethodAttr() const;
+        [[nodiscard]] InnerClassesAttribute *getInnerClassesAttr() const;
+
     private:
         void calcFieldSlotId();
         void initStaticField(VMThread &thread);

@@ -50,8 +50,9 @@ namespace RexVM {
         [[nodiscard]] i4 getModifier() const;
         [[nodiscard]] cview getSignature() const;
 
-        [[nodiscard]] bool is(cview name_,cview descriptor_) const;
-        [[nodiscard]] bool is(cview name_, cview descriptor_, bool isStatic) const;
+        [[nodiscard]] bool is(cview id, bool isStatic) const;
+        [[nodiscard]] bool is(cview name,cview descriptor) const;
+        [[nodiscard]] bool is(cview name, cview descriptor, bool isStatic) const;
 
         [[nodiscard]] bool isConstructor() const;
         [[nodiscard]] bool isClInit() const;
