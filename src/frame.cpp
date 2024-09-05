@@ -3,6 +3,7 @@
 #include "constant_info.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
+#include "class_loader.hpp"
 #include "oop.hpp"
 #include "thread.hpp"
 #include "vm.hpp"
@@ -104,17 +105,18 @@ namespace RexVM {
     std::tuple<Slot, SlotTypeEnum> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
         createFrameAndRunMethod(thread, runMethod, this, std::move(params));
         //Method可能有返回值,需要处理返回值的pop
-        if (runMethod.returnSlotType == SlotTypeEnum::NONE) {
+        const auto returnSlotType = runMethod.slotType;
+        if (returnSlotType == SlotTypeEnum::NONE) {
             //void函数，无返回
             return std::make_tuple(ZERO_SLOT, SlotTypeEnum::NONE);
         } else {
-            if (runMethod.returnSlotType == SlotTypeEnum::I8) {
-                return std::make_tuple(Slot(popI8()), runMethod.returnSlotType);
-            } else if (runMethod.returnSlotType == SlotTypeEnum::F8) {
-                return std::make_tuple(Slot(popF8()), runMethod.returnSlotType);
+            if (returnSlotType == SlotTypeEnum::I8) {
+                return std::make_tuple(Slot(popI8()), returnSlotType);
+            } else if (returnSlotType == SlotTypeEnum::F8) {
+                return std::make_tuple(Slot(popF8()), returnSlotType);
             } else {
                 //除了I8和F8,其他类型只需要pop一个值
-                return std::make_tuple(pop(), runMethod.returnSlotType);
+                return std::make_tuple(pop(), returnSlotType);
             }
         }
     }
@@ -384,7 +386,7 @@ namespace RexVM {
     void Frame::printCallStack() {
         for (auto f = this; f != nullptr; f = f->previous) {
             const auto nativeMethod = f->method.isNative();
-            cprintln("  {}#{}:{} {}", f->klass.name, f->method.name, f->method.descriptor, nativeMethod ? "[Native]" : "");
+            cprintln("  {}#{} {}", f->klass.toView(), f->method.toView(), nativeMethod ? "[Native]" : "");
         }
     }
 
@@ -435,11 +437,11 @@ namespace RexVM {
     }
 
     void Frame::printStr(ref oop) {
-        cprintln("{}", StringPool::getJavaString(CAST_INSTANCE_OOP(oop)));
+        cprintln("{}", VMStringHelper::getJavaString(CAST_INSTANCE_OOP(oop)));
     }
 
     void Frame::print() {
-        cprintln("Method: {}.{}#{}", method.klass.name, method.name, method.descriptor);
+        cprintln("Method: {}.{}", method.klass.toView(), method.toView());
         printLocalSlot();
         printStackSlot();
         printCollectRoots();

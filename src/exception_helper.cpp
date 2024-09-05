@@ -11,12 +11,15 @@
 
 namespace RexVM {
 
-    void throwAssignException(Frame &frame, const cstring &className, const cstring &message) {
+    void throwAssignException(Frame &frame, cview className, cview message) {
         const auto instanceClass = frame.mem.getInstanceClass(className);
         instanceClass->clinit(frame);
         const auto throwable = frame.mem.newInstance(instanceClass);
         const auto hasMessage = !message.empty();
-        const auto initMethod = instanceClass->getMethod("<init>", hasMessage ? "(Ljava/lang/String;)V" : "()V", false);
+        const auto initMethod = 
+            hasMessage ?
+                instanceClass->getMethod("<init>" "(Ljava/lang/String;)V", false) :
+                instanceClass->getMethod("<init>" "()V", false);
         std::vector<Slot> initParams;
         initParams.reserve(2);
         initParams.emplace_back(throwable);
@@ -35,28 +38,29 @@ namespace RexVM {
         throwAssignException(frame, "java/lang/ArithmeticException", "/ by zero");
     }
 
-    void throwReflectiveOperationException(Frame &frame, const cstring &className, const cstring &methodName, const cstring &descriptor) {
-        const auto message = "java.lang.NoSuchMethodException: no such method: " + getJavaClassName(className) + "." + methodName + "#" + descriptor;
+    void throwReflectiveOperationException(Frame &frame, cview className, cview methodName, cview descriptor) {
+        const auto message = cformat("java.lang.NoSuchMethodException: no such method: {}.{}#{}", getJavaClassName(className), methodName, descriptor);
         throwAssignException(frame, "java/lang/NoSuchMethodException", message);
     }
 
-    void throwFileNotFoundException(Frame &frame, const cstring &message) {
+    void throwFileNotFoundException(Frame &frame, cview message) {
         throwAssignException(frame, "java/io/FileNotFoundException", message);
     }
 
-    void throwIOException(Frame &frame, const cstring &message) {
+    void throwIOException(Frame &frame, cview message) {
         throwAssignException(frame, "java/io/IOException", message);
     }
 
-    void throwClassNotFoundException(Frame &frame, const cstring &className) {
+    void throwClassNotFoundException(Frame &frame, cview className) {
         throwAssignException(frame, "java/lang/ClassNotFoundException", className);
     }
 
-    void throwClassCastException(Frame &frame, const cstring &className1, const cstring &className2) {
-        throwAssignException(frame, "java/lang/ClassCastException", getJavaClassName(className1) + " cannot be cast to " + getJavaClassName(className2));
+    void throwClassCastException(Frame &frame, cview className1, cview className2) {
+        const auto message = cformat("{} cannot be cast to {}", getJavaClassName(className1), getJavaClassName(className2));
+        throwAssignException(frame, "java/lang/ClassCastException", message);
     }
 
-    void throwRuntimeException(Frame &frame, const cstring &message) {
+    void throwRuntimeException(Frame &frame, cview message) {
         throwAssignException(frame, "java/lang/RuntimeException", message);
     }
 

@@ -2,10 +2,10 @@
 #define CLASS_LOADER_HPP
 
 #include <memory>
-#include <unordered_map>
 #include <vector>
 #include <mutex>
 #include <atomic>
+#include <hash_table8.hpp>
 #include "basic_type.hpp"
 #include "config.hpp"
 #include "basic_java_class.hpp"
@@ -26,37 +26,41 @@ namespace RexVM {
     struct ClassLoader {
         VM &vm;
         ClassPath &classPath;
-        std::unordered_map<cstring, std::unique_ptr<Class>> classMap;
+        emhash8::HashMap<cview, std::unique_ptr<Class>> classMap;
         std::recursive_mutex clMutex;
-        InstanceClass *mirrorClass{nullptr}; // java/lang/Class
-        InstanceClass *mirrorClassLoader{nullptr};
         std::vector<InstanceClass *> basicJavaClass;
         std::atomic_int anonymousClassIndex{0};
 
-        Class *getClass(const cstring &name);
-        InstanceClass *getInstanceClass(const cstring &name);
-        ArrayClass *getArrayClass(const cstring &name);
-        TypeArrayClass *getTypeArrayClass(BasicType type);
-        ObjArrayClass *getObjectArrayClass(const cstring &name);
-        InstanceClass *loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous);
-        
-        void initBasicJavaClass();
-        void initKeySlotId() const;
-        InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
         explicit ClassLoader(VM &vm, ClassPath &classPath);
         ~ClassLoader();
+        void initBasicJavaClass();
 
+        Class *getClass(cview name);
+        InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
+
+        template<typename T>
+        InstanceClass *getInstanceClass(T name) {
+            return CAST_INSTANCE_CLASS(getClass(name));
+        }
+
+        template<typename T>
+        ArrayClass *getArrayClass(T name) {
+            return CAST_ARRAY_CLASS(getClass(name));
+        }
+
+        TypeArrayClass *getTypeArrayClass(BasicType type);
+        ObjArrayClass *getObjectArrayClass(const Class &klass);
+        InstanceClass *loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous);
+        
 
     private:
+
+        void initKeySlotId() const;
         void loadBasicClass();
+        ArrayClass *loadArrayClass(cview name);
 
-        void loadArrayClass(const cstring &name);
-
-        InstanceClass *loadInstanceClass(const cstring &name);
+        InstanceClass *loadInstanceClass(cview name);
         InstanceClass *loadInstanceClass(std::istream &is, bool notAnonymous);
-        InstanceClass *loadInstanceClass(std::istream &is);
-
-        void initMirrorClass(Class *klass);
     };
 
 

@@ -1,16 +1,98 @@
 #ifndef COMPOSITE_STRING_HPP
 #define COMPOSITE_STRING_HPP
-#include "config.hpp"
 #include "composite_ptr.hpp"
+#include <string>
+#include <ostream>
+#include <fmt/core.h>
 
 namespace RexVM {
 
-    struct CompositeString : Composite<const cchar *, u2> {
+    struct CompositeString {
+        using Char = char;
+        using Char16 = char16_t;
+        using HashType = std::size_t;
+        using CompositeStringSize = std::uint16_t;
+        using CommonSize = std::size_t;
+        using HashViewFunction = std::hash<std::string_view>;
 
-        explicit CompositeString(const cchar *str);
+        static constexpr std::size_t CharSize = sizeof(Char);
+        static CompositeString EMPTY;
 
+        Composite<const Char *, CompositeStringSize> _data;
+
+        CompositeString();
+        CompositeString(const Char *str, CommonSize size);
+        CompositeString(const Char16 *str, CommonSize size);
+        CompositeString(const Char *str);
+        CompositeString(const std::string &str);
+        CompositeString(const CompositeString &other);
+        CompositeString(const Char *str1, CommonSize size1, const Char *str2, CommonSize size2);
+        CompositeString(const std::string_view &str1, const std::string_view &str2);
+        CompositeString(CompositeString &&other);
+        ~CompositeString();
+
+        void copy(const Char * str, CommonSize size);
+        void copy(const CompositeString &other);
+        void release();
+        void reserve(CommonSize size);
+        bool eq(const Char *other, CommonSize otherSize) const;
+        bool lt(const Char *other, CommonSize otherSize) const;
+
+        const Char &at(CommonSize pos) const;
+        const Char &front() const;
+        const Char &back() const;
+        const Char &operator[](CommonSize pos) const;
+        
+        //结尾没有 '\0'
+        const Char *c_str() const;
+        Char *data() const;
+        bool empty() const;
+        CommonSize size() const;
+        CommonSize unicodeSize() const;
+
+        CompositeString &operator=(const CompositeString &other);
+
+        //+ Char
+        //+ const Char *
+        CompositeString operator+(const CompositeString &other) const;
+
+        bool operator==(const Char *ptr) const;
+        bool operator<(const Char *ptr) const;
+
+        bool operator==(const CompositeString &other) const;
+        bool operator<(const CompositeString &other) const;
+
+        bool operator==(const std::string_view &view) const;
+        bool operator<(const std::string_view &view) const;
+        
+        friend std::ostream &operator<<(std::ostream &out, const CompositeString &str);
+        
+        //split
+        //substr
+
+        HashType hashCode() const;
+        std::string toString() const;
+        std::string_view toStringView() const;
     };
 
 }
 
+namespace std {
+    template<>
+    struct hash<RexVM::CompositeString> {
+        std::size_t operator()(const RexVM::CompositeString &str) const noexcept {
+            return static_cast<std::size_t>(str.hashCode());
+        }
+    };
+}
+
+namespace fmt {
+    template<>
+    struct formatter<RexVM::CompositeString> : formatter<std::string_view> {
+        template <typename FormatContext>
+        auto format(const RexVM::CompositeString &myStr, FormatContext &ctx) const {
+            return formatter<std::string_view>::format(myStr.toStringView(), ctx);
+        }
+    };
+}
 #endif

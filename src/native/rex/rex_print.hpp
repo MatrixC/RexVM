@@ -70,7 +70,7 @@ namespace RexVM::Native::Rex {
             cprint("null");
             return;
         }
-        cprint("{}", StringPool::getJavaString(CAST_INSTANCE_OOP(val)));
+        cprint("{}", VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val)));
     }
 
     void print_Object(Frame &frame) {
@@ -83,7 +83,7 @@ namespace RexVM::Native::Rex {
         const auto instance = CAST_INSTANCE_OOP(val);
         const auto toStringMethod = 
             instance->getInstanceClass()
-                    ->getMethod("toString", "()Ljava/lang/String;", false);
+                    ->getMethod("toString" "()Ljava/lang/String;", false);
 
         const auto [retVal, retSlotType] = frame.runMethodManual(*toStringMethod, { Slot(instance) });
         if (frame.markThrow) {
@@ -94,7 +94,7 @@ namespace RexVM::Native::Rex {
             cprint("null");
             return;
         }
-        cprint("{}", StringPool::getJavaString(CAST_INSTANCE_OOP(stringOop)));
+        cprint("{}", VMStringHelper::getJavaString(CAST_INSTANCE_OOP(stringOop)));
     }
 
     void println_boolean(Frame &frame) {
@@ -149,7 +149,7 @@ namespace RexVM::Native::Rex {
             cprintln("null");
             return;
         }
-        cprintln("{}", StringPool::getJavaString(CAST_INSTANCE_OOP(val)));
+        cprintln("{}", VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val)));
     }
 
     void println_Object(Frame &frame) {
@@ -162,7 +162,7 @@ namespace RexVM::Native::Rex {
         const auto instance = CAST_INSTANCE_OOP(val);
         const auto toStringMethod = 
             instance->getInstanceClass()
-                    ->getMethod("toString", "()Ljava/lang/String;", false);
+                    ->getMethod("toString" "()Ljava/lang/String;", false);
 
         const auto [retVal, retSlotType] = frame.runMethodManual(*toStringMethod, { Slot(instance) });
         if (frame.markThrow) {
@@ -173,7 +173,7 @@ namespace RexVM::Native::Rex {
             cprintln("null");
             return;
         }
-        cprintln("{}", StringPool::getJavaString(CAST_INSTANCE_OOP(stringOop)));
+        cprintln("{}", VMStringHelper::getJavaString(CAST_INSTANCE_OOP(stringOop)));
     }
 
     void println_empty(Frame &frame) {

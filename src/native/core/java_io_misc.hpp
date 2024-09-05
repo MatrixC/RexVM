@@ -17,8 +17,8 @@ namespace RexVM::Native::Core {
     void getBooleanAttributes0(Frame &frame) {
         const auto fileOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
 
-        const auto pathOop = fileOop->getFieldValue("path", "Ljava/lang/String;");
-        const auto pathStr = StringPool::getJavaString(CAST_INSTANCE_OOP(pathOop.refVal));
+        const auto pathOop = fileOop->getFieldValue("path" "Ljava/lang/String;");
+        const auto pathStr = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(pathOop.refVal));
         i4 attribute = 0;
         std::filesystem::path filePath(pathStr);
         if (std::filesystem::exists(filePath)) {
@@ -56,7 +56,7 @@ namespace RexVM::Native::Core {
             return;
         }
         const auto instanceMirrorClass = CAST_INSTANCE_CLASS(mirrorClass);
-        frame.returnBoolean(instanceMirrorClass->getMethodSelf("<clinit>", "()V", true) != nullptr);
+        frame.returnBoolean(instanceMirrorClass->getMethodSelf("<clinit>" "()V", true) != nullptr);
     }
 
     //native String canonicalize0(String path) throws IOException;
@@ -67,12 +67,12 @@ namespace RexVM::Native::Core {
             return;
         }
 
-        const auto path = StringPool::getJavaString(CAST_INSTANCE_OOP(pathOop));
+        const auto path = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(pathOop));
         char resolvedPath[PATH_MAX];
         if (realpath(path.c_str(), resolvedPath) == nullptr) {
             throwNullPointException(frame);
         }
-        frame.returnRef(frame.mem.getInternString(cstring{resolvedPath}));
+        frame.returnRef(frame.mem.getInternString(cview{resolvedPath}));
     }
 
     //public native long getLastModifiedTime(File f);
@@ -80,10 +80,10 @@ namespace RexVM::Native::Core {
         const auto fileOop = CAST_INSTANCE_OOP(frame.getLocalRef(1));
         ASSERT_IF_NULL_THROW_NPE(fileOop);
 
-        const auto pathOop = fileOop->getFieldValue("path", "Ljava/lang/String;").refVal;
+        const auto pathOop = fileOop->getFieldValue("path" "Ljava/lang/String;").refVal;
         ASSERT_IF_NULL_THROW_NPE(pathOop);
 
-        const auto path = StringPool::getJavaString(CAST_INSTANCE_OOP(pathOop));
+        const auto path = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(pathOop));
         std::filesystem::path fsPath(path);
     
         if (std::filesystem::exists(fsPath)) {

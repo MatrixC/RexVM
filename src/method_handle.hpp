@@ -29,17 +29,16 @@ namespace RexVM {
     constexpr i4 MN_REFERENCE_KIND_MASK = 0x0F000000 >> MN_REFERENCE_KIND_SHIFT;
     constexpr i4 MN_SEARCH_SUPERCLASSES = 0x00100000;
     constexpr i4 MN_SEARCH_INTERFACES   = 0x00200000;
-    const cstring JAVA_LANG_INVOKE_METHOD_TYPE_NAME = "java/lang/invoke/MethodType";
+    inline const cview JAVA_LANG_INVOKE_METHOD_TYPE_NAME = "java/lang/invoke/MethodType";
+    inline const cview METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR = "([Ljava/lang/Object;)Ljava/lang/Object;";
 
-    inline const cstring METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR = "([Ljava/lang/Object;)Ljava/lang/Object;";
-
-    bool isMethodHandleInvoke(const cstring &className, const cstring &memberName);
+    bool isMethodHandleInvoke(cview className, cview memberName);
 
     bool isStaticMethodHandleType(MethodHandleEnum kind);
 
     void invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
 
-    cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name);
+    cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, cview name);
 
     std::tuple<
             InstanceClass *,

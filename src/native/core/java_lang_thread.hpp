@@ -61,11 +61,6 @@ namespace RexVM::Native::Core {
     void start0(Frame &frame) {
         const auto self = CAST_VM_THREAD_OOP(frame.getThisInstance()); //Thread Instance
         ASSERT_IF_NULL_THROW_NPE(self)
-        // const auto threadClass = self->getInstanceClass();
-        // if (threadClass->name == "java/lang/ref/Reference$ReferenceHandler") [[unlikely]] {
-        //     // endless loop tryHandlePending
-        //     return;
-        // }
         self->start(&frame, true);
     }
 

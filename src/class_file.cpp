@@ -17,11 +17,11 @@ namespace RexVM {
 
     FMBaseInfo::~FMBaseInfo() = default;
 
-    cstring FMBaseInfo::getName() const {
+    cview FMBaseInfo::getName() const {
         return getConstantStringFromPool(cf.constantPool, nameIndex);
     }
 
-    cstring FMBaseInfo::getDescriptor() const {
+    cview FMBaseInfo::getDescriptor() const {
         return getConstantStringFromPool(cf.constantPool, descriptorIndex);
     }
 
@@ -167,34 +167,34 @@ namespace RexVM {
         return getAssignAttributeByConstantPool(constantPool, attributes, tagEnum);
     }
 
-    cstring ClassFile::getClassName(u2 classIndex) const {
+    cview ClassFile::getClassName(u2 classIndex) const {
         auto classInfo = CAST_CONSTANT_CLASS_INFO(constantPool[classIndex].get());
         return getConstantStringFromPool(constantPool, classInfo->index);
     }
 
-    cstring ClassFile::getThisClassName() const {
+    cview ClassFile::getThisClassName() const {
         return getClassName(thisClass);
     }
 
-    cstring ClassFile::getSuperClassName() const {
+    cview ClassFile::getSuperClassName() const {
         if (superClass == 0) {
             return {};
         }
         return getClassName(superClass);
     }
 
-    cstring ClassFile::getSourceFile() const {
+    cview ClassFile::getSourceFile() const {
         const auto sourceFileAttribute = getAssignAttribute(AttributeTagEnum::SOURCE_FILE);
 
         if (sourceFileAttribute == nullptr) {
-            return {};
+            return cview("");
         }
 
         const auto nameIndex = (CAST_SOURCE_FILE_ATTRIBUTE(sourceFileAttribute))->sourceFileIndex;
         return getConstantStringFromPool(constantPool, nameIndex);
     }
 
-    cstring ClassFile::getSignature() const {
+    cview ClassFile::getSignature() const {
         const auto signatureAttribute = getAssignAttribute(AttributeTagEnum::SIGNATURE);
 
         if (signatureAttribute == nullptr) {
@@ -213,8 +213,8 @@ namespace RexVM {
         }
     }
 
-    std::vector<cstring> ClassFile::getInterfaceNames() const {
-        std::vector<cstring> list;
+    std::vector<cview> ClassFile::getInterfaceNames() const {
+        std::vector<cview> list;
         list.reserve(interfaces.size());
         for (auto interfaceIndex: interfaces) {
             list.emplace_back(getClassName(interfaceIndex));

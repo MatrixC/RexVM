@@ -19,7 +19,7 @@ namespace RexVM {
         const auto initializeSystemClassMethod =
             vm.bootstrapClassLoader
                 ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SYSTEM)
-                ->getMethod("initializeSystemClass", "()V", true);
+                ->getMethod("initializeSystemClass" "()V", true);
         if (initializeSystemClassMethod == nullptr) {
             cprintlnErr("Error: Could not find or load system class {}", JAVA_LANG_SYSTEM_NAME);
             return false;
@@ -44,7 +44,7 @@ namespace RexVM {
             cprintlnErr("Error: Could not find or load main class {}", userParams[0]);
             return false;
         }
-        const auto mainMethod = runClass->getMethod("main", "([Ljava/lang/String;)V", true);
+        const auto mainMethod = runClass->getMethod("main" "([Ljava/lang/String;)V", true);
         if (mainMethod == nullptr) {
             cprintlnErr("Error: Main method not found in class {}, please define the main method as:", userParams[0]);
             cprintlnErr("   public static void main(String[] args)");

@@ -7,63 +7,11 @@
 #include "key_slot_id.hpp"
 #include "memory.hpp"
 #include "frame.hpp"
+#include "thread.hpp"
 
 namespace RexVM {
 
-    StringPool::StringPool(VM &vm, ClassLoader &classLoader)
-            : vm(vm), classLoader(classLoader),
-            stringTable(std::make_unique<StringTable>(STRING_POOL_SIZE)),
-            stringClass(classLoader.getInstanceClass(JAVA_LANG_STRING_NAME)) {
-    }
-
-    StringPool::~StringPool() = default;
-
-    cstring StringPool::getJavaString(InstanceOop *oop) {
-        const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
-        if (charArray->getDataLength() == 0) {
-            return {};
-        }
-        const auto char16Ptr = charArray->data.get();
-        return utf16ToUtf8(char16Ptr, charArray->getDataLength());
-    }
-
-    InstanceOop *StringPool::getInternString(VMThread *thread, const cstring &str) {
-        lock.lock();
-        InstanceOop *result = nullptr;
-        if (stringTable->find(str, result)) {
-            lock.unlock();
-            return result;
-        }
-        result = createJavaString(thread, str);
-        stringTable->insert(str, result);
-        lock.unlock();
-
-        return result;
-    }
-
-    void StringPool::gcStringOop(InstanceOop *oop) {
-        lock.lock();
-        stringTable->erase(oop);
-        lock.unlock();
-    }
-    
-    InstanceOop *StringPool::createJavaString(VMThread *thread, const cstring &str) const {
-        const auto utf16Vec = utf8ToUtf16Vec(str.c_str(), str.size());
-        const auto utf16Ptr = utf16Vec.data();
-        const auto utf16Length = utf16Vec.size();
-
-        const auto charArrayOop = vm.oopManager->newCharArrayOop(thread, utf16Length);
-        if (utf16Length > 0) [[likely]] {
-            std::memcpy(charArrayOop->data.get(), utf16Ptr, sizeof(cchar_16) * utf16Length);
-        }
-
-        auto result = vm.oopManager->newInstance(thread, stringClass);
-        result->setStringHash(stringTable->getKeyIndex(str));
-        result->setFieldValue(stringClassValueFieldSlotId, Slot(charArrayOop));
-        return result;
-    }
-
-    bool StringPool::equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t arrayLength) {
+    bool VMStringHelper::equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t arrayLength) {
         const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
         const auto charArrayPtr = charArray->data.get();
         const auto charArrayLength = charArray->getDataLength();
@@ -73,13 +21,30 @@ namespace RexVM {
                 );
     }
 
-    void StringPool::clear() const {
-        stringTable->clear();
+    InstanceOop *VMStringHelper::createJavaString(VMThread *thread, ccstr str, size_t size) {
+        const auto utf16Vec = utf8ToUtf16Vec(str, size);
+        const auto vmHash = VMStringHelper::getKeyIndex(str, size);
+        const auto utf16Ptr = utf16Vec.data();
+        const auto utf16Length = utf16Vec.size();
+        auto &vm = thread->vm;
+
+        const auto charArrayOop = vm.oopManager->newCharArrayOop(thread, utf16Length);
+        if (utf16Length > 0) [[likely]] {
+            std::memcpy(charArrayOop->data.get(), utf16Ptr, sizeof(cchar_16) * utf16Length);
+        }
+
+        auto result = vm.oopManager->newStringOop(thread, charArrayOop);
+        result->setStringHash(vmHash);
+        return result;
     }
 
-
-    StringTable::StringTable(RexVM::size_t size)
-            : tableSize(size), table(size, nullptr) {
+    cstring VMStringHelper::getJavaString(InstanceOop *oop) {
+        const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
+        if (charArray->getDataLength() == 0) {
+            return {};
+        }
+        const auto char16Ptr = charArray->data.get();
+        return utf16ToUtf8(char16Ptr, charArray->getDataLength());
     }
 
     StringTable::~StringTable() {
@@ -92,24 +57,20 @@ namespace RexVM {
         }
     }
 
-    StringTable::Node::Node(RexVM::InstanceOop *value) : value(value) {
-    }
+    bool StringTable::find(ccstr str, size_t size, Value &ret) const {
+        //TODO 对于size为0的是不是还可以优化
+        const auto index = VMStringHelper::getKeyIndex(str, size);
+        auto current = table[index];
+        if (current == nullptr) {
+            return false;
+        }
 
-    u2 StringTable::getKeyIndex(Key key) const {
-        const auto hashCode = HashFunction{}(key);
-        return CAST_U2(hashCode % tableSize);
-    }
-
-    bool StringTable::find(Key key, Value &ret) {
-        const auto utf16Vec = utf8ToUtf16Vec(key.c_str(), key.size());
+        const auto utf16Vec = utf8ToUtf16Vec(str, size);
         const auto utf16Ptr = utf16Vec.data();
         const auto utf16Length = utf16Vec.size();
-
-        const auto index = getKeyIndex(key);
-        auto current = table[index];
         while (current != nullptr) {
             const auto oopVal = current->value;
-            if (StringPool::equalJavaString(oopVal, utf16Ptr, utf16Length)) {
+            if (VMStringHelper::equalJavaString(oopVal, utf16Ptr, utf16Length)) {
                 ret = oopVal;
                 return true;
             }
@@ -118,7 +79,7 @@ namespace RexVM {
         return false;
     }
 
-    void StringTable::insert(Key key, Value value) {
+    void StringTable::insert(Value value) {
         const auto [hasHash, index] = value->getStringHash();
         auto newNode = new Node(value);
 
@@ -167,4 +128,62 @@ namespace RexVM {
         }
         table.clear();
     }
+
+
+    StringPool::StringPool(VM &vm, ClassLoader &classLoader)
+            : vm(vm), classLoader(classLoader),
+            stringTable(std::make_unique<StringTable>(STRING_POOL_SIZE)) {
+    }
+
+    StringPool::~StringPool() = default;
+
+
+    InstanceOop *StringPool::getInternString(VMThread *thread, ccstr str, size_t size) {
+        if (str == nullptr) {
+            panic("point nullptr");
+        }
+
+        std::lock_guard<SpinLock> guard(lock);
+        InstanceOop *result = nullptr;
+
+        if (stringTable->find(str, size, result)) {
+            return result;
+        }
+
+        result = VMStringHelper::createJavaString(thread, str, size);
+        stringTable->insert(result);
+
+        return result;
+    }
+
+    InstanceOop *StringPool::getInternString(VMThread *thread, ccstr str) {
+        if (str == nullptr) {
+            panic("point nullptr");
+        }
+
+        return getInternString(thread, str, strlen(str));
+    }
+
+    InstanceOop *StringPool::getInternString(VMThread *thread, cview str) {
+        if (str.data() == nullptr) {
+            if (str.size() == 0) {
+                //cview可能是CompositeString 产生的
+                //空的CompositeString 指针部分为nullptr 会因为后续函数异常
+                return getInternString(thread, "", 0);
+            } else {
+                panic("point nullptr");
+            }
+        }
+        return getInternString(thread, str.data(), str.size());
+    }
+
+    void StringPool::gcStringOop(InstanceOop *oop) {
+        std::lock_guard<SpinLock> guard(lock);
+        stringTable->erase(oop);
+    }
+
+    void StringPool::clear() const {
+        stringTable->clear();
+    }
+
 }

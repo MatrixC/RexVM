@@ -15,6 +15,7 @@
 namespace RexVM {
 
     class Oop;
+    struct CompositeString;
 
     using u1 = std::uint8_t;
     using u2 = std::uint16_t;
@@ -31,7 +32,9 @@ namespace RexVM {
     using size_t = std::size_t;
     //using cchar = char8_t;
     using cchar = char;
+    using ccstr = const cchar *;
     using cchar_16 = char16_t;
+    using rstring = CompositeString;
     using cstring = std::string;
     using cview = std::string_view;
     using ustring = std::u16string;
@@ -111,10 +114,24 @@ namespace RexVM {
 
     constexpr size_t STRING_POOL_SIZE = 512;
 
+    struct CViewHash {
+        size_t operator()(cview cv) const noexcept {
+            return std::hash<cview>{}(cv);
+        }
+    };
+
+    struct CViewEqual {
+        bool operator()(cview lhs, cview rhs) const noexcept {
+            return lhs == rhs;
+        }
+    };
+
 }
 
 #include "enums.hpp"
 #include "utils/format.hpp"
+//#include "composite_string.hpp"
+
 
 
 #endif

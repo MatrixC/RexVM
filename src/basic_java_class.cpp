@@ -2,7 +2,7 @@
 
 namespace RexVM {
 
-    const std::array<cstring, BASIC_JAVA_CLASS_ENUM_COUNT> BASIC_JAVA_CLASS_NAMES = {
+    const std::array<cview, BASIC_JAVA_CLASS_ENUM_COUNT> BASIC_JAVA_CLASS_NAMES = {
             JAVA_LANG_OBJECT_NAME,
             JAVA_LANG_CLASS_NAME,
             JAVA_LANG_CLASS_LOADER_NAME,
@@ -33,7 +33,7 @@ namespace RexVM {
             SUN_REFLECT_CONSTANT_POOL_NAME,
     };
 
-    cstring getBasicJavaClassName(BasicJavaClassEnum classEnum) {
+    cview getBasicJavaClassName(BasicJavaClassEnum classEnum) {
         return BASIC_JAVA_CLASS_NAMES[CAST_SIZE_T(classEnum)];
     }
 

@@ -1,5 +1,4 @@
 #include "garbage_collect.hpp"
-#include <unordered_set>
 #include <algorithm>
 #include "vm.hpp"
 #include "thread.hpp"
@@ -54,6 +53,10 @@ namespace RexVM {
     }
 
     void GarbageCollect::notify() {
+        if (!enableGC) {
+            return;
+        }
+
         notifyCollect = true;
         notifyCollectCv.notify_all();
     }
@@ -88,6 +91,10 @@ namespace RexVM {
     }
 
     void GarbageCollect::checkStopForCollect(VMThread &thread) {
+        if (!enableGC) {
+            return;
+        }
+
         if (!checkStop) [[likely]] {
             return;
         }
@@ -169,7 +176,7 @@ namespace RexVM {
         const auto klass = oop->getClass();
 
 #ifdef DEBUG
-        collectedOopDesc.emplace(oop, klass->name);
+        collectedOopDesc.emplace(oop, klass->getClassName());
 #endif
 
         if (klass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
@@ -423,20 +430,26 @@ namespace RexVM {
         (void)deleteCount;
 
 #ifdef DEBUG
-        cprintln("collectedMemory:{}KB, startCount:{}, successCount:{}", 
-            CAST_F4(sumCollectedMemory) / 1024,
-            collectStartCount,
-            collectSuccessCount
-        );
+        if (enableGC) {
+            cprintln("collectedMemory:{}KB, startCount:{}, successCount:{}", 
+                CAST_F4(sumCollectedMemory) / 1024,
+                collectStartCount,
+                collectSuccessCount
+            );
 
-        cprintln("collectAll {}({}), oopHolder {}({}), oopDescSize:{}", 
-            vm.oopManager->allocatedOopCount.load(), deleteCount,
-            vm.oopManager->holders.size(), oopHolders.size(), vm.oopManager->ttDesc.size()
-        );
+            cprintln("collectAll {}({}), oopHolder {}({}), oopDescSize:{}", 
+                vm.oopManager->allocatedOopCount.load(), deleteCount,
+                vm.oopManager->holders.size(), oopHolders.size(), vm.oopManager->ttDesc.size()
+            );
+        }
 #endif
     }
 
     void GarbageCollect::join() {
+        if (!enableGC) {
+            return;
+        }
+
         finalizeRunner.cv.notify_all();
 
         if (gcThread.joinable()) {
@@ -457,7 +470,7 @@ namespace RexVM {
 
     void FinalizeRunner::runOopFinalize(InstanceOop *oop) const {
         const auto klass = oop->getInstanceClass();
-        const auto finalizeMethod = klass->getMethod("finalize", "()V", false);
+        const auto finalizeMethod = klass->getMethod("finalize" "()V", false);
         if (finalizeMethod == nullptr) [[unlikely]] {
             cprintlnErr("run finalize error: get finalizeMethod fail");
         } else {
@@ -501,14 +514,18 @@ namespace RexVM {
     }
 
     void FinalizeRunner::initFinalizeThread(VMThread *mainThread) {
+        if (!collector.enableGC) {
+            return;
+        }
+
         const auto &vm = collector.vm;
         const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
         finalizeThread = CAST_VM_THREAD_OOP(vm.oopManager->newInstance(mainThread, threadClass));
         std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
         finalizeThread->addMethod(func);
 
-        const auto threadConstructor = threadClass->getMethod("<init>", "(Ljava/lang/String;)V", false);
-        const auto setDaemonMethod = threadClass->getMethod("setDaemon", "(Z)V", false);
+        const auto threadConstructor = threadClass->getMethod("<init>" "(Ljava/lang/String;)V", false);
+        const auto setDaemonMethod = threadClass->getMethod("setDaemon" "(Z)V", false);
         const auto threadNameOop = vm.stringPool->getInternString(mainThread, "Finalize Thread");
 
         const std::vector<Slot> constructorParams = { 
@@ -529,8 +546,8 @@ namespace RexVM {
 
 
 #ifdef DEBUG
-    std::unordered_map<ref, cstring> collectedOopDesc;
-    cstring getCollectedOopDesc(ref oop) {
+    emhash8::HashMap<ref, cview> collectedOopDesc;
+    cview getCollectedOopDesc(ref oop) {
         const auto iter = collectedOopDesc.find(oop);
         if (iter != collectedOopDesc.end()) {
             return iter->second;

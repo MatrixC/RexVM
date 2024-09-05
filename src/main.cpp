@@ -1,21 +1,20 @@
-#include "utils/format.hpp"
-#include "vm.hpp"
 #include <vector>
-
-using namespace RexVM;
+#include "utils/format.hpp"
+#include "utils/time.hpp"
+#include "vm.hpp"
 
 void printUsage() {
-    cprintln("Usage: rex [-cp <classpath>] <MainClass> [params...]");
+    RexVM::cprintln("Usage: rex [-cp <classpath>] <MainClass> [params...]");
 }
 
-int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter) {
+int parseArgs(int argc, char *argv[], RexVM::ApplicationParameter &applicationParameter) {
     if (argc < 2) {
         printUsage();
         return 1;
     }
 
-    cstring classpath;
-    std::vector<cstring> params;
+    RexVM::cstring classpath;
+    std::vector<RexVM::cstring> params;
 
     for (auto i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-cp") == 0) {
@@ -32,9 +31,9 @@ int parseArgs(int argc, char *argv[], ApplicationParameter &applicationParameter
 }
 
 int main(int argc, char *argv[]) {
-    ApplicationParameter applicationParameter;
+    RexVM::ApplicationParameter applicationParameter;
     if (parseArgs(argc, argv, applicationParameter) == 0) {
-        vmMain(applicationParameter);
+        RexVM::vmMain(applicationParameter);
     }
 
     return 0;

@@ -3,9 +3,9 @@
 
 #include <cstdint>
 #include <vector>
-#include <unordered_map>
 #include "config.hpp"
 #include "attribute_info.hpp"
+#include "composite_string.hpp"
 
 namespace RexVM {
 
@@ -27,9 +27,9 @@ namespace RexVM {
 
         ~FMBaseInfo();
 
-        [[nodiscard]] cstring getName() const;
+        [[nodiscard]] cview getName() const;
 
-        [[nodiscard]] cstring getDescriptor() const;
+        [[nodiscard]] cview getDescriptor() const;
 
         [[nodiscard]] AttributeInfo *getAssignAttribute(AttributeTagEnum tagEnum) const;
     };
@@ -93,19 +93,19 @@ namespace RexVM {
 
         [[nodiscard]] AttributeInfo *getAssignAttribute(AttributeTagEnum tagEnum) const;
 
-        [[nodiscard]] cstring getClassName(u2 classIndex) const;
+        [[nodiscard]] cview getClassName(u2 classIndex) const;
 
-        [[nodiscard]] cstring getThisClassName() const;
+        [[nodiscard]] cview getThisClassName() const;
 
-        [[nodiscard]] cstring getSuperClassName() const;
+        [[nodiscard]] cview getSuperClassName() const;
 
-        [[nodiscard]] cstring getSourceFile() const;
+        [[nodiscard]] cview getSourceFile() const;
         
-        [[nodiscard]] cstring getSignature() const;
+        [[nodiscard]] cview getSignature() const;
 
         void getBootstrapMethods() const;
 
-        [[nodiscard]] std::vector<cstring> getInterfaceNames() const;
+        [[nodiscard]] std::vector<cview> getInterfaceNames() const;
     };
 
 

@@ -24,7 +24,8 @@ target("rex")
     set_kind("binary")
     add_includedirs(
         "third_party/miniz",
-        "third_party/fmt/include"
+        "third_party/fmt/include",
+        "third_party/emhash"
     )
     add_files(
         "src/*.cpp",

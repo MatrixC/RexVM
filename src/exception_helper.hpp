@@ -6,23 +6,23 @@ namespace RexVM {
 
     struct Frame;
 
-    void throwAssignException(Frame &frame, const cstring &className, const cstring &message);
+    void throwAssignException(Frame &frame, cview className, cview message);
 
     void throwArithmeticExceptionDivByZero(Frame &frame);
 
     void throwNullPointException(Frame &frame);
 
-    void throwReflectiveOperationException(Frame &frame, const cstring &className, const cstring &methodName, const cstring &descriptor);
+    void throwReflectiveOperationException(Frame &frame, cview className, cview methodName, cview descriptor);
 
-    void throwFileNotFoundException(Frame &frame, const cstring &message);
+    void throwFileNotFoundException(Frame &frame, cview message);
 
-    void throwIOException(Frame &frame, const cstring &message);
+    void throwIOException(Frame &frame, cview message);
 
-    void throwClassNotFoundException(Frame &frame, const cstring &className);
+    void throwClassNotFoundException(Frame &frame, cview className);
 
-    void throwClassCastException(Frame &frame, const cstring &className1, const cstring &className2);
+    void throwClassCastException(Frame &frame, cview className1, cview className2);
 
-    void throwRuntimeException(Frame &frame, const cstring &message);
+    void throwRuntimeException(Frame &frame, cview message);
 
     void throwIllegalThreadStateException(Frame &frame);
 }

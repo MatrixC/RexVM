@@ -26,13 +26,13 @@ namespace RexVM {
             vm(vm),
             stackMemory(std::make_unique<Slot[]>(THREAD_STACK_SLOT_SIZE)),
             stackMemoryType(std::make_unique<SlotTypeEnum[]>(THREAD_STACK_SLOT_SIZE)) {
-        if (klass->name == "java/lang/ref/Reference$ReferenceHandler") {
+        if (klass->getClassName() == "java/lang/ref/Reference$ReferenceHandler") {
             //disable ReferenceHandler
             //这个方法一直在wait 不好让它进入safepoint
             return;
         }
 
-        const auto method = getInstanceClass()->getMethod("run", "()V", false);
+        const auto method = getInstanceClass()->getMethod("run" "()V", false);
         const std::vector<Slot> params = { Slot(this) };
         runMethods.emplace_back(std::make_unique<VMThreadMethod>(method, params));
     }
@@ -51,17 +51,17 @@ namespace RexVM {
 
         const auto threadGroupClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
         const auto vmThreadGroup = vm.oopManager->newInstance(vmThread, threadGroupClass);
-        vmThreadGroup->setFieldValue("name", "Ljava/lang/String;", Slot(stringPool->getInternString(vmThread, "system")));
-        vmThreadGroup->setFieldValue("maxPriority", "I", Slot(CAST_I4(10)));
+        vmThreadGroup->setFieldValue("name" "Ljava/lang/String;", Slot(stringPool->getInternString(vmThread, "system")));
+        vmThreadGroup->setFieldValue("maxPriority" "I", Slot(CAST_I4(10)));
 
-        vmThread->setFieldValue("group", "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
-        vmThread->setFieldValue("priority", "I", Slot(CAST_I8(1)));
+        vmThread->setFieldValue("group" "Ljava/lang/ThreadGroup;", Slot(vmThreadGroup));
+        vmThread->setFieldValue("priority" "I", Slot(CAST_I8(1)));
         return vmThread;
     }
 
     VMThread::~VMThread() = default;
 
-    void VMThread::setName(const cstring &name) {
+    void VMThread::setThreadName(cview name) {
 #ifdef DEBUG
         threadName = name;
 #endif
@@ -74,7 +74,7 @@ namespace RexVM {
         if (nameOop == nullptr) {
             return {};
         }
-        return StringPool::getJavaString(CAST_INSTANCE_OOP(nameOop));
+        return VMStringHelper::getJavaString(CAST_INSTANCE_OOP(nameOop));
     }
 
     void VMThread::run() {
@@ -144,7 +144,7 @@ namespace RexVM {
     }
 
     void VMThread::setDaemon(bool on) {
-        setFieldValue("daemon", "Z", on ? Slot(CAST_I4(1)) : ZERO_SLOT);
+        setFieldValue("daemon" "Z", on ? Slot(CAST_I4(1)) : ZERO_SLOT);
     }
 
     void VMThread::join() {

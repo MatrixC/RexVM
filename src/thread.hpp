@@ -40,6 +40,8 @@ namespace RexVM {
         volatile bool stopForCollect{false};
         volatile bool gcSafe{true};
 
+        
+
 #ifdef DEBUG
         cstring threadName{};
 #endif
@@ -51,7 +53,7 @@ namespace RexVM {
         explicit VMThread(VM &vm);
         ~VMThread();
 
-        void setName(const cstring &name);
+        void setThreadName(cview name);
         cstring getName() const;
 
         static VMThread *createOriginVMThread(VM &vm);

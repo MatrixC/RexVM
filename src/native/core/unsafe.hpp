@@ -43,10 +43,13 @@ namespace RexVM::Native::Core {
             throwNullPointException(frame);
             return;
         }
-        if (arrayClassOop->getClass()->name != JAVA_LANG_CLASS_NAME) {
+        const auto classClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_CLASS);
+        if (arrayClassOop->getClass() != classClass) {
             panic("not class");
         }
-        const auto arrayClass = GET_MIRROR_INSTANCE_CLASS(arrayClassOop);
+        //const auto arrayClass = GET_MIRROR_INSTANCE_CLASS(arrayClassOop);
+        const auto arrayClass = GET_MIRROR_CLASS(arrayClassOop);
+        
         if (!arrayClass->isArray()) {
             panic("is not array class");
         }
@@ -65,14 +68,14 @@ namespace RexVM::Native::Core {
 
     void objectFieldOffset(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto value = fieldMirror->getFieldValue("slot", "I").i4Val * 8;
+        const auto value = fieldMirror->getFieldValue("slot" "I").i4Val * 8;
         frame.returnI8(value);
     }
 
     //native long staticFieldOffset(Field f);
     void staticFieldOffset(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto value = fieldMirror->getFieldValue("slot", "I").i4Val * 8;
+        const auto value = fieldMirror->getFieldValue("slot" "I").i4Val * 8;
         //见unsafeCommon
         frame.returnI8(encodeStaticFieldOffset(value));
     }
@@ -80,7 +83,7 @@ namespace RexVM::Native::Core {
     //native Object staticFieldBase(Field f);
     void staticFieldBase(Frame &frame) {
         const auto fieldMirror = CAST_INSTANCE_OOP(frame.getLocalRef(1));
-        const auto value = fieldMirror->getFieldValue("clazz", "Ljava/lang/Class;").refVal;
+        const auto value = fieldMirror->getFieldValue("clazz" "Ljava/lang/Class;").refVal;
         frame.returnRef(value);
     }
 

@@ -6,43 +6,41 @@
 
 namespace RexVM {
 
-    cstring getDescriptorClassName(const cstring &className) {
-        return "L" + className + ";";
-    }
-
-    cstring getClassNameByFieldDescriptor(const cstring &descriptor) {
+    cview getClassNameByFieldDescriptor(cview descriptor) {
         const auto first = descriptor[0];
         if (first == '[') {
+            //Array
             return descriptor;
         }
 
         if (first == 'L') {
+            //InstanceClass
             return descriptor.substr(1, descriptor.size() - 2);
         }
 
+        //Primitive
         return getPrimitiveClassNameByDescriptor(first);
     }
 
-    cstring getDescriptorByClass(Class *klass) {
-        if (klass->getType() == ClassTypeEnum::PRIMITIVE_CLASS) {
-            const auto descriptor = getDescriptorByPrimitiveClassName(klass->name);
-            return cstring{CAST_CHAR(descriptor)};
-        } else if (klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
-            return getDescriptorClassName(klass->name);
-        } else {
-            return klass->name;
+    cstring getJVMClassName(cview javaClassName) {
+        cstring result;
+        result.reserve(javaClassName.size());
+        for (const auto &c : javaClassName) {
+            result += c == '.' ? '/' : c;
         }
+        return result;
     }
 
-    cstring getJVMClassName(const cstring &javaClassName) {
-        return replace(javaClassName, ".", "/");
+    cstring getJavaClassName(cview jvmClassName) {
+        cstring result;
+        result.reserve(jvmClassName.size());
+        for (const auto &c : jvmClassName) {
+            result += c == '/' ? '.' : c;
+        }
+        return result;
     }
 
-    cstring getJavaClassName(const cstring &jvmClassName) {
-        return replace(jvmClassName, "/", ".");
-    }
-
-    bool isWideClassName(const cstring &className) {
+    bool isWideClassName(cview className) {
         return className == "long" || className == "double";
     }
 

@@ -1,27 +1,26 @@
 #ifndef BASIC_TYPE_HPP
 #define BASIC_TYPE_HPP
 
-#include <unordered_map>
 #include <array>
 #include "config.hpp"
 #include "exception.hpp"
+#include "composite_ptr.hpp"
 
 namespace RexVM {
-
-    extern const std::unordered_map<cstring, cstring> PRIMITIVE_TYPE_MAP;
     extern const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY;
 
-    cstring getPrimitiveClassNameByDescriptor(cchar descriptor);
-    cchar getDescriptorByPrimitiveClassName(const cstring &className);
+    cview getPrimitiveClassNameByDescriptor(cchar descriptor);
+    cview getPrimitiveClassNameByBasicType(BasicType type);
+
+    cchar getDescriptorByPrimitiveClassName(cview lassName);
     BasicType getBasicTypeByDescriptor(cchar descriptor);
-    BasicType getBasicTypeByTypeArrayClassName(const cstring &className);
+    BasicType getBasicTypeByTypeArrayClassName(cview className);
 
-    extern cstring getTypeArrayClassNameByBasicType(BasicType type);
-    cstring getPrimitiveClassNameByBasicType(BasicType type);
-
+    cview getTypeArrayClassNameByBasicType(BasicType type);
+    
     bool isBasicType(cchar type);
     bool isWideBasicType(BasicType type);
-    SlotTypeEnum getSlotTypeByPrimitiveClassName(const cstring &className);
+    SlotTypeEnum getSlotTypeByPrimitiveClassName(cview className);
     size_t getElementSizeByBasicType(BasicType type);
 
 }

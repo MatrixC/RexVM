@@ -10,6 +10,7 @@
 #include "string_pool.hpp"
 #include "utils/format.hpp"
 #include "garbage_collect.hpp"
+#include "key_slot_id.hpp"
 
 namespace RexVM {
 
@@ -105,17 +106,20 @@ namespace RexVM {
     }
 
     ObjArrayOop *OopManager::newObjectObjArrayOop(VMThread *thread, size_t length) {
-        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_OBJECT_NAME);
+        const auto elementClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(*elementClass);
         return newObjArrayOop(thread, klass, length);
     }
 
     ObjArrayOop *OopManager::newClassObjArrayOop(VMThread *thread, size_t length) {
-        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_CLASS_NAME);
+        const auto elementClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_CLASS);
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(*elementClass);
         return newObjArrayOop(thread, klass, length);
     }
 
     ObjArrayOop *OopManager::newStringObjArrayOop(VMThread *thread, size_t length) {
-        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(JAVA_LANG_STRING_NAME);
+        const auto elementClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
+        const auto klass = vm.bootstrapClassLoader->getObjectArrayClass(*elementClass);
         return newObjArrayOop(thread, klass, length);
     }
 
@@ -184,56 +188,65 @@ namespace RexVM {
     InstanceOop *OopManager::newBooleanOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_BOOLEAN);
         const auto oop = newInstance(thread, klass);
-        oop->setFieldValue("value", "Z", Slot(value));
+        oop->setFieldValue("value" "Z", Slot(value));
         return oop;
     }
 
     InstanceOop *OopManager::newByteOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_BYTE);
         const auto oop = newInstance(thread, klass);
-        oop->setFieldValue("value", "B", Slot(value));
+        oop->setFieldValue("value" "B", Slot(value));
         return oop;
     }
 
     InstanceOop *OopManager::newCharOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_CHARACTER);
         const auto oop = newInstance(thread, klass);
-        oop->setFieldValue("value", "C", Slot(value));
+        oop->setFieldValue("value" "C", Slot(value));
         return oop;
     }
 
     InstanceOop *OopManager::newShortOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_SHORT);
         const auto oop = newInstance(thread, klass);
-        oop->setFieldValue("value", "S", Slot(value));
+        oop->setFieldValue("value" "S", Slot(value));
         return oop;
     }
 
     InstanceOop *OopManager::newIntegerOop(VMThread *thread, i4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INTEGER);
         const auto oop = newInstance(thread, klass);
-        oop->setFieldValue("value", "I", Slot(value));
+        oop->setFieldValue("value" "I", Slot(value));
         return oop;
     }
 
     InstanceOop *OopManager::newFloatOop(VMThread *thread, f4 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_FLOAT);
         const auto oop = newInstance(thread, klass);
-        oop->setFieldValue("value", "F", Slot(value));
+        oop->setFieldValue("value" "F", Slot(value));
         return oop;
     }
 
     InstanceOop *OopManager::newLongOop(VMThread *thread, i8 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_LONG);
         const auto oop = newInstance(thread, klass);
-        oop->setFieldValue("value", "J", Slot(value));
+        oop->setFieldValue("value" "J", Slot(value));
         return oop;
     }
 
     InstanceOop *OopManager::newDoubleOop(VMThread *thread, f8 value) {
         const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_DOUBLE);
         const auto oop = newInstance(thread, klass);
-        oop->setFieldValue("value", "D", Slot(value));
+        oop->setFieldValue("value" "D", Slot(value));
+        return oop;
+    }
+
+    InstanceOop *OopManager::newStringOop(VMThread *thread, CharTypeArrayOop *value) {
+        const auto klass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_STRING);
+        const auto oop = newInstance(thread, klass);
+        if (value != nullptr) {
+            oop->setFieldValue(stringClassValueFieldSlotId, Slot(value));
+        }
         return oop;
     }
 

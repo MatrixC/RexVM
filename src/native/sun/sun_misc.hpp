@@ -14,10 +14,11 @@
 #include "../../class_loader.hpp"
 #include "../../string_pool.hpp"
 #include "../../utils/string_utils.hpp"
+#include <hash_table8.hpp>
 
 namespace RexVM::Native::Sun::Misc {
 
-    const std::unordered_map<cstring, i4> SIGNAL_NUMBER_MAP{
+    const emhash8::HashMap<cview, i4> SIGNAL_NUMBER_MAP{
             {"INT", 2},
             {"ILL", 4},
             {"ABRT", 6},
@@ -51,8 +52,8 @@ namespace RexVM::Native::Sun::Misc {
         const auto constructor = CAST_INSTANCE_OOP(frame.getLocalRef(0));
         const auto paramArray = CAST_OBJ_ARRAY_OOP(frame.getLocalRef(1));
 
-        const auto srcClassOop = CAST_MIRROR_OOP(constructor->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto slotId = constructor->getFieldValue("slot", "I").i4Val;
+        const auto srcClassOop = CAST_MIRROR_OOP(constructor->getFieldValue("clazz" "Ljava/lang/Class;").refVal);
+        const auto slotId = constructor->getFieldValue("slot" "I").i4Val;
         const auto srcClass = CAST_INSTANCE_CLASS(srcClassOop->getMirrorClass());
         const auto &constructMethod = srcClass->methods[slotId];
 
@@ -87,7 +88,7 @@ namespace RexVM::Native::Sun::Misc {
     void createLong(Frame &frame) {
         //java.nio.ByteBuffer#allocateDirect
         const auto byteBufferClass = frame.mem.getInstanceClass("java/nio/ByteBuffer");
-        const auto allocateDirectMethod = byteBufferClass->getMethod("allocateDirect", "(I)Ljava/nio/ByteBuffer;", true);
+        const auto allocateDirectMethod = byteBufferClass->getMethod("allocateDirect" "(I)Ljava/nio/ByteBuffer;", true);
         const auto [byteBufferOopSlot, slotType] = frame.runMethodManual(*allocateDirectMethod, { Slot(8) });
         frame.returnRef(byteBufferOopSlot.refVal);
     }

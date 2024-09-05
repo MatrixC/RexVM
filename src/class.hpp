@@ -5,10 +5,11 @@
 #include "basic_type.hpp"
 #include <vector>
 #include <memory>
-#include <unordered_map>
 #include <atomic>
+#include "composite_string.hpp"
 #include "utils/spin_lock.hpp"
 #include "mirror_base.hpp"
+#include "class_attribute_container.hpp"
 
 namespace RexVM {
 
@@ -32,11 +33,8 @@ namespace RexVM {
     struct Field;
     struct AttributeInfo;
 
-
-
     struct Class {
-        
-        const cstring name;
+        NameDescriptorIdentifier id;
         std::vector<InstanceClass *> interfaces;
         InstanceClass *superClass{nullptr};
 
@@ -48,8 +46,12 @@ namespace RexVM {
 
         //flags: low[accessFlags(16), type(2), anonymous(1), special(3), dimension, basicType(elementType) ]high
 
-        explicit Class(ClassTypeEnum type, u2 accessFlags, cstring name, ClassLoader &classLoader);
+        explicit Class(ClassTypeEnum type, u2 accessFlags, cview name, ClassLoader &classLoader);
 
+        void setName(cview name);
+        [[nodiscard]] cview getClassName() const;
+        [[nodiscard]] cview getClassDescriptor() const;
+        [[nodiscard]] cview toView() const;
         [[nodiscard]] ClassTypeEnum getType() const;
         [[nodiscard]] u2 getAccessFlags() const;
         [[nodiscard]] size_t getInterfaceSize() const;
@@ -76,7 +78,7 @@ namespace RexVM {
         [[nodiscard]] MirOop *getMirror(Frame *frame, bool init = true);
 
         
-        virtual ~Class();
+        ~Class();
     };
 
     //Hotspot对Primitive类型没有建立Class, 只有对应的MirrorOop
@@ -92,38 +94,31 @@ namespace RexVM {
     };
 
     struct InstanceClass : Class {
-        SpecialClassEnum specialClassType{SpecialClassEnum::NONE};
-        u2 instanceSlotCount{};
-        u2 staticSlotCount{};
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
-        bool overrideFinalize{false};
-
-        MirrorBase constantPoolMirrorBase{};
-
-        [[nodiscard]] MirOop *getConstantPoolMirror(Frame *frame, bool init = true);
-
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<std::unique_ptr<Method>> methods;
-        std::unique_ptr<AttributeInfo> bootstrapMethodsAttr;
-        std::unique_ptr<AttributeInfo> enclosingMethodAttr;
-        std::unique_ptr<AttributeInfo> innerClassesAttr;
-        [[nodiscard]] BootstrapMethodsAttribute *getBootstrapMethodAttr() const;
-        [[nodiscard]] EnclosingMethodAttribute *getEnclosingMethodAttr() const;
-        [[nodiscard]] InnerClassesAttribute *getInnerClassesAttr() const;
 
-        size_t runtimeVisibleAnnotationLength{};
-        std::unique_ptr<u1[]> runtimeVisibleAnnotation;
+        cview sourceFile{};
+        MirrorBase constantPoolMirrorBase{};
 
-        size_t runtimeVisibleTypeAnnotationLength;
-        std::unique_ptr<u1[]> runtimeVisibleTypeAnnotation;
-
+        std::unique_ptr<BasicAnnotationContainer> basicAnnotationContainer;
+        std::unique_ptr<ClassAttributeContainer> classAttributeContainer;
         std::unique_ptr<Slot[]> staticData;
         //跟实例offset一致 查询其SlotType
         std::unique_ptr<SlotTypeEnum[]> instanceDataType;
         //跟类的static offset一致 查询其SlotType
         std::unique_ptr<SlotTypeEnum[]> staticDataType;
-        cstring sourceFile{};
-        cstring signature{};
+
+        SpecialClassEnum specialClassType{SpecialClassEnum::NONE};
+        u2 instanceSlotCount{};
+        u2 staticSlotCount{};
+        u2 signatureIndex{};
+        bool overrideFinalize{false};
+
+        [[nodiscard]] MirOop *getConstantPoolMirror(Frame *frame, bool init = true);
+        [[nodiscard]] BootstrapMethodsAttribute *getBootstrapMethodAttr() const;
+        [[nodiscard]] EnclosingMethodAttribute *getEnclosingMethodAttr() const;
+        [[nodiscard]] InnerClassesAttribute *getInnerClassesAttr() const;
 
     private:
         void calcFieldSlotId();
@@ -140,43 +135,46 @@ namespace RexVM {
         explicit InstanceClass(ClassLoader &classLoader, ClassFile &cf);
         using Class::Class;
 
-        ~InstanceClass() override = default;
+        ~InstanceClass() = default;
 
         [[nodiscard]] bool notInitialize() const;
         void clinit(Frame &frame);
 
         [[nodiscard]] ClassMember *getMemberByRefIndex(size_t refIndex, ClassMemberTypeEnum type, bool isStatic) const;
-        [[nodiscard]] Field *getFieldSelf(const cstring &name, const cstring &descriptor, bool isStatic) const;
-        [[nodiscard]] Field *getField(const cstring &name, const cstring &descriptor, bool isStatic) const;
+        [[nodiscard]] Field *getFieldSelf(cview id, bool isStatic) const;
+        [[nodiscard]] Field *getField(cview id, bool isStatic) const;
+        [[nodiscard]] Field *getField(cview name, cview descriptor, bool isStatic) const;
         [[nodiscard]] Field *getRefField(size_t refIndex, bool isStatic) const;
-        [[nodiscard]] Method *getMethodSelf(const cstring &name, const cstring &descriptor, bool isStatic) const;
-        [[nodiscard]] Method *getMethod(const cstring &name, const cstring &descriptor, bool isStatic) const;
+
+        [[nodiscard]] Method *getMethodSelf(cview id, bool isStatic) const;
+        [[nodiscard]] Method *getMethod(cview id, bool isStatic) const;
+        [[nodiscard]] Method *getMethod(cview name, cview descriptor, bool isStatic) const;
         [[nodiscard]] Method *getRefMethod(size_t refIndex, bool isStatic) const;
+        [[nodiscard]] cview getSignature() const;
 
         void setFieldValue(size_t index, Slot value) const;
-        void setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const;
+        void setFieldValue(cview id, Slot value) const;
         [[nodiscard]] Slot getFieldValue(size_t index) const;
-        [[nodiscard]] Slot getFieldValue(const cstring &name, const cstring &descriptor) const;
+        [[nodiscard]] Slot getFieldValue(cview id) const;
 
     };
 
-    struct ArrayClass : InstanceClass {
+    struct ArrayClass : Class {
         size_t dimension{1};
         ArrayClass *higherDimension{};
         ArrayClass *lowerDimension{};
 
-        explicit ArrayClass(ClassTypeEnum type, const cstring &name, ClassLoader &classLoader,
-                            size_t dimension);
+        explicit ArrayClass(ClassTypeEnum type, cview name, ClassLoader &classLoader, size_t dimension);
 
-        ~ArrayClass() override = default;
+        ~ArrayClass() = default;
 
-        [[nodiscard]] cstring getComponentClassName() const;
+        [[nodiscard]] cview getComponentClassName() const;
     };
 
     struct TypeArrayClass : ArrayClass {
         const BasicType elementType;
 
-        explicit TypeArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
+        explicit TypeArrayClass(cview name, ClassLoader &classLoader, size_t dimension,
                                 BasicType elementType);
 
     };
@@ -184,7 +182,7 @@ namespace RexVM {
     struct ObjArrayClass : ArrayClass {
         const InstanceClass *elementClass;
 
-        explicit ObjArrayClass(const cstring &name, ClassLoader &classLoader, size_t dimension,
+        explicit ObjArrayClass(cview name, ClassLoader &classLoader, size_t dimension,
                                const InstanceClass *elementClass);
 
     };

@@ -19,7 +19,7 @@
 namespace RexVM::Native::Core {
 
     bool inputCheckClosed(Frame &frame, InstanceOop *self) {
-        const auto closed = self->getFieldValue("closed", "Z").i4Val;
+        const auto closed = self->getFieldValue("closed" "Z").i4Val;
         if (closed != 0) {
             throwIOException(frame, "Stream Closed");
             return false;
@@ -28,8 +28,8 @@ namespace RexVM::Native::Core {
     }
 
     i4 getFd(InstanceOop *self) {
-        const auto fdOop = CAST_INSTANCE_OOP(self->getFieldValue("fd", "Ljava/io/FileDescriptor;").refVal);
-        return fdOop->getFieldValue("fd", "I").i4Val;
+        const auto fdOop = CAST_INSTANCE_OOP(self->getFieldValue("fd" "Ljava/io/FileDescriptor;").refVal);
+        return fdOop->getFieldValue("fd" "I").i4Val;
     }
 
     enum class FileOpenTypeEnum {
@@ -40,7 +40,7 @@ namespace RexVM::Native::Core {
     //native void open0(String name) throws FileNotFoundException;
     void openCommon(Frame &frame, FileOpenTypeEnum type, bool append) {
         const auto self = CAST_INSTANCE_OOP(frame.getThisInstance());
-        const auto pathStr = StringPool::getJavaString(CAST_INSTANCE_OOP(frame.getLocalRef(1)));
+        const auto pathStr = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(frame.getLocalRef(1)));
         std::filesystem::path filePath(pathStr);
         if (!std::filesystem::exists(filePath)) {
             throwFileNotFoundException(frame, pathStr);
@@ -60,8 +60,8 @@ namespace RexVM::Native::Core {
             return;
         }
 
-        const auto fdOop = CAST_INSTANCE_OOP(self->getFieldValue("fd", "Ljava/io/FileDescriptor;").refVal);
-        fdOop->setFieldValue("fd", "I", Slot(CAST_I4(fd)));
+        const auto fdOop = CAST_INSTANCE_OOP(self->getFieldValue("fd" "Ljava/io/FileDescriptor;").refVal);
+        fdOop->setFieldValue("fd" "I", Slot(CAST_I4(fd)));
     }
 
     void readOpen(Frame &frame) {

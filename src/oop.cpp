@@ -7,14 +7,12 @@
 
 namespace RexVM {
 
-    SpinLock Oop::monitorLock;
-
     Oop::Oop(Class *klass, size_t dataLength) :
             comClass(klass, dataLength),
             comFlags(nullptr, FINALIZED_MASK) {
         //dataLength >= 65535, not support
 #ifdef DEBUG
-        className = klass->name;
+        className = klass->getClassName();
 #endif
     }
 
@@ -60,12 +58,13 @@ namespace RexVM {
     }
 
     OopMonitor *Oop::getAndInitMonitor() {
+        static SpinLock monitorLock;
+
         if (getMonitor() == nullptr) [[unlikely]] {
-            Oop::monitorLock.lock();
+            std::lock_guard<SpinLock> guard(monitorLock);
             if (getMonitor() == nullptr) {
                 comFlags.setPtr(new OopMonitor);
             }
-            Oop::monitorLock.unlock();
         }
         return getMonitor();
     }
@@ -219,16 +218,16 @@ namespace RexVM {
     void InstanceOop::setFieldValue(size_t index, Slot value) const {
         data[index] = value;
     }
-
-    void InstanceOop::setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const {
-        auto instanceClass = getInstanceClass();
-        auto field = instanceClass->getField(name, descriptor, false);
+    
+    void InstanceOop::setFieldValue(const cview &id, Slot value) const {
+        const auto instanceClass = getInstanceClass();
+        auto field = instanceClass->getField(id, false);
         data[field->slotId] = value;
     }
 
-    Slot InstanceOop::getFieldValue(const cstring &name, const cstring &descriptor) const {
-        auto instanceClass = getInstanceClass();
-        auto field = instanceClass->getField(name, descriptor, false);
+    [[nodiscard]] Slot InstanceOop::getFieldValue(const cview &id) const {
+        const auto instanceClass = getInstanceClass();
+        auto field = instanceClass->getField(id, false);
         return data[field->slotId];
     }
 

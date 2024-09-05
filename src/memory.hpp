@@ -60,6 +60,7 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *newFloatOop(VMThread *thread, f4 value);
         [[nodiscard]] InstanceOop *newLongOop(VMThread *thread, i8 value);
         [[nodiscard]] InstanceOop *newDoubleOop(VMThread *thread, f8 value);
+        [[nodiscard]] InstanceOop *newStringOop(VMThread *thread, CharTypeArrayOop *value);
 
         void addToOopHolder(VMThread *thread, ref oop);
 
@@ -72,12 +73,6 @@ namespace RexVM {
         std::map<ref, cstring> ttDesc;
 #endif
     };
-
-    void traceOop(Oop * root, std::unordered_set<Oop *> &tracedOop);
-    void traceInstanceOopChild(InstanceOop * oop, std::unordered_set<Oop *> &tracedOop);
-    void traceObjArrayOopChild(ObjArrayOop * oop, std::unordered_set<Oop *> &tracedOop);
-
-    void collectAll(VM &vm);
 }
 
 #endif

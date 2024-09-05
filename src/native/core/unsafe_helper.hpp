@@ -200,7 +200,7 @@ namespace RexVM::Native::Core {
             return CAST_VOID_PTR(dataPtr);
         } else if (isStaticFieldOffset(offset)) {
             offset = decodeStaticFieldOffset(offset);
-            if (obj->getClass()->name != JAVA_LANG_CLASS_NAME) {
+            if (obj->getClass()->getClassName() != JAVA_LANG_CLASS_NAME) {
                 panic("error object");
             }
             const auto mirrorClass = CAST_INSTANCE_CLASS(CAST_MIRROR_OOP(obj)->getMirrorClass());
@@ -213,7 +213,7 @@ namespace RexVM::Native::Core {
             dataPtr = CAST_U1_PTR(arrayObj->data.get());
         } else {
             const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(obj->getClass());
-            const auto basicType = getBasicTypeByTypeArrayClassName(typeArrayClass->name);
+            const auto basicType = getBasicTypeByTypeArrayClassName(typeArrayClass->getClassName());
             switch (basicType) {
                 case BasicType::T_BOOLEAN:
                 case BasicType::T_BYTE:

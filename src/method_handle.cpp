@@ -15,7 +15,7 @@
 
 namespace RexVM {
 
-    bool isMethodHandleInvoke(const cstring &className, const cstring &memberName) {
+    bool isMethodHandleInvoke(cview className, cview memberName) {
         return (className == "java/lang/invoke/MethodHandle" && 
             (memberName == "invoke"
                 || memberName == "invokeBasic"
@@ -34,7 +34,7 @@ namespace RexVM {
     }
 
     //代替MethodType.fromMethodDescriptorString
-    InstanceOop *createMethodType(Frame &frame, const cstring &methodDescriptor) {
+    InstanceOop *createMethodType(Frame &frame, cview methodDescriptor) {
         const auto [paramType, returnTypeType] = parseMethodDescriptor(methodDescriptor);
         const auto returnTypeOop = frame.mem.getClass(returnTypeType)->getMirror(&frame);
         const auto classArrayOop = frame.mem.newClassObjArrayOop(paramType.size());
@@ -44,7 +44,7 @@ namespace RexVM {
             classArrayOop->data[i++] = frame.mem.getClass(className)->getMirror(&frame);
         }
         const auto runtimeMethodTypeClass = frame.mem.getInstanceClass("java/lang/invoke/MethodType");
-        const auto makeImplMethod = runtimeMethodTypeClass->getMethod("makeImpl", "(Ljava/lang/Class;[Ljava/lang/Class;Z)Ljava/lang/invoke/MethodType;", true);
+        const auto makeImplMethod = runtimeMethodTypeClass->getMethod("makeImpl" "(Ljava/lang/Class;[Ljava/lang/Class;Z)Ljava/lang/invoke/MethodType;", true);
 
         //必须调用 makeImpl 自己创建会有点问题
         const auto [methodTypeSlot, _] = frame.runMethodManual(*makeImplMethod, { 
@@ -74,7 +74,7 @@ namespace RexVM {
         const auto &constantPool = methodClass.constantPool;
 
         const auto methodHandleNativesClass = frame.mem.getInstanceClass("java/lang/invoke/MethodHandleNatives");
-        const auto linkMethodHandleConstantMethod = methodHandleNativesClass->getMethod("linkMethodHandleConstant", "(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;", true);
+        const auto linkMethodHandleConstantMethod = methodHandleNativesClass->getMethod("linkMethodHandleConstant" "(Ljava/lang/Class;ILjava/lang/Class;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/invoke/MethodHandle;", true);
 
         const auto [methodHandleClassName, methodHandleMemberName, methodHandleMemberDescriptor] = 
             getConstantStringFromPoolByClassNameType(constantPool, methodHandleInfo->referenceIndex);
@@ -122,15 +122,15 @@ namespace RexVM {
     InstanceOop *createCallSite(
         Frame &frame, 
         InstanceOop *methodHandle, 
-        const cstring &invokeName, 
-        const cstring &invokeDescriptor, 
+        cview invokeName, 
+        cview invokeDescriptor, 
         InstanceClass *callerClass,
         const std::vector<u2> &bootstrapArguments
     ) {
         const auto &constantPool = frame.klass.constantPool;
 
         const auto methodHandleNativesClass = frame.mem.getInstanceClass("java/lang/invoke/MethodHandleNatives");
-        const auto linkCallSiteImplMethod = methodHandleNativesClass->getMethod("linkCallSiteImpl", "(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;", true);
+        const auto linkCallSiteImplMethod = methodHandleNativesClass->getMethod("linkCallSiteImpl" "(Ljava/lang/Class;Ljava/lang/invoke/MethodHandle;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;", true);
 
         const auto arraySize = bootstrapArguments.size();
         std::vector<ref> argResults;
@@ -272,27 +272,27 @@ namespace RexVM {
         frame.pushRef(callSiteObj);
     }
 
-    cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, const cstring &name) {
+    cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, cview name) {
         cstring descriptor{};
-        if (isMethodHandleInvoke(clazz->name, name)) {
+        if (isMethodHandleInvoke(clazz->getClassName(), name)) {
             descriptor = METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR;
         } else {
             const auto typeClass = type->getClass();
-            const auto typeClassName = typeClass->name;
+            const auto typeClassName = typeClass->getClassName();
             if (typeClassName == JAVA_LANG_INVOKE_METHOD_TYPE_NAME) {
                 descriptor += "(";
-                const auto ptypes = CAST_OBJ_ARRAY_OOP(type->getFieldValue("ptypes", "[Ljava/lang/Class;").refVal);
+                const auto ptypes = CAST_OBJ_ARRAY_OOP(type->getFieldValue("ptypes" "[Ljava/lang/Class;").refVal);
                 for (size_t i = 0; i < ptypes->getDataLength(); ++i) {
                     const auto classMirrorOop = CAST_MIRROR_OOP(ptypes->data[i]);
                     const auto mirrorClass = classMirrorOop->getMirrorClass();
-                    descriptor += getDescriptorByClass(mirrorClass);
+                    descriptor += mirrorClass->getClassDescriptor();
                 }
                 descriptor += ")";
-                const auto rtype = CAST_MIRROR_OOP(type->getFieldValue("rtype", "Ljava/lang/Class;").refVal);
-                descriptor += getDescriptorByClass(rtype->getMirrorClass());
+                const auto rtype = CAST_MIRROR_OOP(type->getFieldValue("rtype" "Ljava/lang/Class;").refVal);
+                descriptor += rtype->getMirrorClass()->getClassDescriptor();
             } else if (typeClassName == JAVA_LANG_CLASS_NAME) {
                 const auto mirrorClass = CAST_MIRROR_OOP(type)->getMirrorClass();
-                descriptor = getDescriptorByClass(mirrorClass);
+                descriptor = mirrorClass->getClassDescriptor();
             } else {
                 panic("error typeClassName");
             }
@@ -309,10 +309,10 @@ namespace RexVM {
             bool,
             cstring
     > methodHandleGetFieldFromMemberName(InstanceOop *memberName) {
-        const auto klass = GET_MIRROR_INSTANCE_CLASS(memberName->getFieldValue("clazz", "Ljava/lang/Class;").refVal);
-        const auto name = StringPool::getJavaString(CAST_INSTANCE_OOP(memberName->getFieldValue("name", "Ljava/lang/String;").refVal));
-        const auto type = CAST_INSTANCE_OOP(memberName->getFieldValue("type", "Ljava/lang/Object;").refVal);
-        const auto flags = memberName->getFieldValue("flags", "I").i4Val;
+        const auto klass = GET_MIRROR_INSTANCE_CLASS(memberName->getFieldValue("clazz" "Ljava/lang/Class;").refVal);
+        const auto name = VMStringHelper::getJavaString(CAST_INSTANCE_OOP(memberName->getFieldValue("name" "Ljava/lang/String;").refVal));
+        const auto type = CAST_INSTANCE_OOP(memberName->getFieldValue("type" "Ljava/lang/Object;").refVal);
+        const auto flags = memberName->getFieldValue("flags" "I").i4Val;
         const auto kind = static_cast<MethodHandleEnum>((flags >> MN_REFERENCE_KIND_SHIFT) & MN_REFERENCE_KIND_MASK);
         const auto isStatic = kind == MethodHandleEnum::REF_invokeStatic;
         const auto descriptor = methodHandleGetDescriptor(klass, type, name);

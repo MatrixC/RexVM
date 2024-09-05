@@ -34,7 +34,7 @@ namespace RexVM {
     constexpr u2 FINALIZED_MASK = 0x2000;  //0010000000000000
 
     class Oop {
-        static SpinLock monitorLock;
+
     private:
         //classPtr, dataLength
         Composite<Class *, size_t> comClass{};
@@ -43,7 +43,7 @@ namespace RexVM {
         Composite<OopMonitor *, u2> comFlags{};
 
 #ifdef DEBUG
-        cstring className{};
+        cview className{};
 #endif
 
         [[nodiscard]] OopMonitor *getMonitor() const;
@@ -92,12 +92,10 @@ namespace RexVM {
         ~InstanceOop();
 
         void setFieldValue(size_t index, Slot value) const;
-
         [[nodiscard]] Slot getFieldValue(size_t index) const;
 
-        void setFieldValue(const cstring &name, const cstring &descriptor, Slot value) const;
-
-        [[nodiscard]] Slot getFieldValue(const cstring &name, const cstring &descriptor) const;
+        void setFieldValue(const cview &id, Slot value) const;
+        [[nodiscard]] Slot getFieldValue(const cview &id) const;
 
         [[nodiscard]] InstanceOop *clone(InstanceOop *newInstance) const;
 

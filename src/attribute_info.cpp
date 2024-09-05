@@ -3,7 +3,7 @@
 
 namespace RexVM {
 
-    const std::unordered_map<cstring, AttributeTagEnum> ATTRIBUTE_NAME_TAG_MAP{
+    const emhash8::HashMap<cview, AttributeTagEnum> ATTRIBUTE_NAME_TAG_MAP{
             {"ConstantValue",                        AttributeTagEnum::CONSTANT_VALUE},
             {"Code",                                 AttributeTagEnum::CODE},
             {"StackMapTable",                        AttributeTagEnum::STACK_MAP_TABLE},
@@ -36,13 +36,13 @@ namespace RexVM {
     parseAttribute(std::istream &is, const std::vector<std::unique_ptr<ConstantInfo>> &constantInfoPool) {
         const StreamByteType auto attributeNameIndex = peek<u2>(is);
         const auto attributeName = getConstantStringFromPool(constantInfoPool, (const size_t) attributeNameIndex);
-        const auto attrIter = ATTRIBUTE_NAME_TAG_MAP.find(attributeName);
-        if (attrIter == ATTRIBUTE_NAME_TAG_MAP.end()) {
+        const auto attrPtr = ATTRIBUTE_NAME_TAG_MAP.try_get(attributeName);
+        if (attrPtr == nullptr) {
             //not found, not implement
             //return std::make_unique<SkipAttribute>(is); 
-            panic("not implement attribute " + attributeName);
+            panic(cformat("not implement attribute {}", attributeName));
         }
-        const auto tagEnum = attrIter->second;
+        const auto tagEnum = *attrPtr;
         switch (tagEnum) {
             case AttributeTagEnum::CONSTANT_VALUE:
                 return std::make_unique<ConstantValueAttribute>(is);
@@ -142,7 +142,7 @@ namespace RexVM {
     ) {
         for (auto &attribute: attributes) {
             const auto attributeName =
-                    getConstantStringFromPool(constantPool, (const size_t) attribute->attributeNameIndex);
+                    getConstantStringFromPool(constantPool, CAST_SIZE_T(attribute->attributeNameIndex));
             const auto currentTagEnum = ATTRIBUTE_NAME_TAG_MAP.at(attributeName);
             if (tagEnum == currentTagEnum) {
                 return attribute.get();

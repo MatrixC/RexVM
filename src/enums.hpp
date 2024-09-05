@@ -96,6 +96,11 @@ namespace RexVM {
         TERMINATED = 0x0002,
     };
 
+    enum class NameDescriptorIdentifierType : u1 {
+        CLASS,
+        CLASS_MEMBER,
+    };
+
 }
 
 #endif

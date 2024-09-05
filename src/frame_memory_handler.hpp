@@ -3,6 +3,7 @@
 #include "config.hpp"
 #include "basic_type.hpp"
 #include "basic_java_class.hpp"
+#include <hash_table8.hpp>
 
 namespace RexVM {
 
@@ -24,10 +25,24 @@ namespace RexVM {
     struct StringPool;
     struct ClassLoader;
     struct VMThread;
+    struct ClassMember;
+    struct Field;
+    struct Method;
+
+    struct ExecuteVirutalMethodCache {
+        explicit ExecuteVirutalMethodCache() {
+        }
+        Method *mhMethod;
+        cview methodName;
+        cview methodDescriptor;
+        u2 mhMethodPopSize;
+        u2 paramSlotSize;
+    };
 
     struct FrameMemoryHandler {
-        explicit FrameMemoryHandler(const Frame &frame);
+        explicit FrameMemoryHandler(Frame &frame);
 
+        Frame &frame;
         VMThread &vmThread;
         OopManager &oopManager;
         StringPool &stringPool;
@@ -55,16 +70,29 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *newLongOop(i8 value);
         [[nodiscard]] InstanceOop *newDoubleOop(f8 value);
 
-        [[nodiscard]] InstanceOop *getInternString(const cstring &str);
+        [[nodiscard]] InstanceOop *getInternString(cview str);
 
-        [[nodiscard]] Class *getClass(const cstring &name);
-        [[nodiscard]] InstanceClass *getInstanceClass(const cstring &name);
-        [[nodiscard]] ArrayClass *getArrayClass(const cstring &name);
         [[nodiscard]] TypeArrayClass *getTypeArrayClass(BasicType type);
-        [[nodiscard]] ObjArrayClass *getObjectArrayClass(const cstring &name);
+        [[nodiscard]] ObjArrayClass *getObjectArrayClass(const Class &klass);
         [[nodiscard]] InstanceClass *loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous);
         [[nodiscard]] InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
 
+        [[nodiscard]] Class *getClass(cview name);
+        [[nodiscard]] InstanceClass *getInstanceClass(cview name);
+        [[nodiscard]] ArrayClass *getArrayClass(cview name);
+
+
+        //execute cache
+
+        emhash8::HashMap<u8, voidPtr> executeClassMemberCache{64};
+        std::vector<std::unique_ptr<ExecuteVirutalMethodCache>> cacheVector{};
+
+        [[nodiscard]] Field *getRefField(u2 index, bool isStatic);
+        [[nodiscard]] Method *getRefMethod(u2 index, bool isStatic);
+        [[nodiscard]] Class *getRefClass(u2 index);
+        
+        [[nodiscard]] ExecuteVirutalMethodCache *resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle);
+        [[nodiscard]] Method *linkVirtualMethod(u2 index, ExecuteVirutalMethodCache *cache, InstanceClass *instanceClass);
 
     };
 

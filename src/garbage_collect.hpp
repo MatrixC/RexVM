@@ -8,8 +8,8 @@
 #include <atomic>
 #include <chrono>
 #include <deque>
-#include <unordered_map>
 #include <condition_variable>
+#include <hash_table8.hpp>
 
 namespace RexVM {
 
@@ -41,11 +41,15 @@ namespace RexVM {
         std::deque<InstanceOop *> oopDeque;
         VMThread *finalizeThread{nullptr};
 
+        void initFinalizeThread(VMThread *mainThread);
         void add(InstanceOop *oop);
+
+    private:
+        
         void runOopFinalize(InstanceOop *oop) const;
         bool runOneOop();
         void runnerMethod();
-        void initFinalizeThread(VMThread *mainThread);
+        
 
     };
 
@@ -90,16 +94,23 @@ namespace RexVM {
         size_t collectSuccessCount{0};
 
         bool enableLog{true};
-        bool enableGC{true};
+        bool enableGC{false};
 
         Class *stringClass{nullptr};
 
         void checkStopForCollect(VMThread &thread);
+        void start();
+        void join();
+        void notify();
+        void collectAll();
+
+    private:
+        
         bool checkTerminationCollect();
         bool stopTheWorld();
         void startTheWorld();
         void run();
-        void notify();
+        
 
         void getClassStaticRef(std::vector<ref> &gcRoots) const;
         void getThreadRef(std::vector<ref> &gcRoots) const;
@@ -116,15 +127,12 @@ namespace RexVM {
         void processCollect(GarbageCollectContext &context);
         void collectOopHolder(OopHolder &holder, GarbageCollectContext &context);
         void deleteOop(ref oop);
-        void collectAll();
-
-        void start();
-        void join();
+        
     };
 
 #ifdef DEBUG
-    extern std::unordered_map<ref, cstring> collectedOopDesc;
-    cstring getCollectedOopDesc(ref oop);
+    extern emhash8::HashMap<ref, cview> collectedOopDesc;
+    cview getCollectedOopDesc(ref oop);
 #endif
 
 
