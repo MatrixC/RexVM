@@ -903,9 +903,9 @@ namespace RexVM {
         }
 
         void tableswitch(Frame &frame) {
-            while (frame.nextPc() % 4 != 0) {
-                frame.reader.readU1();
-	        }
+            if (const auto mod = frame.nextPc() % 4; mod != 0) {
+                frame.reader.skip(4 - mod);
+            }
             const auto defaultOffset = frame.reader.readI4();
 	        const auto low = frame.reader.readI4();
 	        const auto high = frame.reader.readI4();
@@ -927,9 +927,9 @@ namespace RexVM {
         }
 
         void lookupswitch(Frame &frame) {
-            while (frame.nextPc() % 4 != 0) {
-                frame.reader.readU1();
-	        }
+            if (const auto mod = frame.nextPc() % 4; mod != 0) {
+                frame.reader.skip(4 - mod);
+            }
             const auto defaultOffset = frame.reader.readI4();
 	        const auto npairs = frame.reader.readI4();
             const auto count = npairs * 2;

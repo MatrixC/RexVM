@@ -29,13 +29,21 @@ target("rex")
     )
     add_files(
         "src/*.cpp",
+        "src/jit/*.cpp",
         "src/utils/*.cpp",
         "src/native/*.cpp",
         "src/native/core/*.cpp",
         "src/native/misc/*.cpp",
         "src/native/sun/*.cpp",
         "src/native/rex/*.cpp",
+    
 
         "third_party/miniz/miniz.c"
     )
+
+    -- llvm
+    add_includedirs("/opt/homebrew/Cellar/llvm/18.1.6/include")
+    add_linkdirs("/opt/homebrew/Cellar/llvm/18.1.6/lib")
+    add_links("LLVM-18")
+
 target_end()

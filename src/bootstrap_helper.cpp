@@ -29,12 +29,16 @@ namespace RexVM {
             vm.garbageCollector->finalizeRunner.initFinalizeThread(vm.mainThread.get());
         };
 
+        //0是 initializeSystemClass
+        //1是 finalize
+        //2是 main
+
         mainThread->addMethod(initializeSystemClassMethod, {});
         mainThread->addMethod(initFinalizeThread);
         return true;
     }
 
-    bool initVMMainMethod(VM &vm) {
+    bool initVMMainMethod(const VM &vm) {
         const auto &userParams = vm.params.userParams;
         const auto mainThread = vm.mainThread.get();
 

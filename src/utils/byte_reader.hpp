@@ -10,6 +10,7 @@ namespace RexVM {
         u1 *ptr{nullptr};
         size_t length{0};
         i4 cycleOffset{0};
+        u1 *codeEnd{nullptr};
 
         explicit ByteReader();
         
@@ -18,6 +19,7 @@ namespace RexVM {
         [[nodiscard]] bool eof() const;
 
         [[nodiscard]] u1 peek() const;
+        void skip(u2 n);
         u1 readU1();
         i1 readI1();
         u2 readU2();
@@ -26,8 +28,6 @@ namespace RexVM {
         void resetCurrentOffset();
         void relativeOffset(i4 offset);
         void gotoOffset(i4 offset);
-
-        [[nodiscard]] u4 pc() const;
 
     };
 }

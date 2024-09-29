@@ -33,8 +33,8 @@ int parseArgs(int argc, char *argv[], RexVM::ApplicationParameter &applicationPa
 int main(int argc, char *argv[]) {
     RexVM::ApplicationParameter applicationParameter;
     if (parseArgs(argc, argv, applicationParameter) == 0) {
-        RexVM::vmMain(applicationParameter);
+        vmMain(applicationParameter);
     }
-
+    
     return 0;
 }

@@ -2,6 +2,7 @@
 #define OPCODE_HPP
 
 #include "config.hpp"
+#include <memory>
 
 namespace RexVM {
     enum class OpCodeEnum : u1 {
@@ -298,15 +299,9 @@ namespace RexVM {
 
         I2B = 145,
 
-        INT2BYTE = 145, // Old notation
-
         I2C = 146,
 
-        INT2CHAR = 146, // Old notation
-
         I2S = 147,
-
-        INT2SHORT = 147, // Old notation
 
         LCMP = 148,
 
@@ -473,6 +468,12 @@ namespace RexVM {
         IMPDEP1 = 254,
 
         IMPDEP2 = 255,
+    };
+
+    struct Instruction {
+        OpCodeEnum opcode;
+        u1 paramsCount{};
+        std::unique_ptr<i4[]> params;
     };
 }
 

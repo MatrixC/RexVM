@@ -79,7 +79,7 @@ namespace RexVM {
 
     void VMThread::run() {
         const auto threadName = getName();
-        setThreadName(threadName.c_str());
+        setThreadName(threadName);
 
         setStatus(ThreadStatusEnum::RUNNABLE);
         for (const auto &item: runMethods) {

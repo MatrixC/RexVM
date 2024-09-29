@@ -115,6 +115,7 @@ namespace RexVM {
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
         NativeMethodHandler nativeMethodHandler{};
+        CompiledMethodHandler compiledMethodHandler{};
 
         explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index = 0);
 

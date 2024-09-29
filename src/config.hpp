@@ -40,8 +40,8 @@ namespace RexVM {
     using ustring = std::u16string;
 
     union Slot {
-        i4 i4Val{0};
-        i8 i8Val;
+        i4 i4Val;
+        i8 i8Val{0};
         f4 f4Val;
         f8 f8Val;
         ref refVal;
@@ -108,6 +108,7 @@ namespace RexVM {
     struct Frame;
     struct VMThread;
     using MethodHandler = void (*)(Frame &frame);
+    using CompiledMethodHandler = void (*)(void *frame, void *lvt, void *lvtType);
     using NativeMethodHandler = MethodHandler;
 //    using VMTheadNativeHandler = void (*)(VMThread *thread);
     using VMTheadNativeHandler = std::function<void()>;

@@ -3,12 +3,8 @@
 
 #include <memory>
 #include <vector>
-#include <mutex>
-#include <thread>
-#include <deque>
 #include <chrono>
 #include "config.hpp"
-#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 
@@ -21,6 +17,7 @@ namespace RexVM {
     struct Method;
     struct GarbageCollect;
     struct ThreadManager;
+    class LLVMJITManager;
 
     struct ApplicationParameter {
         cstring userClassPath;
@@ -36,11 +33,12 @@ namespace RexVM {
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
         std::unique_ptr<GarbageCollect> garbageCollector;
         std::unique_ptr<VMThread> mainThread;
+        std::unique_ptr<LLVMJITManager> jitManager;
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
         cstring javaHome{};
         cstring javaClassPath{};
         bool exit{false};
-        
+
         explicit VM(ApplicationParameter &params);
 
         void start();
@@ -49,7 +47,7 @@ namespace RexVM {
         bool initVM();
         void runMainMethod() const;
         void joinThreads();
-        void exitVM();
+        void exitVM() const;
     };
 
     void vmMain(ApplicationParameter &param);

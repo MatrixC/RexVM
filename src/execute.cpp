@@ -14,6 +14,7 @@
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
 #include "garbage_collect.hpp"
+#include "jit/llvm_jit_manager.hpp"
 
 namespace RexVM {
 
@@ -70,6 +71,7 @@ namespace RexVM {
         const auto previous = frame.previous;
         if (previous == nullptr) {
             panic("checkAndPassReturnValue error: previous is nullptr");
+            return;
         }
         const auto returnValue = frame.returnValue;
         switch (frame.returnType) {
@@ -99,15 +101,42 @@ namespace RexVM {
         }
     }
 
+    void checkMethodCompile(const Frame &frame, Method &method) {
+        if (const auto methodName = method.getName(); !startWith(methodName, "jicc")) {
+            return;
+        }
+        if (method.compiledMethodHandler == nullptr) {
+            const auto jitManager = frame.vm.jitManager.get();
+            if (jitManager != nullptr) {
+                jitManager->compileMethod(method);
+            }
+        }
+    }
+
     void executeFrame(Frame &frame, [[maybe_unused]] cview methodName) {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
+        checkMethodCompile(frame ,method);
 
         frame.vm.garbageCollector->checkStopForCollect(frame.thread);
 
         if (notNativeMethod) [[likely]] {
+            if (method.compiledMethodHandler != nullptr) {
+                method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType);
+                cprintln("jit run: {}", method.getName());
+                if (frame.markThrow && handleThrowValue(frame)) {
+                    return;
+                }
+                if (frame.markReturn) {
+                    checkAndPassReturnValue(frame);
+                    return;
+                }
+                frame.reader.resetCurrentOffset();
+                return;
+            }
+
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
                 frame.currentByteCode = frame.reader.readU1();

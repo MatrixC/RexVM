@@ -1,12 +1,7 @@
 #include "vm.hpp"
-#include <atomic>
 #include <filesystem>
-#include <utility>
 #include "basic_java_class.hpp"
 #include "utils/class_path.hpp"
-#include "utils/class_utils.hpp"
-#include "utils/string_utils.hpp"
-#include "class.hpp"
 #include "class_member.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"
@@ -15,6 +10,8 @@
 #include "file_system.hpp"
 #include "garbage_collect.hpp"
 #include "bootstrap_helper.hpp"
+#include "jit/jit_manager.hpp"
+#include "jit/llvm_jit_manager.hpp"
 
 
 namespace RexVM {
@@ -53,6 +50,8 @@ namespace RexVM {
         mainThread->setThreadName("main"); //like openjdk
         garbageCollector->start();
 
+        jitManager = std::make_unique<LLVMJITManager>(*this);
+
         if (!initVMBootstrapMethods(*this)) {
             return false;
         }
@@ -71,7 +70,7 @@ namespace RexVM {
         exit = true;
     }
 
-    void VM::exitVM() {
+    void VM::exitVM() const {
         garbageCollector->notify();
         garbageCollector->join();
         stringPool->clear();
@@ -87,6 +86,8 @@ namespace RexVM {
         joinThreads();
         exitVM();
     }
+
+
 
     void vmMain(ApplicationParameter &param) {
         VM vm(param);

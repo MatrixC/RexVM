@@ -142,7 +142,8 @@ namespace RexVM {
     }
 
     u4 Frame::nextPc() const {
-        return CAST_U4(reader.ptr - method.code.get());
+        //return CAST_U4(reader.ptr - method.code.get());
+        return CAST_U4(reader.ptr - reader.begin);
     }
 
     void Frame::pushRef(ref ref) {
