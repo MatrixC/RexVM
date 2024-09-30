@@ -5,7 +5,7 @@
 namespace RexVM {
     using namespace llvm;
 
-    LLVMHelpFunction::LLVMHelpFunction(llvm::Module &module) {
+    LLVMHelpFunction::LLVMHelpFunction(Module &module) {
         auto &context = module.getContext();
         const auto voidTy = Type::getVoidTy(context);
         const auto int8Ty = Type::getInt8Ty(context);
@@ -109,4 +109,65 @@ namespace RexVM {
     Value *LLVMHelpFunction::createCallArrayLoadObj(IRBuilder<> &irBuilder, Value *arrayRef, Value *index) const {
         return irBuilder.CreateCall(arrayLoadObj, {arrayRef, index});
     }
+
+    void LLVMHelpFunction::createCallArrayStoreI4(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value, const uint8_t type) const {
+        irBuilder.CreateCall(arrayStoreI4, {arrayRef, irBuilder.getInt8(type), index, value}); 
+    }
+
+    void LLVMHelpFunction::createCallArrayStoreI8(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value) const {
+        irBuilder.CreateCall(arrayStoreI8, {arrayRef, index, value}); 
+    }
+
+    void LLVMHelpFunction::createCallArrayStoreF4(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value) const {
+        irBuilder.CreateCall(arrayStoreF4, {arrayRef, index, value}); 
+    }
+
+    void LLVMHelpFunction::createCallArrayStoreF8(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value) const {
+        irBuilder.CreateCall(arrayStoreF8, {arrayRef, index, value}); 
+    }
+
+    void LLVMHelpFunction::createCallArrayStoreObj(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value) const {
+        irBuilder.CreateCall(arrayStoreObj, {arrayRef, index, value}); 
+    }
+
+    void LLVMHelpFunction::createCallReturnI4(IRBuilder<> &irBuilder, Value *framePtr, Value *value) const {
+        irBuilder.CreateCall(returnI4, {framePtr, value});
+    }
+
+    void LLVMHelpFunction::createCallReturnI8(IRBuilder<> &irBuilder, Value *framePtr, Value *value) const {
+        irBuilder.CreateCall(returnI8, {framePtr, value});
+    }
+
+    void LLVMHelpFunction::createCallReturnF4(IRBuilder<> &irBuilder, Value *framePtr, Value *value) const {
+        irBuilder.CreateCall(returnF4, {framePtr, value});
+    }
+
+    void LLVMHelpFunction::createCallReturnF8(IRBuilder<> &irBuilder, Value *framePtr, Value *value) const {
+        irBuilder.CreateCall(returnF8, {framePtr, value});
+    }
+
+    void LLVMHelpFunction::createCallReturnObj(IRBuilder<> &irBuilder, Value *framePtr, Value *value) const {
+        irBuilder.CreateCall(returnObj, {framePtr, value});
+    }
+
+    void LLVMHelpFunction::createCallReturnVoid(IRBuilder<> &irBuilder, Value *framePtr) const {
+        irBuilder.CreateCall(returnVoid, {framePtr});
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
 }

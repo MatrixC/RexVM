@@ -50,7 +50,7 @@ namespace RexVM {
         mainThread->setThreadName("main"); //like openjdk
         garbageCollector->start();
 
-        jitManager = std::make_unique<LLVMJITManager>(*this);
+        jitManager = std::make_unique<LLVM_JITManager>(*this);
 
         if (!initVMBootstrapMethods(*this)) {
             return false;

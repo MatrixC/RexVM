@@ -1,12 +1,10 @@
 #ifndef GARBAGE_COLLECT_HPP
 #define GARBAGE_COLLECT_HPP
 #include "config.hpp"
-#include <memory>
 #include <mutex>
 #include <vector>
 #include <thread>
 #include <atomic>
-#include <chrono>
 #include <deque>
 #include <condition_variable>
 #include <hash_table8.hpp>
@@ -59,7 +57,7 @@ namespace RexVM {
         i8 traceOopEndTime{};
         i8 endTime{};
 
-        explicit GarbageCollectContext(VM &vm);
+        explicit GarbageCollectContext(const VM &vm);
 
         size_t tempAllocatedOopCount{0};
         size_t tempAllocatedOopMemory{0};
@@ -69,8 +67,8 @@ namespace RexVM {
         void endGetRoots();
         void endTraceOop();
 
-        void collectFinish(VM &vm);
-        void printLog(VM &vm) const;
+        void collectFinish(const VM &vm);
+        void printLog(const VM &vm) const;
     };
 
     struct GarbageCollect {
@@ -106,7 +104,7 @@ namespace RexVM {
 
     private:
         
-        bool checkTerminationCollect();
+        [[nodiscard]] bool checkTerminationCollect() const;
         bool stopTheWorld();
         void startTheWorld();
         void run();
@@ -114,19 +112,20 @@ namespace RexVM {
 
         void getClassStaticRef(std::vector<ref> &gcRoots) const;
         void getThreadRef(std::vector<ref> &gcRoots) const;
-        std::vector<ref> getGarbageCollectRoots() const;
-        std::vector<OopHolder *> getHolders() const;
+        [[nodiscard]] std::vector<ref> getGarbageCollectRoots() const;
+        [[nodiscard]] std::vector<OopHolder *> getHolders() const;
 
         void process();
 
         void processTrace(GarbageCollectContext &context);
         void traceMarkOop(ref oop) const;
-        void traceMarkInstanceOopChild(InstanceOop *oop) const;
-        void traceMarkObjArrayOopChild(ObjArrayOop * oop) const;
+        void traceMarkInstanceOopChild(const InstanceOop *oop) const;
+        void traceMarkObjArrayOopChild(const ObjArrayOop * oop) const;
 
-        void processCollect(GarbageCollectContext &context);
-        void collectOopHolder(OopHolder &holder, GarbageCollectContext &context);
-        void deleteOop(ref oop);
+        void processCollect(GarbageCollectContext &context) const;
+        void collectOopHolder(OopHolder &holder, GarbageCollectContext &context) const;
+
+        static void deleteOop(ref oop);
         
     };
 

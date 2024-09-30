@@ -2,25 +2,24 @@
 #include "exception.hpp"
 
 namespace RexVM {
+    constexpr cview PRIMITIVE_VOID_CLASS_NAME = "void";
+    constexpr cview PRIMITIVE_BOOLEAN_CLASS_NAME = "boolean";
+    constexpr cview PRIMITIVE_BYTE_CLASS_NAME = "byte";
+    constexpr cview PRIMITIVE_SHORT_CLASS_NAME = "short";
+    constexpr cview PRIMITIVE_INT_CLASS_NAME = "int";
+    constexpr cview PRIMITIVE_LONG_CLASS_NAME = "long";
+    constexpr cview PRIMITIVE_CHAR_CLASS_NAME = "char";
+    constexpr cview PRIMITIVE_FLOAT_CLASS_NAME = "float";
+    constexpr cview PRIMITIVE_DOUBLE_CLASS_NAME = "double";
 
-    const cview PRIMITIVE_VOID_CLASS_NAME = "void";
-    const cview PRIMITIVE_BOOLEAN_CLASS_NAME = "boolean";
-    const cview PRIMITIVE_BYTE_CLASS_NAME = "byte";
-    const cview PRIMITIVE_SHORT_CLASS_NAME = "short";
-    const cview PRIMITIVE_INT_CLASS_NAME = "int";
-    const cview PRIMITIVE_LONG_CLASS_NAME = "long";
-    const cview PRIMITIVE_CHAR_CLASS_NAME = "char";
-    const cview PRIMITIVE_FLOAT_CLASS_NAME = "float";
-    const cview PRIMITIVE_DOUBLE_CLASS_NAME = "double";
-
-    const cview PRIMITIVE_BOOLEAN_ARRAY_CLASS_NAME = "[Z";
-    const cview PRIMITIVE_BYTE_ARRAY_CLASS_NAME = "[B";
-    const cview PRIMITIVE_SHORT_ARRAY_CLASS_NAME = "[S";
-    const cview PRIMITIVE_INT_ARRAY_CLASS_NAME = "[I";
-    const cview PRIMITIVE_LONG_ARRAY_CLASS_NAME = "[J";
-    const cview PRIMITIVE_CHAR_ARRAY_CLASS_NAME = "[C";
-    const cview PRIMITIVE_FLOAT_ARRAY_CLASS_NAME = "[F";
-    const cview PRIMITIVE_DOUBLE_ARRAY_CLASS_NAME = "[D";
+    constexpr cview PRIMITIVE_BOOLEAN_ARRAY_CLASS_NAME = "[Z";
+    constexpr cview PRIMITIVE_BYTE_ARRAY_CLASS_NAME = "[B";
+    constexpr cview PRIMITIVE_SHORT_ARRAY_CLASS_NAME = "[S";
+    constexpr cview PRIMITIVE_INT_ARRAY_CLASS_NAME = "[I";
+    constexpr cview PRIMITIVE_LONG_ARRAY_CLASS_NAME = "[J";
+    constexpr cview PRIMITIVE_CHAR_ARRAY_CLASS_NAME = "[C";
+    constexpr cview PRIMITIVE_FLOAT_ARRAY_CLASS_NAME = "[F";
+    constexpr cview PRIMITIVE_DOUBLE_ARRAY_CLASS_NAME = "[D";
     
 
     cchar getDescriptorByPrimitiveClassName(cview className) {

@@ -27,7 +27,7 @@ namespace RexVM {
     using i8 = std::int64_t;
     using f4 = float;
     using f8 = double;
-    using voidPtr = void *;
+    using voidPtr = void * const;
     using ref = Oop *;
     using size_t = std::size_t;
     //using cchar = char8_t;

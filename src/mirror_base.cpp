@@ -8,13 +8,13 @@
 
 namespace RexVM {
 
-    MirOop *MirrorBase::getBaseMirror(Frame *frame, MirrorObjectTypeEnum type, voidPtr mirrorObj, SpinLock &lock, bool init) {
+    MirOop *MirrorBase::getBaseMirror(Frame *frame, const MirrorObjectTypeEnum type, const voidPtr mirrorObj, SpinLock &lock, const bool init) {
         if (mirOop == nullptr) [[unlikely]] {
             if (!init) [[unlikely]] {
                 return nullptr;
             }
             {
-                std::lock_guard<SpinLock> guard(lock);
+                std::lock_guard guard(lock);
                 if (mirOop == nullptr && frame != nullptr) {
                     mirOop = frame->mem.newMirror(nullptr, mirrorObj, type);
                     switch (type) {

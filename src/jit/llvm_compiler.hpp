@@ -24,7 +24,6 @@ namespace RexVM {
         );
 
         void initBasicBlock();
-        void initHelpFunction();
         void changeBB(llvm::BasicBlock *nextBasicBlock);
 
         Method &method;
@@ -42,19 +41,6 @@ namespace RexVM {
         llvm::BasicBlock *currentBB{};
         std::map<u4, llvm::BasicBlock *> opCodeBlocks;
         std::stack<llvm::Value *> valueStack;
-
-        llvm::FunctionCallee arrayStoreI4{};
-        llvm::FunctionCallee arrayStoreI8{};
-        llvm::FunctionCallee arrayStoreF4{};
-        llvm::FunctionCallee arrayStoreF8{};
-        llvm::FunctionCallee arrayStoreObj{};
-
-        llvm::FunctionCallee returnI4{};
-        llvm::FunctionCallee returnI8{};
-        llvm::FunctionCallee returnF4{};
-        llvm::FunctionCallee returnF8{};
-        llvm::FunctionCallee returnObj{};
-        llvm::FunctionCallee returnVoid{};
 
         llvm::Type *slotTypeMap(SlotTypeEnum slotType);
 

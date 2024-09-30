@@ -40,6 +40,20 @@ namespace RexVM {
         llvm::Value *createCallArrayLoadF4(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index) const;
         llvm::Value *createCallArrayLoadF8(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index) const;
         llvm::Value *createCallArrayLoadObj(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index) const;
+
+        void createCallArrayStoreI4(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, uint8_t type) const;
+        void createCallArrayStoreI8(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value) const;
+        void createCallArrayStoreF4(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value) const;
+        void createCallArrayStoreF8(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value) const;
+        void createCallArrayStoreObj(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value) const;
+
+        void createCallReturnI4(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value) const;
+        void createCallReturnI8(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value) const;
+        void createCallReturnF4(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value) const;
+        void createCallReturnF8(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value) const;
+        void createCallReturnObj(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value) const;
+        void createCallReturnVoid(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr) const;
+
     };
 
 }

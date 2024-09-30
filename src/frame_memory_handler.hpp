@@ -1,7 +1,6 @@
 #ifndef FRAME_MEMORY_HANDLER_HPP
 #define FRAME_MEMORY_HANDLER_HPP
 #include "config.hpp"
-#include "basic_type.hpp"
 #include "basic_java_class.hpp"
 #include <hash_table8.hpp>
 
@@ -47,38 +46,38 @@ namespace RexVM {
         StringPool &stringPool;
         ClassLoader &classLoader;
 
-        [[nodiscard]] InstanceOop *newInstance(InstanceClass * klass);
-        [[nodiscard]] MirOop *newMirror(InstanceClass * klass, voidPtr mirror, MirrorObjectTypeEnum type);
-        [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * klass, size_t length);
+        [[nodiscard]] InstanceOop *newInstance(InstanceClass * klass) const;
+        [[nodiscard]] MirOop *newMirror(InstanceClass * klass, voidPtr mirror, MirrorObjectTypeEnum type) const;
+        [[nodiscard]] ObjArrayOop *newObjArrayOop(ObjArrayClass * klass, size_t length) const;
 
-        [[nodiscard]] ObjArrayOop *newObjectObjArrayOop(size_t length);
-        [[nodiscard]] ObjArrayOop *newClassObjArrayOop(size_t length);
-        [[nodiscard]] ObjArrayOop *newStringObjArrayOop(size_t length);
+        [[nodiscard]] ObjArrayOop *newObjectObjArrayOop(size_t length) const;
+        [[nodiscard]] ObjArrayOop *newClassObjArrayOop(size_t length) const;
+        [[nodiscard]] ObjArrayOop *newStringObjArrayOop(size_t length) const;
 
-        [[nodiscard]] TypeArrayOop *newTypeArrayOop(BasicType type, size_t length);
-        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length);
-        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer);
-        [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length);
+        [[nodiscard]] TypeArrayOop *newTypeArrayOop(BasicType type, size_t length) const;
+        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length) const;
+        [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer) const;
+        [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length) const;
 
-        [[nodiscard]] InstanceOop *newBooleanOop(i4 value);
-        [[nodiscard]] InstanceOop *newByteOop(i4 value);
-        [[nodiscard]] InstanceOop *newCharOop(i4 value);
-        [[nodiscard]] InstanceOop *newShortOop(i4 value);
-        [[nodiscard]] InstanceOop *newIntegerOop(i4 value);
-        [[nodiscard]] InstanceOop *newFloatOop(f4 value);
-        [[nodiscard]] InstanceOop *newLongOop(i8 value);
-        [[nodiscard]] InstanceOop *newDoubleOop(f8 value);
+        [[nodiscard]] InstanceOop *newBooleanOop(i4 value) const;
+        [[nodiscard]] InstanceOop *newByteOop(i4 value) const;
+        [[nodiscard]] InstanceOop *newCharOop(i4 value) const;
+        [[nodiscard]] InstanceOop *newShortOop(i4 value) const;
+        [[nodiscard]] InstanceOop *newIntegerOop(i4 value) const;
+        [[nodiscard]] InstanceOop *newFloatOop(f4 value) const;
+        [[nodiscard]] InstanceOop *newLongOop(i8 value) const;
+        [[nodiscard]] InstanceOop *newDoubleOop(f8 value) const;
 
-        [[nodiscard]] InstanceOop *getInternString(cview str);
+        [[nodiscard]] InstanceOop *getInternString(cview str) const;
 
-        [[nodiscard]] TypeArrayClass *getTypeArrayClass(BasicType type);
-        [[nodiscard]] ObjArrayClass *getObjectArrayClass(const Class &klass);
-        [[nodiscard]] InstanceClass *loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous);
+        [[nodiscard]] TypeArrayClass *getTypeArrayClass(BasicType type) const;
+        [[nodiscard]] ObjArrayClass *getObjectArrayClass(const Class &klass) const;
+        [[nodiscard]] InstanceClass *loadInstanceClass(const u1 *ptr, size_t length, bool notAnonymous) const;
         [[nodiscard]] InstanceClass *getBasicJavaClass(BasicJavaClassEnum classEnum) const;
 
-        [[nodiscard]] Class *getClass(cview name);
-        [[nodiscard]] InstanceClass *getInstanceClass(cview name);
-        [[nodiscard]] ArrayClass *getArrayClass(cview name);
+        [[nodiscard]] Class *getClass(cview name) const;
+        [[nodiscard]] InstanceClass *getInstanceClass(cview name) const;
+        [[nodiscard]] ArrayClass *getArrayClass(cview name) const;
 
 
         //execute cache
@@ -91,7 +90,7 @@ namespace RexVM {
         [[nodiscard]] Class *getRefClass(u2 index);
         
         [[nodiscard]] ExecuteVirtualMethodCache *resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle);
-        [[nodiscard]] Method *linkVirtualMethod(u2 index, ExecuteVirtualMethodCache *cache, InstanceClass *instanceClass);
+        [[nodiscard]] Method *linkVirtualMethod(u2 index, const ExecuteVirtualMethodCache *cache, InstanceClass *instanceClass);
 
     };
 

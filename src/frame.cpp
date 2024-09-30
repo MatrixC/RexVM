@@ -3,7 +3,6 @@
 #include "constant_info.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
-#include "class_loader.hpp"
 #include "oop.hpp"
 #include "thread.hpp"
 #include "vm.hpp"
@@ -384,7 +383,7 @@ namespace RexVM {
         }
     }
 
-    void Frame::printCallStack() {
+    void Frame::printCallStack() const {
         for (auto f = this; f != nullptr; f = f->previous) {
             const auto nativeMethod = f->method.isNative();
             cprintln("  {}#{} {}", f->klass.toView(), f->method.toView(), nativeMethod ? "[Native]" : "");

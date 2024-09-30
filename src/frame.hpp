@@ -4,7 +4,6 @@
 #include <vector>
 #include <tuple>
 #include "config.hpp"
-#include "basic_type.hpp"
 #include "utils/stack.hpp"
 #include "utils/byte_reader.hpp"
 #include "frame_memory_handler.hpp"
@@ -134,12 +133,13 @@ namespace RexVM {
         [[nodiscard]] InstanceOop *getThisInstance() const;
         void getLocalObjects(std::vector<ref> &result) const;
   
-        void printCallStack();
+        void printCallStack() const;
         void printLocalSlot();
         void printStackSlot();
         void printCollectRoots();
         void printReturn();
-        void printStr(ref oop);
+
+        static void printStr(ref oop);
         void print();
 
     };

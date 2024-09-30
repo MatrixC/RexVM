@@ -40,7 +40,6 @@ namespace RexVM {
         );
 
         initBasicBlock();
-        initHelpFunction();
     }
 
     void MethodCompiler::initBasicBlock() {
@@ -56,65 +55,7 @@ namespace RexVM {
         }
     }
 
-    void MethodCompiler::initHelpFunction() {
-        arrayStoreI4 = module.getOrInsertFunction("llvm_compile_array_store_i4",
-                                                  FunctionType::get(irBuilder.getVoidTy(), {
-                                                                        voidPtrType, irBuilder.getInt8Ty(),
-                                                                        irBuilder.getInt32Ty(), irBuilder.getInt32Ty()
-                                                                    }, false));
-        arrayStoreI8 = module.getOrInsertFunction("llvm_compile_array_store_i8",
-                                                  FunctionType::get(irBuilder.getVoidTy(), {
-                                                                        voidPtrType, irBuilder.getInt32Ty(),
-                                                                        irBuilder.getInt64Ty()
-                                                                    }, false));
-        arrayStoreF4 = module.getOrInsertFunction("llvm_compile_array_store_f4",
-                                                  FunctionType::get(irBuilder.getVoidTy(), {
-                                                                        voidPtrType, irBuilder.getInt32Ty(),
-                                                                        irBuilder.getFloatTy()
-                                                                    }, false));
-        arrayStoreF8 = module.getOrInsertFunction("llvm_compile_array_store_f8",
-                                                  FunctionType::get(irBuilder.getVoidTy(), {
-                                                                        voidPtrType, irBuilder.getInt32Ty(),
-                                                                        irBuilder.getDoubleTy()
-                                                                    }, false));
-        arrayStoreObj = module.getOrInsertFunction("llvm_compile_array_store_obj",
-                                                   FunctionType::get(irBuilder.getVoidTy(), {
-                                                                         voidPtrType, irBuilder.getInt32Ty(),
-                                                                         voidPtrType
-                                                                     }, false));
-
-        returnI4 = module.getOrInsertFunction("llvm_compile_return_i4",
-                                                   FunctionType::get(irBuilder.getVoidTy(), {
-                                                                         voidPtrType, irBuilder.getInt32Ty()
-                                                                     }, false));
-
-        returnI8 = module.getOrInsertFunction("llvm_compile_return_i8",
-                                           FunctionType::get(irBuilder.getVoidTy(), {
-                                                                 voidPtrType, irBuilder.getInt64Ty()
-                                                             }, false));
-
-        returnF4 = module.getOrInsertFunction("llvm_compile_return_f4",
-                                           FunctionType::get(irBuilder.getVoidTy(), {
-                                                                 voidPtrType, irBuilder.getFloatTy()
-                                                             }, false));
-
-        returnF8 = module.getOrInsertFunction("llvm_compile_return_f8",
-                                           FunctionType::get(irBuilder.getVoidTy(), {
-                                                                 voidPtrType, irBuilder.getDoubleTy()
-                                                             }, false));
-
-        returnObj = module.getOrInsertFunction("llvm_compile_return_obj",
-                                           FunctionType::get(irBuilder.getVoidTy(), {
-                                                                 voidPtrType, voidPtrType
-                                                             }, false));
-
-        returnVoid = module.getOrInsertFunction("llvm_compile_return_void",
-                                           FunctionType::get(irBuilder.getVoidTy(), {
-                                                                 voidPtrType
-                                                             }, false));
-    }
-
-    void MethodCompiler::changeBB(llvm::BasicBlock *nextBasicBlock) {
+    void MethodCompiler::changeBB(BasicBlock *nextBasicBlock) {
         if (currentBB != nullptr) {
             if (const auto &lastInstr = currentBB->back(); !lastInstr.isTerminator()) {
                 irBuilder.CreateBr(nextBasicBlock);
@@ -378,23 +319,23 @@ namespace RexVM {
             case LLVM_COMPILER_BYTE_ARRAY_TYPE:
             case LLVM_COMPILER_CHAR_ARRAY_TYPE:
             case LLVM_COMPILER_SHORT_ARRAY_TYPE:
-                irBuilder.CreateCall(arrayStoreI4, {arrayRef, irBuilder.getInt8(type), index, value});
+                helpFunction->createCallArrayStoreI4(irBuilder, arrayRef, index, value, type);
                 break;
 
             case LLVM_COMPILER_LONG_ARRAY_TYPE:
-                irBuilder.CreateCall(arrayStoreI8, {arrayRef, index, value});
+                helpFunction->createCallArrayStoreI8(irBuilder, arrayRef, index, value);
                 break;
 
             case LLVM_COMPILER_FLOAT_ARRAY_TYPE:
-                irBuilder.CreateCall(arrayStoreF4, {arrayRef, index, value});
+                helpFunction->createCallArrayStoreF4(irBuilder, arrayRef, index, value);
                 break;
 
             case LLVM_COMPILER_DOUBLE_ARRAY_TYPE:
-                irBuilder.CreateCall(arrayStoreF8, {arrayRef, index, value});
+                helpFunction->createCallArrayStoreF8(irBuilder, arrayRef, index, value);
                 break;
 
             case LLVM_COMPILER_OBJ_ARRAY_TYPE:
-                irBuilder.CreateCall(arrayStoreObj, {arrayRef, index, value});
+                helpFunction->createCallArrayStoreObj(irBuilder, arrayRef, index, value);
                 break;
 
             default:
@@ -1318,6 +1259,7 @@ namespace RexVM {
 
                 break;
             }
+
             case OpCodeEnum::LOOKUPSWITCH: {
                 const auto nextPc = CAST_U4(byteReader.ptr - byteReader.begin);
                 if (const auto mod = nextPc % 4; mod != 0) {
@@ -1344,33 +1286,36 @@ namespace RexVM {
 
             case OpCodeEnum::IRETURN: {
                 const auto retVal = popValue();
-                irBuilder.CreateCall(returnI4, {getFramePtr(), retVal});
+                helpFunction->createCallReturnI4(irBuilder, getFramePtr(), retVal);
                 break;
             }
 
             case OpCodeEnum::LRETURN: {
                 const auto retVal = popWideValue();
-                irBuilder.CreateCall(returnI8, {getFramePtr(), retVal});
+                helpFunction->createCallReturnI8(irBuilder, getFramePtr(), retVal);
                 break;
             }
+
             case OpCodeEnum::FRETURN: {
                 const auto retVal = popValue();
-                irBuilder.CreateCall(returnF4, {getFramePtr(), retVal});
+                helpFunction->createCallReturnF4(irBuilder, getFramePtr(), retVal);
                 break;
             }
+
             case OpCodeEnum::DRETURN: {
                 const auto retVal = popWideValue();
-                irBuilder.CreateCall(returnF8, {getFramePtr(), retVal});
+                helpFunction->createCallReturnF8(irBuilder, getFramePtr(), retVal);
                 break;
             }
+
             case OpCodeEnum::ARETURN: {
                 const auto retVal = popValue();
-                irBuilder.CreateCall(returnObj, {getFramePtr(), retVal});
+                helpFunction->createCallReturnObj(irBuilder, getFramePtr(), retVal);
                 break;
             }
 
             case OpCodeEnum::RETURN: {
-                irBuilder.CreateCall(returnVoid, {getFramePtr()});
+                helpFunction->createCallReturnVoid(irBuilder, getFramePtr());
                 break;
             }
 

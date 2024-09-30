@@ -1,7 +1,6 @@
 #include "execute.hpp"
 #include "config.hpp"
 #include "utils/format.hpp"
-#include "utils/class_utils.hpp"
 #include "utils/string_utils.hpp"
 #include "vm.hpp"
 #include "class.hpp"
@@ -63,7 +62,7 @@ namespace RexVM {
         return false;
     }
 
-    void checkAndPassReturnValue(Frame &frame) {
+    void checkAndPassReturnValue(const Frame &frame) {
         if (!frame.existReturnValue) {
             return;
         } 
@@ -214,8 +213,8 @@ namespace RexVM {
         }
 
         if (!params.empty()) {
-            std::copy(method.paramSlotType.cbegin(), method.paramSlotType.cend(), nextFrame.localVariableTableType);
-            std::copy(params.cbegin(), params.cend(), nextFrame.localVariableTable);
+            std::ranges::copy(std::as_const(method.paramSlotType), nextFrame.localVariableTableType);
+            std::ranges::copy(std::as_const(params), nextFrame.localVariableTable);
         }
 
         monitorExecuteFrame(nextFrame);

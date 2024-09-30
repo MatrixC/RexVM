@@ -1,10 +1,8 @@
 #include "frame_memory_handler.hpp"
-#include "basic_type.hpp"
 #include "frame.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
 #include "oop.hpp"
-#include "thread.hpp"
 #include "memory.hpp"
 #include "vm.hpp"
 #include "string_pool.hpp"
@@ -21,107 +19,107 @@ namespace RexVM {
             executeClassMemberCache.reserve(100);
     }
 
-    InstanceOop *FrameMemoryHandler::newInstance(InstanceClass * klass) {
+    InstanceOop *FrameMemoryHandler::newInstance(InstanceClass * klass) const {
         return oopManager.newInstance(&vmThread, klass);
     }
 
-    MirOop *FrameMemoryHandler::newMirror(InstanceClass * klass, voidPtr mirror, MirrorObjectTypeEnum type) {
+    MirOop *FrameMemoryHandler::newMirror(InstanceClass * klass, const voidPtr mirror, const MirrorObjectTypeEnum type) const {
         return oopManager.newMirror(&vmThread, klass, mirror, type);
     }
 
-    ObjArrayOop *FrameMemoryHandler::newObjArrayOop(ObjArrayClass * klass, size_t length) {
+    ObjArrayOop *FrameMemoryHandler::newObjArrayOop(ObjArrayClass * klass, const size_t length) const {
         return oopManager.newObjArrayOop(&vmThread, klass, length);
     }
 
-    ObjArrayOop *FrameMemoryHandler::newObjectObjArrayOop(size_t length) {
+    ObjArrayOop *FrameMemoryHandler::newObjectObjArrayOop(const size_t length) const {
         return oopManager.newObjectObjArrayOop(&vmThread, length);
     }
 
-    ObjArrayOop *FrameMemoryHandler::newClassObjArrayOop(size_t length) {
+    ObjArrayOop *FrameMemoryHandler::newClassObjArrayOop(const size_t length) const {
         return oopManager.newClassObjArrayOop(&vmThread, length);
     }
 
-    ObjArrayOop *FrameMemoryHandler::newStringObjArrayOop(size_t length) {
+    ObjArrayOop *FrameMemoryHandler::newStringObjArrayOop(const size_t length) const {
         return oopManager.newStringObjArrayOop(&vmThread, length);
     }
 
-    TypeArrayOop *FrameMemoryHandler::newTypeArrayOop(BasicType type, size_t length) {
+    TypeArrayOop *FrameMemoryHandler::newTypeArrayOop(const BasicType type, const size_t length) const {
         return oopManager.newTypeArrayOop(&vmThread, type, length);
     }
 
-    ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(size_t length) {
+    ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(const size_t length) const {
         return oopManager.newByteArrayOop(&vmThread, length);
     }
 
-    ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(size_t length, const u1 *initBuffer) {
+    ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(const size_t length, const u1 *initBuffer) const {
         return oopManager.newByteArrayOop(&vmThread, length, initBuffer);
     }
 
-    CharTypeArrayOop *FrameMemoryHandler::newCharArrayOop(size_t length) {
+    CharTypeArrayOop *FrameMemoryHandler::newCharArrayOop(const size_t length) const {
         return oopManager.newCharArrayOop(&vmThread, length);
     }
 
-    InstanceOop *FrameMemoryHandler::newBooleanOop(i4 value) {
+    InstanceOop *FrameMemoryHandler::newBooleanOop(const i4 value) const {
         return oopManager.newBooleanOop(&vmThread, value);
     }
 
-    InstanceOop *FrameMemoryHandler::newByteOop(i4 value) {
+    InstanceOop *FrameMemoryHandler::newByteOop(const i4 value) const {
         return oopManager.newByteOop(&vmThread, value);
     }
 
-    InstanceOop *FrameMemoryHandler::newCharOop(i4 value) {
+    InstanceOop *FrameMemoryHandler::newCharOop(const i4 value) const {
         return oopManager.newCharOop(&vmThread, value);
     }
 
-    InstanceOop *FrameMemoryHandler::newShortOop(i4 value) {
+    InstanceOop *FrameMemoryHandler::newShortOop(const i4 value) const {
         return oopManager.newShortOop(&vmThread, value);
     }
 
-    InstanceOop *FrameMemoryHandler::newIntegerOop(i4 value) {
+    InstanceOop *FrameMemoryHandler::newIntegerOop(const i4 value) const {
         return oopManager.newIntegerOop(&vmThread, value);
     }
 
-    InstanceOop *FrameMemoryHandler::newFloatOop(f4 value) {
+    InstanceOop *FrameMemoryHandler::newFloatOop(const f4 value) const {
         return oopManager.newFloatOop(&vmThread, value);
     }
 
-    InstanceOop *FrameMemoryHandler::newLongOop(i8 value) {
+    InstanceOop *FrameMemoryHandler::newLongOop(const i8 value) const {
         return oopManager.newLongOop(&vmThread, value);
     }
 
-    InstanceOop *FrameMemoryHandler::newDoubleOop(f8 value) {
+    InstanceOop *FrameMemoryHandler::newDoubleOop(const f8 value) const {
         return oopManager.newDoubleOop(&vmThread, value);
     }
 
-    InstanceOop *FrameMemoryHandler::getInternString(cview str) {
+    InstanceOop *FrameMemoryHandler::getInternString(const cview str) const {
         return stringPool.getInternString(&vmThread, str);
     }
 
-    Class *FrameMemoryHandler::getClass(cview name) {
+    Class *FrameMemoryHandler::getClass(const cview name) const {
         return classLoader.getClass(name);
     }
 
-    InstanceClass *FrameMemoryHandler::getInstanceClass(cview name) {
+    InstanceClass *FrameMemoryHandler::getInstanceClass(const cview name) const {
         return classLoader.getInstanceClass(name);
     }
 
-    ArrayClass *FrameMemoryHandler::getArrayClass(cview name) {
+    ArrayClass *FrameMemoryHandler::getArrayClass(const cview name) const {
         return classLoader.getArrayClass(name);
     }
 
-    TypeArrayClass *FrameMemoryHandler::getTypeArrayClass(BasicType type) {
+    TypeArrayClass *FrameMemoryHandler::getTypeArrayClass(const BasicType type) const {
         return classLoader.getTypeArrayClass(type);
     }
     
-    ObjArrayClass *FrameMemoryHandler::getObjectArrayClass(const Class &klass) {
+    ObjArrayClass *FrameMemoryHandler::getObjectArrayClass(const Class &klass) const {
         return classLoader.getObjectArrayClass(klass);
     }
 
-    InstanceClass *FrameMemoryHandler::loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous) {
+    InstanceClass *FrameMemoryHandler::loadInstanceClass(const u1 *ptr, const size_t length, const bool notAnonymous) const {
         return classLoader.loadInstanceClass(ptr, length, notAnonymous);
     }
 
-    InstanceClass *FrameMemoryHandler::getBasicJavaClass(BasicJavaClassEnum classEnum) const {
+    InstanceClass *FrameMemoryHandler::getBasicJavaClass(const BasicJavaClassEnum classEnum) const {
         return classLoader.getBasicJavaClass(classEnum);
     }
 
@@ -130,7 +128,7 @@ namespace RexVM {
         if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
             return CAST_FIELD(*member);
         }
-        auto &klass = frame.klass;
+        const auto &klass = frame.klass;
         const auto fieldRef = klass.getRefField(index, isStatic);
         if (isStatic) {
             fieldRef->klass.clinit(frame);
@@ -139,11 +137,11 @@ namespace RexVM {
         return fieldRef;
     }
 
-    Method *FrameMemoryHandler::getRefMethod(u2 index, bool isStatic) {
+    Method *FrameMemoryHandler::getRefMethod(u2 index, const bool isStatic) {
         if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
             return CAST_METHOD(*member);
         }
-        auto &klass = frame.klass;
+        const auto &klass = frame.klass;
         const auto methodRef = klass.getRefMethod(index, isStatic);
         if (isStatic) {
             methodRef->klass.clinit(frame);
@@ -193,8 +191,8 @@ namespace RexVM {
         return cachePtr;
      }
 
-     Method *FrameMemoryHandler::linkVirtualMethod(u2 index, ExecuteVirtualMethodCache *cache, InstanceClass *instanceClass) {
-        Composite<InstanceClass *, u2> keyComposite(instanceClass, index);
+     Method *FrameMemoryHandler::linkVirtualMethod(const u2 index, const ExecuteVirtualMethodCache *cache, InstanceClass *instanceClass) {
+        const Composite keyComposite(instanceClass, index);
         u8 key = keyComposite.composite;
         if (const auto member = executeClassMemberCache.try_get(key); member != nullptr) {
             return CAST_METHOD(*member);

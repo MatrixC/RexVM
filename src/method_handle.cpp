@@ -7,7 +7,6 @@
 #include "mirror_oop.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
-#include "class_loader.hpp"
 #include "frame.hpp"
 #include "thread.hpp"
 #include "utils/descriptor_parser.hpp"
@@ -15,7 +14,7 @@
 
 namespace RexVM {
 
-    bool isMethodHandleInvoke(cview className, cview memberName) {
+    bool isMethodHandleInvoke(const cview className, const cview memberName) {
         return (className == "java/lang/invoke/MethodHandle" && 
             (memberName == "invoke"
                 || memberName == "invokeBasic"
@@ -59,7 +58,7 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(methodTypeSlot.refVal);
     }
 
-    InstanceOop *createMethodType(Frame &frame, ConstantMethodTypeInfo *methodTypeInfo) {
+    InstanceOop *createMethodType(Frame &frame, const ConstantMethodTypeInfo *methodTypeInfo) {
         const auto &constantPool = frame.klass.constantPool;
         const auto methodDescriptor = getConstantStringFromPool(constantPool, methodTypeInfo->descriptorIndex);
         return createMethodType(frame, methodDescriptor);
@@ -234,7 +233,7 @@ namespace RexVM {
         }
 
         invokeParam.emplace_back(Slot(finalMethodHandleOop), SlotTypeEnum::REF);
-        std::reverse(invokeParam.begin(), invokeParam.end());
+        std::ranges::reverse(invokeParam);
 
         for (const auto &[val, type] : invokeParam) {
             frame.push(val, type);
