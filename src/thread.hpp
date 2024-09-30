@@ -21,9 +21,9 @@ namespace RexVM {
 
     struct VMThreadMethod {
         explicit VMThreadMethod(Method *method, std::vector<Slot> params);
-        explicit VMThreadMethod(VMTheadNativeHandler nativeMethod);
+        explicit VMThreadMethod(VMThreadNativeHandler nativeMethod);
         Method *method{nullptr};
-        VMTheadNativeHandler nativeMethod;
+        VMThreadNativeHandler nativeMethod;
         std::vector<Slot> params;
     };
 
@@ -59,7 +59,7 @@ namespace RexVM {
         static VMThread *createOriginVMThread(VM &vm);
 
         void addMethod(Method *method, const std::vector<Slot>& params);
-        void addMethod(VMTheadNativeHandler &method);
+        void addMethod(VMThreadNativeHandler &method);
         void start(Frame *currentFrame_, bool userThread);
         void join();
 

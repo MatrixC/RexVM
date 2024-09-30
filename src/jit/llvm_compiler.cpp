@@ -280,7 +280,7 @@ namespace RexVM {
     }
 
 
-    void MethodCompiler::arrayLoad(llvm::Value *arrayRef, llvm::Value *index, uint8_t type) {
+    void MethodCompiler::arrayLoad(llvm::Value *arrayRef, llvm::Value *index, const uint8_t type) {
         //arrayRef 是 arrayOop
         throwNpeIfNull(arrayRef);
         switch (type) {
@@ -523,21 +523,25 @@ namespace RexVM {
                 load(index, SlotTypeEnum::I4);
                 break;
             }
+
             case OpCodeEnum::LLOAD: {
                 const auto index = byteReader.readU1();
                 load(index, SlotTypeEnum::I8);
                 break;
             }
+
             case OpCodeEnum::FLOAD: {
                 const auto index = byteReader.readU1();
                 load(index, SlotTypeEnum::F4);
                 break;
             }
+
             case OpCodeEnum::DLOAD: {
                 const auto index = byteReader.readU1();
                 load(index, SlotTypeEnum::F8);
                 break;
             }
+
             case OpCodeEnum::ALOAD: {
                 const auto index = byteReader.readU1();
                 load(index, SlotTypeEnum::REF);
@@ -1316,6 +1320,12 @@ namespace RexVM {
 
             case OpCodeEnum::RETURN: {
                 helpFunction->createCallReturnVoid(irBuilder, getFramePtr());
+                break;
+            }
+
+            case OpCodeEnum::GETSTATIC: {
+                const auto slotTypePtr = irBuilder.CreateAlloca(irBuilder.getInt8Ty());
+
                 break;
             }
 

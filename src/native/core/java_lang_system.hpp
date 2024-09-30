@@ -12,6 +12,7 @@
 #include "../../string_pool.hpp"
 #include "../../file_system.hpp"
 #include "../../utils/time.hpp"
+#include "../../os_platform.hpp"
 #include <thread>
 #include <chrono>
 #include <filesystem>

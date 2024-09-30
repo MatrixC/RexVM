@@ -2,10 +2,10 @@
 #include <filesystem>
 #include <sstream>
 #include <cstdlib>
-#include <ranges>
 #include "string_utils.hpp"
 #include "../exception.hpp"
 #include "../file_system.hpp"
+#include "../os_platform.hpp"
 
 namespace RexVM {
 

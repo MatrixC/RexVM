@@ -18,7 +18,7 @@ namespace RexVM {
     VMThreadMethod::VMThreadMethod(Method *method, std::vector<Slot> params) : method(method), params(std::move(params)) {
     }
 
-    VMThreadMethod::VMThreadMethod(VMTheadNativeHandler nativeMethod) : nativeMethod(std::move(nativeMethod)) {}
+    VMThreadMethod::VMThreadMethod(VMThreadNativeHandler nativeMethod) : nativeMethod(std::move(nativeMethod)) {}
 
     //Normal
     VMThread::VMThread(VM &vm, InstanceClass * const klass) :
@@ -122,7 +122,7 @@ namespace RexVM {
         runMethods.emplace_back(std::make_unique<VMThreadMethod>(method, params));
     }
 
-    void VMThread::addMethod(VMTheadNativeHandler &method) {
+    void VMThread::addMethod(VMThreadNativeHandler &method) {
         runMethods.emplace_back(std::make_unique<VMThreadMethod>(method));
     }
 
