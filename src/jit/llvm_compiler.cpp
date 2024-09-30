@@ -1209,7 +1209,7 @@ namespace RexVM {
 
             case OpCodeEnum::LCMP: {
                 const auto val2 = popWideValue();
-                const auto val1 = popValue();
+                const auto val1 = popWideValue();
                 lCmp(val1, val2);
                 break;
             }
