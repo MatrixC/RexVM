@@ -375,8 +375,6 @@ namespace RexVM {
 
         INVOKESPECIAL = 183,
 
-        //INVOKENONVIRTUAL = 183,
-
         INVOKESTATIC = 184,
 
         INVOKEINTERFACE = 185,

@@ -10,11 +10,8 @@
 #include "oop.hpp"
 #include "mirror_oop.hpp"
 #include "class_loader.hpp"
-#include "string_pool.hpp"
-#include "memory.hpp"
 #include "method_handle.hpp"
 #include "thread.hpp"
-#include "key_slot_id.hpp"
 
 namespace RexVM {
 

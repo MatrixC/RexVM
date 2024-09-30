@@ -15,7 +15,7 @@ namespace RexVM {
     MethodCompiler::MethodCompiler(
         Method &method,
         Module &module,
-        cview compiledMethodName
+        const cview compiledMethodName
     ) : method(method),
         klass(method.klass),
         constantPool(klass.constantPool),
@@ -126,19 +126,19 @@ namespace RexVM {
     }
 
 
-    llvm::Argument *MethodCompiler::getFramePtr() const {
+    Argument *MethodCompiler::getFramePtr() const {
         return function->arg_begin();
     }
 
-    llvm::Argument *MethodCompiler::getLocalVariableTablePtr() const {
+    Argument *MethodCompiler::getLocalVariableTablePtr() const {
         return function->arg_begin() + 1;
     }
 
-    llvm::Argument *MethodCompiler::getLocalVariableTableTypePtr() const {
+    Argument *MethodCompiler::getLocalVariableTableTypePtr() const {
         return function->arg_begin() + 2;
     }
 
-    llvm::Type *MethodCompiler::slotTypeMap(SlotTypeEnum slotType) {
+    Type *MethodCompiler::slotTypeMap(const SlotTypeEnum slotType) {
         switch (slotType) {
             case SlotTypeEnum::I4:
                 return irBuilder.getInt32Ty();
@@ -156,32 +156,28 @@ namespace RexVM {
         }
     }
 
-    llvm::Value *MethodCompiler::getLocalVariableTableValue(u4 index, SlotTypeEnum slotType) {
-        //lvt指向Slot[] 先通过getelementptr获得index对应的Slot指针
+    llvm::Value *MethodCompiler::getLocalVariableTableValue(const u4 index, const SlotTypeEnum slotType) {
+        //lvt指向Slot[] 先通过GEP获得index对应的Slot指针
         //在解释器中 因为op stack中的也全都是slot 所以不用做转换
         //但在jit中 Value都是具体的类型 所以需要做转换
         //使用createLoad可以自动转换成对应的类型 代码中会生成align信息
-        Type *type = slotTypeMap(slotType);
+        const auto indexValue = irBuilder.getInt32(index);
+        const auto type = slotTypeMap(slotType);
 
         const auto ptr =
                 irBuilder.CreateGEP(
                     irBuilder.getInt64Ty(),
                     getLocalVariableTablePtr(),
-                    irBuilder.getInt32(index)
+                    indexValue
                 );
 
         return irBuilder.CreateLoad(type, ptr);
-
-        // llvm::Value *value = irBuilder.CreateLoad(irBuilder.getInt64Ty(), ptr);
-        // if (type->getScalarSizeInBits() == 32) {
-        //     value = irBuilder.CreateAnd(value, irBuilder.getInt64(0x0F));
-        // }
-        // return irBuilder.CreateBitCast(value, type);
     }
 
     void MethodCompiler::setLocalVariableTableValue(const u4 index, llvm::Value *value, SlotTypeEnum slotType) {
         // 写lvt和lvtType
         const auto indexValue = irBuilder.getInt32(index);
+
         const auto lvtPtr =
                 irBuilder.CreateGEP(
                     irBuilder.getInt64Ty(),
@@ -211,16 +207,26 @@ namespace RexVM {
         return value;
     }
 
+    void MethodCompiler::pushWideValue(llvm::Value *value) {
+        pushValue(value);
+        padding();
+    }
+
+    llvm::Value *MethodCompiler::popWideValue() {
+        unPadding();
+        return popValue();
+    }
+
     llvm::Value *MethodCompiler::topValue() {
         return valueStack.top();
     }
 
-    void MethodCompiler::pushI8Padding() {
-        pushValue(irBuilder.getInt64(0));
+    void MethodCompiler::padding() {
+        pushValue(nullptr);
     }
 
-    void MethodCompiler::pushF8Padding() {
-        pushValue(ConstantFP::getZero(irBuilder.getDoubleTy()));
+    void MethodCompiler::unPadding() {
+        popValue();
     }
 
     void MethodCompiler::pushI4Const(const i4 value) {
@@ -228,8 +234,7 @@ namespace RexVM {
     }
 
     void MethodCompiler::pushI8Const(const i8 value) {
-        pushValue(irBuilder.getInt64(static_cast<uint64_t>(value)));
-        pushI8Padding();
+        pushWideValue(irBuilder.getInt64(static_cast<uint64_t>(value)));
     }
 
     void MethodCompiler::pushF4Const(const f4 value) {
@@ -237,8 +242,7 @@ namespace RexVM {
     }
 
     void MethodCompiler::pushF8Const(const f8 value) {
-        pushValue(ConstantFP::get(irBuilder.getDoubleTy(), value));
-        pushF8Padding();
+        pushWideValue(ConstantFP::get(irBuilder.getDoubleTy(), value));
     }
 
     void MethodCompiler::pushNullConst() {
@@ -264,11 +268,9 @@ namespace RexVM {
         changeBB(elseBB);
     }
 
-    void MethodCompiler::ldc_helper(u2 index) {
-        const auto valPtr = constantPool[index].get();
-        const auto constantTagEnum = CAST_CONSTANT_TAG_ENUM(valPtr->tag);
-
-        switch (constantTagEnum) {
+    void MethodCompiler::ldc(const u2 index) {
+        switch (const auto valPtr = constantPool[index].get();
+            CAST_CONSTANT_TAG_ENUM(valPtr->tag)) {
             case ConstantTagEnum::CONSTANT_Integer:
                 pushI4Const((CAST_CONSTANT_INTEGER_INFO(valPtr))->value);
                 break;
@@ -309,13 +311,8 @@ namespace RexVM {
                 break;
 
             case SlotTypeEnum::I8:
-                pushValue(getLocalVariableTableValue(index, slotType));
-                pushI8Padding();
-                break;
-
             case SlotTypeEnum::F8:
-                pushValue(getLocalVariableTableValue(index, slotType));
-                pushF8Padding();
+                pushWideValue(getLocalVariableTableValue(index, slotType));
                 break;
 
             default:
@@ -333,8 +330,7 @@ namespace RexVM {
 
             case SlotTypeEnum::I8:
             case SlotTypeEnum::F8:
-                popValue(); //ZERO
-                setLocalVariableTableValue(index, popValue(), slotType);
+                setLocalVariableTableValue(index, popWideValue(), slotType);
                 break;
 
             default:
@@ -355,8 +351,7 @@ namespace RexVM {
                 break;
 
             case LLVM_COMPILER_LONG_ARRAY_TYPE:
-                pushValue(helpFunction->createCallArrayLoadI8(irBuilder, arrayRef, index));
-                pushI8Padding();
+                pushWideValue(helpFunction->createCallArrayLoadI8(irBuilder, arrayRef, index));
                 break;
 
             case LLVM_COMPILER_FLOAT_ARRAY_TYPE:
@@ -364,8 +359,7 @@ namespace RexVM {
                 break;
 
             case LLVM_COMPILER_DOUBLE_ARRAY_TYPE:
-                pushValue(helpFunction->createCallArrayLoadF8(irBuilder, arrayRef, index));
-                pushF8Padding();
+                pushWideValue(helpFunction->createCallArrayLoadF8(irBuilder, arrayRef, index));
                 break;
 
             case LLVM_COMPILER_OBJ_ARRAY_TYPE:
@@ -377,7 +371,7 @@ namespace RexVM {
         }
     }
 
-    void MethodCompiler::arrayStore(llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, uint8_t type) {
+    void MethodCompiler::arrayStore(llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, const uint8_t type) {
         throwNpeIfNull(arrayRef);
         switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE:
@@ -388,7 +382,6 @@ namespace RexVM {
                 break;
 
             case LLVM_COMPILER_LONG_ARRAY_TYPE:
-                popValue();
                 irBuilder.CreateCall(arrayStoreI8, {arrayRef, index, value});
                 break;
 
@@ -397,7 +390,6 @@ namespace RexVM {
                 break;
 
             case LLVM_COMPILER_DOUBLE_ARRAY_TYPE:
-                popValue();
                 irBuilder.CreateCall(arrayStoreF8, {arrayRef, index, value});
                 break;
 
@@ -520,8 +512,6 @@ namespace RexVM {
         changeBB(elseBB);
     }
 
-
-
     void MethodCompiler::processInstruction(
         OpCodeEnum opCode,
         u4 pc,
@@ -576,14 +566,14 @@ namespace RexVM {
 
             case OpCodeEnum::LDC: {
                 const auto index = byteReader.readU1();
-                ldc_helper(index);
+                ldc(index);
                 break;
             }
 
             case OpCodeEnum::LDC_W:
             case OpCodeEnum::LDC2_W: {
                 const auto index = byteReader.readU2();
-                ldc_helper(index);
+                ldc(index);
                 break;
             }
 
@@ -666,7 +656,7 @@ namespace RexVM {
             case OpCodeEnum::BALOAD:
             case OpCodeEnum::CALOAD:
             case OpCodeEnum::SALOAD: {
-                uint8_t arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IALOAD);
+                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IALOAD);
                 const auto idx = popValue();
                 const auto arrayRef = popValue();
                 arrayLoad(arrayRef, idx, arrayType);
@@ -744,15 +734,43 @@ namespace RexVM {
                 break;
             }
 
-            case OpCodeEnum::IASTORE:
-            case OpCodeEnum::LASTORE:
-            case OpCodeEnum::FASTORE:
-            case OpCodeEnum::DASTORE:
+            case OpCodeEnum::IASTORE: {
+                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
+                const auto val = popValue();
+                const auto idx = popValue();
+                const auto arrayRef = popValue();
+                arrayStore(arrayRef, idx, val, arrayType);
+                break;
+            }
+            case OpCodeEnum::LASTORE: {
+                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
+                const auto val = popWideValue();
+                const auto idx = popValue();
+                const auto arrayRef = popValue();
+                arrayStore(arrayRef, idx, val, arrayType);
+                break;
+            }
+            case OpCodeEnum::FASTORE: {
+                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
+                const auto val = popValue();
+                const auto idx = popValue();
+                const auto arrayRef = popValue();
+                arrayStore(arrayRef, idx, val, arrayType);
+                break;
+            }
+            case OpCodeEnum::DASTORE: {
+                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
+                const auto val = popWideValue();
+                const auto idx = popValue();
+                const auto arrayRef = popValue();
+                arrayStore(arrayRef, idx, val, arrayType);
+                break;
+            }
             case OpCodeEnum::AASTORE:
             case OpCodeEnum::BASTORE:
             case OpCodeEnum::CASTORE:
             case OpCodeEnum::SASTORE: {
-                uint8_t arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
+                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
                 const auto val = popValue();
                 const auto idx = popValue();
                 const auto arrayRef = popValue();
@@ -822,6 +840,7 @@ namespace RexVM {
                 pushValue(val1);
                 break;
             }
+
             case OpCodeEnum::SWAP: {
                 const auto val1 = popValue();
                 const auto val2 = popValue();
@@ -836,44 +855,53 @@ namespace RexVM {
                 pushValue(irBuilder.CreateAdd(val1, val2));
                 break;
             }
+
             case OpCodeEnum::LADD: {
-                popValue();
-                const auto val2 = popValue();
-                popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateAdd(val1, val2));
-                pushI8Padding();
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateAdd(val1, val2));
                 break;
             }
+
             case OpCodeEnum::FADD:  {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateFAdd(val1, val2));
                 break;
             }
+
             case OpCodeEnum::DADD: {
-                popValue();
-                const auto val2 = popValue();
-                popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateFAdd(val1, val2));
-                pushF8Padding();
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateFAdd(val1, val2));
                 break;
             }
 
-            case OpCodeEnum::ISUB:
-            case OpCodeEnum::LSUB: {
+            case OpCodeEnum::ISUB: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateSub(val1, val2));
                 break;
             }
 
-            case OpCodeEnum::FSUB:
-            case OpCodeEnum::DSUB: {
+            case OpCodeEnum::LSUB: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateSub(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::FSUB: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateFSub(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::DSUB: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateFSub(val1, val2));
                 break;
             }
 
@@ -883,49 +911,59 @@ namespace RexVM {
                 pushValue(irBuilder.CreateMul(val1, val2));
                 break;
             }
+
             case OpCodeEnum::LMUL: {
-                popValue();
-                const auto val2 = popValue();
-                popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateMul(val1, val2));
-                pushI8Padding();
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateMul(val1, val2));
                 break;
             }
+
             case OpCodeEnum::FMUL: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateFMul(val1, val2));
                 break;
             }
+
             case OpCodeEnum::DMUL: {
-                popValue();
-                const auto val2 = popValue();
-                popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateFMul(val1, val2));
-                pushF8Padding();
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateFMul(val1, val2));
                 break;
             }
 
-            case OpCodeEnum::IDIV:
-            case OpCodeEnum::LDIV: {
+            case OpCodeEnum::IDIV: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 //TODO CheckZero
                 pushValue(irBuilder.CreateSDiv(val1, val2));
                 break;
             }
-            case OpCodeEnum::FDIV:
-            case OpCodeEnum::DDIV: {
+
+            case OpCodeEnum::LDIV: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                //TODO CheckZero
+                pushWideValue(irBuilder.CreateSDiv(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::FDIV: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateFDiv(val1, val2));
                 break;
             }
 
-            case OpCodeEnum::IREM:
-            case OpCodeEnum::LREM: {
+            case OpCodeEnum::DDIV: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateFDiv(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::IREM: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 //TODO CheckZero
@@ -933,8 +971,15 @@ namespace RexVM {
                 break;
             }
 
-            case OpCodeEnum::FREM:
-            case OpCodeEnum::DREM: {
+            case OpCodeEnum::LREM: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                //TODO CheckZero
+                pushWideValue(irBuilder.CreateSRem(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::FREM: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 //TODO CheckZero
@@ -942,16 +987,34 @@ namespace RexVM {
                 break;
             }
 
-            case OpCodeEnum::INEG:
-            case OpCodeEnum::LNEG: {
+            case OpCodeEnum::DREM: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                //TODO CheckZero
+                pushWideValue(irBuilder.CreateFRem(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::INEG: {
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateNeg(val1));
                 break;
             }
-            case OpCodeEnum::FNEG:
-            case OpCodeEnum::DNEG: {
+
+            case OpCodeEnum::LNEG: {
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateNeg(val1));
+                break;
+            }
+            case OpCodeEnum::FNEG: {
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateFNeg(val1));
+                break;
+            }
+
+            case OpCodeEnum::DNEG: {
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateFNeg(val1));
                 break;
             }
 
@@ -961,11 +1024,12 @@ namespace RexVM {
                 pushValue(irBuilder.CreateShl(val1, val2));
                 break;
             }
+
             case OpCodeEnum::LSHL: {
                 const auto val2 = popValue();
-                const auto val1 = popValue();
+                const auto val1 = popWideValue();
                 const auto val2Ext = irBuilder.CreateZExt(val2, irBuilder.getInt64Ty());
-                pushValue(irBuilder.CreateShl(val1, val2Ext));
+                pushWideValue(irBuilder.CreateShl(val1, val2Ext));
                 break;
             }
 
@@ -975,11 +1039,12 @@ namespace RexVM {
                 pushValue(irBuilder.CreateAShr(val1, val2));
                 break;
             }
+
             case OpCodeEnum::LSHR: {
                 const auto val2 = popValue();
-                const auto val1 = popValue();
+                const auto val1 = popWideValue();
                 const auto val2Ext = irBuilder.CreateZExt(val2, irBuilder.getInt64Ty());
-                pushValue(irBuilder.CreateAShr(val1, val2Ext));
+                pushWideValue(irBuilder.CreateAShr(val1, val2Ext));
                 break;
             }
 
@@ -989,35 +1054,54 @@ namespace RexVM {
                 pushValue(irBuilder.CreateLShr(val1, val2));
                 break;
             }
+
             case OpCodeEnum::LUSHR: {
                 const auto val2 = popValue();
-                const auto val1 = popValue();
+                const auto val1 = popWideValue();
                 const auto val2Ext = irBuilder.CreateZExt(val2, irBuilder.getInt64Ty());
-                pushValue(irBuilder.CreateLShr(val1, val2Ext));
+                pushWideValue(irBuilder.CreateLShr(val1, val2Ext));
                 break;
             }
 
-            case OpCodeEnum::IAND:
-            case OpCodeEnum::LAND: {
+            case OpCodeEnum::IAND: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateAnd(val1, val2));
                 break;
             }
 
-            case OpCodeEnum::IOR:
-            case OpCodeEnum::LOR: {
+            case OpCodeEnum::LAND: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateAnd(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::IOR: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateOr(val1, val2));
                 break;
             }
 
-            case OpCodeEnum::IXOR:
-            case OpCodeEnum::LXOR: {
+            case OpCodeEnum::LOR: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateOr(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::IXOR: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 pushValue(irBuilder.CreateXor(val1, val2));
+                break;
+            }
+
+            case OpCodeEnum::LXOR: {
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
+                pushWideValue(irBuilder.CreateXor(val1, val2));
                 break;
             }
 
@@ -1032,8 +1116,7 @@ namespace RexVM {
 
             case OpCodeEnum::I2L: {
                 //sext
-                pushValue(irBuilder.CreateSExt(popValue(), slotTypeMap(SlotTypeEnum::I8)));
-                pushI8Padding();
+                pushWideValue(irBuilder.CreateSExt(popValue(), slotTypeMap(SlotTypeEnum::I8)));
                 break;
             }
 
@@ -1045,30 +1128,25 @@ namespace RexVM {
 
             case OpCodeEnum::I2D: {
                 //sitofp
-                pushValue(irBuilder.CreateSIToFP(popValue(), slotTypeMap(SlotTypeEnum::F8)));
-                pushF8Padding();
+                pushWideValue(irBuilder.CreateSIToFP(popValue(), slotTypeMap(SlotTypeEnum::F8)));
                 break;
             }
 
             case OpCodeEnum::L2I: {
                 //trunc
-                popValue();
-                pushValue(irBuilder.CreateTrunc(popValue(), slotTypeMap(SlotTypeEnum::I4)));
+                pushValue(irBuilder.CreateTrunc(popWideValue(), slotTypeMap(SlotTypeEnum::I4)));
                 break;
             }
 
             case OpCodeEnum::L2F: {
                 //sitofp
-                popValue();
-                pushValue(irBuilder.CreateSIToFP(popValue(), slotTypeMap(SlotTypeEnum::F4)));
+                pushValue(irBuilder.CreateSIToFP(popWideValue(), slotTypeMap(SlotTypeEnum::F4)));
                 break;
             }
 
             case OpCodeEnum::L2D: {
                 //sitofp
-                popValue();
-                pushValue(irBuilder.CreateSIToFP(popValue(), slotTypeMap(SlotTypeEnum::F8)));
-                pushF8Padding();
+                pushWideValue(irBuilder.CreateSIToFP(popWideValue(), slotTypeMap(SlotTypeEnum::F8)));
                 break;
             }
 
@@ -1080,37 +1158,31 @@ namespace RexVM {
 
             case OpCodeEnum::F2L: {
                 //fptosi
-                pushValue(irBuilder.CreateFPToSI(popValue(), slotTypeMap(SlotTypeEnum::I8)));
-                pushI8Padding();
+                pushWideValue(irBuilder.CreateFPToSI(popValue(), slotTypeMap(SlotTypeEnum::I8)));
                 break;
             }
 
             case OpCodeEnum::F2D: {
                 //fpext
-                pushValue(irBuilder.CreateFPExt(popValue(), slotTypeMap(SlotTypeEnum::F8)));
-                pushF8Padding();
+                pushWideValue(irBuilder.CreateFPExt(popValue(), slotTypeMap(SlotTypeEnum::F8)));
                 break;
             }
 
             case OpCodeEnum::D2I: {
                 //fptosi
-                popValue();
-                pushValue(irBuilder.CreateFPToSI(popValue(), slotTypeMap(SlotTypeEnum::I4)));
+                pushValue(irBuilder.CreateFPToSI(popWideValue(), slotTypeMap(SlotTypeEnum::I4)));
                 break;
             }
 
             case OpCodeEnum::D2L: {
                 //fptosi
-                popValue();
-                pushValue(irBuilder.CreateFPToSI(popValue(), slotTypeMap(SlotTypeEnum::I8)));
-                pushI8Padding();
+                pushWideValue(irBuilder.CreateFPToSI(popWideValue(), slotTypeMap(SlotTypeEnum::I8)));
                 break;
             }
 
             case OpCodeEnum::D2F: {
                 //fptrunc
-                popValue();
-                pushValue(irBuilder.CreateFPTrunc(popValue(), slotTypeMap(SlotTypeEnum::F4)));
+                pushValue(irBuilder.CreateFPTrunc(popWideValue(), slotTypeMap(SlotTypeEnum::F4)));
                 break;
             }
 
@@ -1136,9 +1208,7 @@ namespace RexVM {
             }
 
             case OpCodeEnum::LCMP: {
-                popValue();
-                const auto val2 = popValue();
-                popValue();
+                const auto val2 = popWideValue();
                 const auto val1 = popValue();
                 lCmp(val1, val2);
                 break;
@@ -1161,20 +1231,16 @@ namespace RexVM {
             }
 
             case OpCodeEnum::DCMPL: {
-                popValue();
-                const auto val2 = popValue();
-                popValue();
-                const auto val1 = popValue();
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
                 const auto nanRet = irBuilder.getInt32(-1);
                 fCmp(val1, val2, nanRet);
                 break;
             }
 
             case OpCodeEnum::DCMPG: {
-                popValue();
-                const auto val2 = popValue();
-                popValue();
-                const auto val1 = popValue();
+                const auto val2 = popWideValue();
+                const auto val1 = popWideValue();
                 const auto nanRet = irBuilder.getInt32(1);
                 fCmp(val1, val2, nanRet);
                 break;
@@ -1225,9 +1291,54 @@ namespace RexVM {
                 break;
             }
 
-            case OpCodeEnum::TABLESWITCH:
+            case OpCodeEnum::TABLESWITCH: {
+                const auto nextPc = CAST_U4(byteReader.ptr - byteReader.begin);
+                if (const auto mod = nextPc % 4; mod != 0) {
+                    byteReader.skip(4 - mod);
+                }
+                const auto defaultOffset = byteReader.readI4();
+                const auto defaultJumpTo = CAST_U4(CAST_I4(pc) + defaultOffset);
+                const auto defaultBlock = opCodeBlocks[CAST_U4(defaultJumpTo)];
+
+                const auto low = byteReader.readI4();
+                const auto high = byteReader.readI4();
+                const auto jumpOffsetsCount = high - low + 1;
+                auto currentValue = low;
+
+                const auto switchValue = popValue();
+                const auto switchInstr = irBuilder.CreateSwitch(switchValue, defaultBlock);
+
+                for (i4 i = 0; i < jumpOffsetsCount; ++i) {
+                    const auto currentOffset = byteReader.readI4();
+                    const auto currentJumpTo = CAST_U4(CAST_I4(pc) + currentOffset);
+                    const auto currentBlock = opCodeBlocks[CAST_U4(currentJumpTo)];
+                    switchInstr->addCase(irBuilder.getInt32(currentValue), currentBlock);
+                    currentValue += 1;
+                }
+
+                break;
+            }
             case OpCodeEnum::LOOKUPSWITCH: {
-                panic("not support");
+                const auto nextPc = CAST_U4(byteReader.ptr - byteReader.begin);
+                if (const auto mod = nextPc % 4; mod != 0) {
+                    byteReader.skip(4 - mod);
+                }
+
+                const auto defaultOffset = byteReader.readI4();
+                const auto defaultJumpTo = CAST_U4(CAST_I4(pc) + defaultOffset);
+                const auto defaultBlock = opCodeBlocks[CAST_U4(defaultJumpTo)];
+
+                const auto nPairs = byteReader.readI4();
+                const auto switchValue = popValue();
+                const auto switchInstr = irBuilder.CreateSwitch(switchValue, defaultBlock);
+
+                for (i4 i = 0; i < nPairs; ++i) {
+                    const auto caseValue = byteReader.readI4();
+                    const auto caseOffset = byteReader.readI4();
+                    const auto caseJumpTo = CAST_U4(CAST_I4(pc) + caseOffset);
+                    const auto caseBlock = opCodeBlocks[CAST_U4(caseJumpTo)];
+                    switchInstr->addCase(irBuilder.getInt32(caseValue), caseBlock);
+                }
                 break;
             }
 
@@ -1236,9 +1347,9 @@ namespace RexVM {
                 irBuilder.CreateCall(returnI4, {getFramePtr(), retVal});
                 break;
             }
+
             case OpCodeEnum::LRETURN: {
-                popValue();
-                const auto retVal = popValue();
+                const auto retVal = popWideValue();
                 irBuilder.CreateCall(returnI8, {getFramePtr(), retVal});
                 break;
             }
@@ -1248,8 +1359,7 @@ namespace RexVM {
                 break;
             }
             case OpCodeEnum::DRETURN: {
-                popValue();
-                const auto retVal = popValue();
+                const auto retVal = popWideValue();
                 irBuilder.CreateCall(returnF8, {getFramePtr(), retVal});
                 break;
             }
@@ -1258,6 +1368,7 @@ namespace RexVM {
                 irBuilder.CreateCall(returnObj, {getFramePtr(), retVal});
                 break;
             }
+
             case OpCodeEnum::RETURN: {
                 irBuilder.CreateCall(returnVoid, {getFramePtr()});
                 break;

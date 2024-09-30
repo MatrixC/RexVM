@@ -72,11 +72,15 @@ namespace RexVM {
 
         llvm::Value *popValue();
 
+        void pushWideValue(llvm::Value *value);
+
+        llvm::Value *popWideValue();
+
         llvm::Value *topValue();
 
-        void pushI8Padding();
+        void padding();
 
-        void pushF8Padding();
+        void unPadding();
 
         void pushI4Const(i4 value);
 
@@ -90,7 +94,7 @@ namespace RexVM {
 
         void throwNpeIfNull(llvm::Value *val);
 
-        void ldc_helper(u2 index);
+        void ldc(u2 index);
 
         void load(u4 index, SlotTypeEnum slotType);
 

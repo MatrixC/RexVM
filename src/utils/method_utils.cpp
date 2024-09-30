@@ -22,23 +22,23 @@ namespace RexVM {
             const auto currentByteCode = reader.readU1();
             const auto pc = CAST_U4(reader.ptr - reader.begin) - 1;
             switch (static_cast<OpCodeEnum>(currentByteCode)) {
-                case OpCodeEnum::NOP:
-                case OpCodeEnum::ACONST_NULL:
-                case OpCodeEnum::ICONST_M1:
-                case OpCodeEnum::ICONST_0:
-                case OpCodeEnum::ICONST_1:
-                case OpCodeEnum::ICONST_2:
-                case OpCodeEnum::ICONST_3:
-                case OpCodeEnum::ICONST_4:
-                case OpCodeEnum::ICONST_5:
-                case OpCodeEnum::LCONST_0:
-                case OpCodeEnum::LCONST_1:
-                case OpCodeEnum::FCONST_0:
-                case OpCodeEnum::FCONST_1:
-                case OpCodeEnum::FCONST_2:
-                case OpCodeEnum::DCONST_0:
-                case OpCodeEnum::DCONST_1:
-                    break;
+                // case OpCodeEnum::NOP:
+                // case OpCodeEnum::ACONST_NULL:
+                // case OpCodeEnum::ICONST_M1:
+                // case OpCodeEnum::ICONST_0:
+                // case OpCodeEnum::ICONST_1:
+                // case OpCodeEnum::ICONST_2:
+                // case OpCodeEnum::ICONST_3:
+                // case OpCodeEnum::ICONST_4:
+                // case OpCodeEnum::ICONST_5:
+                // case OpCodeEnum::LCONST_0:
+                // case OpCodeEnum::LCONST_1:
+                // case OpCodeEnum::FCONST_0:
+                // case OpCodeEnum::FCONST_1:
+                // case OpCodeEnum::FCONST_2:
+                // case OpCodeEnum::DCONST_0:
+                // case OpCodeEnum::DCONST_1:
+                //     break;
 
                 case OpCodeEnum::BIPUSH:
                     reader.readI1();
@@ -63,35 +63,35 @@ namespace RexVM {
                     reader.readU1();
                     break;
 
-                case OpCodeEnum::ILOAD_0:
-                case OpCodeEnum::ILOAD_1:
-                case OpCodeEnum::ILOAD_2:
-                case OpCodeEnum::ILOAD_3:
-                case OpCodeEnum::LLOAD_0:
-                case OpCodeEnum::LLOAD_1:
-                case OpCodeEnum::LLOAD_2:
-                case OpCodeEnum::LLOAD_3:
-                case OpCodeEnum::FLOAD_0:
-                case OpCodeEnum::FLOAD_1:
-                case OpCodeEnum::FLOAD_2:
-                case OpCodeEnum::FLOAD_3:
-                case OpCodeEnum::DLOAD_0:
-                case OpCodeEnum::DLOAD_1:
-                case OpCodeEnum::DLOAD_2:
-                case OpCodeEnum::DLOAD_3:
-                case OpCodeEnum::ALOAD_0:
-                case OpCodeEnum::ALOAD_1:
-                case OpCodeEnum::ALOAD_2:
-                case OpCodeEnum::ALOAD_3:
-                case OpCodeEnum::IALOAD:
-                case OpCodeEnum::LALOAD:
-                case OpCodeEnum::FALOAD:
-                case OpCodeEnum::DALOAD:
-                case OpCodeEnum::AALOAD:
-                case OpCodeEnum::BALOAD:
-                case OpCodeEnum::CALOAD:
-                case OpCodeEnum::SALOAD:
-                    break;
+                // case OpCodeEnum::ILOAD_0:
+                // case OpCodeEnum::ILOAD_1:
+                // case OpCodeEnum::ILOAD_2:
+                // case OpCodeEnum::ILOAD_3:
+                // case OpCodeEnum::LLOAD_0:
+                // case OpCodeEnum::LLOAD_1:
+                // case OpCodeEnum::LLOAD_2:
+                // case OpCodeEnum::LLOAD_3:
+                // case OpCodeEnum::FLOAD_0:
+                // case OpCodeEnum::FLOAD_1:
+                // case OpCodeEnum::FLOAD_2:
+                // case OpCodeEnum::FLOAD_3:
+                // case OpCodeEnum::DLOAD_0:
+                // case OpCodeEnum::DLOAD_1:
+                // case OpCodeEnum::DLOAD_2:
+                // case OpCodeEnum::DLOAD_3:
+                // case OpCodeEnum::ALOAD_0:
+                // case OpCodeEnum::ALOAD_1:
+                // case OpCodeEnum::ALOAD_2:
+                // case OpCodeEnum::ALOAD_3:
+                // case OpCodeEnum::IALOAD:
+                // case OpCodeEnum::LALOAD:
+                // case OpCodeEnum::FALOAD:
+                // case OpCodeEnum::DALOAD:
+                // case OpCodeEnum::AALOAD:
+                // case OpCodeEnum::BALOAD:
+                // case OpCodeEnum::CALOAD:
+                // case OpCodeEnum::SALOAD:
+                //     break;
 
                 case OpCodeEnum::ISTORE:
                 case OpCodeEnum::LSTORE:
@@ -101,107 +101,107 @@ namespace RexVM {
                     reader.readU1();
                     break;
 
-                case OpCodeEnum::ISTORE_0:
-                case OpCodeEnum::ISTORE_1:
-                case OpCodeEnum::ISTORE_2:
-                case OpCodeEnum::ISTORE_3:
-                case OpCodeEnum::LSTORE_0:
-                case OpCodeEnum::LSTORE_1:
-                case OpCodeEnum::LSTORE_2:
-                case OpCodeEnum::LSTORE_3:
-                case OpCodeEnum::FSTORE_0:
-                case OpCodeEnum::FSTORE_1:
-                case OpCodeEnum::FSTORE_2:
-                case OpCodeEnum::FSTORE_3:
-                case OpCodeEnum::DSTORE_0:
-                case OpCodeEnum::DSTORE_1:
-                case OpCodeEnum::DSTORE_2:
-                case OpCodeEnum::DSTORE_3:
-                case OpCodeEnum::ASTORE_0:
-                case OpCodeEnum::ASTORE_1:
-                case OpCodeEnum::ASTORE_2:
-                case OpCodeEnum::ASTORE_3:
-                case OpCodeEnum::IASTORE:
-                case OpCodeEnum::LASTORE:
-                case OpCodeEnum::FASTORE:
-                case OpCodeEnum::DASTORE:
-                case OpCodeEnum::AASTORE:
-                case OpCodeEnum::BASTORE:
-                case OpCodeEnum::CASTORE:
-                case OpCodeEnum::SASTORE:
-                case OpCodeEnum::POP:
-                case OpCodeEnum::POP2:
-                case OpCodeEnum::DUP:
-                case OpCodeEnum::DUP_X1:
-                case OpCodeEnum::DUP_X2:
-                case OpCodeEnum::DUP2:
-                case OpCodeEnum::DUP2_X1:
-                case OpCodeEnum::DUP2_X2:
-                case OpCodeEnum::SWAP:
-                case OpCodeEnum::IADD:
-                case OpCodeEnum::LADD:
-                case OpCodeEnum::FADD:
-                case OpCodeEnum::DADD:
-                case OpCodeEnum::ISUB:
-                case OpCodeEnum::LSUB:
-                case OpCodeEnum::FSUB:
-                case OpCodeEnum::DSUB:
-                case OpCodeEnum::IMUL:
-                case OpCodeEnum::LMUL:
-                case OpCodeEnum::FMUL:
-                case OpCodeEnum::DMUL:
-                case OpCodeEnum::IDIV:
-                case OpCodeEnum::LDIV:
-                case OpCodeEnum::FDIV:
-                case OpCodeEnum::DDIV:
-                case OpCodeEnum::IREM:
-                case OpCodeEnum::LREM:
-                case OpCodeEnum::FREM:
-                case OpCodeEnum::DREM:
-                case OpCodeEnum::INEG:
-                case OpCodeEnum::LNEG:
-                case OpCodeEnum::FNEG:
-                case OpCodeEnum::DNEG:
-                case OpCodeEnum::ISHL:
-                case OpCodeEnum::LSHL:
-                case OpCodeEnum::ISHR:
-                case OpCodeEnum::LSHR:
-                case OpCodeEnum::IUSHR:
-                case OpCodeEnum::LUSHR:
-                case OpCodeEnum::IAND:
-                case OpCodeEnum::LAND:
-                case OpCodeEnum::IOR:
-                case OpCodeEnum::LOR:
-                case OpCodeEnum::IXOR:
-                case OpCodeEnum::LXOR:
-                    break;
+                // case OpCodeEnum::ISTORE_0:
+                // case OpCodeEnum::ISTORE_1:
+                // case OpCodeEnum::ISTORE_2:
+                // case OpCodeEnum::ISTORE_3:
+                // case OpCodeEnum::LSTORE_0:
+                // case OpCodeEnum::LSTORE_1:
+                // case OpCodeEnum::LSTORE_2:
+                // case OpCodeEnum::LSTORE_3:
+                // case OpCodeEnum::FSTORE_0:
+                // case OpCodeEnum::FSTORE_1:
+                // case OpCodeEnum::FSTORE_2:
+                // case OpCodeEnum::FSTORE_3:
+                // case OpCodeEnum::DSTORE_0:
+                // case OpCodeEnum::DSTORE_1:
+                // case OpCodeEnum::DSTORE_2:
+                // case OpCodeEnum::DSTORE_3:
+                // case OpCodeEnum::ASTORE_0:
+                // case OpCodeEnum::ASTORE_1:
+                // case OpCodeEnum::ASTORE_2:
+                // case OpCodeEnum::ASTORE_3:
+                // case OpCodeEnum::IASTORE:
+                // case OpCodeEnum::LASTORE:
+                // case OpCodeEnum::FASTORE:
+                // case OpCodeEnum::DASTORE:
+                // case OpCodeEnum::AASTORE:
+                // case OpCodeEnum::BASTORE:
+                // case OpCodeEnum::CASTORE:
+                // case OpCodeEnum::SASTORE:
+                // case OpCodeEnum::POP:
+                // case OpCodeEnum::POP2:
+                // case OpCodeEnum::DUP:
+                // case OpCodeEnum::DUP_X1:
+                // case OpCodeEnum::DUP_X2:
+                // case OpCodeEnum::DUP2:
+                // case OpCodeEnum::DUP2_X1:
+                // case OpCodeEnum::DUP2_X2:
+                // case OpCodeEnum::SWAP:
+                // case OpCodeEnum::IADD:
+                // case OpCodeEnum::LADD:
+                // case OpCodeEnum::FADD:
+                // case OpCodeEnum::DADD:
+                // case OpCodeEnum::ISUB:
+                // case OpCodeEnum::LSUB:
+                // case OpCodeEnum::FSUB:
+                // case OpCodeEnum::DSUB:
+                // case OpCodeEnum::IMUL:
+                // case OpCodeEnum::LMUL:
+                // case OpCodeEnum::FMUL:
+                // case OpCodeEnum::DMUL:
+                // case OpCodeEnum::IDIV:
+                // case OpCodeEnum::LDIV:
+                // case OpCodeEnum::FDIV:
+                // case OpCodeEnum::DDIV:
+                // case OpCodeEnum::IREM:
+                // case OpCodeEnum::LREM:
+                // case OpCodeEnum::FREM:
+                // case OpCodeEnum::DREM:
+                // case OpCodeEnum::INEG:
+                // case OpCodeEnum::LNEG:
+                // case OpCodeEnum::FNEG:
+                // case OpCodeEnum::DNEG:
+                // case OpCodeEnum::ISHL:
+                // case OpCodeEnum::LSHL:
+                // case OpCodeEnum::ISHR:
+                // case OpCodeEnum::LSHR:
+                // case OpCodeEnum::IUSHR:
+                // case OpCodeEnum::LUSHR:
+                // case OpCodeEnum::IAND:
+                // case OpCodeEnum::LAND:
+                // case OpCodeEnum::IOR:
+                // case OpCodeEnum::LOR:
+                // case OpCodeEnum::IXOR:
+                // case OpCodeEnum::LXOR:
+                //     break;
 
                 case OpCodeEnum::IINC:
                     reader.readU1();
                     reader.readI1();
                     break;
 
-                case OpCodeEnum::I2L:
-                case OpCodeEnum::I2F:
-                case OpCodeEnum::I2D:
-                case OpCodeEnum::L2I:
-                case OpCodeEnum::L2F:
-                case OpCodeEnum::L2D:
-                case OpCodeEnum::F2I:
-                case OpCodeEnum::F2L:
-                case OpCodeEnum::F2D:
-                case OpCodeEnum::D2I:
-                case OpCodeEnum::D2L:
-                case OpCodeEnum::D2F:
-                case OpCodeEnum::I2B:
-                case OpCodeEnum::I2C:
-                case OpCodeEnum::I2S:
-                case OpCodeEnum::LCMP:
-                case OpCodeEnum::FCMPL:
-                case OpCodeEnum::FCMPG:
-                case OpCodeEnum::DCMPL:
-                case OpCodeEnum::DCMPG:
-                    break;
+                // case OpCodeEnum::I2L:
+                // case OpCodeEnum::I2F:
+                // case OpCodeEnum::I2D:
+                // case OpCodeEnum::L2I:
+                // case OpCodeEnum::L2F:
+                // case OpCodeEnum::L2D:
+                // case OpCodeEnum::F2I:
+                // case OpCodeEnum::F2L:
+                // case OpCodeEnum::F2D:
+                // case OpCodeEnum::D2I:
+                // case OpCodeEnum::D2L:
+                // case OpCodeEnum::D2F:
+                // case OpCodeEnum::I2B:
+                // case OpCodeEnum::I2C:
+                // case OpCodeEnum::I2S:
+                // case OpCodeEnum::LCMP:
+                // case OpCodeEnum::FCMPL:
+                // case OpCodeEnum::FCMPG:
+                // case OpCodeEnum::DCMPL:
+                // case OpCodeEnum::DCMPG:
+                //     break;
 
                 case OpCodeEnum::IFEQ:
                 case OpCodeEnum::IFNE:
@@ -223,9 +223,9 @@ namespace RexVM {
                     break;
                 }
 
-                case OpCodeEnum::JSR:
-                case OpCodeEnum::RET:
-                    break;
+                // case OpCodeEnum::JSR:
+                // case OpCodeEnum::RET:
+                //     break;
 
                 case OpCodeEnum::TABLESWITCH: {
                     const auto nextPc = CAST_U4(reader.ptr - reader.begin);
@@ -273,13 +273,13 @@ namespace RexVM {
                     break;
                 }
 
-                case OpCodeEnum::IRETURN:
-                case OpCodeEnum::LRETURN:
-                case OpCodeEnum::FRETURN:
-                case OpCodeEnum::DRETURN:
-                case OpCodeEnum::ARETURN:
-                case OpCodeEnum::RETURN:
-                    break;
+                // case OpCodeEnum::IRETURN:
+                // case OpCodeEnum::LRETURN:
+                // case OpCodeEnum::FRETURN:
+                // case OpCodeEnum::DRETURN:
+                // case OpCodeEnum::ARETURN:
+                // case OpCodeEnum::RETURN:
+                //     break;
 
                 case OpCodeEnum::GETSTATIC:
                 case OpCodeEnum::PUTSTATIC:

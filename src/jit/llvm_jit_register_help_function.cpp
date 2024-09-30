@@ -1,8 +1,6 @@
 #include "llvm_jit_register_help_function.hpp"
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Verifier.h>
 
 namespace RexVM {
     using namespace llvm;
@@ -62,34 +60,22 @@ namespace RexVM {
                                                    FunctionType::get(voidTy, {voidPtrTy, int32Ty, voidPtrTy}, false));
 
         returnI4 = module.getOrInsertFunction("llvm_compile_return_i4",
-                                              FunctionType::get(voidTy, {
-                                                                    voidPtrTy, int32Ty
-                                                                }, false));
+                                              FunctionType::get(voidTy, { voidPtrTy, int32Ty}, false));
 
         returnI8 = module.getOrInsertFunction("llvm_compile_return_i8",
-                                              FunctionType::get(voidTy, {
-                                                                    voidPtrTy, int64Ty
-                                                                }, false));
+                                              FunctionType::get(voidTy, {voidPtrTy, int64Ty}, false));
 
         returnF4 = module.getOrInsertFunction("llvm_compile_return_f4",
-                                              FunctionType::get(voidTy, {
-                                                                    voidPtrTy, floatTy
-                                                                }, false));
+                                              FunctionType::get(voidTy, {voidPtrTy, floatTy}, false));
 
         returnF8 = module.getOrInsertFunction("llvm_compile_return_f8",
-                                              FunctionType::get(voidTy, {
-                                                                    voidPtrTy, doubleTy
-                                                                }, false));
+                                              FunctionType::get(voidTy, {voidPtrTy, doubleTy}, false));
 
         returnObj = module.getOrInsertFunction("llvm_compile_return_obj",
-                                               FunctionType::get(voidTy, {
-                                                                     voidPtrTy, voidPtrTy
-                                                                 }, false));
+                                               FunctionType::get(voidTy, {voidPtrTy, voidPtrTy}, false));
 
         returnVoid = module.getOrInsertFunction("llvm_compile_return_void",
-                                                FunctionType::get(voidTy, {
-                                                                      voidPtrTy
-                                                                  }, false));
+                                                FunctionType::get(voidTy, {voidPtrTy}, false));
     }
 
     void LLVMHelpFunction::createCallThrowNPE(IRBuilder<> &irBuilder, Value *framePtr) const {
