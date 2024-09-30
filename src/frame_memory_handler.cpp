@@ -163,42 +163,37 @@ namespace RexVM {
         return refClass;
     }
 
-    ExecuteVirutalMethodCache *FrameMemoryHandler::resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle) {
-        ExecuteVirutalMethodCache *cachePtr = nullptr;
+    ExecuteVirtualMethodCache *FrameMemoryHandler::resolveInvokeVirtualIndex(u2 index, const bool checkMethodHandle) {
         if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
-            return static_cast<ExecuteVirutalMethodCache *>(*member);
-        } else {
-            auto cache = std::make_unique<ExecuteVirutalMethodCache>();
-            cachePtr = cache.get();
-            cacheVector.emplace_back(std::move(cache));
-            executeClassMemberCache.emplace_unique(index, cachePtr);
+            return static_cast<ExecuteVirtualMethodCache *>(*member);
         }
+        auto cache = std::make_unique<ExecuteVirtualMethodCache>();
+        auto cachePtr = cache.get();
+        cacheVector.emplace_back(std::move(cache));
+        executeClassMemberCache.emplace_unique(index, cachePtr);
 
-        auto &klass = frame.klass;
+        const auto &klass = frame.klass;
         const auto &constantPool = klass.constantPool;
         auto [className, methodName, methodDescriptor] = getConstantStringFromPoolByClassNameType(constantPool, index);
         cachePtr->methodName = methodName;
         cachePtr->methodDescriptor = methodDescriptor;
-        
-        if (checkMethodHandle) {
-            const auto mhInvoke = isMethodHandleInvoke(className, methodName);
-            if (mhInvoke) {
-                const auto invokeMethod = 
+
+        if (checkMethodHandle && isMethodHandleInvoke(className, methodName)) {
+            const auto invokeMethod =
                     getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
-                        ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
-                cachePtr->mhMethod = invokeMethod;
-                //1第一个参数为MethodHandle Object
-                cachePtr->mhMethodPopSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
-                //此次调用为MethodHandle调用 直接返回
-                return cachePtr;
-            }
+                    ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
+            cachePtr->mhMethod = invokeMethod;
+            //1第一个参数为MethodHandle Object
+            cachePtr->mhMethodPopSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
+            //此次调用为MethodHandle调用 直接返回
+            return cachePtr;
         }
 
         cachePtr->paramSlotSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
         return cachePtr;
      }
 
-     Method *FrameMemoryHandler::linkVirtualMethod(u2 index, ExecuteVirutalMethodCache *cache, InstanceClass *instanceClass) {
+     Method *FrameMemoryHandler::linkVirtualMethod(u2 index, ExecuteVirtualMethodCache *cache, InstanceClass *instanceClass) {
         Composite<InstanceClass *, u2> keyComposite(instanceClass, index);
         u8 key = keyComposite.composite;
         if (const auto member = executeClassMemberCache.try_get(key); member != nullptr) {

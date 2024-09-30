@@ -29,14 +29,13 @@ namespace RexVM {
     struct Field;
     struct Method;
 
-    struct ExecuteVirutalMethodCache {
-        explicit ExecuteVirutalMethodCache() {
-        }
-        Method *mhMethod;
-        cview methodName;
-        cview methodDescriptor;
-        u2 mhMethodPopSize;
-        u2 paramSlotSize;
+    struct ExecuteVirtualMethodCache {
+        explicit ExecuteVirtualMethodCache() = default;
+        Method *mhMethod{nullptr};
+        cview methodName{};
+        cview methodDescriptor{};
+        u2 mhMethodPopSize{};
+        u2 paramSlotSize{};
     };
 
     struct FrameMemoryHandler {
@@ -85,14 +84,14 @@ namespace RexVM {
         //execute cache
 
         emhash8::HashMap<u8, voidPtr> executeClassMemberCache{64};
-        std::vector<std::unique_ptr<ExecuteVirutalMethodCache>> cacheVector{};
+        std::vector<std::unique_ptr<ExecuteVirtualMethodCache>> cacheVector{};
 
         [[nodiscard]] Field *getRefField(u2 index, bool isStatic);
         [[nodiscard]] Method *getRefMethod(u2 index, bool isStatic);
         [[nodiscard]] Class *getRefClass(u2 index);
         
-        [[nodiscard]] ExecuteVirutalMethodCache *resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle);
-        [[nodiscard]] Method *linkVirtualMethod(u2 index, ExecuteVirutalMethodCache *cache, InstanceClass *instanceClass);
+        [[nodiscard]] ExecuteVirtualMethodCache *resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle);
+        [[nodiscard]] Method *linkVirtualMethod(u2 index, ExecuteVirtualMethodCache *cache, InstanceClass *instanceClass);
 
     };
 

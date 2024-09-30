@@ -171,6 +171,15 @@ extern "C" {
         frame->returnVoid();
     }
 
+    void llvm_compile_get_static(void *framePtr, const u2 index) {
+        const auto frame = static_cast<Frame *>(framePtr);
+        const auto fieldRef = frame->mem.getRefField(index, true);
+        const auto &fieldClass = fieldRef->klass;
+        const auto value = fieldClass.getFieldValue(fieldRef->slotId);
+        const auto type = fieldRef->getFieldSlotType();
+        //frame.push(value, type);
+    }
+
 
 
 }
