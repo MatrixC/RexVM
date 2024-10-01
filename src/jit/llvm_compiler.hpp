@@ -14,6 +14,7 @@ namespace RexVM {
     struct ConstantInfo;
     struct InstanceClass;
     struct Method;
+    struct Field;
     struct LLVMHelpFunction;
 
     struct MethodCompiler {
@@ -95,6 +96,14 @@ namespace RexVM {
         void fCmp(llvm::Value *val1, llvm::Value *val2, llvm::Value *nanRet);
 
         void ifOp(u4 jumpTo, llvm::Value *val1, llvm::Value *val2, OpCodeEnum op);
+
+        llvm::Value *getConstantPtr(void *ptr);
+
+        [[nodiscard]] std::tuple<void *, Field *> getStaticAddress(u2 index) const;
+
+        void getStatic(u2 index);
+
+        void putStatic(u2 index);
 
         void processInstruction(OpCodeEnum opCode, u4 pc, ByteReader &byteReader);
 

@@ -76,6 +76,10 @@ namespace RexVM {
 
         returnVoid = module.getOrInsertFunction("llvm_compile_return_void",
                                                 FunctionType::get(voidTy, {voidPtrTy}, false));
+
+        clinit = module.getOrInsertFunction("llvm_compile_clinit",
+                                                FunctionType::get(voidTy, {voidPtrTy, voidPtrTy}, false));
+
     }
 
     void LLVMHelpFunction::createCallThrowNPE(IRBuilder<> &irBuilder, Value *framePtr) const {
@@ -154,20 +158,9 @@ namespace RexVM {
         irBuilder.CreateCall(returnVoid, {framePtr});
     }
 
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
+    void LLVMHelpFunction::createCallClinit(IRBuilder<> &irBuilder, Value *framePtr, Value *klass) const {
+        irBuilder.CreateCall(clinit, {framePtr, klass});
+    }
 
 
 }

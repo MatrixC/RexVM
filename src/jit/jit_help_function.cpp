@@ -164,16 +164,10 @@ extern "C" {
         frame->returnVoid();
     }
 
-    int64_t llvm_compile_get_static(void *framePtr, const u2 index, uint8_t *typeOut) {
+    void llvm_compile_clinit(void *framePtr, void *klass) {
         const auto frame = static_cast<Frame *>(framePtr);
-        const auto fieldRef = frame->mem.getRefField(index, true);
-        const auto &fieldClass = fieldRef->klass;
-        const auto value = fieldClass.getFieldValue(fieldRef->slotId);
-        const auto type = fieldRef->getFieldSlotType();
-        *typeOut = static_cast<uint8_t>(type);
-        return value.i8Val;
+        const auto instanceClass = static_cast<InstanceClass *>(klass);
+        instanceClass->clinit(*frame);
     }
-
-
 
 }

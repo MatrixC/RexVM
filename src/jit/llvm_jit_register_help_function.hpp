@@ -30,6 +30,7 @@ namespace RexVM {
         llvm::FunctionCallee returnF8{};
         llvm::FunctionCallee returnObj{};
         llvm::FunctionCallee returnVoid{};
+        llvm::FunctionCallee clinit{};
 
         void createCallThrowNPE(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr) const;
         llvm::Value *createCallGetStringConstant(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u2 index) const;
@@ -53,6 +54,8 @@ namespace RexVM {
         void createCallReturnF8(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value) const;
         void createCallReturnObj(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value) const;
         void createCallReturnVoid(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr) const;
+
+        void createCallClinit(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *klass) const;
 
     };
 

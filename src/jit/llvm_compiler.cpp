@@ -453,6 +453,66 @@ namespace RexVM {
         changeBB(elseBB);
     }
 
+    llvm::Value *MethodCompiler::getConstantPtr(void *ptr) {
+        const auto ptrInt = irBuilder.getInt64(std::bit_cast<uint64_t>(ptr));
+        return ConstantExpr::getIntToPtr(ptrInt, voidPtrType);
+    }
+
+    std::tuple<void *, Field *> MethodCompiler::getStaticAddress(const u2 index) const {
+        const auto fieldRef = klass.getRefField(index, true);
+        const auto fieldClass = &fieldRef->klass;
+        const auto dataPtr = fieldClass->staticData.get() + fieldRef->slotId;
+        return std::make_tuple(dataPtr, fieldRef);
+    }
+
+    void MethodCompiler::getStatic(const u2 index) {
+        const auto [dataPtr, field] = getStaticAddress(index);
+        const auto type = field->getFieldSlotType();
+        const auto klassPtr = &field->klass;
+        helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
+        const auto value = irBuilder.CreateLoad(slotTypeMap(type), getConstantPtr(dataPtr));
+        switch (type) {
+            case SlotTypeEnum::I4:
+            case SlotTypeEnum::F4:
+            case SlotTypeEnum::REF:
+                pushValue(value);
+                break;
+
+            case SlotTypeEnum::I8:
+            case SlotTypeEnum::F8:
+                pushWideValue(value);
+                break;
+
+            default:
+                panic("error type");
+        }
+    }
+
+    void MethodCompiler::putStatic(const u2 index) {
+        const auto [dataPtr, field] = getStaticAddress(index);
+        const auto type = field->getFieldSlotType();
+        llvm::Value *value{nullptr};
+        switch (type) {
+            case SlotTypeEnum::I4:
+            case SlotTypeEnum::F4:
+            case SlotTypeEnum::REF:
+                value = popValue();
+                break;
+
+            case SlotTypeEnum::I8:
+            case SlotTypeEnum::F8:
+                value = popWideValue();
+                break;
+
+            default:
+                panic("error type");
+        }
+
+        irBuilder.CreateStore(value, getConstantPtr(dataPtr));
+    }
+
+
+
     void MethodCompiler::processInstruction(
         OpCodeEnum opCode,
         u4 pc,
@@ -1324,8 +1384,14 @@ namespace RexVM {
             }
 
             case OpCodeEnum::GETSTATIC: {
-                const auto slotTypePtr = irBuilder.CreateAlloca(irBuilder.getInt8Ty());
+                const auto index = byteReader.readU2();
+                getStatic(index);
+                break;
+            }
 
+            case OpCodeEnum::PUTSTATIC: {
+                const auto index = byteReader.readU2();
+                putStatic(index);
                 break;
             }
 

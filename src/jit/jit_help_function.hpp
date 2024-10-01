@@ -35,6 +35,8 @@ extern "C" {
     void llvm_compile_return_f8(void *framePtr, double val);
     void llvm_compile_return_obj(void *framePtr, void *val);
     void llvm_compile_return_void(void *framePtr);
+
+    void llvm_compile_clinit(void *framePtr, void *klass);
 }
 
 #endif

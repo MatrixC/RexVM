@@ -86,6 +86,9 @@ namespace RexVM {
         symbol_map[mangle("llvm_compile_return_void")] =
                 ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_return_void), JITSymbolFlags());
 
+        symbol_map[mangle("llvm_compile_clinit")] =
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_clinit), JITSymbolFlags());
+
        cantFail(jd.define(absoluteSymbols(symbol_map)));
     }
 
@@ -100,7 +103,7 @@ namespace RexVM {
         MethodCompiler methodCompiler(method, *module, compiledMethodName);
         methodCompiler.compile();
 
-        module->print(llvm::outs(), nullptr);
+        // module->print(llvm::outs(), nullptr);
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));
