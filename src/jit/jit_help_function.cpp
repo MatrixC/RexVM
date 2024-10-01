@@ -29,9 +29,9 @@ extern "C" {
         return value->getMirror(frame);
     }
 
-    void llvm_compile_throw_npe(void *framePtr) {
-        //TODO set frame pc
+    void llvm_compile_throw_npe(void *framePtr, const uint32_t pc) {
         const auto frame = static_cast<Frame *>(framePtr);
+        frame->jitPc = pc;
         throwNullPointException(*frame);
     }
 
@@ -166,8 +166,13 @@ extern "C" {
 
     void llvm_compile_clinit(void *framePtr, void *klass) {
         const auto frame = static_cast<Frame *>(framePtr);
-        const auto instanceClass = static_cast<InstanceClass *>(klass);
+        const auto instanceClass = CAST_INSTANCE_CLASS(klass);
         instanceClass->clinit(*frame);
+    }
+
+    void *llvm_compile_get_field(void *oop, const uint16_t index) {
+        const auto instanceOop = CAST_INSTANCE_OOP(oop);
+        return instanceOop->data.get() + index;
     }
 
 }

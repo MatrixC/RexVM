@@ -36,6 +36,7 @@ namespace RexVM {
         llvm::IRBuilder<> irBuilder;
         std::unique_ptr<LLVMHelpFunction> helpFunction;
 
+        u4 pc{};
         llvm::PointerType *voidPtrType{};
         llvm::Function *function{};
         llvm::BasicBlock *returnBB{};
@@ -57,7 +58,11 @@ namespace RexVM {
 
         void pushValue(llvm::Value *value);
 
+        void pushValue(llvm::Value *value, SlotTypeEnum type);
+
         llvm::Value *popValue();
+
+        llvm::Value *popValue(SlotTypeEnum type);
 
         void pushWideValue(llvm::Value *value);
 
@@ -99,13 +104,17 @@ namespace RexVM {
 
         llvm::Value *getConstantPtr(void *ptr);
 
-        [[nodiscard]] std::tuple<void *, Field *> getStaticAddress(u2 index) const;
+        [[nodiscard]] std::tuple<Field *, void *> getFieldInfo(u2 index, bool isStatic) const;
 
         void getStatic(u2 index);
 
         void putStatic(u2 index);
 
-        void processInstruction(OpCodeEnum opCode, u4 pc, ByteReader &byteReader);
+        void getField(u2 index);
+
+        void putField(u2 index);
+
+        void processInstruction(OpCodeEnum opCode, ByteReader &byteReader);
 
         void compile();
     };

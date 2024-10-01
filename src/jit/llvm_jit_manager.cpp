@@ -7,6 +7,8 @@
 #include "llvm_compiler.hpp"
 #include "jit_help_function.hpp"
 
+#define DEFINE_SYMBOL(hfname) symbol_map[mangle("hfname")] = ExecutorSymbolDef(ExecutorAddr::fromPtr(&hfname), JITSymbolFlags());
+
 
 namespace RexVM {
     using namespace llvm;
@@ -88,6 +90,11 @@ namespace RexVM {
 
         symbol_map[mangle("llvm_compile_clinit")] =
                 ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_clinit), JITSymbolFlags());
+
+        symbol_map[mangle("llvm_compile_get_field")] =
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_get_field), JITSymbolFlags());
+
+        //DEFINE_SYMBOL(llvm_compile_get_field)
 
        cantFail(jd.define(absoluteSymbols(symbol_map)));
     }

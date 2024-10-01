@@ -9,6 +9,7 @@ namespace RexVM {
         auto &context = module.getContext();
         const auto voidTy = Type::getVoidTy(context);
         const auto int8Ty = Type::getInt8Ty(context);
+        const auto int16Ty = Type::getInt16Ty(context);
         const auto int32Ty = Type::getInt32Ty(context);
         const auto int64Ty = Type::getInt64Ty(context);
         const auto floatTy = Type::getFloatTy(context);
@@ -16,7 +17,7 @@ namespace RexVM {
         const auto voidPtrTy = PointerType::getUnqual(voidTy);
 
         //void (void *)
-        const auto type0 = FunctionType::get(voidTy, {voidPtrTy}, false);
+        const auto type0 = FunctionType::get(voidTy, {voidPtrTy, int32Ty}, false);
         //void *(void *, uint32_t);
         const auto type1 = FunctionType::get(voidPtrTy, {voidPtrTy, int32Ty}, false);
 
@@ -80,10 +81,13 @@ namespace RexVM {
         clinit = module.getOrInsertFunction("llvm_compile_clinit",
                                                 FunctionType::get(voidTy, {voidPtrTy, voidPtrTy}, false));
 
+        getField = module.getOrInsertFunction("llvm_compile_get_field",
+                                                FunctionType::get(voidPtrTy, {voidPtrTy, int16Ty}, false));
+
     }
 
-    void LLVMHelpFunction::createCallThrowNPE(IRBuilder<> &irBuilder, Value *framePtr) const {
-        irBuilder.CreateCall(throwNpeHelper, {framePtr});
+    void LLVMHelpFunction::createCallThrowNPE(IRBuilder<> &irBuilder, Value *framePtr, const u4 pc) const {
+        irBuilder.CreateCall(throwNpeHelper, {framePtr, irBuilder.getInt32(pc)});
     }
 
     Value *LLVMHelpFunction::createCallGetStringConstant(IRBuilder<> &irBuilder, Value *framePtr, u2 index) const {
@@ -161,6 +165,12 @@ namespace RexVM {
     void LLVMHelpFunction::createCallClinit(IRBuilder<> &irBuilder, Value *framePtr, Value *klass) const {
         irBuilder.CreateCall(clinit, {framePtr, klass});
     }
+
+    Value *LLVMHelpFunction::createCallGetFieldPtr(IRBuilder<> &irBuilder, Value *klass, Value *index) const {
+        return irBuilder.CreateCall(getField, {klass, index});
+    }
+
+
 
 
 }

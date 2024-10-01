@@ -37,6 +37,7 @@ namespace RexVM {
         Slot *localVariableTable;
         SlotTypeEnum *localVariableTableType;
         StackContext operandStackContext;
+        u4 jitPc{};
         u1 currentByteCode{};
         u2 level{};
 

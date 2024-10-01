@@ -15,7 +15,7 @@ extern "C" {
     void *llvm_compile_get_string_constant(void *framePtr, uint32_t index);
     void *llvm_compile_get_class_mirror_constant(void *framePtr, uint32_t index);
 
-    void llvm_compile_throw_npe(void *framePtr);
+    void llvm_compile_throw_npe(void *framePtr, uint32_t pc);
     
     int32_t llvm_compile_array_load_i4(void *arrayOop, uint8_t type, uint32_t index);
     int64_t llvm_compile_array_load_i8(void *arrayOop, uint32_t index);
@@ -37,6 +37,7 @@ extern "C" {
     void llvm_compile_return_void(void *framePtr);
 
     void llvm_compile_clinit(void *framePtr, void *klass);
+    void *llvm_compile_get_field(void *oop, uint16_t index);
 }
 
 #endif

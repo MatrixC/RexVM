@@ -30,12 +30,14 @@ namespace RexVM {
         size_t fixMethodParamSlotSize
     ) :
             previous(previousFrame),
-            //非native函数直接取method.maxLocals native函数取method.paramSlotSize 如像MethodHandle#invoke一样的特殊函数取fixMethodParamSlotSize
             methodParamSlotSize(
                 fixMethodParamSlotSize == 0 ?
                     method.paramSlotSize :
                     fixMethodParamSlotSize
             ),
+            //非native函数直接取method.maxLocals
+            //native函数取method.paramSlotSize
+            //像MethodHandle#invoke一样的特殊函数取fixMethodParamSlotSize
             localVariableTableSize(
                 !method.isNative() ? 
                     method.maxLocals : 
@@ -137,6 +139,9 @@ namespace RexVM {
     }
 
     u4 Frame::pc() const {
+        if (jitPc > 0) {
+            return jitPc;
+        }
         return nextPc() - 1;
     }
 

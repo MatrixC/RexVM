@@ -1043,8 +1043,8 @@ namespace RexVM {
         }
 
         template<bool checkMethodHandle>
-        void invokeVirtualCommon(Frame &frame, u2 index) {
-            auto cache = frame.mem.resolveInvokeVirtualIndex(index, checkMethodHandle);
+        void invokeVirtualCommon(Frame &frame, const u2 index) {
+            const auto cache = frame.mem.resolveInvokeVirtualIndex(index, checkMethodHandle);
             if constexpr (checkMethodHandle) {
                 if (cache->mhMethod != nullptr) {
                     frame.runMethodInner(*cache->mhMethod, cache->mhMethodPopSize);
@@ -1059,8 +1059,8 @@ namespace RexVM {
             frame.runMethodInner(*realInvokeMethod);
         }
 
-        template<bool clinit, bool isStatic>
-        void invokeStaticCommon(Frame &frame, u2 index) {
+        template<bool isStatic>
+        void invokeStaticCommon(Frame &frame, const u2 index) {
             //const auto invokeMethod = frame.klass.getRefMethod(index, isStatic);
             const auto invokeMethod = frame.mem.getRefMethod(index, isStatic);
             //already execute in frame.getRefMethod
@@ -1077,12 +1077,12 @@ namespace RexVM {
 
         void invokespecial(Frame &frame) {
             const auto index = frame.reader.readU2();
-            invokeStaticCommon<false, false>(frame, index);
+            invokeStaticCommon<false>(frame, index);
         }
 
         void invokestatic(Frame &frame) {
             const auto index = frame.reader.readU2();
-            invokeStaticCommon<true, true>(frame, index);
+            invokeStaticCommon<true>(frame, index);
         }
 
         void invokeinterface(Frame &frame) {
