@@ -6,6 +6,8 @@
 #include "../class.hpp"
 #include "../class_member.hpp"
 #include "../constant_info.hpp"
+#include "../method_handle.hpp"
+#include "../utils/descriptor_parser.hpp"
 #include "../utils/method_utils.hpp"
 
 
@@ -515,6 +517,64 @@ namespace RexVM {
         throwNpeIfNull(oop);
         const auto fieldDataPtr = helpFunction->createCallGetFieldPtr(irBuilder, oop, irBuilder.getInt16(slotId));
         irBuilder.CreateStore(value, fieldDataPtr);
+    }
+
+    void MethodCompiler::pushParamAndInvoke(const u2 index, const bool isStatic, const u1 invokeType) {
+        const auto [className, methodName, methodDescriptor] =
+                getConstantStringFromPoolByClassNameType(constantPool, index);
+
+        const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
+        i2 paramSlotSize{0};
+        std::vector<SlotTypeEnum> paramSlotType;
+        if (!isStatic) {
+            paramSlotSize += 1;
+            paramSlotType.emplace_back(SlotTypeEnum::REF);
+        }
+        for (const auto &desc: paramType) {
+            paramSlotSize += 1;
+            const auto slotType = getSlotTypeByPrimitiveClassName(desc);
+            paramSlotType.emplace_back(slotType);
+            if (isWideSlotType(slotType)) {
+                paramSlotSize += 1;
+                paramSlotType.emplace_back(slotType);
+            }
+        }
+
+        //根据Frame的初始化定义 operandStackPtr = lvtPtr + lvtSize
+        //对于编译后的java函数 lvtSize = method.paramSlotSize 所以可以直接计算出操作数栈的地址
+        //所以 operandStackPtr = lvtPtr + method.paramSlotSize 它代表第一个栈元素地址
+        //后往前依次写入operandStack(std::stack 不能按index读取)
+        for (i4 i = paramSlotSize - 1; i >= 0; --i) {
+            //假设有4个参数 则 i = 3,2,1,0
+            //具体的参数
+            const auto paramValue = popValue();
+            //lvtPtr + method.paramSlotSize + i 代表了从最后一个到第一个参数的地址
+            const auto slotIdx = irBuilder.getInt32(method.paramSlotSize + i);
+            const auto slotPtr =
+                    irBuilder.CreateGEP(
+                        irBuilder.getInt64Ty(),
+                        getLocalVariableTablePtr(),
+                        slotIdx
+                    );
+
+            const auto slotTypePtr =
+                    irBuilder.CreateGEP(
+                        irBuilder.getInt8Ty(),
+                        getLocalVariableTableTypePtr(),
+                        slotIdx
+                    );
+
+            if (paramValue != nullptr) {
+                //nullptr 是padding
+                irBuilder.CreateStore(paramValue, slotPtr);
+            }
+
+            const auto slotType = paramSlotType[i];
+            irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), slotTypePtr);
+        }
+
+        //addsp and call frame.runMethod
+        helpFunction->createCallInvokeMethod(irBuilder, getFramePtr(), index, paramSlotSize, invokeType);
     }
 
     void MethodCompiler::processInstruction(
@@ -1411,7 +1471,27 @@ namespace RexVM {
             }
 
             case OpCodeEnum::INVOKEVIRTUAL: {
+                const auto index = byteReader.readU2();
+                pushParamAndInvoke(index, false, 3);
+                break;
+            }
 
+            case OpCodeEnum::INVOKESPECIAL: {
+                const auto index = byteReader.readU2();
+                pushParamAndInvoke(index, false, 1);
+                break;
+            }
+
+            case OpCodeEnum::INVOKESTATIC: {
+                const auto index = byteReader.readU2();
+                pushParamAndInvoke(index, true, 0);
+                break;
+            }
+
+            case OpCodeEnum::INVOKEINTERFACE: {
+                const auto index = byteReader.readU2();
+                byteReader.readU2();
+                pushParamAndInvoke(index, false, 2);
                 break;
             }
 

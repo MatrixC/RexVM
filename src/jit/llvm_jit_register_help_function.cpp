@@ -82,7 +82,10 @@ namespace RexVM {
                                                 FunctionType::get(voidTy, {voidPtrTy, voidPtrTy}, false));
 
         getField = module.getOrInsertFunction("llvm_compile_get_field",
-                                                FunctionType::get(voidPtrTy, {voidPtrTy, int16Ty}, false));
+                                              FunctionType::get(voidPtrTy, {voidPtrTy, int16Ty}, false));
+
+        invokeMethod = module.getOrInsertFunction("llvm_compile_invoke_method",
+                                                  FunctionType::get(voidTy, {voidPtrTy, int16Ty, int16Ty, int8Ty}, false));
 
     }
 
@@ -170,7 +173,11 @@ namespace RexVM {
         return irBuilder.CreateCall(getField, {klass, index});
     }
 
-
-
-
+    void LLVMHelpFunction::createCallInvokeMethod(IRBuilder<> &irBuilder, Value *framePtr, const uint16_t index,
+                                                  const uint16_t paramSlotSize, const uint8_t invokeType) const {
+        irBuilder.CreateCall(invokeMethod, {
+                                 framePtr, irBuilder.getInt16(index), irBuilder.getInt16(paramSlotSize),
+                                 irBuilder.getInt8(invokeType)
+                             });
+    }
 }

@@ -6,6 +6,7 @@
 #include "../oop.hpp"
 #include "../constant_info.hpp"
 #include "../exception_helper.hpp"
+#include "../exception_helper.hpp"
 
 extern "C" {
 
@@ -173,6 +174,44 @@ extern "C" {
     void *llvm_compile_get_field(void *oop, const uint16_t index) {
         const auto instanceOop = CAST_INSTANCE_OOP(oop);
         return instanceOop->data.get() + index;
+    }
+
+    void llvm_compile_invoke_method(void *framePtr, const uint16_t index, const uint16_t paramSize,
+                                    const uint8_t invokeType) {
+        const auto frame = static_cast<Frame *>(framePtr);
+        auto &operandStack = frame->operandStackContext;
+        //0 static
+        //1 special
+        //2 virtual not check methodHandle
+        //3 virtual check methodHandle
+
+        Method *invokeMethod{nullptr};
+        const auto checkMethodHandle = invokeType == 3;
+        if (invokeType == 0) {
+            invokeMethod = frame->mem.getRefMethod(index, true);
+            operandStack.sp += CAST_I4(paramSize);
+            frame->runMethodInner(*invokeMethod);
+        } else if (invokeType == 1) {
+            invokeMethod = frame->mem.getRefMethod(index, false);
+            operandStack.sp += CAST_I4(paramSize);
+            frame->runMethodInner(*invokeMethod);
+        } else {
+            const auto cache = frame->mem.resolveInvokeVirtualIndex(index, checkMethodHandle);
+            if (checkMethodHandle && cache->mhMethod != nullptr) {
+                operandStack.sp += CAST_I4(cache->mhMethodPopSize);
+                frame->runMethodInner(*cache->mhMethod, cache->mhMethodPopSize);
+                return;
+            }
+            operandStack.sp += CAST_I4(paramSize);
+            const auto instance = frame->getStackOffset(cache->paramSlotSize - 1).refVal;
+            if (instance == nullptr) {
+                throwNullPointException(*frame);
+                return;
+            }
+            const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
+            invokeMethod = frame->mem.linkVirtualMethod(index, cache, instanceClass);
+            frame->runMethodInner(*invokeMethod);
+        }
     }
 
 }

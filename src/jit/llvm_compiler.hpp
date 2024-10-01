@@ -114,6 +114,8 @@ namespace RexVM {
 
         void putField(u2 index);
 
+        void pushParamAndInvoke(u2 index, bool isStatic, u1 invokeType);
+
         void processInstruction(OpCodeEnum opCode, ByteReader &byteReader);
 
         void compile();

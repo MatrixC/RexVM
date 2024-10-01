@@ -33,6 +33,7 @@ namespace RexVM {
 
         llvm::FunctionCallee clinit{};
         llvm::FunctionCallee getField{};
+        llvm::FunctionCallee invokeMethod{};
 
         void createCallThrowNPE(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u4 pc) const;
         llvm::Value *createCallGetStringConstant(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u2 index) const;
@@ -59,6 +60,8 @@ namespace RexVM {
 
         void createCallClinit(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *klass) const;
         llvm::Value *createCallGetFieldPtr(llvm::IRBuilder<> &irBuilder, llvm::Value *klass, llvm::Value *index) const;
+        void createCallInvokeMethod(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, uint16_t index,
+                                    uint16_t paramSlotSize, uint8_t invokeType) const;
 
     };
 

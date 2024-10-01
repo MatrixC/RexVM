@@ -1,5 +1,4 @@
 #include "frame.hpp"
-#include <utility>
 #include "constant_info.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
@@ -29,42 +28,53 @@ namespace RexVM {
         Frame *previousFrame, 
         size_t fixMethodParamSlotSize
     ) :
-            previous(previousFrame),
-            methodParamSlotSize(
-                fixMethodParamSlotSize == 0 ?
-                    method.paramSlotSize :
-                    fixMethodParamSlotSize
-            ),
-            //非native函数直接取method.maxLocals
-            //native函数取method.paramSlotSize
-            //像MethodHandle#invoke一样的特殊函数取fixMethodParamSlotSize
-            localVariableTableSize(
-                !method.isNative() ? 
-                    method.maxLocals : 
-                    std::max(method.paramSlotSize, fixMethodParamSlotSize)
-            ),
-            localVariableTable(
-                previous == nullptr ?
-                    thread.stackMemory.get() :
-                    previous->operandStackContext.getCurrentSlotPtr() + 1
-            ), //Previous last operand slot + 1
-            localVariableTableType(
-                previous == nullptr ?
-                    thread.stackMemoryType.get() :
-                    previous->operandStackContext.getCurrentSlotTypePtr() + 1
-            ), //Previous last operand slot + 1
-            operandStackContext(
-                localVariableTable + localVariableTableSize,
-                localVariableTableType + localVariableTableSize,
-                -1
-            ),
-            vm(thread.vm),
-            thread(thread),
-            method(method),
-            klass(method.klass),
-            mem(FrameMemoryHandler(*this)),
-            constantPool(klass.constantPool),
-            classLoader(klass.classLoader) {
+        previous(previousFrame),
+        //MethodHandle专用
+        //用来解决调用MethodHandle invoke时 需要获得真实ParamSlotSize的问题
+        methodParamSlotSize(
+            fixMethodParamSlotSize == 0 ?
+                method.paramSlotSize :
+                fixMethodParamSlotSize
+        ),
+        //1. 对于native函数来说 如果是普通native函数 直接取 method.paramSlotSize 保存参数
+        //2. 对于native函数 MethodHandle#invoke来说 其实类似于调用普通函数 所以需要取实际的 fixMethodParamSlotSize
+        //3. 对于非native函数 若未经过JIT编译 则取 method.maxLocals 存放参数和局部变量
+        //4. 对于非native函数 若已JIT编译 则局部变量存在实际执行栈种 取 method.paramSlotSize 即可
+        localVariableTableSize(
+            method.isNative()
+                ? std::max(method.paramSlotSize, fixMethodParamSlotSize) //native情况简化写法
+                :
+                method.compiledMethodHandler == nullptr
+                    ? method.maxLocals // 没有编译
+                    : method.paramSlotSize //已经编译
+        ),
+        //lvt起始地址 若是第一个函数 直接取 stackMemory.get()
+        //否则取上个栈帧的最后一个操作数栈元素的后一位
+        //若有参数传递 则在runMethodInner里已经对上个栈帧的操作数栈进行了pop 可以直接对齐本栈的参数地址
+        //JIT方式的方法调用也需要通过这种方式来传递参数
+        localVariableTable(
+            previous == nullptr ?
+                thread.stackMemory.get() :
+                previous->operandStackContext.getCurrentSlotPtr() + 1
+        ), //Previous last operand slot + 1
+        localVariableTableType(
+            previous == nullptr ?
+                thread.stackMemoryType.get() :
+                previous->operandStackContext.getCurrentSlotTypePtr() + 1
+        ), //Previous last operand slot + 1
+        //取lvt的后一位
+        operandStackContext(
+            localVariableTable + localVariableTableSize,
+            localVariableTableType + localVariableTableSize,
+            -1
+        ),
+        vm(thread.vm),
+        thread(thread),
+        method(method),
+        klass(method.klass),
+        mem(FrameMemoryHandler(*this)),
+        constantPool(klass.constantPool),
+        classLoader(klass.classLoader) {
         const auto nativeMethod = method.isNative();
         if (!nativeMethod) {
             auto codePtr = method.code.get();
