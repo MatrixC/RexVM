@@ -13,6 +13,8 @@ namespace RexVM {
         llvm::FunctionCallee getStringConstantHelper{};
         llvm::FunctionCallee getClassMirrorConstantHelper{};
         llvm::FunctionCallee throwNpeHelper{};
+
+        llvm::FunctionCallee arrayLength{};
         llvm::FunctionCallee arrayLoadI4{};
         llvm::FunctionCallee arrayLoadI8{};
         llvm::FunctionCallee arrayLoadF4{};
@@ -36,12 +38,16 @@ namespace RexVM {
         llvm::FunctionCallee invokeMethod{};
         llvm::FunctionCallee invokeMethodStatic{};
         llvm::FunctionCallee newObject{};
+        llvm::FunctionCallee throwException{};
+        llvm::FunctionCallee instanceOf{};
+        llvm::FunctionCallee monitor{};
 
 
         void createCallThrowNPE(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u4 pc) const;
         llvm::Value *createCallGetStringConstant(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u2 index) const;
         llvm::Value *createCallGetClassMirrorConstant(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u2 index) const;
 
+        llvm::Value *createCallArrayLength(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef) const;
         llvm::Value *createCallArrayLoadI4(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index, uint8_t type) const;
         llvm::Value *createCallArrayLoadI8(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index) const;
         llvm::Value *createCallArrayLoadF4(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef, llvm::Value *index) const;
@@ -65,7 +71,10 @@ namespace RexVM {
         llvm::Value *createCallGetFieldPtr(llvm::IRBuilder<> &irBuilder, llvm::Value *klass, llvm::Value *index) const;
         void createCallInvokeMethod(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, uint16_t index) const;
         void createCallInvokeMethodStatic(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *method, uint16_t paramSlotSize) const;
-        llvm::Value * createCallNew(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, uint8_t type, llvm::Value *length, llvm::Value *klass) const;
+        llvm::Value *createCallNew(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, uint8_t type, llvm::Value *length, llvm::Value *klass) const;
+        void createCallThrowException(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *exception) const;
+        llvm::Value * createCallInstanceOf(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u1 type, llvm::Value *oop, llvm::Value *checkClass) const;
+        void createCallMonitor(llvm::IRBuilder<> &irBuilder, llvm::Value *oop, u1 type) const;
 
     };
 

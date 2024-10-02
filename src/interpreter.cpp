@@ -1154,7 +1154,6 @@ namespace RexVM {
             const auto checkClass = frame.mem.getRefClass(index);
             if (!ref->isInstanceOf(checkClass)) {
                 throwClassCastException(frame, ref->getClass()->getClassName(), checkClass->getClassName());
-                return;
             }
         }
 

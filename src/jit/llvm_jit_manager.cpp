@@ -31,35 +31,38 @@ namespace RexVM {
 
         SymbolMap symbol_map;
         symbol_map[mangle("llvm_compile_get_string_constant")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_get_string_constant), JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_get_string_constant), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_get_class_mirror_constant")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_get_class_mirror_constant),
-                                          JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_get_class_mirror_constant),
+                                  JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_throw_npe")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_throw_npe), JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_throw_npe), JITSymbolFlags());
+
+        symbol_map[mangle("llvm_compile_array_length")] =
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_length), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_array_load_i4")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_i4), JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_i4), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_array_load_i8")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_i8), JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_i8), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_array_load_f4")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_f4), JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_f4), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_array_load_f8")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_f8), JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_f8), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_array_load_obj")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_obj), JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_obj), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_array_store_i4")] =
                 ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_i4), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_array_store_i8")] =
-                        ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_i8), JITSymbolFlags());
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_i8), JITSymbolFlags());
 
         symbol_map[mangle("llvm_compile_array_store_f4")] =
                 ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_f4), JITSymbolFlags());
@@ -103,14 +106,23 @@ namespace RexVM {
         symbol_map[mangle("llvm_compile_new_object")] =
                 ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_new_object), JITSymbolFlags());
 
-       cantFail(jd.define(absoluteSymbols(symbol_map)));
+        symbol_map[mangle("llvm_compile_throw_exception")] =
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_throw_exception), JITSymbolFlags());
+
+        symbol_map[mangle("llvm_compile_check_cast")] =
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_check_cast), JITSymbolFlags());
+
+        symbol_map[mangle("llvm_compile_monitor")] =
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_monitor), JITSymbolFlags());
+
+        cantFail(jd.define(absoluteSymbols(symbol_map)));
     }
 
 
     void LLVM_JITManager::compileMethod(Method &method) {
         const auto ctx = threadSafeContext->getContext();
         const auto currentMethodCnt = methodCnt.fetch_add(1);
-        const auto moduleName = cformat("module_{}",currentMethodCnt);
+        const auto moduleName = cformat("module_{}", currentMethodCnt);
         const auto compiledMethodName = cformat("{}_{}", method.getName(), currentMethodCnt);
         auto module = std::make_unique<Module>(moduleName, *ctx);
 
@@ -126,5 +138,4 @@ namespace RexVM {
         const auto ptr = sym->toPtr<CompiledMethodHandler>();
         method.compiledMethodHandler = ptr;
     }
-
 }

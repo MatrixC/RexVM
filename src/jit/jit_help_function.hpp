@@ -16,12 +16,19 @@ constexpr uint8_t LLVM_COMPILER_NEW_OBJECT = 1;
 constexpr uint8_t LLVM_COMPILER_NEW_OBJECT_ARRAY = 2;
 constexpr uint8_t LLVM_COMPILER_NEW_MULTI_ARRAY = 3;
 
+constexpr uint8_t LLVM_COMPILER_CHECK_CAST = 0;
+constexpr uint8_t LLVM_COMPILER_INSTANCE_OF = 1;
+
+constexpr uint8_t LLVM_COMPILER_MONITOR_ENTER = 0;
+constexpr uint8_t LLVM_COMPILER_MONITOR_EXIT = 1;
+
 extern "C" {
     void *llvm_compile_get_string_constant(void *framePtr, uint32_t index);
     void *llvm_compile_get_class_mirror_constant(void *framePtr, uint32_t index);
 
     void llvm_compile_throw_npe(void *framePtr, uint32_t pc);
-    
+
+    int32_t llvm_compile_array_length(void *arrayOop);
     int32_t llvm_compile_array_load_i4(void *arrayOop, uint8_t type, uint32_t index);
     int64_t llvm_compile_array_load_i8(void *arrayOop, uint32_t index);
     float llvm_compile_array_load_f4(void *arrayOop, uint32_t index);
@@ -46,6 +53,9 @@ extern "C" {
     void llvm_compile_invoke_method(void *framePtr, uint16_t index);
     void llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize);
     void *llvm_compile_new_object(void *framePtr, uint8_t type, int32_t length, void *klass);
+    void llvm_compile_throw_exception(void *framePtr, void *exOop);
+    int32_t llvm_compile_check_cast(void *framePtr, uint8_t type, void *popOop, void *check);
+    void llvm_compile_monitor(void *oop, uint8_t type);
 }
 
 #endif

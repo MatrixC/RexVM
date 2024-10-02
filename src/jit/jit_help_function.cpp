@@ -36,6 +36,11 @@ extern "C" {
         throwNullPointException(*frame);
     }
 
+    int32_t llvm_compile_array_length(void *arrayOop) {
+        const auto array = CAST_ARRAY_OOP(arrayOop);
+        return static_cast<int32_t>(array->getDataLength());
+    }
+
     int32_t llvm_compile_array_load_i4(void *arrayOop, const uint8_t type, const uint32_t index) {
         switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE: {
@@ -246,5 +251,35 @@ extern "C" {
             }
         }
     }
+
+    void llvm_compile_throw_exception(void *framePtr, void *exOop) {
+        const auto frame = static_cast<Frame *>(framePtr);
+        frame->throwException(CAST_INSTANCE_OOP(exOop));
+    }
+
+    int32_t llvm_compile_check_cast(void *framePtr, const uint8_t type, void *popOop, void *check) {
+        const auto frame = static_cast<Frame *>(framePtr);
+        const auto refVal = CAST_REF(popOop);
+        const auto checkClass = CAST_CLASS(check);
+        const auto instanceOf = refVal->isInstanceOf(checkClass);
+        const int32_t result = instanceOf ? 1 : 0;
+
+        if (type == LLVM_COMPILER_CHECK_CAST && !instanceOf) {
+            throwClassCastException(*frame, refVal->getClass()->getClassName(), checkClass->getClassName());
+        }
+
+        return result;
+    }
+
+    void llvm_compile_monitor(void *oop, const uint8_t type) {
+        const auto refVal = CAST_REF(oop);
+        if (type == LLVM_COMPILER_MONITOR_ENTER) {
+            refVal->lock();
+        } else {
+            refVal->unlock();
+        }
+    }
+
+
 
 }

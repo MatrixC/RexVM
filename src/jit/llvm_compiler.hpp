@@ -117,7 +117,7 @@ namespace RexVM {
 
         void putField(u2 index);
 
-        size_t pushParams(const std::vector<cstring> &paramType, bool isStatic);
+        size_t pushParams(const std::vector<cstring> &paramType, bool includeThis);
 
         void invokeStaticMethod(u2 index, bool isStatic);
 

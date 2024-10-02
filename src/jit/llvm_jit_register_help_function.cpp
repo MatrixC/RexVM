@@ -25,6 +25,9 @@ namespace RexVM {
         getClassMirrorConstantHelper = module.getOrInsertFunction("llvm_compile_get_class_mirror_constant", type1);
         throwNpeHelper = module.getOrInsertFunction("llvm_compile_throw_npe", type0);
 
+        arrayLength = module.getOrInsertFunction("llvm_compile_array_length",
+                                                 FunctionType::get(int32Ty, {voidPtrTy}, false));
+
         arrayLoadI4 = module.getOrInsertFunction("llvm_compile_array_load_i4",
                                                  FunctionType::get(int32Ty, {voidPtrTy, int8Ty, int32Ty}, false));
 
@@ -61,7 +64,7 @@ namespace RexVM {
                                                    FunctionType::get(voidTy, {voidPtrTy, int32Ty, voidPtrTy}, false));
 
         returnI4 = module.getOrInsertFunction("llvm_compile_return_i4",
-                                              FunctionType::get(voidTy, { voidPtrTy, int32Ty}, false));
+                                              FunctionType::get(voidTy, {voidPtrTy, int32Ty}, false));
 
         returnI8 = module.getOrInsertFunction("llvm_compile_return_i8",
                                               FunctionType::get(voidTy, {voidPtrTy, int64Ty}, false));
@@ -79,7 +82,7 @@ namespace RexVM {
                                                 FunctionType::get(voidTy, {voidPtrTy}, false));
 
         clinit = module.getOrInsertFunction("llvm_compile_clinit",
-                                                FunctionType::get(voidTy, {voidPtrTy, voidPtrTy}, false));
+                                            FunctionType::get(voidTy, {voidPtrTy, voidPtrTy}, false));
 
         getField = module.getOrInsertFunction("llvm_compile_get_field",
                                               FunctionType::get(voidPtrTy, {voidPtrTy, int16Ty}, false));
@@ -88,27 +91,46 @@ namespace RexVM {
                                                   FunctionType::get(voidTy, {voidPtrTy, int16Ty}, false));
 
         invokeMethodStatic = module.getOrInsertFunction("llvm_compile_invoke_method_fixed",
-                                                    FunctionType::get(voidTy, {voidPtrTy, voidPtrTy, int16Ty}, false));
+                                                        FunctionType::get(
+                                                            voidTy, {voidPtrTy, voidPtrTy, int16Ty}, false));
 
         newObject = module.getOrInsertFunction("llvm_compile_new_object",
-                                               FunctionType::get(voidTy, {
+                                               FunctionType::get(voidPtrTy, {
                                                                      voidPtrTy, int8Ty, int32Ty, voidPtrTy
                                                                  }, false));
+
+        throwException = module.getOrInsertFunction("llvm_compile_throw_exception",
+                                                    FunctionType::get(voidTy, {voidPtrTy}, false));
+
+        instanceOf = module.getOrInsertFunction("llvm_compile_check_cast",
+                                                FunctionType::get(int32Ty, {voidPtrTy, int8Ty, voidPtrTy, voidPtrTy},
+                                                                  false));
+
+        monitor = module.getOrInsertFunction("llvm_compile_monitor",
+                                             FunctionType::get(voidTy, {voidPtrTy, int8Ty},
+                                                               false));
     }
 
     void LLVMHelpFunction::createCallThrowNPE(IRBuilder<> &irBuilder, Value *framePtr, const u4 pc) const {
         irBuilder.CreateCall(throwNpeHelper, {framePtr, irBuilder.getInt32(pc)});
     }
 
-    Value *LLVMHelpFunction::createCallGetStringConstant(IRBuilder<> &irBuilder, Value *framePtr, u2 index) const {
+    Value *LLVMHelpFunction::createCallGetStringConstant(IRBuilder<> &irBuilder, Value *framePtr,
+                                                         const u2 index) const {
         return irBuilder.CreateCall(getStringConstantHelper, {framePtr, irBuilder.getInt32(index)});
     }
 
-    Value *LLVMHelpFunction::createCallGetClassMirrorConstant(IRBuilder<> &irBuilder, Value *framePtr, u2 index) const {
+    Value *LLVMHelpFunction::createCallGetClassMirrorConstant(IRBuilder<> &irBuilder, Value *framePtr,
+                                                              const u2 index) const {
         return irBuilder.CreateCall(getClassMirrorConstantHelper, {framePtr, irBuilder.getInt32(index)});
     }
 
-    Value *LLVMHelpFunction::createCallArrayLoadI4(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, uint8_t type) const {
+    Value *LLVMHelpFunction::createCallArrayLength(IRBuilder<> &irBuilder, Value *arrayRef) const {
+        return irBuilder.CreateCall(arrayLength, {arrayRef});
+    }
+
+    Value *LLVMHelpFunction::createCallArrayLoadI4(IRBuilder<> &irBuilder, Value *arrayRef, Value *index,
+                                                   const uint8_t type) const {
         return irBuilder.CreateCall(arrayLoadI4, {arrayRef, irBuilder.getInt8(type), index});
     }
 
@@ -128,24 +150,29 @@ namespace RexVM {
         return irBuilder.CreateCall(arrayLoadObj, {arrayRef, index});
     }
 
-    void LLVMHelpFunction::createCallArrayStoreI4(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value, const uint8_t type) const {
-        irBuilder.CreateCall(arrayStoreI4, {arrayRef, irBuilder.getInt8(type), index, value}); 
+    void LLVMHelpFunction::createCallArrayStoreI4(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value,
+                                                  const uint8_t type) const {
+        irBuilder.CreateCall(arrayStoreI4, {arrayRef, irBuilder.getInt8(type), index, value});
     }
 
-    void LLVMHelpFunction::createCallArrayStoreI8(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value) const {
-        irBuilder.CreateCall(arrayStoreI8, {arrayRef, index, value}); 
+    void LLVMHelpFunction::createCallArrayStoreI8(IRBuilder<> &irBuilder, Value *arrayRef, Value *index,
+                                                  Value *value) const {
+        irBuilder.CreateCall(arrayStoreI8, {arrayRef, index, value});
     }
 
-    void LLVMHelpFunction::createCallArrayStoreF4(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value) const {
-        irBuilder.CreateCall(arrayStoreF4, {arrayRef, index, value}); 
+    void LLVMHelpFunction::createCallArrayStoreF4(IRBuilder<> &irBuilder, Value *arrayRef, Value *index,
+                                                  Value *value) const {
+        irBuilder.CreateCall(arrayStoreF4, {arrayRef, index, value});
     }
 
-    void LLVMHelpFunction::createCallArrayStoreF8(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value) const {
-        irBuilder.CreateCall(arrayStoreF8, {arrayRef, index, value}); 
+    void LLVMHelpFunction::createCallArrayStoreF8(IRBuilder<> &irBuilder, Value *arrayRef, Value *index,
+                                                  Value *value) const {
+        irBuilder.CreateCall(arrayStoreF8, {arrayRef, index, value});
     }
 
-    void LLVMHelpFunction::createCallArrayStoreObj(IRBuilder<> &irBuilder, Value *arrayRef, Value *index, Value *value) const {
-        irBuilder.CreateCall(arrayStoreObj, {arrayRef, index, value}); 
+    void LLVMHelpFunction::createCallArrayStoreObj(IRBuilder<> &irBuilder, Value *arrayRef, Value *index,
+                                                   Value *value) const {
+        irBuilder.CreateCall(arrayStoreObj, {arrayRef, index, value});
     }
 
     void LLVMHelpFunction::createCallReturnI4(IRBuilder<> &irBuilder, Value *framePtr, Value *value) const {
@@ -185,7 +212,7 @@ namespace RexVM {
     }
 
     void LLVMHelpFunction::createCallInvokeMethodStatic(IRBuilder<> &irBuilder, Value *framePtr, Value *method,
-                                                    const uint16_t paramSlotSize) const {
+                                                        const uint16_t paramSlotSize) const {
         irBuilder.CreateCall(invokeMethodStatic, {framePtr, method, irBuilder.getInt16(paramSlotSize)});
     }
 
@@ -194,6 +221,16 @@ namespace RexVM {
         return irBuilder.CreateCall(newObject, {framePtr, irBuilder.getInt8(type), length, klass});
     }
 
+    void LLVMHelpFunction::createCallThrowException(IRBuilder<> &irBuilder, Value *framePtr, Value *exception) const {
+        irBuilder.CreateCall(throwException, {framePtr, exception});
+    }
 
+    Value *LLVMHelpFunction::createCallInstanceOf(IRBuilder<> &irBuilder, Value *framePtr, const u1 type, Value *oop,
+                                                  Value *checkClass) const {
+        return irBuilder.CreateCall(instanceOf, {framePtr, irBuilder.getInt8(type), oop, checkClass});
+    }
 
+    void LLVMHelpFunction::createCallMonitor(IRBuilder<> &irBuilder, Value *oop, const u1 type) const {
+        irBuilder.CreateCall(monitor, {oop, irBuilder.getInt8(type)});
+    }
 }

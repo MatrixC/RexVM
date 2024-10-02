@@ -523,9 +523,9 @@ namespace RexVM {
         irBuilder.CreateStore(value, fieldDataPtr);
     }
 
-        size_t MethodCompiler::pushParams(const std::vector<cstring> &paramType, const bool isStatic) {
+    size_t MethodCompiler::pushParams(const std::vector<cstring> &paramType, const bool includeThis) {
         std::vector<SlotTypeEnum> paramSlotType;
-        if (!isStatic) {
+        if (includeThis) {
             paramSlotType.emplace_back(SlotTypeEnum::REF);
         }
         for (const auto &desc: paramType) {
@@ -544,8 +544,8 @@ namespace RexVM {
             //假设有4个参数 则 i = 3,2,1,0
             //具体的参数
             const auto paramValue = popValue();
-            if (!isStatic && i == 0) {
-                //first param: method's object
+            if (includeThis && i == 0) {
+                //first param: this object
                 throwNpeIfNull(paramValue);
             }
 
@@ -582,7 +582,7 @@ namespace RexVM {
                 getConstantStringFromPoolByClassNameType(constantPool, index);
 
         const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
-        const auto paramSlotSize = pushParams(paramType, true);
+        const auto paramSlotSize = pushParams(paramType, !isStatic);
 
         const auto methodRef = klass.getRefMethod(index, isStatic);
         helpFunction->createCallInvokeMethodStatic(irBuilder, getFramePtr(), getConstantPtr(methodRef), paramSlotSize);
@@ -594,7 +594,7 @@ namespace RexVM {
          getConstantStringFromPoolByClassNameType(constantPool, index);
 
         const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
-        const auto paramSlotSize = pushParams(paramType, false);
+        const auto paramSlotSize = pushParams(paramType, true);
 
         if (isMethodHandleInvoke(className, methodName)) {
             const auto invokeMethod =
@@ -1462,35 +1462,41 @@ namespace RexVM {
             case OpCodeEnum::IRETURN: {
                 const auto retVal = popValue();
                 helpFunction->createCallReturnI4(irBuilder, getFramePtr(), retVal);
+                irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::LRETURN: {
                 const auto retVal = popWideValue();
                 helpFunction->createCallReturnI8(irBuilder, getFramePtr(), retVal);
+                irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::FRETURN: {
                 const auto retVal = popValue();
                 helpFunction->createCallReturnF4(irBuilder, getFramePtr(), retVal);
+                irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::DRETURN: {
                 const auto retVal = popWideValue();
                 helpFunction->createCallReturnF8(irBuilder, getFramePtr(), retVal);
+                irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::ARETURN: {
                 const auto retVal = popValue();
                 helpFunction->createCallReturnObj(irBuilder, getFramePtr(), retVal);
+                irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::RETURN: {
                 helpFunction->createCallReturnVoid(irBuilder, getFramePtr());
+                irBuilder.CreateBr(returnBB);
                 break;
             }
 
@@ -1604,7 +1610,210 @@ namespace RexVM {
                 break;
             }
 
+            case OpCodeEnum::ARRAYLENGTH: {
+                const auto array = popValue();
+                throwNpeIfNull(array);
+                const auto arrayLength = helpFunction->createCallArrayLength(irBuilder, array);
+                pushValue(arrayLength);
+                break;
+            }
+
+            case OpCodeEnum::ATHROW: {
+                const auto ex = popValue();
+                throwNpeIfNull(ex);
+                helpFunction->createCallThrowException(irBuilder, getFramePtr(), ex);
+                irBuilder.CreateBr(returnBB);
+                break;
+            }
+
+            case OpCodeEnum::CHECKCAST: {
+                const auto index = byteReader.readU2();
+                const auto className = getConstantStringFromPoolByIndexInfo(klass.constantPool, index);
+                const auto checkClass = klass.classLoader.getClass(className);
+
+                const auto ref = topValue();
+                // if (ref == nullptr) {
+                //     return;
+                // }
+                const auto endBB = BasicBlock::Create(ctx);
+                const auto notNullBB = BasicBlock::Create(ctx);
+                const auto notInstanceOfBB = BasicBlock::Create(ctx);
+
+                const auto cmpIsNull = irBuilder.CreateICmpEQ(ref, ConstantPointerNull::get(voidPtrType));
+                irBuilder.CreateCondBr(cmpIsNull, endBB, notNullBB);
+
+                changeBB(notNullBB);
+                const auto checkRet =
+                        helpFunction->createCallInstanceOf(
+                            irBuilder,
+                            getFramePtr(),
+                            LLVM_COMPILER_CHECK_CAST,
+                            ref,
+                            getConstantPtr(checkClass)
+                        );
+
+
+                const auto cmpInstanceOf = irBuilder.CreateICmpEQ(checkRet, irBuilder.getInt32(1));
+                irBuilder.CreateCondBr(cmpInstanceOf, endBB, notInstanceOfBB);
+
+                changeBB(notInstanceOfBB);
+                //already throw exception in createCallInstanceOf
+                //return function
+                irBuilder.CreateBr(returnBB);
+
+                changeBB(endBB);
+                break;
+            }
+
+            case OpCodeEnum::INSTANCEOF: {
+                const auto index = byteReader.readU2();
+                const auto className = getConstantStringFromPoolByIndexInfo(klass.constantPool, index);
+                const auto checkClass = klass.classLoader.getClass(className);
+
+                const auto ref = popValue();
+                // if (ref == nullptr) {
+                //     frame.pushI4(0);
+                //     return;
+                // }
+                const auto endBB = BasicBlock::Create(ctx);
+                const auto isNullBB = BasicBlock::Create(ctx);
+                const auto notNullBB = BasicBlock::Create(ctx);
+
+                const auto cmpIsNull = irBuilder.CreateICmpEQ(ref, ConstantPointerNull::get(voidPtrType));
+                irBuilder.CreateCondBr(cmpIsNull, endBB, notNullBB);
+
+                changeBB(notNullBB);
+                const auto checkRet =
+                        helpFunction->createCallInstanceOf(
+                            irBuilder,
+                            getFramePtr(),
+                            LLVM_COMPILER_CHECK_CAST,
+                            ref,
+                            getConstantPtr(checkClass)
+                        );
+                pushValue(checkRet);
+
+                changeBB(isNullBB);
+                pushI4Const(0);
+                irBuilder.CreateBr(endBB);
+
+                changeBB(endBB);
+                break;
+            }
+
+            case OpCodeEnum::MONITORENTER:
+            case OpCodeEnum::MONITOREXIT: {
+                const u1 type = CAST_I4(opCode) - CAST_I4(OpCodeEnum::MONITORENTER);
+                const auto oop = popValue();
+                throwNpeIfNull(oop);
+                helpFunction->createCallMonitor(irBuilder, oop, type);
+                break;
+            }
+
+            case OpCodeEnum::WIDE: {
+                const auto wideOpCode = static_cast<OpCodeEnum>(byteReader.readU1());
+                const auto index = byteReader.readU2();
+
+                switch (wideOpCode) {
+                    case OpCodeEnum::ILOAD:
+                        load(index, SlotTypeEnum::I4);
+                        break;
+                    case OpCodeEnum::FLOAD:
+                        load(index, SlotTypeEnum::F4);
+                        break;
+                    case OpCodeEnum::ALOAD:
+                        load(index, SlotTypeEnum::REF);
+                        break;
+                    case OpCodeEnum::LLOAD:
+                        load(index, SlotTypeEnum::I8);
+                        break;
+                    case OpCodeEnum::DLOAD:
+                        load(index, SlotTypeEnum::F8);
+                        break;
+
+                    case OpCodeEnum::ISTORE:
+                        store(index, SlotTypeEnum::I4);
+                        break;
+                    case OpCodeEnum::FSTORE:
+                        store(index, SlotTypeEnum::F4);
+                        break;
+                    case OpCodeEnum::ASTORE:
+                        store(index, SlotTypeEnum::REF);
+                        break;
+                    case OpCodeEnum::LSTORE:
+                        store(index, SlotTypeEnum::I8);
+                        break;
+                    case OpCodeEnum::DSTORE:
+                        store(index, SlotTypeEnum::F8);
+                        break;
+
+                    case OpCodeEnum::IINC: {
+                        const auto value = byteReader.readI2();
+                        const auto currentValue = getLocalVariableTableValue(index, SlotTypeEnum::I4);
+                        const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
+                        setLocalVariableTableValue(index, incValue, SlotTypeEnum::I4);
+                        break;
+                    }
+
+                    case OpCodeEnum::RET:
+                        panic("ret not implement!");
+                    break;
+
+                    default:
+                        panic("wide error");
+                }
+                break;
+            }
+
+            case OpCodeEnum::MULTIANEWARRAY: {
+                const auto index = byteReader.readU2();
+                const auto dimension = byteReader.readU1();
+                const auto arrayType = ArrayType::get(irBuilder.getInt32Ty(), dimension);
+                const auto arrayValue = irBuilder.CreateAlloca(arrayType);
+                for (i4 i = dimension - 1; i >= 0; --i) {
+                    const auto dimValue = popValue();
+                    const auto dimPtr =
+                        irBuilder.CreateGEP(irBuilder.getInt32Ty(), arrayValue, irBuilder.getInt32(i));
+                    irBuilder.CreateStore(dimValue, dimPtr);
+                }
+
+                const i4 length = (CAST_U2(dimension) << 16) | (index & 0xFFFF);
+                const auto newObject = helpFunction->createCallNew(
+                    irBuilder,
+                    getFramePtr(),
+                    LLVM_COMPILER_NEW_MULTI_ARRAY,
+                    irBuilder.getInt32(length),
+                    arrayValue
+                );
+                pushValue(newObject);
+                break;
+            }
+
+            case OpCodeEnum::IFNULL: {
+                const auto offset = byteReader.readI2();
+                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
+                const auto val = popValue();
+                ifOp(jumpTo, val, ConstantPointerNull::get(voidPtrType), OpCodeEnum::IFEQ);
+                break;
+            }
+
+            case OpCodeEnum::IFNONNULL: {
+                const auto offset = byteReader.readI2();
+                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
+                const auto val = popValue();
+                ifOp(jumpTo, val, ConstantPointerNull::get(voidPtrType), OpCodeEnum::IFNE);
+                break;
+            }
+
+            case OpCodeEnum::GOTO_W: {
+                const auto offset = byteReader.readI4();
+                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
+                irBuilder.CreateBr(opCodeBlocks[CAST_U4(jumpTo)]);
+                break;
+            }
+
             default:
+                panic("not support");
                 break;
         }
     }
