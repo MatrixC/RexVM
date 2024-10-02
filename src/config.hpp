@@ -77,6 +77,18 @@ namespace RexVM {
         return slotType == SlotTypeEnum::I8 || slotType == SlotTypeEnum::F8;
     }
 
+    inline u1 getSlotTypeStoreCount(const SlotTypeEnum slotType) {
+        switch (slotType) {
+            case SlotTypeEnum::NONE:
+                return 0;
+            case SlotTypeEnum::I8:
+            case SlotTypeEnum::F8:
+                return 2;
+            default:
+                return 1;
+        }
+    }
+
     inline SlotTypeEnum getSlotTypeByDescriptorFirstChar(const cchar first) {
         switch (first) {
             case 'L':

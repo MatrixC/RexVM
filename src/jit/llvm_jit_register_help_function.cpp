@@ -85,7 +85,10 @@ namespace RexVM {
                                               FunctionType::get(voidPtrTy, {voidPtrTy, int16Ty}, false));
 
         invokeMethod = module.getOrInsertFunction("llvm_compile_invoke_method",
-                                                  FunctionType::get(voidTy, {voidPtrTy, int16Ty, int16Ty, int8Ty}, false));
+                                                  FunctionType::get(voidTy, {voidPtrTy, int16Ty}, false));
+
+        invokeMethodStatic = module.getOrInsertFunction("llvm_compile_invoke_method_fixed",
+                                                    FunctionType::get(voidTy, {voidPtrTy, voidPtrTy, int16Ty}, false));
 
     }
 
@@ -173,11 +176,14 @@ namespace RexVM {
         return irBuilder.CreateCall(getField, {klass, index});
     }
 
-    void LLVMHelpFunction::createCallInvokeMethod(IRBuilder<> &irBuilder, Value *framePtr, const uint16_t index,
-                                                  const uint16_t paramSlotSize, const uint8_t invokeType) const {
-        irBuilder.CreateCall(invokeMethod, {
-                                 framePtr, irBuilder.getInt16(index), irBuilder.getInt16(paramSlotSize),
-                                 irBuilder.getInt8(invokeType)
-                             });
+    void LLVMHelpFunction::createCallInvokeMethod(IRBuilder<> &irBuilder, Value *framePtr, const uint16_t index) const {
+        irBuilder.CreateCall(invokeMethod, {framePtr, irBuilder.getInt16(index)});
     }
+
+    void LLVMHelpFunction::createCallInvokeMethodStatic(IRBuilder<> &irBuilder, Value *framePtr, Value *method,
+                                                    const uint16_t paramSlotSize) const {
+        irBuilder.CreateCall(invokeMethodStatic, {framePtr, method, irBuilder.getInt16(paramSlotSize)});
+    }
+
+
 }

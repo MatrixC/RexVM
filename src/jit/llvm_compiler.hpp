@@ -11,6 +11,7 @@
 #include "../utils/byte_reader.hpp"
 
 namespace RexVM {
+    struct VM;
     struct ConstantInfo;
     struct InstanceClass;
     struct Method;
@@ -19,6 +20,7 @@ namespace RexVM {
 
     struct MethodCompiler {
         explicit MethodCompiler(
+            VM &vm,
             Method &method,
             llvm::Module &module,
             cview compiledMethodName
@@ -27,6 +29,7 @@ namespace RexVM {
         void initBasicBlock();
         void changeBB(llvm::BasicBlock *nextBasicBlock);
 
+        VM &vm;
         Method &method;
         InstanceClass &klass;
         std::vector<std::unique_ptr<ConstantInfo> > &constantPool;
@@ -114,7 +117,13 @@ namespace RexVM {
 
         void putField(u2 index);
 
-        void pushParamAndInvoke(u2 index, bool isStatic, u1 invokeType);
+        size_t pushParams(const std::vector<cstring> &paramType, bool isStatic);
+
+        void invokeStaticMethod(u2 index, bool isStatic);
+
+        void invokeVirtualMethod(u2 index);
+
+        void processInvokeReturn(cview returnType);
 
         void processInstruction(OpCodeEnum opCode, ByteReader &byteReader);
 

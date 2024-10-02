@@ -2,9 +2,11 @@
 #include <set>
 #include "jit_help_function.hpp"
 #include "llvm_jit_register_help_function.hpp"
+#include "../vm.hpp"
 #include "../frame.hpp"
 #include "../class.hpp"
 #include "../class_member.hpp"
+#include "../class_loader.hpp"
 #include "../constant_info.hpp"
 #include "../method_handle.hpp"
 #include "../utils/descriptor_parser.hpp"
@@ -15,10 +17,12 @@ namespace RexVM {
     using namespace llvm;
 
     MethodCompiler::MethodCompiler(
+        VM &vm,
         Method &method,
         Module &module,
         const cview compiledMethodName
-    ) : method(method),
+    ) : vm(vm),
+        method(method),
         klass(method.klass),
         constantPool(klass.constantPool),
         module(module),
@@ -519,37 +523,34 @@ namespace RexVM {
         irBuilder.CreateStore(value, fieldDataPtr);
     }
 
-    void MethodCompiler::pushParamAndInvoke(const u2 index, const bool isStatic, const u1 invokeType) {
-        const auto [className, methodName, methodDescriptor] =
-                getConstantStringFromPoolByClassNameType(constantPool, index);
-
-        const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
-        i2 paramSlotSize{0};
+        size_t MethodCompiler::pushParams(const std::vector<cstring> &paramType, const bool isStatic) {
         std::vector<SlotTypeEnum> paramSlotType;
         if (!isStatic) {
-            paramSlotSize += 1;
             paramSlotType.emplace_back(SlotTypeEnum::REF);
         }
         for (const auto &desc: paramType) {
-            paramSlotSize += 1;
             const auto slotType = getSlotTypeByPrimitiveClassName(desc);
             paramSlotType.emplace_back(slotType);
             if (isWideSlotType(slotType)) {
-                paramSlotSize += 1;
                 paramSlotType.emplace_back(slotType);
             }
         }
 
         //根据Frame的初始化定义 operandStackPtr = lvtPtr + lvtSize
-        //对于编译后的java函数 lvtSize = method.paramSlotSize 所以可以直接计算出操作数栈的地址
-        //所以 operandStackPtr = lvtPtr + method.paramSlotSize 它代表第一个栈元素地址
+        //对于编译后的java函数 lvtSize = method.maxLocals 所以可以直接计算出操作数栈的地址
+        //所以 operandStackPtr = lvtPtr + method.maxLocals 它代表第一个栈元素地址
         //后往前依次写入operandStack(std::stack 不能按index读取)
-        for (i4 i = paramSlotSize - 1; i >= 0; --i) {
+        for (i4 i = CAST_I4(paramSlotType.size()) - 1; i >= 0; --i) {
             //假设有4个参数 则 i = 3,2,1,0
             //具体的参数
             const auto paramValue = popValue();
+            if (!isStatic && i == 0) {
+                //first param: method's object
+                throwNpeIfNull(paramValue);
+            }
+
             //lvtPtr + method.paramSlotSize + i 代表了从最后一个到第一个参数的地址
-            const auto slotIdx = irBuilder.getInt32(method.paramSlotSize + i);
+            const auto slotIdx = irBuilder.getInt32(method.maxLocals + i);
             const auto slotPtr =
                     irBuilder.CreateGEP(
                         irBuilder.getInt64Ty(),
@@ -572,9 +573,56 @@ namespace RexVM {
             const auto slotType = paramSlotType[i];
             irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), slotTypePtr);
         }
+        return paramSlotType.size();
+    }
 
-        //addsp and call frame.runMethod
-        helpFunction->createCallInvokeMethod(irBuilder, getFramePtr(), index, paramSlotSize, invokeType);
+    void MethodCompiler::invokeStaticMethod(const u2 index, const bool isStatic) {
+        //isStatic ? static method : special method
+        const auto [className, methodName, methodDescriptor] =
+                getConstantStringFromPoolByClassNameType(constantPool, index);
+
+        const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
+        const auto paramSlotSize = pushParams(paramType, true);
+
+        const auto methodRef = klass.getRefMethod(index, isStatic);
+        helpFunction->createCallInvokeMethodStatic(irBuilder, getFramePtr(), getConstantPtr(methodRef), paramSlotSize);
+        processInvokeReturn(returnType);
+    }
+
+    void MethodCompiler::invokeVirtualMethod(const u2 index) {
+        const auto [className, methodName, methodDescriptor] =
+         getConstantStringFromPoolByClassNameType(constantPool, index);
+
+        const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
+        const auto paramSlotSize = pushParams(paramType, false);
+
+        if (isMethodHandleInvoke(className, methodName)) {
+            const auto invokeMethod =
+                    vm.bootstrapClassLoader
+                    ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
+                    ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
+
+            helpFunction->createCallInvokeMethodStatic(
+                irBuilder,
+                getFramePtr(),
+                getConstantPtr(invokeMethod),
+                paramSlotSize
+            );
+            return;
+        }
+
+        //Add sp and invoke method
+        helpFunction->createCallInvokeMethod(irBuilder, getFramePtr(), index);
+        processInvokeReturn(returnType);
+    }
+
+    void MethodCompiler::processInvokeReturn(const cview returnType) {
+        if (const auto returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
+            returnSlotType != SlotTypeEnum::NONE) {
+            //has return value
+            const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
+            pushValue(returnValue, returnSlotType);
+        }
     }
 
     void MethodCompiler::processInstruction(
@@ -1472,26 +1520,26 @@ namespace RexVM {
 
             case OpCodeEnum::INVOKEVIRTUAL: {
                 const auto index = byteReader.readU2();
-                pushParamAndInvoke(index, false, 3);
+                invokeVirtualMethod(index);
                 break;
             }
 
             case OpCodeEnum::INVOKESPECIAL: {
                 const auto index = byteReader.readU2();
-                pushParamAndInvoke(index, false, 1);
+                invokeStaticMethod(index, false);
                 break;
             }
 
             case OpCodeEnum::INVOKESTATIC: {
                 const auto index = byteReader.readU2();
-                pushParamAndInvoke(index, true, 0);
+                invokeStaticMethod(index, true);
                 break;
             }
 
             case OpCodeEnum::INVOKEINTERFACE: {
                 const auto index = byteReader.readU2();
                 byteReader.readU2();
-                pushParamAndInvoke(index, false, 2);
+                invokeVirtualMethod(index);
                 break;
             }
 

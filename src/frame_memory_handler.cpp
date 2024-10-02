@@ -59,6 +59,32 @@ namespace RexVM {
         return oopManager.newCharArrayOop(&vmThread, length);
     }
 
+    ref FrameMemoryHandler::newMultiArrayOop(std::unique_ptr<i4[]> &dimLength, const i4 dimCount, const cview name, const i4 currentDim) {
+        const auto arrayLength = dimLength[currentDim];
+        const auto currentArrayClass = frame.mem.getArrayClass(name);
+        ArrayOop *arrayOop;
+        if (currentArrayClass->type == ClassTypeEnum::TYPE_ARRAY_CLASS) {
+            const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(currentArrayClass);
+            arrayOop = frame.mem.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
+        } else {
+            const auto objArrayClass = CAST_OBJ_ARRAY_CLASS(currentArrayClass);
+            arrayOop = frame.mem.newObjArrayOop(objArrayClass, arrayLength);
+        }
+
+        if (currentDim == dimCount - 1) {
+            return arrayOop;
+        }
+
+        const auto objArrayOop = CAST_OBJ_ARRAY_OOP(arrayOop);
+        if (currentDim < dimCount - 1) {
+            const auto childName = name.substr(1);
+            for (auto i = 0; i < arrayLength; ++i) {
+                objArrayOop->data[i] = newMultiArrayOop(dimLength, dimCount, childName, currentDim + 1);
+            }
+        }
+        return objArrayOop;
+    }
+
     InstanceOop *FrameMemoryHandler::newBooleanOop(const i4 value) const {
         return oopManager.newBooleanOop(&vmThread, value);
     }
@@ -181,9 +207,7 @@ namespace RexVM {
                     getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
                     ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
             cachePtr->mhMethod = invokeMethod;
-            //1第一个参数为MethodHandle Object
             cachePtr->mhMethodPopSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
-            //此次调用为MethodHandle调用 直接返回
             return cachePtr;
         }
 
@@ -191,7 +215,12 @@ namespace RexVM {
         return cachePtr;
      }
 
-     Method *FrameMemoryHandler::linkVirtualMethod(const u2 index, const ExecuteVirtualMethodCache *cache, InstanceClass *instanceClass) {
+    Method *FrameMemoryHandler::linkVirtualMethod(
+        const u2 index,
+        const cview methodName,
+        const cview methodDescriptor,
+        InstanceClass *instanceClass
+    ) {
         const Composite keyComposite(instanceClass, index);
         u8 key = keyComposite.composite;
         if (const auto member = executeClassMemberCache.try_get(key); member != nullptr) {
@@ -201,7 +230,7 @@ namespace RexVM {
         if (instanceClass->isArray()) {
             //Only clone and getClass method can be call
             const auto objectClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
-            const auto realInvokeMethod = objectClass->getMethod(cache->methodName, cache->methodDescriptor, false);
+            const auto realInvokeMethod = objectClass->getMethod(methodName,methodDescriptor, false);
             if (realInvokeMethod == nullptr) {
                 panic("array invoke error");
             }
@@ -209,7 +238,7 @@ namespace RexVM {
             return realInvokeMethod;
         } else {
             for (auto k = instanceClass; k != nullptr; k = k->getSuperClass()) {
-                const auto realInvokeMethod = k->getMethod(cache->methodName, cache->methodDescriptor, false);
+                const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
                 if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {
                     executeClassMemberCache.emplace_unique(key, realInvokeMethod);
                     return realInvokeMethod;

@@ -38,7 +38,8 @@ extern "C" {
 
     void llvm_compile_clinit(void *framePtr, void *klass);
     void *llvm_compile_get_field(void *oop, uint16_t index);
-    void llvm_compile_invoke_method(void *framePtr, uint16_t index, uint16_t paramSize, uint8_t invokeType);
+    void llvm_compile_invoke_method(void *framePtr, uint16_t index);
+    void llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize);
 }
 
 #endif

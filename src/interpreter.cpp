@@ -1055,7 +1055,12 @@ namespace RexVM {
             ASSERT_IF_NULL_THROW_NPE(instance);
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
 
-            const auto realInvokeMethod = frame.mem.linkVirtualMethod(index, cache, instanceClass);
+            const auto realInvokeMethod = frame.mem.linkVirtualMethod(
+                index,
+                cache->methodName,
+                cache->methodDescriptor,
+                instanceClass
+            );
             frame.runMethodInner(*realInvokeMethod);
         }
 
@@ -1219,32 +1224,6 @@ namespace RexVM {
             }
         }
 
-        ref multiArrayHelper(Frame &frame, std::unique_ptr<i4[]> &dimLength, i4 dimCount, cview name, i4 currentDim) {
-            const auto arrayLength = dimLength[currentDim];
-            const auto currentArrayClass = frame.mem.getArrayClass(name);
-            ArrayOop *arrayOop;
-            if (currentArrayClass->type == ClassTypeEnum::TYPE_ARRAY_CLASS) {
-                const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(currentArrayClass);
-                arrayOop = frame.mem.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
-            } else {
-                const auto objArrayClass = CAST_OBJ_ARRAY_CLASS(currentArrayClass);
-                arrayOop = frame.mem.newObjArrayOop(objArrayClass, arrayLength);
-            }
-
-            if (currentDim == dimCount - 1) {
-                return arrayOop;
-            }
-
-            auto objArrayOop = CAST_OBJ_ARRAY_OOP(arrayOop);
-            if (currentDim < dimCount - 1) {
-                const auto childName = name.substr(1);
-                for (auto i = 0; i < arrayLength; ++i) {
-                    objArrayOop->data[i] = multiArrayHelper(frame, dimLength, dimCount, childName, currentDim + 1);
-                }
-            }
-            return objArrayOop;
-        }
-
         void multianewarray(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto dimension = frame.reader.readU1();
@@ -1255,7 +1234,7 @@ namespace RexVM {
                 dimLength[i] = frame.popI4();
             }
             
-            const auto multiArray = multiArrayHelper(frame, dimLength, dimension, className, 0);
+            const auto multiArray = frame.mem.newMultiArrayOop(dimLength, dimension, className, 0);
             frame.pushRef(multiArray);
         }
 

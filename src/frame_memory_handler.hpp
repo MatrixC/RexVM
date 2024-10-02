@@ -58,6 +58,7 @@ namespace RexVM {
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length) const;
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer) const;
         [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length) const;
+        [[nodiscard]] ref newMultiArrayOop(std::unique_ptr<i4[]> &dimLength, i4 dimCount, cview name, i4 currentDim);
 
         [[nodiscard]] InstanceOop *newBooleanOop(i4 value) const;
         [[nodiscard]] InstanceOop *newByteOop(i4 value) const;
@@ -90,7 +91,12 @@ namespace RexVM {
         [[nodiscard]] Class *getRefClass(u2 index);
         
         [[nodiscard]] ExecuteVirtualMethodCache *resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle);
-        [[nodiscard]] Method *linkVirtualMethod(u2 index, const ExecuteVirtualMethodCache *cache, InstanceClass *instanceClass);
+
+        [[nodiscard]] Method *linkVirtualMethod(u2 index,
+                                                cview methodName,
+                                                cview methodDescriptor,
+                                                InstanceClass *instanceClass
+        );
 
     };
 

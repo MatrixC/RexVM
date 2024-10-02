@@ -38,15 +38,11 @@ namespace RexVM {
         ),
         //1. 对于native函数来说 如果是普通native函数 直接取 method.paramSlotSize 保存参数
         //2. 对于native函数 MethodHandle#invoke来说 其实类似于调用普通函数 所以需要取实际的 fixMethodParamSlotSize
-        //3. 对于非native函数 若未经过JIT编译 则取 method.maxLocals 存放参数和局部变量
-        //4. 对于非native函数 若已JIT编译 则局部变量存在实际执行栈种 取 method.paramSlotSize 即可
+        //3. 对于非native函数则取 method.maxLocals 存放参数和局部变量
         localVariableTableSize(
             method.isNative()
                 ? std::max(method.paramSlotSize, fixMethodParamSlotSize) //native情况简化写法
-                :
-                method.compiledMethodHandler == nullptr
-                    ? method.maxLocals // 没有编译
-                    : method.paramSlotSize //已经编译
+                : method.maxLocals
         ),
         //lvt起始地址 若是第一个函数 直接取 stackMemory.get()
         //否则取上个栈帧的最后一个操作数栈元素的后一位
@@ -116,19 +112,17 @@ namespace RexVM {
     std::tuple<Slot, SlotTypeEnum> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
         createFrameAndRunMethod(thread, runMethod, this, std::move(params));
         //Method可能有返回值,需要处理返回值的pop
-        const auto returnSlotType = runMethod.slotType;
-        if (returnSlotType == SlotTypeEnum::NONE) {
-            //void函数，无返回
-            return std::make_tuple(ZERO_SLOT, SlotTypeEnum::NONE);
-        } else {
-            if (returnSlotType == SlotTypeEnum::I8) {
-                return std::make_tuple(Slot(popI8()), returnSlotType);
-            } else if (returnSlotType == SlotTypeEnum::F8) {
-                return std::make_tuple(Slot(popF8()), returnSlotType);
-            } else {
+        switch (runMethod.slotType) {
+            case SlotTypeEnum::NONE:
+                //void函数，无返回
+                return std::make_tuple(ZERO_SLOT, runMethod.slotType);
+            case SlotTypeEnum::I8:
+                std::make_tuple(Slot(popI8()), runMethod.slotType);
+            case SlotTypeEnum::F8:
+                return std::make_tuple(Slot(popF8()), runMethod.slotType);
+            default:
                 //除了I8和F8,其他类型只需要pop一个值
-                return std::make_tuple(pop(), returnSlotType);
-            }
+                return std::make_tuple(pop(), runMethod.slotType);
         }
     }
 

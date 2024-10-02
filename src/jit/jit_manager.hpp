@@ -8,9 +8,12 @@ namespace RexVM {
 
     class JITManager {
     public:
-        explicit JITManager(VM &vm) {
+        explicit JITManager(VM &vm) : vm(vm) {
         }
+
         virtual ~JITManager() = default;
+
+        VM &vm;
 
         virtual void compileMethod(Method &method) = 0;
     };

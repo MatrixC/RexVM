@@ -6,7 +6,6 @@
 #include "../oop.hpp"
 #include "../constant_info.hpp"
 #include "../exception_helper.hpp"
-#include "../exception_helper.hpp"
 
 extern "C" {
 
@@ -176,42 +175,32 @@ extern "C" {
         return instanceOop->data.get() + index;
     }
 
-    void llvm_compile_invoke_method(void *framePtr, const uint16_t index, const uint16_t paramSize,
-                                    const uint8_t invokeType) {
+    void llvm_compile_invoke_method(void *framePtr, const uint16_t index) {
         const auto frame = static_cast<Frame *>(framePtr);
         auto &operandStack = frame->operandStackContext;
-        //0 static
-        //1 special
-        //2 virtual not check methodHandle
-        //3 virtual check methodHandle
 
-        Method *invokeMethod{nullptr};
-        const auto checkMethodHandle = invokeType == 3;
-        if (invokeType == 0) {
-            invokeMethod = frame->mem.getRefMethod(index, true);
-            operandStack.sp += CAST_I4(paramSize);
-            frame->runMethodInner(*invokeMethod);
-        } else if (invokeType == 1) {
-            invokeMethod = frame->mem.getRefMethod(index, false);
-            operandStack.sp += CAST_I4(paramSize);
-            frame->runMethodInner(*invokeMethod);
-        } else {
-            const auto cache = frame->mem.resolveInvokeVirtualIndex(index, checkMethodHandle);
-            if (checkMethodHandle && cache->mhMethod != nullptr) {
-                operandStack.sp += CAST_I4(cache->mhMethodPopSize);
-                frame->runMethodInner(*cache->mhMethod, cache->mhMethodPopSize);
-                return;
-            }
-            operandStack.sp += CAST_I4(paramSize);
-            const auto instance = frame->getStackOffset(cache->paramSlotSize - 1).refVal;
-            if (instance == nullptr) {
-                throwNullPointException(*frame);
-                return;
-            }
-            const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
-            invokeMethod = frame->mem.linkVirtualMethod(index, cache, instanceClass);
-            frame->runMethodInner(*invokeMethod);
-        }
+        const auto cache = frame->mem.resolveInvokeVirtualIndex(index, false);
+        const auto paramSize = cache->paramSlotSize;
+        operandStack.sp += CAST_I4(paramSize);
+
+        const auto instance = frame->getStackOffset(paramSize - 1).refVal;
+        const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
+        const auto invokeMethod = frame->mem.linkVirtualMethod(index, cache->methodName, cache->methodDescriptor, instanceClass);
+        frame->runMethodInner(*invokeMethod);
+
+        operandStack.pop(getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType)));
+    }
+
+    void llvm_compile_invoke_method_fixed(void *framePtr, void *method, const uint16_t paramSize) {
+        const auto frame = static_cast<Frame *>(framePtr);
+        auto &operandStack = frame->operandStackContext;
+        operandStack.sp += CAST_I4(paramSize);
+
+        const auto invokeMethod = static_cast<Method *>(method);
+        invokeMethod->klass.clinit(*frame);
+        frame->runMethodInner(*invokeMethod);
+
+        operandStack.pop(getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType)));
     }
 
 }
