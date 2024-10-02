@@ -36,7 +36,7 @@ namespace RexVM {
 
     bool isStaticMethodHandleType(MethodHandleEnum kind);
 
-    void invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
+    ref invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
 
     cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, cview name);
 

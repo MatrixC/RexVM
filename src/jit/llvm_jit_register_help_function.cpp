@@ -90,6 +90,10 @@ namespace RexVM {
         invokeMethodStatic = module.getOrInsertFunction("llvm_compile_invoke_method_fixed",
                                                     FunctionType::get(voidTy, {voidPtrTy, voidPtrTy, int16Ty}, false));
 
+        newObject = module.getOrInsertFunction("llvm_compile_new_object",
+                                               FunctionType::get(voidTy, {
+                                                                     voidPtrTy, int8Ty, int32Ty, voidPtrTy
+                                                                 }, false));
     }
 
     void LLVMHelpFunction::createCallThrowNPE(IRBuilder<> &irBuilder, Value *framePtr, const u4 pc) const {
@@ -184,6 +188,12 @@ namespace RexVM {
                                                     const uint16_t paramSlotSize) const {
         irBuilder.CreateCall(invokeMethodStatic, {framePtr, method, irBuilder.getInt16(paramSlotSize)});
     }
+
+    Value *LLVMHelpFunction::createCallNew(IRBuilder<> &irBuilder, Value *framePtr, const uint8_t type, Value *length,
+                                           Value *klass) const {
+        return irBuilder.CreateCall(newObject, {framePtr, irBuilder.getInt8(type), length, klass});
+    }
+
 
 
 }

@@ -6,6 +6,7 @@
 #include "../oop.hpp"
 #include "../constant_info.hpp"
 #include "../exception_helper.hpp"
+#include "../method_handle.hpp"
 
 extern "C" {
 
@@ -201,6 +202,49 @@ extern "C" {
         frame->runMethodInner(*invokeMethod);
 
         operandStack.pop(getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType)));
+    }
+
+    void *llvm_compile_new_object(void *framePtr, uint8_t type, const int32_t length, void *klass) {
+        //type
+        //0: dynamicInvoke
+        //1: newObject
+        //2: newObjectArray
+        //3: newMultiArray
+        //4-13: newArray
+        const auto frame = static_cast<Frame *>(framePtr);
+
+        switch (type) {
+            case LLVM_COMPILER_NEW_DYNAMIC_INVOKE: {
+                return invokeDynamic(*frame, length);
+            }
+
+            case LLVM_COMPILER_NEW_OBJECT: {
+                const auto instanceClass = CAST_INSTANCE_CLASS(klass);
+                instanceClass->clinit(*frame);
+                return frame->mem.newInstance(instanceClass);
+            }
+
+            case LLVM_COMPILER_NEW_OBJECT_ARRAY: {
+                const auto arrayClass = CAST_OBJ_ARRAY_CLASS(klass);
+                return frame->mem.newObjArrayOop(arrayClass, length);
+            }
+
+            case LLVM_COMPILER_NEW_MULTI_ARRAY: {
+                const auto index = CAST_U2(length & 0xFFFF);
+                const auto dimCount = CAST_U2((length >> 16) & 0xFFFF);
+                const auto dimLength = static_cast<i4 *>(klass);
+                return frame->mem.newMultiArrayOop(index, dimLength, CAST_I2(dimCount));
+            }
+
+            default: {
+                if (type > 13) {
+                    panic("type error");
+                    return nullptr;
+                }
+                const auto basicType = static_cast<BasicType>(type);
+                return frame->mem.newTypeArrayOop(basicType, length);
+            }
+        }
     }
 
 }

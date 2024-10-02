@@ -11,6 +11,11 @@ constexpr uint8_t LLVM_COMPILER_BYTE_ARRAY_TYPE = 5;
 constexpr uint8_t LLVM_COMPILER_CHAR_ARRAY_TYPE = 6;
 constexpr uint8_t LLVM_COMPILER_SHORT_ARRAY_TYPE = 7;
 
+constexpr uint8_t LLVM_COMPILER_NEW_DYNAMIC_INVOKE = 0;
+constexpr uint8_t LLVM_COMPILER_NEW_OBJECT = 1;
+constexpr uint8_t LLVM_COMPILER_NEW_OBJECT_ARRAY = 2;
+constexpr uint8_t LLVM_COMPILER_NEW_MULTI_ARRAY = 3;
+
 extern "C" {
     void *llvm_compile_get_string_constant(void *framePtr, uint32_t index);
     void *llvm_compile_get_class_mirror_constant(void *framePtr, uint32_t index);
@@ -40,6 +45,7 @@ extern "C" {
     void *llvm_compile_get_field(void *oop, uint16_t index);
     void llvm_compile_invoke_method(void *framePtr, uint16_t index);
     void llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize);
+    void *llvm_compile_new_object(void *framePtr, uint8_t type, int32_t length, void *klass);
 }
 
 #endif

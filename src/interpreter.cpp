@@ -1100,7 +1100,11 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             frame.reader.readU2(); //ignore zero
 
-            invokeDynamic(frame, index);
+            const auto callSiteObj = invokeDynamic(frame, index);
+            if (callSiteObj == nullptr) {
+                return;
+            }
+            frame.pushRef(callSiteObj);
         }
 
         void new_(Frame &frame) {
@@ -1227,14 +1231,11 @@ namespace RexVM {
         void multianewarray(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto dimension = frame.reader.readU1();
-            const auto &constantPool = frame.constantPool;
-            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             auto dimLength = std::make_unique<i4[]>(dimension);
             for (i4 i = dimension - 1; i >= 0; --i) {
                 dimLength[i] = frame.popI4();
             }
-            
-            const auto multiArray = frame.mem.newMultiArrayOop(dimLength, dimension, className, 0);
+            const auto multiArray = frame.mem.newMultiArrayOop(index, dimLength.get(), dimension);
             frame.pushRef(multiArray);
         }
 

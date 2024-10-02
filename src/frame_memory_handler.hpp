@@ -58,7 +58,8 @@ namespace RexVM {
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length) const;
         [[nodiscard]] ByteTypeArrayOop *newByteArrayOop(size_t length, const u1 *initBuffer) const;
         [[nodiscard]] CharTypeArrayOop *newCharArrayOop(size_t length) const;
-        [[nodiscard]] ref newMultiArrayOop(std::unique_ptr<i4[]> &dimLength, i4 dimCount, cview name, i4 currentDim);
+        [[nodiscard]] ref newMultiArrayOop(u2 index, i4 *dimLength, i2 dimCount);
+        [[nodiscard]] ref newMultiArrayOop(i4 *dimLength, i2 dimCount, cview name, i4 currentDim);
 
         [[nodiscard]] InstanceOop *newBooleanOop(i4 value) const;
         [[nodiscard]] InstanceOop *newByteOop(i4 value) const;

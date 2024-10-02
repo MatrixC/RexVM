@@ -100,6 +100,8 @@ namespace RexVM {
         symbol_map[mangle("llvm_compile_invoke_method_fixed")] =
                 ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_invoke_method_fixed), JITSymbolFlags());
 
+        symbol_map[mangle("llvm_compile_new_object")] =
+                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_new_object), JITSymbolFlags());
 
        cantFail(jd.define(absoluteSymbols(symbol_map)));
     }

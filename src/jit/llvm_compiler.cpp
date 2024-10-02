@@ -1543,6 +1543,67 @@ namespace RexVM {
                 break;
             }
 
+            case OpCodeEnum::INVOKEDYNAMIC: {
+                const auto index = byteReader.readU2();
+                byteReader.readU2(); //ignore zero
+                const auto callSiteObj = helpFunction->createCallNew(
+                    irBuilder,
+                    getFramePtr(),
+                    LLVM_COMPILER_NEW_DYNAMIC_INVOKE,
+                    irBuilder.getInt32(index),
+                    ConstantPointerNull::get(voidPtrType)
+                );
+                throwNpeIfNull(callSiteObj);
+                pushValue(callSiteObj);
+                break;
+            }
+
+            case OpCodeEnum::NEW: {
+                const auto index = byteReader.readU2();
+                const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
+                const auto refClass = klass.classLoader.getClass(className);
+                const auto newObject = helpFunction->createCallNew(
+                    irBuilder,
+                    getFramePtr(),
+                    LLVM_COMPILER_NEW_OBJECT,
+                    irBuilder.getInt32(0),
+                    getConstantPtr(refClass)
+                );
+                pushValue(newObject);
+                break;
+            }
+
+            case OpCodeEnum::NEWARRAY: {
+                const auto type = byteReader.readU1();
+                const auto length = popValue();
+                const auto newObject = helpFunction->createCallNew(
+                    irBuilder,
+                    getFramePtr(),
+                    type,
+                    length,
+                    ConstantPointerNull::get(voidPtrType)
+                );
+                pushValue(newObject);
+                break;
+            }
+
+            case OpCodeEnum::ANEWARRAY: {
+                const auto classIndex = byteReader.readU2();
+                const auto length = popValue();
+                const auto className = getConstantStringFromPoolByIndexInfo(constantPool, classIndex);
+                const auto refClass = klass.classLoader.getClass(className);
+                const auto arrayClass = klass.classLoader.getObjectArrayClass(*refClass);
+                const auto newObject = helpFunction->createCallNew(
+                     irBuilder,
+                     getFramePtr(),
+                     LLVM_COMPILER_NEW_OBJECT_ARRAY,
+                     length,
+                     getConstantPtr(arrayClass)
+                 );
+                pushValue(newObject);
+                break;
+            }
+
             default:
                 break;
         }

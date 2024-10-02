@@ -59,7 +59,13 @@ namespace RexVM {
         return oopManager.newCharArrayOop(&vmThread, length);
     }
 
-    ref FrameMemoryHandler::newMultiArrayOop(std::unique_ptr<i4[]> &dimLength, const i4 dimCount, const cview name, const i4 currentDim) {
+    ref FrameMemoryHandler::newMultiArrayOop(const u2 index, i4 *dimLength, const i2 dimCount) {
+        const auto &constantPool = frame.constantPool;
+        const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
+        return newMultiArrayOop(dimLength, dimCount, className, 0);
+    }
+
+    ref FrameMemoryHandler::newMultiArrayOop(i4 *dimLength, const i2 dimCount, const cview name, const i4 currentDim) {
         const auto arrayLength = dimLength[currentDim];
         const auto currentArrayClass = frame.mem.getArrayClass(name);
         ArrayOop *arrayOop;

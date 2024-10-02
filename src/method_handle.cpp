@@ -246,7 +246,7 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(frame.pop().refVal);
     }
 
-    void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {   
+    ref invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
         ThreadSafeGuard threadGuard(frame.thread);
 
         const auto &methodClass = frame.klass;
@@ -260,15 +260,16 @@ namespace RexVM {
 
         const auto bootstrapMethodHandle = createMethodHandle(frame, methodHandleInfo, callerClass);
         if (frame.markThrow) {
-            return;
+            return nullptr;
         }
 
         const auto callSiteObj = createCallSite(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, callerClass, bootstrapMethodAttr->bootstrapArguments);
         if (frame.markThrow) {
-            return;
+            return nullptr;
         }
 
-        frame.pushRef(callSiteObj);
+        return callSiteObj;
+        //frame.pushRef(callSiteObj);
     }
 
     cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, cview name) {
