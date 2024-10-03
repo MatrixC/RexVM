@@ -22,16 +22,16 @@ namespace RexVM {
 
     cview getConstantString(ConstantInfo *info) {
         const auto utf8Info = CAST_CONSTANT_UTF_8_INFO(info);
-        return cview(reinterpret_cast<char *>(utf8Info->bytes.get()), utf8Info->length);
+        return {reinterpret_cast<char *>(utf8Info->bytes.get()), utf8Info->length};
     }
 
     rstring getConstantRString(ConstantInfo *info) {
         const auto utf8Info = CAST_CONSTANT_UTF_8_INFO(info);
-        return rstring(reinterpret_cast<char *>(utf8Info->bytes.get()), utf8Info->length);
+        return {reinterpret_cast<char *>(utf8Info->bytes.get()), utf8Info->length};
     }
 
     std::tuple<const u1 *, u2> getConstantStringBytes(ConstantInfo *info) {
-        auto utf8info = CAST_CONSTANT_UTF_8_INFO(info);
+        const auto utf8info = CAST_CONSTANT_UTF_8_INFO(info);
         return std::make_tuple(utf8info->bytes.get(), utf8info->length);
     }
 

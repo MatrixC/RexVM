@@ -59,6 +59,8 @@ namespace RexVM {
 
         void setLocalVariableTableValue(u4 index, llvm::Value *value, SlotTypeEnum slotType);
 
+        llvm::Value * getOopDataPtr(llvm::Value *oop, llvm::Value *index, u1 elementSize);
+
         void pushValue(llvm::Value *value);
 
         void pushValue(llvm::Value *value, SlotTypeEnum type);

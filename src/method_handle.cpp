@@ -13,17 +13,10 @@
 #include "utils/class_utils.hpp"
 
 namespace RexVM {
-
     bool isMethodHandleInvoke(const cview className, const cview memberName) {
-        return (className == "java/lang/invoke/MethodHandle" && 
-            (memberName == "invoke"
-                || memberName == "invokeBasic"
-                || memberName == "invokeExact"
-                || memberName == "invokeWithArauments"
-                || memberName == "linkToSpecial"
-                || memberName == "linkToStatic"
-                || memberName == "linkToVirtual"
-                || memberName == "linkToInterface"));
+        return className == "java/lang/invoke/MethodHandle" &&
+               (startWith(memberName, "invoke")
+                   || startWith(memberName, "linkTo"));
     }
 
     bool isStaticMethodHandleType(MethodHandleEnum kind) {

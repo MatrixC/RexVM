@@ -217,10 +217,16 @@ extern "C" {
         //3: newMultiArray
         //4-13: newArray
         const auto frame = static_cast<Frame *>(framePtr);
+        auto &operandStack = frame->operandStackContext;
 
         switch (type) {
             case LLVM_COMPILER_NEW_DYNAMIC_INVOKE: {
-                return invokeDynamic(*frame, length);
+                const auto index = CAST_U2(length & 0xFFFF);
+                const auto paramSize = CAST_U2((length >> 16) & 0xFFFF);
+                operandStack.sp += CAST_I4(paramSize);
+                const auto callSiteObj = invokeDynamic(*frame, index);
+                //operandStack.pop(1);
+                return callSiteObj;
             }
 
             case LLVM_COMPILER_NEW_OBJECT: {

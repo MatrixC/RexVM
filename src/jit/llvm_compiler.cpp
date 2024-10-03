@@ -9,6 +9,7 @@
 #include "../class_loader.hpp"
 #include "../constant_info.hpp"
 #include "../method_handle.hpp"
+#include "../oop.hpp"
 #include "../utils/descriptor_parser.hpp"
 #include "../utils/method_utils.hpp"
 
@@ -143,6 +144,30 @@ namespace RexVM {
         irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), lvtTypePtr);
     }
 
+    llvm::Value * MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, u1 elementSize) {
+        const auto offset =
+            irBuilder.getInt32(elementSize != 0 ? ARRAY_OOP_DATA_FIELD_OFFSET : INSTANCE_OOP_DATA_FIELD_OFFSET);
+
+        const auto oopDataFieldPtr =
+                irBuilder.CreateGEP(
+                    irBuilder.getInt8Ty(),
+                    oop,
+                    offset
+                );
+
+        //InstanceOop element is Slot
+        elementSize = elementSize == 0 ? SLOT_BYTE_SIZE : elementSize;
+        const auto type = irBuilder.getIntNTy(elementSize);
+
+        const auto dataFieldPtr =
+                irBuilder.CreateGEP(
+                    type,
+                    oopDataFieldPtr,
+                    index
+                );
+
+        return dataFieldPtr;
+    }
 
     void MethodCompiler::pushValue(llvm::Value *value) {
         valueStack.emplace(value);
@@ -304,7 +329,11 @@ namespace RexVM {
         //arrayRef 是 arrayOop
         throwNpeIfNull(arrayRef);
         switch (type) {
-            case LLVM_COMPILER_INT_ARRAY_TYPE:
+            case LLVM_COMPILER_INT_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, 32);
+                pushValue(irBuilder.CreateLoad(irBuilder.getInt32Ty(), dataPtr));
+                break;
+            }
             case LLVM_COMPILER_BYTE_ARRAY_TYPE:
             case LLVM_COMPILER_CHAR_ARRAY_TYPE:
             case LLVM_COMPILER_SHORT_ARRAY_TYPE:
@@ -1552,11 +1581,18 @@ namespace RexVM {
             case OpCodeEnum::INVOKEDYNAMIC: {
                 const auto index = byteReader.readU2();
                 byteReader.readU2(); //ignore zero
+
+                const auto invokeDynamicInfo = CAST_CONSTANT_INVOKE_DYNAMIC_INFO(constantPool[index].get());
+                const auto [invokeName, invokeDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, invokeDynamicInfo->nameAndTypeIndex);
+                const auto [paramType, returnType] = parseMethodDescriptor(invokeDescriptor);
+                const auto paramSize = pushParams(paramType, false);
+                const i4 length = (CAST_U2(paramSize) << 16) | (index & 0xFFFF);
+
                 const auto callSiteObj = helpFunction->createCallNew(
                     irBuilder,
                     getFramePtr(),
                     LLVM_COMPILER_NEW_DYNAMIC_INVOKE,
-                    irBuilder.getInt32(index),
+                    irBuilder.getInt32(length),
                     ConstantPointerNull::get(voidPtrType)
                 );
                 throwNpeIfNull(callSiteObj);
@@ -1835,7 +1871,7 @@ namespace RexVM {
             panic("error value stack");
         }
 
-        irBuilder.CreateBr(returnBB);
+        // irBuilder.CreateBr(returnBB);
 
         changeBB(returnBB);
         irBuilder.CreateRetVoid();

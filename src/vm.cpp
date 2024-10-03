@@ -12,6 +12,7 @@
 #include "bootstrap_helper.hpp"
 #include "jit/jit_manager.hpp"
 #include "jit/llvm_jit_manager.hpp"
+#include "oop.hpp"
 
 
 namespace RexVM {
@@ -86,8 +87,6 @@ namespace RexVM {
         joinThreads();
         exitVM();
     }
-
-
 
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
