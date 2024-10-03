@@ -12,28 +12,23 @@ extern "C" {
 
     using namespace RexVM;
 
-    void *llvm_compile_get_string_constant(void *framePtr, const uint32_t index) {
+    void *llvm_compile_get_instance_constant(void *framePtr, const uint32_t index) {
         const auto frame = static_cast<Frame *>(framePtr);
         const auto valPtr = frame->constantPool[index].get();
-        const auto stringConstInfo = CAST_CONSTANT_STRING_INFO(valPtr);
-        const auto strValue = getConstantStringFromPool(frame->constantPool, stringConstInfo->index);
-        return frame->mem.getInternString(strValue);
-    }
-
-
-    void *llvm_compile_get_class_mirror_constant(void *framePtr, const uint32_t index) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        const auto valPtr = frame->constantPool[index].get();
-        const auto classConstInfo = CAST_CONSTANT_CLASS_INFO(valPtr);
-        const auto className = getConstantStringFromPool(frame->constantPool, classConstInfo->index);
-        const auto value = frame->mem.getClass(className);
-        return value->getMirror(frame);
-    }
-
-    void llvm_compile_throw_npe(void *framePtr, const uint32_t pc) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->jitPc = pc;
-        throwNullPointException(*frame);
+        const auto constantTagEnum = CAST_CONSTANT_TAG_ENUM(valPtr->tag);
+        if (constantTagEnum == ConstantTagEnum::CONSTANT_String) {
+            const auto stringConstInfo = CAST_CONSTANT_STRING_INFO(valPtr);
+            const auto strValue = getConstantStringFromPool(frame->constantPool, stringConstInfo->index);
+            return frame->mem.getInternString(strValue);
+        }
+        if (constantTagEnum == ConstantTagEnum::CONSTANT_Class) {
+            const auto classConstInfo = CAST_CONSTANT_CLASS_INFO(valPtr);
+            const auto className = getConstantStringFromPool(frame->constantPool, classConstInfo->index);
+            const auto value = frame->mem.getClass(className);
+            return value->getMirror(frame);
+        }
+        panic("error tag");
+        return nullptr;
     }
 
     int32_t llvm_compile_array_length(void *arrayOop) {
@@ -41,133 +36,35 @@ extern "C" {
         return static_cast<int32_t>(array->getDataLength());
     }
 
-    int32_t llvm_compile_array_load_i4(void *arrayOop, const uint8_t type, const uint32_t index) {
-        switch (type) {
-            case LLVM_COMPILER_INT_ARRAY_TYPE: {
-                const auto array = CAST_INT_TYPE_ARRAY_OOP(arrayOop);
-                return array->data[index];
+    void llvm_compile_return_common(void *framePtr, const int64_t val, uint8_t type) {
+        const auto frame = static_cast<Frame *>(framePtr);
+        switch (static_cast<SlotTypeEnum>(type)) {
+            case SlotTypeEnum::NONE:
+                frame->returnVoid();
+                break;
+
+            case SlotTypeEnum::I4:
+                frame->returnI4(CAST_I4(val));
+                break;
+
+            case SlotTypeEnum::I8:
+                frame->returnI8(val);
+                break;
+
+            case SlotTypeEnum::F4: {
+                const auto int32Val = CAST_I4(val);
+                frame->returnF4(std::bit_cast<f4>(int32Val));
+                break;
             }
 
-            case LLVM_COMPILER_BYTE_ARRAY_TYPE: {
-                const auto array = CAST_BYTE_TYPE_ARRAY_OOP(arrayOop);
-                return array->data[index];
-            }
+            case SlotTypeEnum::F8:
+                frame->returnF8(std::bit_cast<f8>(val));
+                break;
 
-            case LLVM_COMPILER_CHAR_ARRAY_TYPE: {
-                const auto array = CAST_CHAR_TYPE_ARRAY_OOP(arrayOop);
-                return array->data[index];
-            }
-
-            case LLVM_COMPILER_SHORT_ARRAY_TYPE: {
-                const auto array = CAST_SHORT_TYPE_ARRAY_OOP(arrayOop);
-                return array->data[index];
-            }
-
-            default:
-                panic("error");
-                return 0;
+            case SlotTypeEnum::REF:
+                frame->returnRef(std::bit_cast<ref>(val));
+                break;
         }
-    }
-
-    int64_t llvm_compile_array_load_i8(void *arrayOop, const uint32_t index) {
-        const auto array = CAST_LONG_TYPE_ARRAY_OOP(arrayOop);
-        return array->data[index];
-    }
-
-    float llvm_compile_array_load_f4(void *arrayOop, const uint32_t index) {
-        const auto array = CAST_FLOAT_TYPE_ARRAY_OOP(arrayOop);
-        return array->data[index];
-    }
-
-    double llvm_compile_array_load_f8(void *arrayOop, const uint32_t index) {
-        const auto array = CAST_DOUBLE_TYPE_ARRAY_OOP(arrayOop);
-        return array->data[index];
-    }
-
-    void *llvm_compile_array_load_obj(void *arrayOop, const uint32_t index) {
-        const auto array = CAST_OBJ_ARRAY_OOP(arrayOop);
-        return array->data[index];
-    }
-
-    void llvm_compile_array_store_i4(void *arrayOop, const uint8_t type, const uint32_t index, const int32_t value) {
-        switch (type) {
-            case LLVM_COMPILER_INT_ARRAY_TYPE: {
-                const auto array = CAST_INT_TYPE_ARRAY_OOP(arrayOop);
-                array->data[index] = value;
-                break;
-            }
-
-            case LLVM_COMPILER_BYTE_ARRAY_TYPE: {
-                const auto array = CAST_BYTE_TYPE_ARRAY_OOP(arrayOop);
-                array->data[index] = static_cast<u1>(value);
-                break;
-            }
-
-            case LLVM_COMPILER_CHAR_ARRAY_TYPE: {
-                const auto array = CAST_CHAR_TYPE_ARRAY_OOP(arrayOop);
-                array->data[index] = static_cast<cchar_16>(value);
-                break;
-            }
-
-            case LLVM_COMPILER_SHORT_ARRAY_TYPE: {
-                const auto array = CAST_SHORT_TYPE_ARRAY_OOP(arrayOop);
-                array->data[index] = static_cast<i2>(value);
-                break;
-            }
-
-            default:
-                panic("error");
-        }
-    }
-
-    void llvm_compile_array_store_i8(void *arrayOop, const uint32_t index, const int64_t value) {
-        const auto array = CAST_LONG_TYPE_ARRAY_OOP(arrayOop);
-        array->data[index] = value;
-    }
-
-    void llvm_compile_array_store_f4(void *arrayOop, const uint32_t index, const float value) {
-        const auto array = CAST_FLOAT_TYPE_ARRAY_OOP(arrayOop);
-        array->data[index] = value;
-    }
-
-    void llvm_compile_array_store_f8(void *arrayOop, const uint32_t index, const double value) {
-        const auto array = CAST_DOUBLE_TYPE_ARRAY_OOP(arrayOop);
-        array->data[index] = value;
-    }
-
-    void llvm_compile_array_store_obj(void *arrayOop, const uint32_t index, void *value) {
-        const auto array = CAST_OBJ_ARRAY_OOP(arrayOop);
-        array->data[index] = static_cast<ref>(value);
-    }
-
-    void llvm_compile_return_i4(void *framePtr, const int32_t val) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->returnI4(val);
-    }
-
-    void llvm_compile_return_i8(void *framePtr, const int64_t val) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->returnI8(val);
-    }
-
-    void llvm_compile_return_f4(void *framePtr, const float val) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->returnF4(val);
-    }
-
-    void llvm_compile_return_f8(void *framePtr, const double val) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->returnF8(val);
-    }
-
-    void llvm_compile_return_obj(void *framePtr, void *val) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->returnRef(CAST_REF(val));
-    }
-
-    void llvm_compile_return_void(void *framePtr) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->returnVoid();
     }
 
     void llvm_compile_clinit(void *framePtr, void *klass) {
@@ -176,36 +73,26 @@ extern "C" {
         instanceClass->clinit(*frame);
     }
 
-    void *llvm_compile_get_field(void *oop, const uint16_t index) {
-        const auto instanceOop = CAST_INSTANCE_OOP(oop);
-        return instanceOop->data.get() + index;
-    }
-
-    void llvm_compile_invoke_method(void *framePtr, const uint16_t index) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        auto &operandStack = frame->operandStackContext;
-
-        const auto cache = frame->mem.resolveInvokeVirtualIndex(index, false);
-        const auto paramSize = cache->paramSlotSize;
-        operandStack.sp += CAST_I4(paramSize);
-
-        const auto instance = frame->getStackOffset(paramSize - 1).refVal;
-        const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
-        const auto invokeMethod = frame->mem.linkVirtualMethod(index, cache->methodName, cache->methodDescriptor, instanceClass);
-        frame->runMethodInner(*invokeMethod);
-
-        operandStack.pop(getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType)));
-    }
-
     void llvm_compile_invoke_method_fixed(void *framePtr, void *method, const uint16_t paramSize) {
         const auto frame = static_cast<Frame *>(framePtr);
         auto &operandStack = frame->operandStackContext;
-        operandStack.sp += CAST_I4(paramSize);
 
-        const auto invokeMethod = static_cast<Method *>(method);
-        invokeMethod->klass.clinit(*frame);
+        Method *invokeMethod{nullptr};
+        if (method != nullptr) {
+            operandStack.sp += CAST_I4(paramSize);
+            invokeMethod = static_cast<Method *>(method);
+            invokeMethod->klass.clinit(*frame);
+        } else {
+            const auto index = paramSize;
+            const auto cache = frame->mem.resolveInvokeVirtualIndex(index, false);
+            operandStack.sp += CAST_I4( cache->paramSlotSize);
+
+            const auto instance = frame->getStackOffset( cache->paramSlotSize - 1).refVal;
+            const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
+            invokeMethod = frame->mem.linkVirtualMethod(index, cache->methodName, cache->methodDescriptor, instanceClass);
+        }
+
         frame->runMethodInner(*invokeMethod);
-
         operandStack.pop(getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType)));
     }
 
@@ -258,8 +145,15 @@ extern "C" {
         }
     }
 
-    void llvm_compile_throw_exception(void *framePtr, void *exOop) {
+    void llvm_compile_throw_exception(void *framePtr, void *exOop, const uint32_t pc) {
         const auto frame = static_cast<Frame *>(framePtr);
+        frame->jitPc = pc;
+
+        if (exOop == nullptr) {
+            throwNullPointException(*frame);
+            return;
+        }
+
         frame->throwException(CAST_INSTANCE_OOP(exOop));
     }
 

@@ -101,11 +101,11 @@ namespace RexVM {
     }
 
     void checkMethodCompile(const Frame &frame, Method &method) {
-        const auto className = method.klass.getClassName();
-        if (startWith(className, "java") || startWith(className, "sun") || startWith(className, "rex")) {
-            return;
-        }
-        if (const auto methodName = method.getName(); !startWith(methodName, "main")) {
+        // const auto className = method.klass.getClassName();
+        // if (method.isNative() || startWith(className, "java") || startWith(className, "sun") || startWith(className, "rex")) {
+        //     return;
+        // }
+        if (!startWith(method.getName(), "jicc")) {
             return;
         }
         if (method.compiledMethodHandler == nullptr) {
@@ -128,6 +128,7 @@ namespace RexVM {
         if (notNativeMethod) [[likely]] {
             if (method.compiledMethodHandler != nullptr) {
                 method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType);
+                cprintln("run jit {}", methodName);
                 if (frame.markThrow && handleThrowValue(frame)) {
                     return;
                 }

@@ -59,7 +59,7 @@ namespace RexVM {
 
         void setLocalVariableTableValue(u4 index, llvm::Value *value, SlotTypeEnum slotType);
 
-        llvm::Value * getOopDataPtr(llvm::Value *oop, llvm::Value *index, u1 elementSize);
+        llvm::Value * getOopDataPtr(llvm::Value *oop, llvm::Value *index, bool isArray, BasicType type);
 
         void pushValue(llvm::Value *value);
 
@@ -88,6 +88,8 @@ namespace RexVM {
         void pushF8Const(f8 value);
 
         void pushNullConst();
+
+        void returnValue(llvm::Value *val, SlotTypeEnum type);
 
         void throwNpeIfNull(llvm::Value *val);
 

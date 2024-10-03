@@ -232,6 +232,8 @@ namespace RexVM {
                 return sizeof(i4);
             case BasicType::T_LONG:
                 return sizeof(i8);
+            case BasicType::T_OBJECT:
+                return sizeof(ref);
             default:
                 panic("type error");
                 break;

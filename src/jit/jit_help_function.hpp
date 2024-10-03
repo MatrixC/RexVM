@@ -23,38 +23,22 @@ constexpr uint8_t LLVM_COMPILER_MONITOR_ENTER = 0;
 constexpr uint8_t LLVM_COMPILER_MONITOR_EXIT = 1;
 
 extern "C" {
-    void *llvm_compile_get_string_constant(void *framePtr, uint32_t index);
-    void *llvm_compile_get_class_mirror_constant(void *framePtr, uint32_t index);
-
-    void llvm_compile_throw_npe(void *framePtr, uint32_t pc);
+    void *llvm_compile_get_instance_constant(void *framePtr, uint32_t index);
 
     int32_t llvm_compile_array_length(void *arrayOop);
-    int32_t llvm_compile_array_load_i4(void *arrayOop, uint8_t type, uint32_t index);
-    int64_t llvm_compile_array_load_i8(void *arrayOop, uint32_t index);
-    float llvm_compile_array_load_f4(void *arrayOop, uint32_t index);
-    double llvm_compile_array_load_f8(void *arrayOop, uint32_t index);
-    void *llvm_compile_array_load_obj(void *arrayOop, uint32_t index);
 
-    void llvm_compile_array_store_i4(void *arrayOop, uint8_t type, uint32_t index, int32_t value);
-    void llvm_compile_array_store_i8(void *arrayOop, uint32_t index, int64_t value);
-    void llvm_compile_array_store_f4(void *arrayOop, uint32_t index, float value);
-    void llvm_compile_array_store_f8(void *arrayOop, uint32_t index, double value);
-    void llvm_compile_array_store_obj(void *arrayOop, uint32_t index, void *value);
-
-    void llvm_compile_return_i4(void *framePtr, int32_t val);
-    void llvm_compile_return_i8(void *framePtr, int64_t val);
-    void llvm_compile_return_f4(void *framePtr, float val);
-    void llvm_compile_return_f8(void *framePtr, double val);
-    void llvm_compile_return_obj(void *framePtr, void *val);
-    void llvm_compile_return_void(void *framePtr);
+    void llvm_compile_return_common(void *framePtr, int64_t val, uint8_t type);
 
     void llvm_compile_clinit(void *framePtr, void *klass);
-    void *llvm_compile_get_field(void *oop, uint16_t index);
-    void llvm_compile_invoke_method(void *framePtr, uint16_t index);
+
     void llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize);
+
     void *llvm_compile_new_object(void *framePtr, uint8_t type, int32_t length, void *klass);
-    void llvm_compile_throw_exception(void *framePtr, void *exOop);
+
+    void llvm_compile_throw_exception(void *framePtr, void *exOop, uint32_t pc);
+
     int32_t llvm_compile_check_cast(void *framePtr, uint8_t type, void *popOop, void *check);
+
     void llvm_compile_monitor(void *oop, uint8_t type);
 }
 

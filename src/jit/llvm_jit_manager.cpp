@@ -7,7 +7,7 @@
 #include "llvm_compiler.hpp"
 #include "jit_help_function.hpp"
 
-#define DEFINE_SYMBOL(hfname) symbol_map[mangle("hfname")] = ExecutorSymbolDef(ExecutorAddr::fromPtr(&hfname), JITSymbolFlags());
+#define DEFINE_SYMBOL(hfname) symbol_map[mangle(#hfname)] = ExecutorSymbolDef(ExecutorAddr::fromPtr(&hfname), JITSymbolFlags());
 
 
 namespace RexVM {
@@ -30,90 +30,16 @@ namespace RexVM {
         auto mangle = MangleAndInterner(executionSession, dataLayout);
 
         SymbolMap symbol_map;
-        symbol_map[mangle("llvm_compile_get_string_constant")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_get_string_constant), JITSymbolFlags());
 
-        symbol_map[mangle("llvm_compile_get_class_mirror_constant")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_get_class_mirror_constant),
-                                  JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_throw_npe")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_throw_npe), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_length")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_length), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_load_i4")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_i4), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_load_i8")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_i8), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_load_f4")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_f4), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_load_f8")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_f8), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_load_obj")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_load_obj), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_store_i4")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_i4), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_store_i8")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_i8), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_store_f4")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_f4), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_store_f8")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_f8), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_array_store_obj")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_array_store_obj), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_return_i4")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_return_i4), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_return_i8")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_return_i8), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_return_f4")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_return_f4), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_return_f8")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_return_f8), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_return_obj")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_return_obj), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_return_void")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_return_void), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_clinit")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_clinit), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_get_field")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_get_field), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_invoke_method")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_invoke_method), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_invoke_method_fixed")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_invoke_method_fixed), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_new_object")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_new_object), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_throw_exception")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_throw_exception), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_check_cast")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_check_cast), JITSymbolFlags());
-
-        symbol_map[mangle("llvm_compile_monitor")] =
-                ExecutorSymbolDef(ExecutorAddr::fromPtr(&llvm_compile_monitor), JITSymbolFlags());
+        DEFINE_SYMBOL(llvm_compile_get_instance_constant)
+        DEFINE_SYMBOL(llvm_compile_array_length)
+        DEFINE_SYMBOL(llvm_compile_return_common)
+        DEFINE_SYMBOL(llvm_compile_clinit)
+        DEFINE_SYMBOL(llvm_compile_invoke_method_fixed)
+        DEFINE_SYMBOL(llvm_compile_new_object)
+        DEFINE_SYMBOL(llvm_compile_throw_exception)
+        DEFINE_SYMBOL(llvm_compile_check_cast)
+        DEFINE_SYMBOL(llvm_compile_monitor)
 
         cantFail(jd.define(absoluteSymbols(symbol_map)));
     }
@@ -129,7 +55,7 @@ namespace RexVM {
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         methodCompiler.compile();
 
-        module->print(llvm::outs(), nullptr);
+        // module->print(llvm::outs(), nullptr);
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));

@@ -162,7 +162,7 @@ namespace RexVM {
     };
 
     constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
-    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(CharTypeArrayOop, data);
+    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
 
 }
 

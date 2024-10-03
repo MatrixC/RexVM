@@ -144,25 +144,22 @@ namespace RexVM {
         irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), lvtTypePtr);
     }
 
-    llvm::Value * MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, u1 elementSize) {
+    llvm::Value * MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, const bool isArray, const BasicType type) {
         const auto offset =
-            irBuilder.getInt32(elementSize != 0 ? ARRAY_OOP_DATA_FIELD_OFFSET : INSTANCE_OOP_DATA_FIELD_OFFSET);
+            irBuilder.getInt32(isArray ? ARRAY_OOP_DATA_FIELD_OFFSET : INSTANCE_OOP_DATA_FIELD_OFFSET);
 
         const auto oopDataFieldPtr =
-                irBuilder.CreateGEP(
-                    irBuilder.getInt8Ty(),
-                    oop,
-                    offset
-                );
+                irBuilder.CreateGEP(irBuilder.getInt8Ty(), oop, offset);
+
+        const auto dataFieldValue = irBuilder.CreateLoad(voidPtrType, oopDataFieldPtr);
+        const u4 elementByteSize = isArray ? getElementSizeByBasicType(type) : SLOT_BYTE_SIZE;
+        const u4 elementBitSize = elementByteSize * 8;
 
         //InstanceOop element is Slot
-        elementSize = elementSize == 0 ? SLOT_BYTE_SIZE : elementSize;
-        const auto type = irBuilder.getIntNTy(elementSize);
-
         const auto dataFieldPtr =
                 irBuilder.CreateGEP(
-                    type,
-                    oopDataFieldPtr,
+                    irBuilder.getIntNTy(elementBitSize),
+                    dataFieldValue,
                     index
                 );
 
@@ -261,6 +258,35 @@ namespace RexVM {
         pushValue(ConstantPointerNull::get(voidPtrType));
     }
 
+    void MethodCompiler::returnValue(llvm::Value *val, SlotTypeEnum type) {
+        llvm::Value *returnVal = nullptr;
+        switch (type) {
+            case SlotTypeEnum::NONE:
+                returnVal = irBuilder.getInt64(0);
+                break;
+
+            case SlotTypeEnum::I4:
+                returnVal = irBuilder.CreateSExt(val, slotTypeMap(SlotTypeEnum::I8));
+                break;
+
+            case SlotTypeEnum::F4: {
+                const auto int32Val = irBuilder.CreateBitCast(val, irBuilder.getInt32Ty());
+                returnVal = irBuilder.CreateZExt(int32Val, slotTypeMap(SlotTypeEnum::I8));
+                break;
+            }
+
+            case SlotTypeEnum::I8:
+                returnVal = val;
+                break;
+
+            case SlotTypeEnum::F8:
+            case SlotTypeEnum::REF:
+                returnVal = irBuilder.CreateBitCast(val, irBuilder.getInt64Ty());
+                break;
+        }
+        helpFunction->createCallReturnCommon(irBuilder, getFramePtr(), returnVal, static_cast<u1>(type));
+    }
+
     void MethodCompiler::throwNpeIfNull(llvm::Value *val) {
         // if (value == nullptr) {
         //   throwNpe(frame);
@@ -274,7 +300,7 @@ namespace RexVM {
         irBuilder.CreateCondBr(cmpIsNull, isNullBB, elseBB);
 
         changeBB(isNullBB);
-        helpFunction->createCallThrowNPE(irBuilder, getFramePtr(), pc);
+        helpFunction->createCallThrowException(irBuilder, getFramePtr(), ConstantPointerNull::get(voidPtrType), pc);
         irBuilder.CreateBr(returnBB);
 
         changeBB(elseBB);
@@ -299,13 +325,9 @@ namespace RexVM {
                 pushF8Const((CAST_CONSTANT_DOUBLE_INFO(valPtr))->value);
                 break;
 
-            case ConstantTagEnum::CONSTANT_String: {
-                pushValue(helpFunction->createCallGetStringConstant(irBuilder, getFramePtr(), index));
-                break;
-            }
-
+            case ConstantTagEnum::CONSTANT_String:
             case ConstantTagEnum::CONSTANT_Class: {
-                pushValue(helpFunction->createCallGetClassMirrorConstant(irBuilder, getFramePtr(), index));
+                pushValue(helpFunction->createCallGetInstanceConstant(irBuilder, getFramePtr(), index));
                 break;
             }
 
@@ -330,31 +352,51 @@ namespace RexVM {
         throwNpeIfNull(arrayRef);
         switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, 32);
-                pushValue(irBuilder.CreateLoad(irBuilder.getInt32Ty(), dataPtr));
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
+                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
-            case LLVM_COMPILER_BYTE_ARRAY_TYPE:
-            case LLVM_COMPILER_CHAR_ARRAY_TYPE:
-            case LLVM_COMPILER_SHORT_ARRAY_TYPE:
-                pushValue(helpFunction->createCallArrayLoadI4(irBuilder, arrayRef, index, type));
-                break;
 
-            case LLVM_COMPILER_LONG_ARRAY_TYPE:
-                pushWideValue(helpFunction->createCallArrayLoadI8(irBuilder, arrayRef, index));
+            case LLVM_COMPILER_BYTE_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
+                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
+            }
 
-            case LLVM_COMPILER_FLOAT_ARRAY_TYPE:
-                pushValue(helpFunction->createCallArrayLoadF4(irBuilder, arrayRef, index));
+            case LLVM_COMPILER_CHAR_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
+                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
+            }
 
-            case LLVM_COMPILER_DOUBLE_ARRAY_TYPE:
-                pushWideValue(helpFunction->createCallArrayLoadF8(irBuilder, arrayRef, index));
+            case LLVM_COMPILER_SHORT_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
+                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
+            }
 
-            case LLVM_COMPILER_OBJ_ARRAY_TYPE:
-                pushValue(helpFunction->createCallArrayLoadObj(irBuilder, arrayRef, index));
+            case LLVM_COMPILER_LONG_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
+                pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I8), dataPtr));
                 break;
+            }
+
+            case LLVM_COMPILER_FLOAT_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
+                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F4), dataPtr));
+                break;
+            }
+
+            case LLVM_COMPILER_DOUBLE_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
+                pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F8), dataPtr));
+                break;
+            }
+            case LLVM_COMPILER_OBJ_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
+                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::REF), dataPtr));
+                break;
+            }
 
             default:
                 panic("error type");
@@ -363,29 +405,53 @@ namespace RexVM {
 
     void MethodCompiler::arrayStore(llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, const uint8_t type) {
         throwNpeIfNull(arrayRef);
-        switch (type) {
-            case LLVM_COMPILER_INT_ARRAY_TYPE:
-            case LLVM_COMPILER_BYTE_ARRAY_TYPE:
-            case LLVM_COMPILER_CHAR_ARRAY_TYPE:
-            case LLVM_COMPILER_SHORT_ARRAY_TYPE:
-                helpFunction->createCallArrayStoreI4(irBuilder, arrayRef, index, value, type);
+         switch (type) {
+            case LLVM_COMPILER_INT_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
+                irBuilder.CreateStore(value, dataPtr);
                 break;
+            }
 
-            case LLVM_COMPILER_LONG_ARRAY_TYPE:
-                helpFunction->createCallArrayStoreI8(irBuilder, arrayRef, index, value);
+            case LLVM_COMPILER_BYTE_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
+                irBuilder.CreateStore(value, dataPtr);
                 break;
+            }
 
-            case LLVM_COMPILER_FLOAT_ARRAY_TYPE:
-                helpFunction->createCallArrayStoreF4(irBuilder, arrayRef, index, value);
+            case LLVM_COMPILER_CHAR_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
+                irBuilder.CreateStore(value, dataPtr);
                 break;
+            }
 
-            case LLVM_COMPILER_DOUBLE_ARRAY_TYPE:
-                helpFunction->createCallArrayStoreF8(irBuilder, arrayRef, index, value);
+            case LLVM_COMPILER_SHORT_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
+                irBuilder.CreateStore(value, dataPtr);
                 break;
+            }
 
-            case LLVM_COMPILER_OBJ_ARRAY_TYPE:
-                helpFunction->createCallArrayStoreObj(irBuilder, arrayRef, index, value);
+            case LLVM_COMPILER_LONG_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
+                irBuilder.CreateStore(value, dataPtr);
                 break;
+            }
+
+            case LLVM_COMPILER_FLOAT_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
+                irBuilder.CreateStore(value, dataPtr);
+                break;
+            }
+
+            case LLVM_COMPILER_DOUBLE_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
+                irBuilder.CreateStore(value, dataPtr);
+                break;
+            }
+            case LLVM_COMPILER_OBJ_ARRAY_TYPE: {
+                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
+                irBuilder.CreateStore(value, dataPtr);
+                break;
+            }
 
             default:
                 panic("error type");
@@ -536,7 +602,7 @@ namespace RexVM {
         const auto slotId = field->slotId;
         const auto oop = popValue();
         throwNpeIfNull(oop);
-        const auto fieldDataPtr = helpFunction->createCallGetFieldPtr(irBuilder, oop, irBuilder.getInt16(slotId));
+        const auto fieldDataPtr = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
         const auto value = irBuilder.CreateLoad(slotTypeMap(type), fieldDataPtr);
         pushValue(value, type);
     }
@@ -548,7 +614,7 @@ namespace RexVM {
         const auto slotId = field->slotId;
         const auto oop = popValue();
         throwNpeIfNull(oop);
-        const auto fieldDataPtr = helpFunction->createCallGetFieldPtr(irBuilder, oop, irBuilder.getInt16(slotId));
+        const auto fieldDataPtr = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
         irBuilder.CreateStore(value, fieldDataPtr);
     }
 
@@ -614,7 +680,7 @@ namespace RexVM {
         const auto paramSlotSize = pushParams(paramType, !isStatic);
 
         const auto methodRef = klass.getRefMethod(index, isStatic);
-        helpFunction->createCallInvokeMethodStatic(irBuilder, getFramePtr(), getConstantPtr(methodRef), paramSlotSize);
+        helpFunction->createCallInvokeMethodFixed(irBuilder, getFramePtr(), getConstantPtr(methodRef), paramSlotSize);
         processInvokeReturn(returnType);
     }
 
@@ -631,7 +697,7 @@ namespace RexVM {
                     ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
                     ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
 
-            helpFunction->createCallInvokeMethodStatic(
+            helpFunction->createCallInvokeMethodFixed(
                 irBuilder,
                 getFramePtr(),
                 getConstantPtr(invokeMethod),
@@ -641,7 +707,7 @@ namespace RexVM {
         }
 
         //Add sp and invoke method
-        helpFunction->createCallInvokeMethod(irBuilder, getFramePtr(), index);
+        helpFunction->createCallInvokeMethodFixed(irBuilder, getFramePtr(), ConstantPointerNull::get(voidPtrType), index);
         processInvokeReturn(returnType);
     }
 
@@ -1490,41 +1556,41 @@ namespace RexVM {
 
             case OpCodeEnum::IRETURN: {
                 const auto retVal = popValue();
-                helpFunction->createCallReturnI4(irBuilder, getFramePtr(), retVal);
+                returnValue(retVal, SlotTypeEnum::I4);
                 irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::LRETURN: {
                 const auto retVal = popWideValue();
-                helpFunction->createCallReturnI8(irBuilder, getFramePtr(), retVal);
+                returnValue(retVal, SlotTypeEnum::I8);
                 irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::FRETURN: {
                 const auto retVal = popValue();
-                helpFunction->createCallReturnF4(irBuilder, getFramePtr(), retVal);
+                returnValue(retVal, SlotTypeEnum::F4);
                 irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::DRETURN: {
                 const auto retVal = popWideValue();
-                helpFunction->createCallReturnF8(irBuilder, getFramePtr(), retVal);
+                returnValue(retVal, SlotTypeEnum::F8);
                 irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::ARETURN: {
                 const auto retVal = popValue();
-                helpFunction->createCallReturnObj(irBuilder, getFramePtr(), retVal);
+                returnValue(retVal, SlotTypeEnum::REF);
                 irBuilder.CreateBr(returnBB);
                 break;
             }
 
             case OpCodeEnum::RETURN: {
-                helpFunction->createCallReturnVoid(irBuilder, getFramePtr());
+                returnValue(nullptr, SlotTypeEnum::NONE);
                 irBuilder.CreateBr(returnBB);
                 break;
             }
@@ -1657,7 +1723,7 @@ namespace RexVM {
             case OpCodeEnum::ATHROW: {
                 const auto ex = popValue();
                 throwNpeIfNull(ex);
-                helpFunction->createCallThrowException(irBuilder, getFramePtr(), ex);
+                helpFunction->createCallThrowException(irBuilder, getFramePtr(), ex, pc);
                 irBuilder.CreateBr(returnBB);
                 break;
             }
