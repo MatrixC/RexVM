@@ -6,10 +6,10 @@
 
 namespace RexVM {
 
-    std::vector<std::tuple<u4, u4>> scanMethodLabel(const Method *method) {
+    std::vector<std::tuple<u4, u4>> scanMethodLabel(const Method &method) {
         ByteReader reader{};
-        const auto codePtr = method->code.get();
-        reader.init(codePtr, method->codeLength);
+        const auto codePtr = method.code.get();
+        reader.init(codePtr, method.codeLength);
 
         std::vector<std::tuple<u4, u4>> labels;
 

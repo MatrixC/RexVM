@@ -13,6 +13,7 @@
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
 #include "garbage_collect.hpp"
+#include "cfg.hpp"
 #include "jit/llvm_jit_manager.hpp"
 
 namespace RexVM {
@@ -108,12 +109,13 @@ namespace RexVM {
         if (!startWith(method.getName(), "jicc")) {
             return;
         }
-        if (method.compiledMethodHandler == nullptr) {
-            const auto jitManager = frame.vm.jitManager.get();
-            if (jitManager != nullptr) {
-                jitManager->compileMethod(method);
-            }
-        }
+        // if (method.compiledMethodHandler == nullptr) {
+        //     const auto jitManager = frame.vm.jitManager.get();
+        //     if (jitManager != nullptr) {
+        //         jitManager->compileMethod(method);
+        //     }
+        // }
+        MethodCFG cfg(method);
     }
 
     void executeFrame(Frame &frame, [[maybe_unused]] cview methodName) {

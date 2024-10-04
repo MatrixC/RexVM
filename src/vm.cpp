@@ -88,6 +88,7 @@ namespace RexVM {
         exitVM();
     }
 
+
     void vmMain(ApplicationParameter &param) {
         VM vm(param);
         vm.start();

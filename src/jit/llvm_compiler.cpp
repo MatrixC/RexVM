@@ -54,7 +54,7 @@ namespace RexVM {
 
         const auto entryBB = BasicBlock::Create(ctx, "entry");
         changeBB(entryBB);
-        for (const auto methodLabels = scanMethodLabel(&method);
+        for (const auto methodLabels = scanMethodLabel(method);
              const auto &[pc, offset]: methodLabels
         ) {
             auto opCodeBB = BasicBlock::Create(ctx);
@@ -1924,6 +1924,7 @@ namespace RexVM {
         ByteReader reader{};
         const auto codePtr = method.code.get();
         reader.init(codePtr, method.codeLength);
+
 
         while (!reader.eof()) {
             const auto currentByteCode = reader.readU1();
