@@ -55,7 +55,7 @@ namespace RexVM {
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         methodCompiler.compile();
 
-        // module->print(llvm::outs(), nullptr);
+        module->print(llvm::outs(), nullptr);
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));

@@ -1,17 +1,17 @@
 #include "llvm_compiler.hpp"
-#include <set>
+#include "llvm_block_context.hpp"
 #include "jit_help_function.hpp"
 #include "llvm_jit_register_help_function.hpp"
 #include "../vm.hpp"
 #include "../frame.hpp"
 #include "../class.hpp"
 #include "../class_member.hpp"
+#include "../cfg.hpp"
 #include "../class_loader.hpp"
 #include "../constant_info.hpp"
 #include "../method_handle.hpp"
 #include "../oop.hpp"
 #include "../utils/descriptor_parser.hpp"
-#include "../utils/method_utils.hpp"
 
 
 namespace RexVM {
@@ -26,6 +26,7 @@ namespace RexVM {
         method(method),
         klass(method.klass),
         constantPool(klass.constantPool),
+        cfg(method),
         module(module),
         ctx(module.getContext()),
         irBuilder(ctx),
@@ -46,20 +47,26 @@ namespace RexVM {
             module
         );
 
-        initBasicBlock();
+        exitBB = BasicBlock::Create(ctx, "exit_method");
+
+        initCFGBlocks();
     }
 
-    void MethodCompiler::initBasicBlock() {
-        returnBB = BasicBlock::Create(ctx);
-
-        const auto entryBB = BasicBlock::Create(ctx, "entry");
-        changeBB(entryBB);
-        for (const auto methodLabels = scanMethodLabel(method);
-             const auto &[pc, offset]: methodLabels
-        ) {
-            auto opCodeBB = BasicBlock::Create(ctx);
-            opCodeBlocks.emplace(offset, opCodeBB);
+    void MethodCompiler::initCFGBlocks() {
+        cfgBlocks.reserve(cfg.blocks.size());
+        for (const auto &cfgBlock : cfg.blocks) {
+            const auto lineNumber = method.getLineNumber(cfgBlock->startPC);
+            const auto blockName = cformat("{}_{}", cfgBlock->startPC, lineNumber);
+            cfgBlocks.emplace_back(std::make_unique<BlockContext>(*this, cfgBlock.get()));
         }
+
+        for (size_t i = 0; i < cfg.blocks.size(); ++i) {
+            for (const auto parents = cfg.blocks[i]->parentBlockIndex;
+                 const auto parentIdx: parents) {
+                cfgBlocks[i]->parentBlocks.emplace_back(cfgBlocks[parentIdx].get());
+            }
+        }
+        
     }
 
     void MethodCompiler::changeBB(BasicBlock *nextBasicBlock) {
@@ -73,7 +80,6 @@ namespace RexVM {
         irBuilder.SetInsertPoint(nextBasicBlock);
     }
 
-
     Argument *MethodCompiler::getFramePtr() const {
         return function->arg_begin();
     }
@@ -84,6 +90,16 @@ namespace RexVM {
 
     Argument *MethodCompiler::getLocalVariableTableTypePtr() const {
         return function->arg_begin() + 2;
+    }
+
+    BlockContext *MethodCompiler::getBlockContext(const u4 leaderPC) const {
+        for (const auto &block : cfgBlocks) {
+            if (block->methodBlock->startPC == leaderPC) {
+                return block.get();
+            }
+        }
+        panic("error leaderPC");
+        return nullptr;
     }
 
     Type *MethodCompiler::slotTypeMap(const SlotTypeEnum slotType) {
@@ -103,6 +119,25 @@ namespace RexVM {
                 return nullptr;
         }
     }
+
+    llvm::Value *MethodCompiler::getZeroValue(const SlotTypeEnum slotType) {
+        switch (slotType) {
+            case SlotTypeEnum::I4:
+                return irBuilder.getInt32(0);
+            case SlotTypeEnum::I8:
+                return irBuilder.getInt64(0);
+            case SlotTypeEnum::F4:
+                return ConstantFP::getZero(irBuilder.getFloatTy());
+            case SlotTypeEnum::F8:
+                return  ConstantFP::getZero(irBuilder.getDoubleTy());
+            case SlotTypeEnum::REF:
+                return ConstantPointerNull::get(voidPtrType);
+            default:
+                panic("error slot type");
+            return nullptr;
+        } 
+    }
+
 
     llvm::Value *MethodCompiler::getLocalVariableTableValue(const u4 index, const SlotTypeEnum slotType) {
         //lvt指向Slot[] 先通过GEP获得index对应的Slot指针
@@ -166,103 +201,11 @@ namespace RexVM {
         return dataFieldPtr;
     }
 
-    void MethodCompiler::pushValue(llvm::Value *value) {
-        valueStack.emplace(value);
-    }
-
-    void MethodCompiler::pushValue(llvm::Value *value, const SlotTypeEnum type) {
-        switch (type) {
-            case SlotTypeEnum::I4:
-            case SlotTypeEnum::F4:
-            case SlotTypeEnum::REF:
-                pushValue(value);
-            break;
-
-            case SlotTypeEnum::I8:
-            case SlotTypeEnum::F8:
-                pushWideValue(value);
-            break;
-
-            default:
-                panic("error type");
-        }
-    }
-
-
-    llvm::Value *MethodCompiler::popValue() {
-        const auto value = valueStack.top();
-        valueStack.pop();
-        return value;
-    }
-
-    llvm::Value *MethodCompiler::popValue(const SlotTypeEnum type) {
-        llvm::Value *value{nullptr};
-        switch (type) {
-            case SlotTypeEnum::I4:
-            case SlotTypeEnum::F4:
-            case SlotTypeEnum::REF:
-                value = popValue();
-            break;
-
-            case SlotTypeEnum::I8:
-            case SlotTypeEnum::F8:
-                value = popWideValue();
-            break;
-
-            default:
-                panic("error type");
-        }
-        return value;
-    }
-
-
-    void MethodCompiler::pushWideValue(llvm::Value *value) {
-        pushValue(value);
-        padding();
-    }
-
-    llvm::Value *MethodCompiler::popWideValue() {
-        unPadding();
-        return popValue();
-    }
-
-    llvm::Value *MethodCompiler::topValue() {
-        return valueStack.top();
-    }
-
-    void MethodCompiler::padding() {
-        pushValue(nullptr);
-    }
-
-    void MethodCompiler::unPadding() {
-        popValue();
-    }
-
-    void MethodCompiler::pushI4Const(const i4 value) {
-        pushValue(irBuilder.getInt32(static_cast<uint32_t>(value)));
-    }
-
-    void MethodCompiler::pushI8Const(const i8 value) {
-        pushWideValue(irBuilder.getInt64(static_cast<uint64_t>(value)));
-    }
-
-    void MethodCompiler::pushF4Const(const f4 value) {
-        pushValue(ConstantFP::get(irBuilder.getFloatTy(), value));
-    }
-
-    void MethodCompiler::pushF8Const(const f8 value) {
-        pushWideValue(ConstantFP::get(irBuilder.getDoubleTy(), value));
-    }
-
-    void MethodCompiler::pushNullConst() {
-        pushValue(ConstantPointerNull::get(voidPtrType));
-    }
-
     void MethodCompiler::returnValue(llvm::Value *val, SlotTypeEnum type) {
         llvm::Value *returnVal = nullptr;
         switch (type) {
             case SlotTypeEnum::NONE:
-                returnVal = irBuilder.getInt64(0);
+                returnVal = getZeroValue(SlotTypeEnum::I8);
                 break;
 
             case SlotTypeEnum::I4:
@@ -285,49 +228,71 @@ namespace RexVM {
                 break;
         }
         helpFunction->createCallReturnCommon(irBuilder, getFramePtr(), returnVal, static_cast<u1>(type));
+        exitMethod();
     }
 
-    void MethodCompiler::throwNpeIfNull(llvm::Value *val) {
-        // if (value == nullptr) {
+    void MethodCompiler::throwNpeIfZero(const BlockContext &blockContext, llvm::Value *val, const SlotTypeEnum slotType) {
+        // if (value == zero) {
         //   throwNpe(frame);
         //   return;
         // }
-
+        const auto zeroValue = getZeroValue(slotType);
+        const auto fixedException =
+                slotType == SlotTypeEnum::REF
+                    ? LLVM_COMPILER_FIXED_EXCEPTION_NPE
+                    : LLVM_COMPILER_FIXED_EXCEPTION_DIV_BY_ZERO;
         const auto isNullBB = BasicBlock::Create(ctx);
         const auto elseBB = BasicBlock::Create(ctx);
 
-        const auto cmpIsNull = irBuilder.CreateICmpEQ(val, ConstantPointerNull::get(voidPtrType));
+        const auto cmpIsNull = irBuilder.CreateICmpEQ(val, zeroValue);
         irBuilder.CreateCondBr(cmpIsNull, isNullBB, elseBB);
 
         changeBB(isNullBB);
-        helpFunction->createCallThrowException(irBuilder, getFramePtr(), ConstantPointerNull::get(voidPtrType), pc);
-        irBuilder.CreateBr(returnBB);
+        helpFunction->createCallThrowException(
+            irBuilder,
+            getFramePtr(),
+            getZeroValue(SlotTypeEnum::REF),
+            blockContext.pc,
+            fixedException
+        );
+        exitMethod();
 
         changeBB(elseBB);
     }
 
-    void MethodCompiler::ldc(const u2 index) {
+
+    void MethodCompiler::throwNpeIfNull(const BlockContext &blockContext, llvm::Value *val) {
+        throwNpeIfZero(blockContext, val, SlotTypeEnum::REF);
+    }
+
+    void MethodCompiler::throwException(const BlockContext &blockContext, llvm::Value *ex) {
+        throwNpeIfNull(blockContext, ex);
+        helpFunction->createCallThrowException(irBuilder, getFramePtr(), ex, blockContext.pc, -1);
+        exitMethod();
+    }
+
+    void MethodCompiler::ldc(BlockContext &blockContext, const u2 index) {
         switch (const auto valPtr = constantPool[index].get();
             CAST_CONSTANT_TAG_ENUM(valPtr->tag)) {
             case ConstantTagEnum::CONSTANT_Integer:
-                pushI4Const((CAST_CONSTANT_INTEGER_INFO(valPtr))->value);
+                blockContext.pushI4Const((CAST_CONSTANT_INTEGER_INFO(valPtr))->value);
                 break;
 
             case ConstantTagEnum::CONSTANT_Long:
-                pushI8Const((CAST_CONSTANT_LONG_INFO(valPtr))->value);
+                blockContext.pushI8Const((CAST_CONSTANT_LONG_INFO(valPtr))->value);
                 break;
 
             case ConstantTagEnum::CONSTANT_Float:
-                pushF4Const((CAST_CONSTANT_FLOAT_INFO(valPtr))->value);
+                blockContext.pushF4Const((CAST_CONSTANT_FLOAT_INFO(valPtr))->value);
                 break;
 
             case ConstantTagEnum::CONSTANT_Double:
-                pushF8Const((CAST_CONSTANT_DOUBLE_INFO(valPtr))->value);
+                blockContext.pushF8Const((CAST_CONSTANT_DOUBLE_INFO(valPtr))->value);
                 break;
 
             case ConstantTagEnum::CONSTANT_String:
             case ConstantTagEnum::CONSTANT_Class: {
-                pushValue(helpFunction->createCallGetInstanceConstant(irBuilder, getFramePtr(), index));
+                blockContext.pushValue(helpFunction->createCallGetInstanceConstant(irBuilder, getFramePtr(), index));
                 break;
             }
 
@@ -336,65 +301,72 @@ namespace RexVM {
         }
     }
 
-    void MethodCompiler::load(const u4 index, const SlotTypeEnum slotType) {
+
+    void MethodCompiler::load(BlockContext &blockContext, const u4 index, const SlotTypeEnum slotType) {
         const auto value = getLocalVariableTableValue(index, slotType);
-        pushValue(value, slotType);
+        blockContext.pushValue(value, slotType);
     }
 
-    void MethodCompiler::store(const u4 index, const SlotTypeEnum slotType) {
-        const auto value = popValue(slotType);
-        setLocalVariableTableValue(index, value, slotType);
+    void MethodCompiler::store(BlockContext &blockContext, const u4 index, const SlotTypeEnum slotType) {
+        const auto value = blockContext.popValue(slotType);
+        setLocalVariableTableValue(index, value, slotType); 
     }
 
+    void MethodCompiler::arrayLength(BlockContext &blockContext, llvm::Value *arrayRef) {
+        throwNpeIfNull(blockContext, arrayRef);
+        const auto arrayLength = helpFunction->createCallArrayLength(irBuilder, arrayRef);
+        blockContext.pushValue(arrayLength);
+    }
 
-    void MethodCompiler::arrayLoad(llvm::Value *arrayRef, llvm::Value *index, const uint8_t type) {
+    void MethodCompiler::arrayLoad(BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index,
+                                   const uint8_t type) {
         //arrayRef 是 arrayOop
-        throwNpeIfNull(arrayRef);
+        throwNpeIfNull(blockContext, arrayRef);
         switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
-                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
+                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_BYTE_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
-                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
+                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_CHAR_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
-                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
+                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_SHORT_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
-                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
+                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_LONG_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
-                pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I8), dataPtr));
+                blockContext.pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I8), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_FLOAT_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
-                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F4), dataPtr));
+                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_DOUBLE_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
-                pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F8), dataPtr));
+                blockContext.pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F8), dataPtr));
                 break;
             }
             case LLVM_COMPILER_OBJ_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
-                pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::REF), dataPtr));
+                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::REF), dataPtr));
                 break;
             }
 
@@ -403,8 +375,8 @@ namespace RexVM {
         }
     }
 
-    void MethodCompiler::arrayStore(llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, const uint8_t type) {
-        throwNpeIfNull(arrayRef);
+    void MethodCompiler::arrayStore(const BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, const uint8_t type) {
+        throwNpeIfNull(blockContext, arrayRef);
          switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE: {
                 const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
@@ -458,7 +430,7 @@ namespace RexVM {
         }
     }
 
-    void MethodCompiler::lCmp(llvm::Value *val1, llvm::Value *val2) {
+    void MethodCompiler::lCmp(BlockContext &blockContext, llvm::Value *val1, llvm::Value *val2) {
         const auto ifGt = BasicBlock::Create(ctx);
         const auto ifElse = BasicBlock::Create(ctx);
         const auto ifEq = BasicBlock::Create(ctx);
@@ -487,10 +459,10 @@ namespace RexVM {
         phi->addIncoming(irBuilder.getInt32(0), ifEq);
         phi->addIncoming(irBuilder.getInt32(-1), ifEqElse);
 
-        pushValue(phi);
+        blockContext.pushValue(phi);
     }
 
-    void MethodCompiler::fCmp(llvm::Value *val1, llvm::Value *val2, llvm::Value *nanRet) {
+    void MethodCompiler::fCmp(BlockContext &blockContext, llvm::Value *val1, llvm::Value *val2, llvm::Value *nanRet) {
         const auto ifGt = BasicBlock::Create(ctx);
         const auto ifGtElse = BasicBlock::Create(ctx);
         const auto ifEq = BasicBlock::Create(ctx);
@@ -529,11 +501,16 @@ namespace RexVM {
         phi->addIncoming(irBuilder.getInt32(-1), ifLt);
         phi->addIncoming(nanRet, ifNan);
 
-        pushValue(phi);
+        blockContext.pushValue(phi);
     }
 
-    void MethodCompiler::ifOp(const u4 jumpTo, llvm::Value *val1, llvm::Value *val2, const OpCodeEnum op) {
-        const auto offsetBB = opCodeBlocks[jumpTo];
+    u4 MethodCompiler::offsetToPC(const BlockContext &blockContext, const i4 offset) {
+        return CAST_U4(CAST_I4(blockContext.pc) + offset);
+    }
+
+    void MethodCompiler::ifOp(const BlockContext &blockContext, const i4 offset, llvm::Value *val1, llvm::Value *val2, const OpCodeEnum op) {
+        const auto jumpTo = offsetToPC(blockContext, offset);
+        const auto jumpToBB = getBlockContext(jumpTo)->basicBlock;
         llvm::Value *cmp{nullptr};
         switch (op) {
             case OpCodeEnum::IFEQ:
@@ -564,8 +541,37 @@ namespace RexVM {
                 break;
         }
         const auto elseBB = BasicBlock::Create(ctx);
-        irBuilder.CreateCondBr(cmp, offsetBB, elseBB);
+        irBuilder.CreateCondBr(cmp, jumpToBB, elseBB);
         changeBB(elseBB);
+    }
+
+    void MethodCompiler::jumpToPC(const u4 pc) {
+        const auto jumpToBB = getBlockContext(pc)->basicBlock;
+        irBuilder.CreateBr(jumpToBB);
+    }
+
+    void MethodCompiler::jumpTo(const BlockContext &blockContext, const i4 offset) {
+        const auto jumpTo = offsetToPC(blockContext, offset);
+        jumpToPC(jumpTo);
+    }
+
+    void MethodCompiler::createSwitch(const BlockContext &blockContext, llvm::Value *val, std::vector<i4> cases) {
+        const auto defaultOffset = cases[0];
+        const auto defaultBlock = getBlockContext(offsetToPC(blockContext, defaultOffset))->basicBlock;
+
+        const auto switchIr = irBuilder.CreateSwitch(val, defaultBlock);
+        if (cases.size() > 1) {
+            for (size_t i = 1; i < cases.size(); i+= 2) {
+                const auto caseVal = irBuilder.getInt32(cases[i]);
+                const auto caseOffset = cases[i + 1];
+                const auto caseBB = getBlockContext(offsetToPC(blockContext, caseOffset))->basicBlock;
+                switchIr->addCase(caseVal, caseBB);
+            }
+        }
+    }
+
+    void MethodCompiler::exitMethod() {
+        irBuilder.CreateBr(exitBB);
     }
 
     llvm::Value *MethodCompiler::getConstantPtr(void *ptr) {
@@ -580,45 +586,45 @@ namespace RexVM {
         return std::make_tuple(fieldRef, dataPtr);
     }
 
-    void MethodCompiler::getStatic(const u2 index) {
+    void MethodCompiler::getStatic(BlockContext &blockContext, const u2 index) {
         const auto [field, dataPtr] = getFieldInfo(index, true);
         const auto type = field->getFieldSlotType();
         const auto klassPtr = &field->klass;
         helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
         const auto value = irBuilder.CreateLoad(slotTypeMap(type), getConstantPtr(dataPtr));
-        pushValue(value, type);
+        blockContext.pushValue(value, type);
     }
 
-    void MethodCompiler::putStatic(const u2 index) {
+    void MethodCompiler::putStatic(BlockContext &blockContext, const u2 index) {
         const auto [field, dataPtr] = getFieldInfo(index, true);
         const auto type = field->getFieldSlotType();
-        llvm::Value *value = popValue(type);
+        const auto value = blockContext.popValue(type);
         irBuilder.CreateStore(value, getConstantPtr(dataPtr));
     }
 
-    void MethodCompiler::getField(const u2 index) {
+    void MethodCompiler::getField(BlockContext &blockContext, const u2 index) {
         const auto [field, ignored] = getFieldInfo(index, false);
         const auto type = field->getFieldSlotType();
         const auto slotId = field->slotId;
-        const auto oop = popValue();
-        throwNpeIfNull(oop);
+        const auto oop = blockContext.popValue();
+        throwNpeIfNull(blockContext, oop);
         const auto fieldDataPtr = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
         const auto value = irBuilder.CreateLoad(slotTypeMap(type), fieldDataPtr);
-        pushValue(value, type);
+        blockContext.pushValue(value, type);
     }
 
-    void MethodCompiler::putField(const u2 index) {
+    void MethodCompiler::putField(BlockContext &blockContext, const u2 index) {
         const auto [field, ignored] = getFieldInfo(index, false);
         const auto type = field->getFieldSlotType();
-        const auto value = popValue(type);
+        const auto value = blockContext.popValue(type);
         const auto slotId = field->slotId;
-        const auto oop = popValue();
-        throwNpeIfNull(oop);
+        const auto oop = blockContext.popValue();
+        throwNpeIfNull(blockContext, oop);
         const auto fieldDataPtr = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
         irBuilder.CreateStore(value, fieldDataPtr);
     }
 
-    size_t MethodCompiler::pushParams(const std::vector<cstring> &paramType, const bool includeThis) {
+    size_t MethodCompiler::pushParams(BlockContext &blockContext, const std::vector<cstring> &paramType, const bool includeThis) {
         std::vector<SlotTypeEnum> paramSlotType;
         if (includeThis) {
             paramSlotType.emplace_back(SlotTypeEnum::REF);
@@ -638,10 +644,10 @@ namespace RexVM {
         for (i4 i = CAST_I4(paramSlotType.size()) - 1; i >= 0; --i) {
             //假设有4个参数 则 i = 3,2,1,0
             //具体的参数
-            const auto paramValue = popValue();
+            const auto paramValue = blockContext.popValue();
             if (includeThis && i == 0) {
                 //first param: this object
-                throwNpeIfNull(paramValue);
+                throwNpeIfNull(blockContext, paramValue);
             }
 
             //lvtPtr + method.paramSlotSize + i 代表了从最后一个到第一个参数的地址
@@ -671,25 +677,25 @@ namespace RexVM {
         return paramSlotType.size();
     }
 
-    void MethodCompiler::invokeStaticMethod(const u2 index, const bool isStatic) {
+    void MethodCompiler::invokeStaticMethod(BlockContext &blockContext, const u2 index, const bool isStatic) {
         //isStatic ? static method : special method
         const auto [className, methodName, methodDescriptor] =
                 getConstantStringFromPoolByClassNameType(constantPool, index);
 
         const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
-        const auto paramSlotSize = pushParams(paramType, !isStatic);
+        const auto paramSlotSize = pushParams(blockContext, paramType, !isStatic);
 
         const auto methodRef = klass.getRefMethod(index, isStatic);
         helpFunction->createCallInvokeMethodFixed(irBuilder, getFramePtr(), getConstantPtr(methodRef), paramSlotSize);
-        processInvokeReturn(returnType);
+        processInvokeReturn(blockContext, returnType);
     }
 
-    void MethodCompiler::invokeVirtualMethod(const u2 index) {
+    void MethodCompiler::invokeVirtualMethod(BlockContext &blockContext, const u2 index) {
         const auto [className, methodName, methodDescriptor] =
          getConstantStringFromPoolByClassNameType(constantPool, index);
 
         const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
-        const auto paramSlotSize = pushParams(paramType, true);
+        const auto paramSlotSize = pushParams(blockContext, paramType, true);
 
         if (isMethodHandleInvoke(className, methodName)) {
             const auto invokeMethod =
@@ -707,1242 +713,175 @@ namespace RexVM {
         }
 
         //Add sp and invoke method
-        helpFunction->createCallInvokeMethodFixed(irBuilder, getFramePtr(), ConstantPointerNull::get(voidPtrType), index);
-        processInvokeReturn(returnType);
+        helpFunction->createCallInvokeMethodFixed(irBuilder, getFramePtr(), getZeroValue(SlotTypeEnum::REF), index);
+        processInvokeReturn(blockContext, returnType);
     }
 
-    void MethodCompiler::processInvokeReturn(const cview returnType) {
-        if (const auto returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
-            returnSlotType != SlotTypeEnum::NONE) {
-            //has return value
-            const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
-            pushValue(returnValue, returnSlotType);
-        }
-    }
-
-    void MethodCompiler::processInstruction(
-        OpCodeEnum opCode,
-        ByteReader &byteReader
-    ) {
-        if (const auto iter = opCodeBlocks.find(pc); iter != opCodeBlocks.end()) {
-            changeBB(iter->second);
-        }
-
-        switch (opCode) {
-            case OpCodeEnum::NOP:
-                break;
-            case OpCodeEnum::ACONST_NULL:
-                pushNullConst();
-                break;
-
-            case OpCodeEnum::ICONST_M1:
-            case OpCodeEnum::ICONST_0:
-            case OpCodeEnum::ICONST_1:
-            case OpCodeEnum::ICONST_2:
-            case OpCodeEnum::ICONST_3:
-            case OpCodeEnum::ICONST_4:
-            case OpCodeEnum::ICONST_5:
-                pushI4Const(CAST_I4(opCode) - CAST_I4(OpCodeEnum::ICONST_0));
-                break;
-            case OpCodeEnum::LCONST_0:
-            case OpCodeEnum::LCONST_1:
-                pushI8Const(CAST_I8(opCode) - CAST_I8(OpCodeEnum::LCONST_0));
-                break;
-            case OpCodeEnum::FCONST_0:
-                pushF4Const(0);
-                break;
-            case OpCodeEnum::FCONST_1:
-                pushF4Const(1);
-                break;
-            case OpCodeEnum::FCONST_2:
-                pushF4Const(2);
-                break;
-            case OpCodeEnum::DCONST_0:
-                pushF8Const(0);
-                break;
-            case OpCodeEnum::DCONST_1:
-                pushF8Const(1);
-                break;
-
-            case OpCodeEnum::BIPUSH:
-                pushI4Const(byteReader.readI1());
-                break;
-            case OpCodeEnum::SIPUSH:
-                pushI4Const(byteReader.readI2());
-                break;
-
-            case OpCodeEnum::LDC: {
-                const auto index = byteReader.readU1();
-                ldc(index);
-                break;
-            }
-
-            case OpCodeEnum::LDC_W:
-            case OpCodeEnum::LDC2_W: {
-                const auto index = byteReader.readU2();
-                ldc(index);
-                break;
-            }
-
-            case OpCodeEnum::ILOAD: {
-                const auto index = byteReader.readU1();
-                load(index, SlotTypeEnum::I4);
-                break;
-            }
-
-            case OpCodeEnum::LLOAD: {
-                const auto index = byteReader.readU1();
-                load(index, SlotTypeEnum::I8);
-                break;
-            }
-
-            case OpCodeEnum::FLOAD: {
-                const auto index = byteReader.readU1();
-                load(index, SlotTypeEnum::F4);
-                break;
-            }
-
-            case OpCodeEnum::DLOAD: {
-                const auto index = byteReader.readU1();
-                load(index, SlotTypeEnum::F8);
-                break;
-            }
-
-            case OpCodeEnum::ALOAD: {
-                const auto index = byteReader.readU1();
-                load(index, SlotTypeEnum::REF);
-                break;
-            }
-
-            case OpCodeEnum::ILOAD_0:
-            case OpCodeEnum::ILOAD_1:
-            case OpCodeEnum::ILOAD_2:
-            case OpCodeEnum::ILOAD_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::ILOAD_0);
-                load(idx, SlotTypeEnum::I4);
-                break;
-            }
-
-            case OpCodeEnum::LLOAD_0:
-            case OpCodeEnum::LLOAD_1:
-            case OpCodeEnum::LLOAD_2:
-            case OpCodeEnum::LLOAD_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::LLOAD_0);
-                load(idx, SlotTypeEnum::I8);
-                break;
-            }
-
-            case OpCodeEnum::FLOAD_0:
-            case OpCodeEnum::FLOAD_1:
-            case OpCodeEnum::FLOAD_2:
-            case OpCodeEnum::FLOAD_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::FLOAD_0);
-                load(idx, SlotTypeEnum::F4);
-                break;
-            }
-
-            case OpCodeEnum::DLOAD_0:
-            case OpCodeEnum::DLOAD_1:
-            case OpCodeEnum::DLOAD_2:
-            case OpCodeEnum::DLOAD_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::DLOAD_0);
-                load(idx, SlotTypeEnum::F8);
-                break;
-            }
-
-            case OpCodeEnum::ALOAD_0:
-            case OpCodeEnum::ALOAD_1:
-            case OpCodeEnum::ALOAD_2:
-            case OpCodeEnum::ALOAD_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::ALOAD_0);
-                load(idx, SlotTypeEnum::REF);
-                break;
-            }
-
-            case OpCodeEnum::IALOAD:
-            case OpCodeEnum::LALOAD:
-            case OpCodeEnum::FALOAD:
-            case OpCodeEnum::DALOAD:
-            case OpCodeEnum::AALOAD:
-            case OpCodeEnum::BALOAD:
-            case OpCodeEnum::CALOAD:
-            case OpCodeEnum::SALOAD: {
-                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IALOAD);
-                const auto idx = popValue();
-                const auto arrayRef = popValue();
-                arrayLoad(arrayRef, idx, arrayType);
-                break;
-            }
-
-            case OpCodeEnum::ISTORE: {
-                const auto index = byteReader.readU1();
-                store(index, SlotTypeEnum::I4);
-                break;
-            }
-            case OpCodeEnum::LSTORE: {
-                const auto index = byteReader.readU1();
-                store(index, SlotTypeEnum::I8);
-                break;
-            }
-            case OpCodeEnum::FSTORE: {
-                const auto index = byteReader.readU1();
-                store(index, SlotTypeEnum::F4);
-                break;
-            }
-            case OpCodeEnum::DSTORE: {
-                const auto index = byteReader.readU1();
-                store(index, SlotTypeEnum::F8);
-                break;
-            }
-            case OpCodeEnum::ASTORE: {
-                const auto index = byteReader.readU1();
-                store(index, SlotTypeEnum::REF);
-                break;
-            }
-
-            case OpCodeEnum::ISTORE_0:
-            case OpCodeEnum::ISTORE_1:
-            case OpCodeEnum::ISTORE_2:
-            case OpCodeEnum::ISTORE_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::ISTORE_0);
-                store(idx, SlotTypeEnum::I4);
-                break;
-            }
-
-            case OpCodeEnum::LSTORE_0:
-            case OpCodeEnum::LSTORE_1:
-            case OpCodeEnum::LSTORE_2:
-            case OpCodeEnum::LSTORE_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::LSTORE_0);
-                store(idx, SlotTypeEnum::I8);
-                break;
-            }
-
-            case OpCodeEnum::FSTORE_0:
-            case OpCodeEnum::FSTORE_1:
-            case OpCodeEnum::FSTORE_2:
-            case OpCodeEnum::FSTORE_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::FSTORE_0);
-                store(idx, SlotTypeEnum::F4);
-                break;
-            }
-
-            case OpCodeEnum::DSTORE_0:
-            case OpCodeEnum::DSTORE_1:
-            case OpCodeEnum::DSTORE_2:
-            case OpCodeEnum::DSTORE_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::DSTORE_0);
-                store(idx, SlotTypeEnum::F8);
-                break;
-            }
-
-            case OpCodeEnum::ASTORE_0:
-            case OpCodeEnum::ASTORE_1:
-            case OpCodeEnum::ASTORE_2:
-            case OpCodeEnum::ASTORE_3: {
-                const auto idx = CAST_I4(opCode) - CAST_I4(OpCodeEnum::ASTORE_0);
-                store(idx, SlotTypeEnum::REF);
-                break;
-            }
-
-            case OpCodeEnum::IASTORE: {
-                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
-                const auto val = popValue();
-                const auto idx = popValue();
-                const auto arrayRef = popValue();
-                arrayStore(arrayRef, idx, val, arrayType);
-                break;
-            }
-            case OpCodeEnum::LASTORE: {
-                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
-                const auto val = popWideValue();
-                const auto idx = popValue();
-                const auto arrayRef = popValue();
-                arrayStore(arrayRef, idx, val, arrayType);
-                break;
-            }
-            case OpCodeEnum::FASTORE: {
-                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
-                const auto val = popValue();
-                const auto idx = popValue();
-                const auto arrayRef = popValue();
-                arrayStore(arrayRef, idx, val, arrayType);
-                break;
-            }
-            case OpCodeEnum::DASTORE: {
-                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
-                const auto val = popWideValue();
-                const auto idx = popValue();
-                const auto arrayRef = popValue();
-                arrayStore(arrayRef, idx, val, arrayType);
-                break;
-            }
-            case OpCodeEnum::AASTORE:
-            case OpCodeEnum::BASTORE:
-            case OpCodeEnum::CASTORE:
-            case OpCodeEnum::SASTORE: {
-                const auto arrayType = CAST_U1(opCode) - CAST_U1(OpCodeEnum::IASTORE);
-                const auto val = popValue();
-                const auto idx = popValue();
-                const auto arrayRef = popValue();
-                arrayStore(arrayRef, idx, val, arrayType);
-                break;
-            }
-
-            case OpCodeEnum::POP:
-                popValue();
-                break;
-            case OpCodeEnum::POP2:
-                popValue();
-                popValue();
-                break;
-            case OpCodeEnum::DUP:
-                pushValue(topValue());
-                break;
-            case OpCodeEnum::DUP_X1: {
-                const auto val1 = popValue();
-                const auto val2 = popValue();
-                pushValue(val1);
-                pushValue(val2);
-                pushValue(val1);
-                break;
-            }
-
-            case OpCodeEnum::DUP_X2: {
-                const auto val1 = popValue();
-                const auto val2 = popValue();
-                const auto val3 = popValue();
-                pushValue(val1);
-                pushValue(val3);
-                pushValue(val2);
-                pushValue(val1);
-                break;
-            }
-            case OpCodeEnum::DUP2: {
-                const auto val1 = popValue();
-                const auto val2 = popValue();
-                pushValue(val2);
-                pushValue(val1);
-                pushValue(val2);
-                pushValue(val1);
-                break;
-            }
-            case OpCodeEnum::DUP2_X1: {
-                const auto val1 = popValue();
-                const auto val2 = popValue();
-                const auto val3 = popValue();
-                pushValue(val2);
-                pushValue(val1);
-                pushValue(val3);
-                pushValue(val2);
-                pushValue(val1);
-                break;
-            }
-            case OpCodeEnum::DUP2_X2: {
-                const auto val1 = popValue();
-                const auto val2 = popValue();
-                const auto val3 = popValue();
-                const auto val4 = popValue();
-                pushValue(val2);
-                pushValue(val1);
-                pushValue(val4);
-                pushValue(val3);
-                pushValue(val2);
-                pushValue(val1);
-                break;
-            }
-
-            case OpCodeEnum::SWAP: {
-                const auto val1 = popValue();
-                const auto val2 = popValue();
-                pushValue(val1);
-                pushValue(val2);
-                break;
-            }
-
-            case OpCodeEnum::IADD:{
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateAdd(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LADD: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateAdd(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::FADD:  {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateFAdd(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::DADD: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateFAdd(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::ISUB: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateSub(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LSUB: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateSub(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::FSUB: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateFSub(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::DSUB: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateFSub(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::IMUL: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateMul(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LMUL: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateMul(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::FMUL: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateFMul(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::DMUL: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateFMul(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::IDIV: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                //TODO CheckZero
-                pushValue(irBuilder.CreateSDiv(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LDIV: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                //TODO CheckZero
-                pushWideValue(irBuilder.CreateSDiv(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::FDIV: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateFDiv(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::DDIV: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateFDiv(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::IREM: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                //TODO CheckZero
-                pushValue(irBuilder.CreateSRem(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LREM: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                //TODO CheckZero
-                pushWideValue(irBuilder.CreateSRem(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::FREM: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                //TODO CheckZero
-                pushValue(irBuilder.CreateFRem(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::DREM: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                //TODO CheckZero
-                pushWideValue(irBuilder.CreateFRem(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::INEG: {
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateNeg(val1));
-                break;
-            }
-
-            case OpCodeEnum::LNEG: {
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateNeg(val1));
-                break;
-            }
-            case OpCodeEnum::FNEG: {
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateFNeg(val1));
-                break;
-            }
-
-            case OpCodeEnum::DNEG: {
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateFNeg(val1));
-                break;
-            }
-
-            case OpCodeEnum::ISHL: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateShl(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LSHL: {
-                const auto val2 = popValue();
-                const auto val1 = popWideValue();
-                const auto val2Ext = irBuilder.CreateZExt(val2, irBuilder.getInt64Ty());
-                pushWideValue(irBuilder.CreateShl(val1, val2Ext));
-                break;
-            }
-
-            case OpCodeEnum::ISHR: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateAShr(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LSHR: {
-                const auto val2 = popValue();
-                const auto val1 = popWideValue();
-                const auto val2Ext = irBuilder.CreateZExt(val2, irBuilder.getInt64Ty());
-                pushWideValue(irBuilder.CreateAShr(val1, val2Ext));
-                break;
-            }
-
-            case OpCodeEnum::IUSHR: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateLShr(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LUSHR: {
-                const auto val2 = popValue();
-                const auto val1 = popWideValue();
-                const auto val2Ext = irBuilder.CreateZExt(val2, irBuilder.getInt64Ty());
-                pushWideValue(irBuilder.CreateLShr(val1, val2Ext));
-                break;
-            }
-
-            case OpCodeEnum::IAND: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateAnd(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LAND: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateAnd(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::IOR: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateOr(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LOR: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateOr(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::IXOR: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                pushValue(irBuilder.CreateXor(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::LXOR: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                pushWideValue(irBuilder.CreateXor(val1, val2));
-                break;
-            }
-
-            case OpCodeEnum::IINC: {
-                const auto index = byteReader.readU1();
-                const auto value = byteReader.readI1();
-                const auto currentValue = getLocalVariableTableValue(index, SlotTypeEnum::I4);
-                const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
-                setLocalVariableTableValue(index, incValue, SlotTypeEnum::I4);
-                break;
-            }
-
-            case OpCodeEnum::I2L: {
-                //sext
-                pushWideValue(irBuilder.CreateSExt(popValue(), slotTypeMap(SlotTypeEnum::I8)));
-                break;
-            }
-
-            case OpCodeEnum::I2F: {
-                //sitofp
-                pushValue(irBuilder.CreateSIToFP(popValue(), slotTypeMap(SlotTypeEnum::F4)));
-                break;
-            }
-
-            case OpCodeEnum::I2D: {
-                //sitofp
-                pushWideValue(irBuilder.CreateSIToFP(popValue(), slotTypeMap(SlotTypeEnum::F8)));
-                break;
-            }
-
-            case OpCodeEnum::L2I: {
-                //trunc
-                pushValue(irBuilder.CreateTrunc(popWideValue(), slotTypeMap(SlotTypeEnum::I4)));
-                break;
-            }
-
-            case OpCodeEnum::L2F: {
-                //sitofp
-                pushValue(irBuilder.CreateSIToFP(popWideValue(), slotTypeMap(SlotTypeEnum::F4)));
-                break;
-            }
-
-            case OpCodeEnum::L2D: {
-                //sitofp
-                pushWideValue(irBuilder.CreateSIToFP(popWideValue(), slotTypeMap(SlotTypeEnum::F8)));
-                break;
-            }
-
-            case OpCodeEnum::F2I: {
-                //fptosi
-                pushValue(irBuilder.CreateFPToSI(popValue(), slotTypeMap(SlotTypeEnum::I4)));
-                break;
-            }
-
-            case OpCodeEnum::F2L: {
-                //fptosi
-                pushWideValue(irBuilder.CreateFPToSI(popValue(), slotTypeMap(SlotTypeEnum::I8)));
-                break;
-            }
-
-            case OpCodeEnum::F2D: {
-                //fpext
-                pushWideValue(irBuilder.CreateFPExt(popValue(), slotTypeMap(SlotTypeEnum::F8)));
-                break;
-            }
-
-            case OpCodeEnum::D2I: {
-                //fptosi
-                pushValue(irBuilder.CreateFPToSI(popWideValue(), slotTypeMap(SlotTypeEnum::I4)));
-                break;
-            }
-
-            case OpCodeEnum::D2L: {
-                //fptosi
-                pushWideValue(irBuilder.CreateFPToSI(popWideValue(), slotTypeMap(SlotTypeEnum::I8)));
-                break;
-            }
-
-            case OpCodeEnum::D2F: {
-                //fptrunc
-                pushValue(irBuilder.CreateFPTrunc(popWideValue(), slotTypeMap(SlotTypeEnum::F4)));
-                break;
-            }
-
-            case OpCodeEnum::I2B: {
-                //trunc, sext
-                pushValue(irBuilder.CreateSExt(irBuilder.CreateTrunc(popValue(), irBuilder.getInt8Ty()),
-                                               slotTypeMap(SlotTypeEnum::I4)));
-                break;
-            }
-
-            case OpCodeEnum::I2C: {
-                //trunc, zext
-                pushValue(irBuilder.CreateZExt(irBuilder.CreateTrunc(popValue(), irBuilder.getInt16Ty()),
-                                               slotTypeMap(SlotTypeEnum::I4)));
-                break;
-            }
-
-            case OpCodeEnum::I2S: {
-                //trunc, sext
-                pushValue(irBuilder.CreateSExt(irBuilder.CreateTrunc(popValue(), irBuilder.getInt16Ty()),
-                                               slotTypeMap(SlotTypeEnum::I4)));
-                break;
-            }
-
-            case OpCodeEnum::LCMP: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                lCmp(val1, val2);
-                break;
-            }
-
-            case OpCodeEnum::FCMPL: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                const auto nanRet = irBuilder.getInt32(-1);
-                fCmp(val1, val2, nanRet);
-                break;
-            }
-
-            case OpCodeEnum::FCMPG: {
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                const auto nanRet = irBuilder.getInt32(1);
-                fCmp(val1, val2, nanRet);
-                break;
-            }
-
-            case OpCodeEnum::DCMPL: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                const auto nanRet = irBuilder.getInt32(-1);
-                fCmp(val1, val2, nanRet);
-                break;
-            }
-
-            case OpCodeEnum::DCMPG: {
-                const auto val2 = popWideValue();
-                const auto val1 = popWideValue();
-                const auto nanRet = irBuilder.getInt32(1);
-                fCmp(val1, val2, nanRet);
-                break;
-            }
-
-            case OpCodeEnum::IFEQ:
-            case OpCodeEnum::IFNE:
-            case OpCodeEnum::IFLT:
-            case OpCodeEnum::IFGE:
-            case OpCodeEnum::IFGT:
-            case OpCodeEnum::IFLE: {
-                const auto offset = byteReader.readI2();
-                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
-                const auto val = popValue();
-                ifOp(jumpTo, val, irBuilder.getInt32(0), opCode);
-                break;
-            }
-
-            case OpCodeEnum::IF_ICMPEQ:
-            case OpCodeEnum::IF_ICMPNE:
-            case OpCodeEnum::IF_ICMPLT:
-            case OpCodeEnum::IF_ICMPGE:
-            case OpCodeEnum::IF_ICMPGT:
-            case OpCodeEnum::IF_ICMPLE: {
-                const auto curOp = CAST_U1(opCode) - (static_cast<u1>(OpCodeEnum::IF_ICMPEQ) - static_cast<u1>(OpCodeEnum::IFEQ));
-                const auto offset = byteReader.readI2();
-                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                ifOp(jumpTo, val1, val2, static_cast<OpCodeEnum>(curOp));
-                break;
-            }
-            case OpCodeEnum::IF_ACMPEQ:
-            case OpCodeEnum::IF_ACMPNE: {
-                const auto curOp = CAST_U1(opCode) - (static_cast<u1>(OpCodeEnum::IF_ACMPEQ) - static_cast<u1>(OpCodeEnum::IFEQ));
-                const auto offset = byteReader.readI2();
-                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
-                const auto val2 = popValue();
-                const auto val1 = popValue();
-                ifOp(jumpTo, val1, val2, static_cast<OpCodeEnum>(curOp));
-                break;
-            }
-
-            case OpCodeEnum::GOTO: {
-                const auto offset = byteReader.readI2();
-                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
-                irBuilder.CreateBr(opCodeBlocks[CAST_U4(jumpTo)]);
-                break;
-            }
-
-            case OpCodeEnum::TABLESWITCH: {
-                const auto nextPc = CAST_U4(byteReader.ptr - byteReader.begin);
-                if (const auto mod = nextPc % 4; mod != 0) {
-                    byteReader.skip(4 - mod);
-                }
-                const auto defaultOffset = byteReader.readI4();
-                const auto defaultJumpTo = CAST_U4(CAST_I4(pc) + defaultOffset);
-                const auto defaultBlock = opCodeBlocks[CAST_U4(defaultJumpTo)];
-
-                const auto low = byteReader.readI4();
-                const auto high = byteReader.readI4();
-                const auto jumpOffsetsCount = high - low + 1;
-                auto currentValue = low;
-
-                const auto switchValue = popValue();
-                const auto switchInstr = irBuilder.CreateSwitch(switchValue, defaultBlock);
-
-                for (i4 i = 0; i < jumpOffsetsCount; ++i) {
-                    const auto currentOffset = byteReader.readI4();
-                    const auto currentJumpTo = CAST_U4(CAST_I4(pc) + currentOffset);
-                    const auto currentBlock = opCodeBlocks[CAST_U4(currentJumpTo)];
-                    switchInstr->addCase(irBuilder.getInt32(currentValue), currentBlock);
-                    currentValue += 1;
-                }
-
-                break;
-            }
-
-            case OpCodeEnum::LOOKUPSWITCH: {
-                const auto nextPc = CAST_U4(byteReader.ptr - byteReader.begin);
-                if (const auto mod = nextPc % 4; mod != 0) {
-                    byteReader.skip(4 - mod);
-                }
-
-                const auto defaultOffset = byteReader.readI4();
-                const auto defaultJumpTo = CAST_U4(CAST_I4(pc) + defaultOffset);
-                const auto defaultBlock = opCodeBlocks[CAST_U4(defaultJumpTo)];
-
-                const auto nPairs = byteReader.readI4();
-                const auto switchValue = popValue();
-                const auto switchInstr = irBuilder.CreateSwitch(switchValue, defaultBlock);
-
-                for (i4 i = 0; i < nPairs; ++i) {
-                    const auto caseValue = byteReader.readI4();
-                    const auto caseOffset = byteReader.readI4();
-                    const auto caseJumpTo = CAST_U4(CAST_I4(pc) + caseOffset);
-                    const auto caseBlock = opCodeBlocks[CAST_U4(caseJumpTo)];
-                    switchInstr->addCase(irBuilder.getInt32(caseValue), caseBlock);
-                }
-                break;
-            }
-
-            case OpCodeEnum::IRETURN: {
-                const auto retVal = popValue();
-                returnValue(retVal, SlotTypeEnum::I4);
-                irBuilder.CreateBr(returnBB);
-                break;
-            }
-
-            case OpCodeEnum::LRETURN: {
-                const auto retVal = popWideValue();
-                returnValue(retVal, SlotTypeEnum::I8);
-                irBuilder.CreateBr(returnBB);
-                break;
-            }
-
-            case OpCodeEnum::FRETURN: {
-                const auto retVal = popValue();
-                returnValue(retVal, SlotTypeEnum::F4);
-                irBuilder.CreateBr(returnBB);
-                break;
-            }
-
-            case OpCodeEnum::DRETURN: {
-                const auto retVal = popWideValue();
-                returnValue(retVal, SlotTypeEnum::F8);
-                irBuilder.CreateBr(returnBB);
-                break;
-            }
-
-            case OpCodeEnum::ARETURN: {
-                const auto retVal = popValue();
-                returnValue(retVal, SlotTypeEnum::REF);
-                irBuilder.CreateBr(returnBB);
-                break;
-            }
-
-            case OpCodeEnum::RETURN: {
-                returnValue(nullptr, SlotTypeEnum::NONE);
-                irBuilder.CreateBr(returnBB);
-                break;
-            }
-
-            case OpCodeEnum::GETSTATIC: {
-                const auto index = byteReader.readU2();
-                getStatic(index);
-                break;
-            }
-
-            case OpCodeEnum::PUTSTATIC: {
-                const auto index = byteReader.readU2();
-                putStatic(index);
-                break;
-            }
-
-            case OpCodeEnum::GETFIELD: {
-                const auto index = byteReader.readU2();
-                getField(index);
-                break;
-            }
-
-            case OpCodeEnum::PUTFIELD: {
-                const auto index = byteReader.readU2();
-                putField(index);
-                break;
-            }
-
-            case OpCodeEnum::INVOKEVIRTUAL: {
-                const auto index = byteReader.readU2();
-                invokeVirtualMethod(index);
-                break;
-            }
-
-            case OpCodeEnum::INVOKESPECIAL: {
-                const auto index = byteReader.readU2();
-                invokeStaticMethod(index, false);
-                break;
-            }
-
-            case OpCodeEnum::INVOKESTATIC: {
-                const auto index = byteReader.readU2();
-                invokeStaticMethod(index, true);
-                break;
-            }
-
-            case OpCodeEnum::INVOKEINTERFACE: {
-                const auto index = byteReader.readU2();
-                byteReader.readU2();
-                invokeVirtualMethod(index);
-                break;
-            }
-
-            case OpCodeEnum::INVOKEDYNAMIC: {
-                const auto index = byteReader.readU2();
-                byteReader.readU2(); //ignore zero
-
-                const auto invokeDynamicInfo = CAST_CONSTANT_INVOKE_DYNAMIC_INFO(constantPool[index].get());
-                const auto [invokeName, invokeDescriptor] = getConstantStringFromPoolByNameAndType(constantPool, invokeDynamicInfo->nameAndTypeIndex);
-                const auto [paramType, returnType] = parseMethodDescriptor(invokeDescriptor);
-                const auto paramSize = pushParams(paramType, false);
-                const i4 length = (CAST_U2(paramSize) << 16) | (index & 0xFFFF);
-
-                const auto callSiteObj = helpFunction->createCallNew(
+    void MethodCompiler::invokeDynamic(BlockContext &blockContext, const u2 index) {
+        const auto invokeDynamicInfo = CAST_CONSTANT_INVOKE_DYNAMIC_INFO(constantPool[index].get());
+        const auto [invokeName, invokeDescriptor] =
+                getConstantStringFromPoolByNameAndType(constantPool, invokeDynamicInfo->nameAndTypeIndex);
+        const auto [paramType, returnType] = parseMethodDescriptor(invokeDescriptor);
+        const auto paramSize = pushParams(blockContext, paramType, false);
+        const i4 length = (CAST_U2(paramSize) << 16) | (index & 0xFFFF);
+
+        const auto callSiteObj =
+                helpFunction->createCallNew(
                     irBuilder,
                     getFramePtr(),
                     LLVM_COMPILER_NEW_DYNAMIC_INVOKE,
                     irBuilder.getInt32(length),
                     ConstantPointerNull::get(voidPtrType)
                 );
-                throwNpeIfNull(callSiteObj);
-                pushValue(callSiteObj);
-                break;
-            }
+        throwNpeIfNull(blockContext, callSiteObj);
+        blockContext.pushValue(callSiteObj);
+    }
 
-            case OpCodeEnum::NEW: {
-                const auto index = byteReader.readU2();
-                const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
-                const auto refClass = klass.classLoader.getClass(className);
-                const auto newObject = helpFunction->createCallNew(
+    void MethodCompiler::newOpCode(BlockContext &blockContext, const uint8_t type, llvm::Value *length,
+                                   llvm::Value *klass) {
+        const auto newObject = helpFunction->createCallNew(irBuilder, getFramePtr(), type, length, klass);
+        blockContext.pushValue(newObject);
+    }
+
+    void MethodCompiler::newObject(BlockContext &blockContext, const u2 index) {
+        const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
+        const auto refClass = klass.classLoader.getClass(className);
+        newOpCode(blockContext, LLVM_COMPILER_NEW_OBJECT, irBuilder.getInt32(0), getConstantPtr(refClass));
+    }
+
+    void MethodCompiler::newArray(BlockContext &blockContext, const u1 type, llvm::Value *length) {
+        newOpCode(blockContext, type, length, getZeroValue(SlotTypeEnum::REF));
+    }
+
+    void MethodCompiler::newObjectArray(BlockContext &blockContext, const u2 index, llvm::Value *length) {
+        const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
+        const auto refClass = klass.classLoader.getClass(className);
+        const auto arrayClass = klass.classLoader.getObjectArrayClass(*refClass);
+        newOpCode(blockContext, LLVM_COMPILER_NEW_OBJECT_ARRAY, length, getConstantPtr(arrayClass));
+    }
+
+    void MethodCompiler::newMultiArray(BlockContext &blockContext, const u2 index, const u1 dimension, llvm::Value *arrayDim) {
+        const i4 complex = (CAST_U2(dimension) << 16) | (index & 0xFFFF);
+        newOpCode(blockContext, LLVM_COMPILER_NEW_MULTI_ARRAY, irBuilder.getInt32(complex), arrayDim);
+    }
+
+    void MethodCompiler::checkCast(const u2 index, llvm::Value *ref) {
+        const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
+        const auto checkClass = klass.classLoader.getClass(className);
+        // if (ref == nullptr) {
+        //     return;
+        // }
+        const auto endBB = BasicBlock::Create(ctx);
+        const auto notNullBB = BasicBlock::Create(ctx);
+        const auto notInstanceOfBB = BasicBlock::Create(ctx);
+
+        const auto cmpIsNull = irBuilder.CreateICmpEQ(ref, getZeroValue(SlotTypeEnum::REF));
+        irBuilder.CreateCondBr(cmpIsNull, endBB, notNullBB);
+
+        changeBB(notNullBB);
+        const auto checkRet =
+                helpFunction->createCallInstanceOf(
                     irBuilder,
                     getFramePtr(),
-                    LLVM_COMPILER_NEW_OBJECT,
-                    irBuilder.getInt32(0),
-                    getConstantPtr(refClass)
+                    LLVM_COMPILER_CHECK_CAST,
+                    ref,
+                    getConstantPtr(checkClass)
                 );
-                pushValue(newObject);
-                break;
-            }
 
-            case OpCodeEnum::NEWARRAY: {
-                const auto type = byteReader.readU1();
-                const auto length = popValue();
-                const auto newObject = helpFunction->createCallNew(
+
+        const auto cmpInstanceOf = irBuilder.CreateICmpEQ(checkRet, irBuilder.getInt32(1));
+        irBuilder.CreateCondBr(cmpInstanceOf, endBB, notInstanceOfBB);
+
+        changeBB(notInstanceOfBB);
+        //already throw exception in createCallInstanceOf
+        //return function
+        exitMethod();
+
+        changeBB(endBB);
+    }
+
+    void MethodCompiler::instanceOf(BlockContext &blockContext, const u2 index, llvm::Value *ref) {
+        const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
+        const auto checkClass = klass.classLoader.getClass(className);
+
+        // if (ref == nullptr) {
+        //     frame.pushI4(0);
+        //     return;
+        // }
+        const auto endBB = BasicBlock::Create(ctx);
+        const auto isNullBB = BasicBlock::Create(ctx);
+        const auto notNullBB = BasicBlock::Create(ctx);
+
+        const auto cmpIsNull = irBuilder.CreateICmpEQ(ref, ConstantPointerNull::get(voidPtrType));
+        irBuilder.CreateCondBr(cmpIsNull, endBB, notNullBB);
+
+        changeBB(notNullBB);
+        const auto checkRet =
+                helpFunction->createCallInstanceOf(
                     irBuilder,
                     getFramePtr(),
-                    type,
-                    length,
-                    ConstantPointerNull::get(voidPtrType)
+                    LLVM_COMPILER_CHECK_CAST,
+                    ref,
+                    getConstantPtr(checkClass)
                 );
-                pushValue(newObject);
-                break;
-            }
+        blockContext.pushValue(checkRet);
 
-            case OpCodeEnum::ANEWARRAY: {
-                const auto classIndex = byteReader.readU2();
-                const auto length = popValue();
-                const auto className = getConstantStringFromPoolByIndexInfo(constantPool, classIndex);
-                const auto refClass = klass.classLoader.getClass(className);
-                const auto arrayClass = klass.classLoader.getObjectArrayClass(*refClass);
-                const auto newObject = helpFunction->createCallNew(
-                     irBuilder,
-                     getFramePtr(),
-                     LLVM_COMPILER_NEW_OBJECT_ARRAY,
-                     length,
-                     getConstantPtr(arrayClass)
-                 );
-                pushValue(newObject);
-                break;
-            }
+        changeBB(isNullBB);
+        blockContext.pushI4Const(0);
+        irBuilder.CreateBr(endBB);
 
-            case OpCodeEnum::ARRAYLENGTH: {
-                const auto array = popValue();
-                throwNpeIfNull(array);
-                const auto arrayLength = helpFunction->createCallArrayLength(irBuilder, array);
-                pushValue(arrayLength);
-                break;
-            }
+        changeBB(endBB);
+    }
 
-            case OpCodeEnum::ATHROW: {
-                const auto ex = popValue();
-                throwNpeIfNull(ex);
-                helpFunction->createCallThrowException(irBuilder, getFramePtr(), ex, pc);
-                irBuilder.CreateBr(returnBB);
-                break;
-            }
+    void MethodCompiler::monitor(const BlockContext &blockContext, const u1 type, llvm::Value *oop) {
+        throwNpeIfNull(blockContext, oop);
+        helpFunction->createCallMonitor(irBuilder, oop, type);
+    }
 
-            case OpCodeEnum::CHECKCAST: {
-                const auto index = byteReader.readU2();
-                const auto className = getConstantStringFromPoolByIndexInfo(klass.constantPool, index);
-                const auto checkClass = klass.classLoader.getClass(className);
-
-                const auto ref = topValue();
-                // if (ref == nullptr) {
-                //     return;
-                // }
-                const auto endBB = BasicBlock::Create(ctx);
-                const auto notNullBB = BasicBlock::Create(ctx);
-                const auto notInstanceOfBB = BasicBlock::Create(ctx);
-
-                const auto cmpIsNull = irBuilder.CreateICmpEQ(ref, ConstantPointerNull::get(voidPtrType));
-                irBuilder.CreateCondBr(cmpIsNull, endBB, notNullBB);
-
-                changeBB(notNullBB);
-                const auto checkRet =
-                        helpFunction->createCallInstanceOf(
-                            irBuilder,
-                            getFramePtr(),
-                            LLVM_COMPILER_CHECK_CAST,
-                            ref,
-                            getConstantPtr(checkClass)
-                        );
-
-
-                const auto cmpInstanceOf = irBuilder.CreateICmpEQ(checkRet, irBuilder.getInt32(1));
-                irBuilder.CreateCondBr(cmpInstanceOf, endBB, notInstanceOfBB);
-
-                changeBB(notInstanceOfBB);
-                //already throw exception in createCallInstanceOf
-                //return function
-                irBuilder.CreateBr(returnBB);
-
-                changeBB(endBB);
-                break;
-            }
-
-            case OpCodeEnum::INSTANCEOF: {
-                const auto index = byteReader.readU2();
-                const auto className = getConstantStringFromPoolByIndexInfo(klass.constantPool, index);
-                const auto checkClass = klass.classLoader.getClass(className);
-
-                const auto ref = popValue();
-                // if (ref == nullptr) {
-                //     frame.pushI4(0);
-                //     return;
-                // }
-                const auto endBB = BasicBlock::Create(ctx);
-                const auto isNullBB = BasicBlock::Create(ctx);
-                const auto notNullBB = BasicBlock::Create(ctx);
-
-                const auto cmpIsNull = irBuilder.CreateICmpEQ(ref, ConstantPointerNull::get(voidPtrType));
-                irBuilder.CreateCondBr(cmpIsNull, endBB, notNullBB);
-
-                changeBB(notNullBB);
-                const auto checkRet =
-                        helpFunction->createCallInstanceOf(
-                            irBuilder,
-                            getFramePtr(),
-                            LLVM_COMPILER_CHECK_CAST,
-                            ref,
-                            getConstantPtr(checkClass)
-                        );
-                pushValue(checkRet);
-
-                changeBB(isNullBB);
-                pushI4Const(0);
-                irBuilder.CreateBr(endBB);
-
-                changeBB(endBB);
-                break;
-            }
-
-            case OpCodeEnum::MONITORENTER:
-            case OpCodeEnum::MONITOREXIT: {
-                const u1 type = CAST_I4(opCode) - CAST_I4(OpCodeEnum::MONITORENTER);
-                const auto oop = popValue();
-                throwNpeIfNull(oop);
-                helpFunction->createCallMonitor(irBuilder, oop, type);
-                break;
-            }
-
-            case OpCodeEnum::WIDE: {
-                const auto wideOpCode = static_cast<OpCodeEnum>(byteReader.readU1());
-                const auto index = byteReader.readU2();
-
-                switch (wideOpCode) {
-                    case OpCodeEnum::ILOAD:
-                        load(index, SlotTypeEnum::I4);
-                        break;
-                    case OpCodeEnum::FLOAD:
-                        load(index, SlotTypeEnum::F4);
-                        break;
-                    case OpCodeEnum::ALOAD:
-                        load(index, SlotTypeEnum::REF);
-                        break;
-                    case OpCodeEnum::LLOAD:
-                        load(index, SlotTypeEnum::I8);
-                        break;
-                    case OpCodeEnum::DLOAD:
-                        load(index, SlotTypeEnum::F8);
-                        break;
-
-                    case OpCodeEnum::ISTORE:
-                        store(index, SlotTypeEnum::I4);
-                        break;
-                    case OpCodeEnum::FSTORE:
-                        store(index, SlotTypeEnum::F4);
-                        break;
-                    case OpCodeEnum::ASTORE:
-                        store(index, SlotTypeEnum::REF);
-                        break;
-                    case OpCodeEnum::LSTORE:
-                        store(index, SlotTypeEnum::I8);
-                        break;
-                    case OpCodeEnum::DSTORE:
-                        store(index, SlotTypeEnum::F8);
-                        break;
-
-                    case OpCodeEnum::IINC: {
-                        const auto value = byteReader.readI2();
-                        const auto currentValue = getLocalVariableTableValue(index, SlotTypeEnum::I4);
-                        const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
-                        setLocalVariableTableValue(index, incValue, SlotTypeEnum::I4);
-                        break;
-                    }
-
-                    case OpCodeEnum::RET:
-                        panic("ret not implement!");
-                    break;
-
-                    default:
-                        panic("wide error");
-                }
-                break;
-            }
-
-            case OpCodeEnum::MULTIANEWARRAY: {
-                const auto index = byteReader.readU2();
-                const auto dimension = byteReader.readU1();
-                const auto arrayType = ArrayType::get(irBuilder.getInt32Ty(), dimension);
-                const auto arrayValue = irBuilder.CreateAlloca(arrayType);
-                for (i4 i = dimension - 1; i >= 0; --i) {
-                    const auto dimValue = popValue();
-                    const auto dimPtr =
-                        irBuilder.CreateGEP(irBuilder.getInt32Ty(), arrayValue, irBuilder.getInt32(i));
-                    irBuilder.CreateStore(dimValue, dimPtr);
-                }
-
-                const i4 length = (CAST_U2(dimension) << 16) | (index & 0xFFFF);
-                const auto newObject = helpFunction->createCallNew(
-                    irBuilder,
-                    getFramePtr(),
-                    LLVM_COMPILER_NEW_MULTI_ARRAY,
-                    irBuilder.getInt32(length),
-                    arrayValue
-                );
-                pushValue(newObject);
-                break;
-            }
-
-            case OpCodeEnum::IFNULL: {
-                const auto offset = byteReader.readI2();
-                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
-                const auto val = popValue();
-                ifOp(jumpTo, val, ConstantPointerNull::get(voidPtrType), OpCodeEnum::IFEQ);
-                break;
-            }
-
-            case OpCodeEnum::IFNONNULL: {
-                const auto offset = byteReader.readI2();
-                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
-                const auto val = popValue();
-                ifOp(jumpTo, val, ConstantPointerNull::get(voidPtrType), OpCodeEnum::IFNE);
-                break;
-            }
-
-            case OpCodeEnum::GOTO_W: {
-                const auto offset = byteReader.readI4();
-                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
-                irBuilder.CreateBr(opCodeBlocks[CAST_U4(jumpTo)]);
-                break;
-            }
-
-            default:
-                panic("not support");
-                break;
+    void MethodCompiler::processInvokeReturn(BlockContext &blockContext, const cview returnType) {
+        if (const auto returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
+            returnSlotType != SlotTypeEnum::NONE) {
+            //has return value
+            const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
+            blockContext.pushValue(returnValue, returnSlotType);
         }
     }
 
     void MethodCompiler::compile() {
-        ByteReader reader{};
-        const auto codePtr = method.code.get();
-        reader.init(codePtr, method.codeLength);
-
-
-        while (!reader.eof()) {
-            const auto currentByteCode = reader.readU1();
-            const auto opCode = static_cast<OpCodeEnum>(currentByteCode);
-            pc = CAST_U4(reader.ptr - reader.begin) - 1;
-            processInstruction(opCode, reader);
-            reader.resetCurrentOffset();
+        for (const auto &cfgBlock: cfgBlocks) {
+            cfgBlock->compile();
         }
 
-        if (!valueStack.empty()) {
-            panic("error value stack");
-        }
-
-        // irBuilder.CreateBr(returnBB);
-
-        changeBB(returnBB);
+        changeBB(exitBB);
         irBuilder.CreateRetVoid();
 
-        verifyFunction(*function);
+        // ByteReader reader{};
+        // const auto codePtr = method.code.get();
+        // reader.init(codePtr, method.codeLength);
+        //
+        //
+        // while (!reader.eof()) {
+        //     const auto currentByteCode = reader.readU1();
+        //     const auto opCode = static_cast<OpCodeEnum>(currentByteCode);
+        //     pc = CAST_U4(reader.ptr - reader.begin) - 1;
+        //     processInstruction(opCode, reader);
+        //     reader.resetCurrentOffset();
+        // }
+        //
+        // if (!valueStack.empty()) {
+        //     panic("error value stack");
+        // }
+        //
+        // // irBuilder.CreateBr(returnBB);
+        //
+        // changeBB(returnBB);
+        // irBuilder.CreateRetVoid();
+        //
+        // verifyFunction(*function);
+
+
+
     }
+
+
 }

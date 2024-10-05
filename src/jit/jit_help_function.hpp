@@ -22,6 +22,9 @@ constexpr uint8_t LLVM_COMPILER_INSTANCE_OF = 1;
 constexpr uint8_t LLVM_COMPILER_MONITOR_ENTER = 0;
 constexpr uint8_t LLVM_COMPILER_MONITOR_EXIT = 1;
 
+constexpr uint8_t LLVM_COMPILER_FIXED_EXCEPTION_NPE = 0;
+constexpr uint8_t LLVM_COMPILER_FIXED_EXCEPTION_DIV_BY_ZERO = 1;
+
 extern "C" {
     void *llvm_compile_get_instance_constant(void *framePtr, uint32_t index);
 
@@ -35,7 +38,7 @@ extern "C" {
 
     void *llvm_compile_new_object(void *framePtr, uint8_t type, int32_t length, void *klass);
 
-    void llvm_compile_throw_exception(void *framePtr, void *exOop, uint32_t pc);
+    void llvm_compile_throw_exception(void *framePtr, void *exOop, uint32_t pc, uint8_t fixedException);
 
     int32_t llvm_compile_check_cast(void *framePtr, uint8_t type, void *popOop, void *check);
 

@@ -209,12 +209,17 @@ namespace RexVM {
             const auto fromPCIndex = std::distance(leaders.begin(), std::ranges::upper_bound(leaders, fromPC));
             const auto jumpToIndex = std::distance(leaders.begin(), std::ranges::upper_bound(leaders, jumpTo));
 
-            blocks[fromPCIndex]->jumpTo.emplace_back(blocks[jumpToIndex].get());
+            blocks[fromPCIndex]->jumpToBlockIndex.emplace_back(jumpToIndex);
+            blocks[jumpToIndex]->parentBlockIndex.emplace_back(fromPCIndex);
         }
 
         for (size_t i = 0; i < blocks.size() - 1; ++i) {
-            if (blocks[i]->jumpTo.empty()) {
-                blocks[i]->jumpTo.emplace_back(blocks[i + 1].get());
+            if (const auto block = blocks[i].get(); block->jumpToBlockIndex.empty()) {
+                block->autoJmp = true;
+                const auto jumpToIdx = i + 1;
+                const auto nextBlock = blocks[jumpToIdx].get();
+                block->jumpToBlockIndex.emplace_back(jumpToIdx);
+                nextBlock->parentBlockIndex.emplace_back(i);
             }
         }
     }

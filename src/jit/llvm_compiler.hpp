@@ -1,14 +1,13 @@
 #ifndef LLVM_COMPILER_HPP
 #define LLVM_COMPILER_HPP
-#include <stack>
 #include <vector>
-#include <map>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Verifier.h>
 #include "../config.hpp"
 #include "../opcode.hpp"
+#include "../cfg.hpp"
 #include "llvm_jit_register_help_function.hpp"
-#include "../utils/byte_reader.hpp"
+#include "llvm_block_context.hpp"
 
 namespace RexVM {
     struct VM;
@@ -17,6 +16,7 @@ namespace RexVM {
     struct Method;
     struct Field;
     struct LLVMHelpFunction;
+    struct BlockContext;
 
     struct MethodCompiler {
         explicit MethodCompiler(
@@ -26,7 +26,7 @@ namespace RexVM {
             cview compiledMethodName
         );
 
-        void initBasicBlock();
+        void initCFGBlocks();
         void changeBB(llvm::BasicBlock *nextBasicBlock);
 
         VM &vm;
@@ -34,20 +34,24 @@ namespace RexVM {
         InstanceClass &klass;
         std::vector<std::unique_ptr<ConstantInfo> > &constantPool;
 
+        MethodCFG cfg;
+        std::vector<std::unique_ptr<BlockContext>> cfgBlocks;
+
         llvm::Module &module;
         llvm::LLVMContext &ctx;
         llvm::IRBuilder<> irBuilder;
         std::unique_ptr<LLVMHelpFunction> helpFunction;
 
-        u4 pc{};
         llvm::PointerType *voidPtrType{};
         llvm::Function *function{};
-        llvm::BasicBlock *returnBB{};
         llvm::BasicBlock *currentBB{};
-        std::map<u4, llvm::BasicBlock *> opCodeBlocks;
-        std::stack<llvm::Value *> valueStack;
+        llvm::BasicBlock *exitBB{};
+
+        [[nodiscard]] BlockContext *getBlockContext(u4 leaderPC) const;
 
         llvm::Type *slotTypeMap(SlotTypeEnum slotType);
+
+        llvm::Value *getZeroValue(SlotTypeEnum slotType);
 
         [[nodiscard]] llvm::Argument *getFramePtr() const;
 
@@ -61,75 +65,79 @@ namespace RexVM {
 
         llvm::Value * getOopDataPtr(llvm::Value *oop, llvm::Value *index, bool isArray, BasicType type);
 
-        void pushValue(llvm::Value *value);
-
-        void pushValue(llvm::Value *value, SlotTypeEnum type);
-
-        llvm::Value *popValue();
-
-        llvm::Value *popValue(SlotTypeEnum type);
-
-        void pushWideValue(llvm::Value *value);
-
-        llvm::Value *popWideValue();
-
-        llvm::Value *topValue();
-
-        void padding();
-
-        void unPadding();
-
-        void pushI4Const(i4 value);
-
-        void pushI8Const(i8 value);
-
-        void pushF4Const(f4 value);
-
-        void pushF8Const(f8 value);
-
-        void pushNullConst();
-
         void returnValue(llvm::Value *val, SlotTypeEnum type);
 
-        void throwNpeIfNull(llvm::Value *val);
+        void throwNpeIfZero(const BlockContext &blockContext, llvm::Value *val, SlotTypeEnum slotType);
 
-        void ldc(u2 index);
+        void throwNpeIfNull(const BlockContext &blockContext, llvm::Value *val);
 
-        void load(u4 index, SlotTypeEnum slotType);
+        void throwException(const BlockContext &blockContext, llvm::Value *ex);
 
-        void store(u4 index, SlotTypeEnum slotType);
+        void ldc(BlockContext &blockContext, u2 index);
 
-        void arrayLoad(llvm::Value *arrayRef, llvm::Value *index, uint8_t type);
+        void load(BlockContext &blockContext, u4 index, SlotTypeEnum slotType);
 
-        void arrayStore(llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, uint8_t type);
+        void store(BlockContext &blockContext, u4 index, SlotTypeEnum slotType);
 
-        void lCmp(llvm::Value *val1, llvm::Value *val2);
+        void arrayLength(BlockContext &blockContext, llvm::Value *arrayRef);
 
-        void fCmp(llvm::Value *val1, llvm::Value *val2, llvm::Value *nanRet);
+        void arrayLoad(BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, uint8_t type);
 
-        void ifOp(u4 jumpTo, llvm::Value *val1, llvm::Value *val2, OpCodeEnum op);
+        void arrayStore(const BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, uint8_t type);
+
+        void lCmp(BlockContext &blockContext, llvm::Value *val1, llvm::Value *val2);
+
+        void fCmp(BlockContext &blockContext, llvm::Value *val1, llvm::Value *val2, llvm::Value *nanRet);
+
+        static u4 offsetToPC(const BlockContext &blockContext, i4 offset);
+
+        void ifOp(const BlockContext &blockContext, i4 offset, llvm::Value *val1, llvm::Value *val2, OpCodeEnum op);
+
+        void jumpToPC(u4 pc);
+
+        void jumpTo(const BlockContext &blockContext, i4 offset);
+
+        void createSwitch(const BlockContext &blockContext, llvm::Value *val, std::vector<i4> cases);
+
+        void exitMethod();
 
         llvm::Value *getConstantPtr(void *ptr);
 
         [[nodiscard]] std::tuple<Field *, void *> getFieldInfo(u2 index, bool isStatic) const;
 
-        void getStatic(u2 index);
+        void getStatic(BlockContext &blockContext, u2 index);
 
-        void putStatic(u2 index);
+        void putStatic(BlockContext &blockContext, u2 index);
 
-        void getField(u2 index);
+        void getField(BlockContext &blockContext, u2 index);
 
-        void putField(u2 index);
+        void putField(BlockContext &blockContext, u2 index);
 
-        size_t pushParams(const std::vector<cstring> &paramType, bool includeThis);
+        size_t pushParams(BlockContext &blockContext, const std::vector<cstring> &paramType, bool includeThis);
 
-        void invokeStaticMethod(u2 index, bool isStatic);
+        void invokeStaticMethod(BlockContext &blockContext, u2 index, bool isStatic);
 
-        void invokeVirtualMethod(u2 index);
+        void invokeVirtualMethod(BlockContext &blockContext, u2 index);
 
-        void processInvokeReturn(cview returnType);
+        void invokeDynamic(BlockContext &blockContext, u2 index);
 
-        void processInstruction(OpCodeEnum opCode, ByteReader &byteReader);
+        void newOpCode(BlockContext &blockContext, uint8_t type, llvm::Value *length, llvm::Value *klass);
+
+        void newObject(BlockContext &blockContext, u2 index);
+
+        void newArray(BlockContext &blockContext, u1 type, llvm::Value *length);
+
+        void newObjectArray(BlockContext &blockContext, u2 index, llvm::Value *length);
+
+        void newMultiArray(BlockContext &blockContext, u2 index, u1 dimension, llvm::Value *arrayDim);
+
+        void checkCast(u2 index, llvm::Value *ref);
+
+        void instanceOf(BlockContext &blockContext, u2 index, llvm::Value *ref);
+
+        void monitor(const BlockContext &blockContext, u1 type, llvm::Value *oop);
+
+        void processInvokeReturn(BlockContext &blockContext, cview returnType);
 
         void compile();
     };

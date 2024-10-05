@@ -490,14 +490,12 @@ namespace RexVM {
         void fdiv(Frame &frame) {
             const auto val2 = frame.popF4();   
             const auto val1 = frame.popF4();
-            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushF4(val1 / val2);
         }
 
         void ddiv(Frame &frame) {
             const auto val2 = frame.popF8();   
             const auto val1 = frame.popF8();
-            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushF8(val1 / val2);
         }
 

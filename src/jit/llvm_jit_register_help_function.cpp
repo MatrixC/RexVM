@@ -42,7 +42,7 @@ namespace RexVM {
                                                                  }, false));
 
         throwException = module.getOrInsertFunction("llvm_compile_throw_exception",
-                                                    FunctionType::get(voidTy, {voidPtrTy, int32Ty}, false));
+                                                    FunctionType::get(voidTy, {voidPtrTy, int32Ty, int8Ty}, false));
 
         instanceOf = module.getOrInsertFunction("llvm_compile_check_cast",
                                                 FunctionType::get(int32Ty, {voidPtrTy, int8Ty, voidPtrTy, voidPtrTy},
@@ -81,8 +81,8 @@ namespace RexVM {
         return irBuilder.CreateCall(newObject, {framePtr, irBuilder.getInt8(type), length, klass});
     }
 
-    void LLVMHelpFunction::createCallThrowException(IRBuilder<> &irBuilder, Value *framePtr, Value *exception, const u4 pc) const {
-        irBuilder.CreateCall(throwException, {framePtr, exception, irBuilder.getInt32(pc)});
+    void LLVMHelpFunction::createCallThrowException(IRBuilder<> &irBuilder, Value *framePtr, Value *exception, const u4 pc, const u1 fixedException) const {
+        irBuilder.CreateCall(throwException, {framePtr, exception, irBuilder.getInt32(pc), irBuilder.getInt8(fixedException)});
     }
 
     Value *LLVMHelpFunction::createCallInstanceOf(IRBuilder<> &irBuilder, Value *framePtr, const u1 type, Value *oop,

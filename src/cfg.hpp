@@ -12,11 +12,14 @@ namespace RexVM {
 
         explicit MethodBlock(const Method &method, u4 startPC, u4 endPC);
 
+        u4 index;
         u4 length;
         u4 startPC;
         u4 endPC;
+        bool autoJmp{false};
 
-        std::vector<MethodBlock *> jumpTo;
+        std::vector<u4> jumpToBlockIndex;
+        std::vector<u4> parentBlockIndex;
     };
 
     struct MethodCFG {

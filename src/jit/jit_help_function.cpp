@@ -145,13 +145,20 @@ extern "C" {
         }
     }
 
-    void llvm_compile_throw_exception(void *framePtr, void *exOop, const uint32_t pc) {
+    void llvm_compile_throw_exception(void *framePtr, void *exOop, const uint32_t pc, const uint8_t fixedException) {
         const auto frame = static_cast<Frame *>(framePtr);
         frame->jitPc = pc;
 
         if (exOop == nullptr) {
-            throwNullPointException(*frame);
-            return;
+            if (fixedException == LLVM_COMPILER_FIXED_EXCEPTION_NPE) {
+                throwNullPointException(*frame);
+                return;
+            }
+
+            if (fixedException == LLVM_COMPILER_FIXED_EXCEPTION_DIV_BY_ZERO) {
+                throwArithmeticExceptionDivByZero(*frame);
+                return;
+            }
         }
 
         frame->throwException(CAST_INSTANCE_OOP(exOop));
