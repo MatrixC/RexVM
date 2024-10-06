@@ -1,5 +1,6 @@
 #ifndef JIT_MANAGER_HPP
 #define JIT_MANAGER_HPP
+#include "../config.hpp"
 
 namespace RexVM {
 
@@ -15,7 +16,7 @@ namespace RexVM {
 
         VM &vm;
 
-        virtual void compileMethod(Method &method) = 0;
+        virtual CompiledMethodHandler compileMethod(Method &method) = 0;
     };
 
 }

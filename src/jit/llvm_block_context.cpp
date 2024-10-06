@@ -7,7 +7,8 @@ namespace RexVM {
     BlockContext::BlockContext(MethodCompiler &methodCompiler, MethodBlock *methodBlock)
         : methodCompiler(methodCompiler),
           irBuilder(methodCompiler.irBuilder),
-          methodBlock(methodBlock) {
+          methodBlock(methodBlock),
+          lastBasicBlock(nullptr) {
         const auto &method = methodCompiler.method;
         auto &ctx = methodCompiler.ctx;
         const auto lineNumber = method.getLineNumber(methodBlock->startPC);
@@ -57,7 +58,7 @@ namespace RexVM {
         popValues.reserve(parentBlocks.size());
         for (const auto &parentBlock : parentBlocks) {
             const auto val = parentBlock->popValue();
-            popValues.emplace_back(val, parentBlock->basicBlock);
+            popValues.emplace_back(val, parentBlock->lastBasicBlock);
         }
 
         const auto selectType = std::get<0>(popValues[0])->getType();
@@ -117,7 +118,7 @@ namespace RexVM {
         popValues.reserve(parentBlocks.size());
         for (const auto &parentBlock : parentBlocks) {
             const auto val = parentBlock->topValue();
-            popValues.emplace_back(val, parentBlock->basicBlock);
+            popValues.emplace_back(val, parentBlock->lastBasicBlock);
         }
 
         const auto selectType = std::get<0>(popValues[0])->getType();
@@ -160,7 +161,7 @@ namespace RexVM {
     void BlockContext::compile() {
         const auto &method = methodCompiler.method;
         const auto codeBegin = method.code.get();
-        methodCompiler.changeBB(basicBlock);
+        methodCompiler.changeBB(*this, basicBlock);
 
         ByteReader reader{};
         const auto codePtr = method.code.get() + methodBlock->startPC;
@@ -1128,7 +1129,7 @@ namespace RexVM {
             case OpCodeEnum::CHECKCAST: {
                 const auto index = byteReader.readU2();
                 const auto ref = topValue();
-                methodCompiler.checkCast(index, ref);
+                methodCompiler.checkCast(*this, index, ref);
                 break;
             }
 

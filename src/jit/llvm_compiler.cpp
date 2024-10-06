@@ -66,19 +66,28 @@ namespace RexVM {
                 cfgBlocks[i]->parentBlocks.emplace_back(cfgBlocks[parentIdx].get());
             }
         }
-        
+
     }
 
-    void MethodCompiler::changeBB(BasicBlock *nextBasicBlock) {
-        if (currentBB != nullptr) {
-            if (const auto &lastInstr = currentBB->back(); !lastInstr.isTerminator()) {
-                irBuilder.CreateBr(nextBasicBlock);
-            }
-        }
+    void MethodCompiler::startBB(llvm::BasicBlock *nextBasicBlock) {
         currentBB = nextBasicBlock;
         nextBasicBlock->insertInto(function);
         irBuilder.SetInsertPoint(nextBasicBlock);
     }
+
+
+
+    void MethodCompiler::changeBB(BlockContext &blockContext, BasicBlock *nextBasicBlock) {
+        if (currentBB != nullptr) {
+            if (const auto &lastInstr = currentBB->back();
+                currentBB->empty() || !lastInstr.isTerminator()) {
+                irBuilder.CreateBr(nextBasicBlock);
+            }
+        }
+        blockContext.lastBasicBlock = nextBasicBlock;
+        startBB(nextBasicBlock);
+    }
+
 
     Argument *MethodCompiler::getFramePtr() const {
         return function->arg_begin();
@@ -223,15 +232,17 @@ namespace RexVM {
                 break;
 
             case SlotTypeEnum::F8:
-            case SlotTypeEnum::REF:
                 returnVal = irBuilder.CreateBitCast(val, irBuilder.getInt64Ty());
+                break;
+            case SlotTypeEnum::REF:
+                returnVal = irBuilder.CreatePtrToInt(val, irBuilder.getInt64Ty());
                 break;
         }
         helpFunction->createCallReturnCommon(irBuilder, getFramePtr(), returnVal, static_cast<u1>(type));
         exitMethod();
     }
 
-    void MethodCompiler::throwNpeIfZero(const BlockContext &blockContext, llvm::Value *val, const SlotTypeEnum slotType) {
+    void MethodCompiler::throwNpeIfZero(BlockContext &blockContext, llvm::Value *val, const SlotTypeEnum slotType) {
         // if (value == zero) {
         //   throwNpe(frame);
         //   return;
@@ -247,7 +258,7 @@ namespace RexVM {
         const auto cmpIsNull = irBuilder.CreateICmpEQ(val, zeroValue);
         irBuilder.CreateCondBr(cmpIsNull, isNullBB, elseBB);
 
-        changeBB(isNullBB);
+        changeBB(blockContext, isNullBB);
         helpFunction->createCallThrowException(
             irBuilder,
             getFramePtr(),
@@ -257,15 +268,15 @@ namespace RexVM {
         );
         exitMethod();
 
-        changeBB(elseBB);
+        changeBB(blockContext, elseBB);
     }
 
 
-    void MethodCompiler::throwNpeIfNull(const BlockContext &blockContext, llvm::Value *val) {
+    void MethodCompiler::throwNpeIfNull(BlockContext &blockContext, llvm::Value *val) {
         throwNpeIfZero(blockContext, val, SlotTypeEnum::REF);
     }
 
-    void MethodCompiler::throwException(const BlockContext &blockContext, llvm::Value *ex) {
+    void MethodCompiler::throwException(BlockContext &blockContext, llvm::Value *ex) {
         throwNpeIfNull(blockContext, ex);
         helpFunction->createCallThrowException(irBuilder, getFramePtr(), ex, blockContext.pc, -1);
         exitMethod();
@@ -375,7 +386,7 @@ namespace RexVM {
         }
     }
 
-    void MethodCompiler::arrayStore(const BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, const uint8_t type) {
+    void MethodCompiler::arrayStore(BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, const uint8_t type) {
         throwNpeIfNull(blockContext, arrayRef);
          switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE: {
@@ -440,20 +451,20 @@ namespace RexVM {
         const auto cmpGt = irBuilder.CreateICmpSGT(val1, val2);
         irBuilder.CreateCondBr(cmpGt, ifGt, ifElse);
 
-        changeBB(ifGt);
+        changeBB(blockContext, ifGt);
         irBuilder.CreateBr(ifEnd);
 
-        changeBB(ifElse);
+        changeBB(blockContext, ifElse);
         const auto cmpEq = irBuilder.CreateICmpEQ(val1, val2);
         irBuilder.CreateCondBr(cmpEq, ifEq, ifEqElse);
 
-        changeBB(ifEq);
+        changeBB(blockContext, ifEq);
         irBuilder.CreateBr(ifEnd);
 
-        changeBB(ifEqElse);
+        changeBB(blockContext, ifEqElse);
         irBuilder.CreateBr(ifEnd);
 
-        changeBB(ifEnd);
+        changeBB(blockContext, ifEnd);
         const auto phi = irBuilder.CreatePHI(irBuilder.getInt32Ty(), 3);
         phi->addIncoming(irBuilder.getInt32(1), ifGt);
         phi->addIncoming(irBuilder.getInt32(0), ifEq);
@@ -474,27 +485,27 @@ namespace RexVM {
         const auto cmpGt = irBuilder.CreateFCmpOGT(val1, val2);
         irBuilder.CreateCondBr(cmpGt, ifGt, ifGtElse);
 
-        changeBB(ifGt);
+        changeBB(blockContext, ifGt);
         irBuilder.CreateBr(ifEnd);
 
-        changeBB(ifGtElse);
+        changeBB(blockContext, ifGtElse);
         const auto cmpEq = irBuilder.CreateFCmpOEQ(val1, val2);
         irBuilder.CreateCondBr(cmpEq, ifEq, ifEqElse);
 
-        changeBB(ifEq);
+        changeBB(blockContext, ifEq);
         irBuilder.CreateBr(ifEnd);
 
-        changeBB(ifEqElse);
+        changeBB(blockContext, ifEqElse);
         const auto cmpLt = irBuilder.CreateFCmpOLT(val1, val2);
         irBuilder.CreateCondBr(cmpLt, ifLt, ifNan);
 
-        changeBB(ifLt);
+        changeBB(blockContext, ifLt);
         irBuilder.CreateBr(ifEnd);
 
-        changeBB(ifNan);
+        changeBB(blockContext, ifNan);
         irBuilder.CreateBr(ifEnd);
 
-        changeBB(ifEnd);
+        changeBB(blockContext, ifEnd);
         const auto phi = irBuilder.CreatePHI(irBuilder.getInt32Ty(), 3);
         phi->addIncoming(irBuilder.getInt32(1), ifGt);
         phi->addIncoming(irBuilder.getInt32(0), ifEq);
@@ -504,11 +515,11 @@ namespace RexVM {
         blockContext.pushValue(phi);
     }
 
-    u4 MethodCompiler::offsetToPC(const BlockContext &blockContext, const i4 offset) {
+    u4 MethodCompiler::offsetToPC(BlockContext &blockContext, const i4 offset) {
         return CAST_U4(CAST_I4(blockContext.pc) + offset);
     }
 
-    void MethodCompiler::ifOp(const BlockContext &blockContext, const i4 offset, llvm::Value *val1, llvm::Value *val2, const OpCodeEnum op) {
+    void MethodCompiler::ifOp(BlockContext &blockContext, const i4 offset, llvm::Value *val1, llvm::Value *val2, const OpCodeEnum op) {
         const auto jumpTo = offsetToPC(blockContext, offset);
         const auto jumpToBB = getBlockContext(jumpTo)->basicBlock;
         llvm::Value *cmp{nullptr};
@@ -542,7 +553,7 @@ namespace RexVM {
         }
         const auto elseBB = BasicBlock::Create(ctx);
         irBuilder.CreateCondBr(cmp, jumpToBB, elseBB);
-        changeBB(elseBB);
+        changeBB(blockContext, elseBB);
     }
 
     void MethodCompiler::jumpToPC(const u4 pc) {
@@ -550,12 +561,12 @@ namespace RexVM {
         irBuilder.CreateBr(jumpToBB);
     }
 
-    void MethodCompiler::jumpTo(const BlockContext &blockContext, const i4 offset) {
+    void MethodCompiler::jumpTo(BlockContext &blockContext, const i4 offset) {
         const auto jumpTo = offsetToPC(blockContext, offset);
         jumpToPC(jumpTo);
     }
 
-    void MethodCompiler::createSwitch(const BlockContext &blockContext, llvm::Value *val, std::vector<i4> cases) {
+    void MethodCompiler::createSwitch(BlockContext &blockContext, llvm::Value *val, std::vector<i4> cases) {
         const auto defaultOffset = cases[0];
         const auto defaultBlock = getBlockContext(offsetToPC(blockContext, defaultOffset))->basicBlock;
 
@@ -616,8 +627,8 @@ namespace RexVM {
     void MethodCompiler::putField(BlockContext &blockContext, const u2 index) {
         const auto [field, ignored] = getFieldInfo(index, false);
         const auto type = field->getFieldSlotType();
-        const auto value = blockContext.popValue(type);
         const auto slotId = field->slotId;
+        const auto value = blockContext.popValue(type);
         const auto oop = blockContext.popValue();
         throwNpeIfNull(blockContext, oop);
         const auto fieldDataPtr = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
@@ -731,10 +742,19 @@ namespace RexVM {
                     getFramePtr(),
                     LLVM_COMPILER_NEW_DYNAMIC_INVOKE,
                     irBuilder.getInt32(length),
-                    ConstantPointerNull::get(voidPtrType)
+                    getZeroValue(SlotTypeEnum::REF)
                 );
         throwNpeIfNull(blockContext, callSiteObj);
         blockContext.pushValue(callSiteObj);
+    }
+
+    void MethodCompiler::processInvokeReturn(BlockContext &blockContext, const cview returnType) {
+        if (const auto returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
+            returnSlotType != SlotTypeEnum::NONE) {
+            //has return value
+            const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
+            blockContext.pushValue(returnValue, returnSlotType);
+        }
     }
 
     void MethodCompiler::newOpCode(BlockContext &blockContext, const uint8_t type, llvm::Value *length,
@@ -765,20 +785,10 @@ namespace RexVM {
         newOpCode(blockContext, LLVM_COMPILER_NEW_MULTI_ARRAY, irBuilder.getInt32(complex), arrayDim);
     }
 
-    void MethodCompiler::checkCast(const u2 index, llvm::Value *ref) {
+    void MethodCompiler::checkCast(BlockContext &blockContext, const u2 index, llvm::Value *ref) {
         const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
         const auto checkClass = klass.classLoader.getClass(className);
-        // if (ref == nullptr) {
-        //     return;
-        // }
-        const auto endBB = BasicBlock::Create(ctx);
-        const auto notNullBB = BasicBlock::Create(ctx);
-        const auto notInstanceOfBB = BasicBlock::Create(ctx);
 
-        const auto cmpIsNull = irBuilder.CreateICmpEQ(ref, getZeroValue(SlotTypeEnum::REF));
-        irBuilder.CreateCondBr(cmpIsNull, endBB, notNullBB);
-
-        changeBB(notNullBB);
         const auto checkRet =
                 helpFunction->createCallInstanceOf(
                     irBuilder,
@@ -788,34 +798,23 @@ namespace RexVM {
                     getConstantPtr(checkClass)
                 );
 
+        const auto endBB = BasicBlock::Create(ctx);
+        const auto notInstanceOfBB = BasicBlock::Create(ctx);
+        const auto cmpNotInstanceOf = irBuilder.CreateICmpEQ(checkRet, getZeroValue(SlotTypeEnum::I4));
+        irBuilder.CreateCondBr(cmpNotInstanceOf, notInstanceOfBB, endBB);
 
-        const auto cmpInstanceOf = irBuilder.CreateICmpEQ(checkRet, irBuilder.getInt32(1));
-        irBuilder.CreateCondBr(cmpInstanceOf, endBB, notInstanceOfBB);
-
-        changeBB(notInstanceOfBB);
+        changeBB(blockContext, notInstanceOfBB);
         //already throw exception in createCallInstanceOf
         //return function
         exitMethod();
 
-        changeBB(endBB);
+        changeBB(blockContext, endBB);
     }
 
     void MethodCompiler::instanceOf(BlockContext &blockContext, const u2 index, llvm::Value *ref) {
         const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
         const auto checkClass = klass.classLoader.getClass(className);
 
-        // if (ref == nullptr) {
-        //     frame.pushI4(0);
-        //     return;
-        // }
-        const auto endBB = BasicBlock::Create(ctx);
-        const auto isNullBB = BasicBlock::Create(ctx);
-        const auto notNullBB = BasicBlock::Create(ctx);
-
-        const auto cmpIsNull = irBuilder.CreateICmpEQ(ref, ConstantPointerNull::get(voidPtrType));
-        irBuilder.CreateCondBr(cmpIsNull, endBB, notNullBB);
-
-        changeBB(notNullBB);
         const auto checkRet =
                 helpFunction->createCallInstanceOf(
                     irBuilder,
@@ -825,34 +824,22 @@ namespace RexVM {
                     getConstantPtr(checkClass)
                 );
         blockContext.pushValue(checkRet);
-
-        changeBB(isNullBB);
-        blockContext.pushI4Const(0);
-        irBuilder.CreateBr(endBB);
-
-        changeBB(endBB);
     }
 
-    void MethodCompiler::monitor(const BlockContext &blockContext, const u1 type, llvm::Value *oop) {
+    void MethodCompiler::monitor(BlockContext &blockContext, const u1 type, llvm::Value *oop) {
         throwNpeIfNull(blockContext, oop);
         helpFunction->createCallMonitor(irBuilder, oop, type);
     }
 
-    void MethodCompiler::processInvokeReturn(BlockContext &blockContext, const cview returnType) {
-        if (const auto returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
-            returnSlotType != SlotTypeEnum::NONE) {
-            //has return value
-            const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
-            blockContext.pushValue(returnValue, returnSlotType);
-        }
-    }
+
 
     void MethodCompiler::compile() {
         for (const auto &cfgBlock: cfgBlocks) {
             cfgBlock->compile();
         }
 
-        changeBB(exitBB);
+        exitBB->insertInto(function);
+        irBuilder.SetInsertPoint(exitBB);
         irBuilder.CreateRetVoid();
 
         // ByteReader reader{};
@@ -874,14 +861,27 @@ namespace RexVM {
         //
         // // irBuilder.CreateBr(returnBB);
         //
-        // changeBB(returnBB);
+        // changeBB(blockContext, returnBB);
         // irBuilder.CreateRetVoid();
         //
         // verifyFunction(*function);
 
-
-
     }
+
+    void MethodCompiler::verify() const {
+        for (const auto &cfgBlock: cfgBlocks) {
+            if (!cfgBlock->blockValueStack.empty()) {
+                panic("error block");
+            }
+        }
+
+        if (verifyFunction(*function, &outs())) {
+            cprintlnErr("verify failed method: {} {} {}", klass.getClassName(), method.getName(), method.getDescriptor());
+            module.print(llvm::errs(), nullptr);
+            panic("exit");
+        }
+    }
+
 
 
 }

@@ -168,6 +168,16 @@ extern "C" {
         const auto frame = static_cast<Frame *>(framePtr);
         const auto refVal = CAST_REF(popOop);
         const auto checkClass = CAST_CLASS(check);
+        if (refVal == nullptr) {
+            if (type == LLVM_COMPILER_CHECK_CAST) {
+                //adapt checkcast opcode, return 1 don't exit method
+                return 1;
+            } else {
+                //adapt instaneof opcode, return 0 isn't instanceOf
+                return 0;
+            }
+        }
+
         const auto instanceOf = refVal->isInstanceOf(checkClass);
         const int32_t result = instanceOf ? 1 : 0;
 

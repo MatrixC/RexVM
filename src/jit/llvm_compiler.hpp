@@ -27,7 +27,8 @@ namespace RexVM {
         );
 
         void initCFGBlocks();
-        void changeBB(llvm::BasicBlock *nextBasicBlock);
+        void startBB(llvm::BasicBlock *nextBasicBlock);
+        void changeBB(BlockContext &blockContext, llvm::BasicBlock *nextBasicBlock);
 
         VM &vm;
         Method &method;
@@ -67,11 +68,11 @@ namespace RexVM {
 
         void returnValue(llvm::Value *val, SlotTypeEnum type);
 
-        void throwNpeIfZero(const BlockContext &blockContext, llvm::Value *val, SlotTypeEnum slotType);
+        void throwNpeIfZero(BlockContext &blockContext, llvm::Value *val, SlotTypeEnum slotType);
 
-        void throwNpeIfNull(const BlockContext &blockContext, llvm::Value *val);
+        void throwNpeIfNull(BlockContext &blockContext, llvm::Value *val);
 
-        void throwException(const BlockContext &blockContext, llvm::Value *ex);
+        void throwException(BlockContext &blockContext, llvm::Value *ex);
 
         void ldc(BlockContext &blockContext, u2 index);
 
@@ -83,21 +84,21 @@ namespace RexVM {
 
         void arrayLoad(BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, uint8_t type);
 
-        void arrayStore(const BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, uint8_t type);
+        void arrayStore(BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, uint8_t type);
 
         void lCmp(BlockContext &blockContext, llvm::Value *val1, llvm::Value *val2);
 
         void fCmp(BlockContext &blockContext, llvm::Value *val1, llvm::Value *val2, llvm::Value *nanRet);
 
-        static u4 offsetToPC(const BlockContext &blockContext, i4 offset);
+        static u4 offsetToPC(BlockContext &blockContext, i4 offset);
 
-        void ifOp(const BlockContext &blockContext, i4 offset, llvm::Value *val1, llvm::Value *val2, OpCodeEnum op);
+        void ifOp(BlockContext &blockContext, i4 offset, llvm::Value *val1, llvm::Value *val2, OpCodeEnum op);
 
         void jumpToPC(u4 pc);
 
-        void jumpTo(const BlockContext &blockContext, i4 offset);
+        void jumpTo(BlockContext &blockContext, i4 offset);
 
-        void createSwitch(const BlockContext &blockContext, llvm::Value *val, std::vector<i4> cases);
+        void createSwitch(BlockContext &blockContext, llvm::Value *val, std::vector<i4> cases);
 
         void exitMethod();
 
@@ -121,6 +122,8 @@ namespace RexVM {
 
         void invokeDynamic(BlockContext &blockContext, u2 index);
 
+        void processInvokeReturn(BlockContext &blockContext, cview returnType);
+
         void newOpCode(BlockContext &blockContext, uint8_t type, llvm::Value *length, llvm::Value *klass);
 
         void newObject(BlockContext &blockContext, u2 index);
@@ -131,15 +134,15 @@ namespace RexVM {
 
         void newMultiArray(BlockContext &blockContext, u2 index, u1 dimension, llvm::Value *arrayDim);
 
-        void checkCast(u2 index, llvm::Value *ref);
+        void checkCast(BlockContext &blockContext, u2 index, llvm::Value *ref);
 
         void instanceOf(BlockContext &blockContext, u2 index, llvm::Value *ref);
 
-        void monitor(const BlockContext &blockContext, u1 type, llvm::Value *oop);
-
-        void processInvokeReturn(BlockContext &blockContext, cview returnType);
+        void monitor(BlockContext &blockContext, u1 type, llvm::Value *oop);
 
         void compile();
+
+        void verify() const;
     };
 }
 

@@ -22,6 +22,7 @@ namespace RexVM {
 
         MethodBlock *methodBlock;
         llvm::BasicBlock *basicBlock;
+        llvm::BasicBlock *lastBasicBlock;
         std::stack<llvm::Value *> blockValueStack;
         std::vector<BlockContext *> parentBlocks;
 

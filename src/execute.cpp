@@ -1,7 +1,6 @@
 #include "execute.hpp"
 #include "config.hpp"
 #include "utils/format.hpp"
-#include "utils/string_utils.hpp"
 #include "vm.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
@@ -13,7 +12,6 @@
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
 #include "garbage_collect.hpp"
-#include "cfg.hpp"
 #include "jit/llvm_jit_manager.hpp"
 
 namespace RexVM {
@@ -102,19 +100,27 @@ namespace RexVM {
     }
 
     void checkMethodCompile(const Frame &frame, Method &method) {
+        if (method.isNative()) {
+            return;
+        }
         // const auto className = method.klass.getClassName();
         // if (method.isNative() || startWith(className, "java") || startWith(className, "sun") || startWith(className, "rex")) {
         //     return;
         // }
-        if (!startWith(method.getName(), "jicc")) {
-            return;
-        }
-        if (method.compiledMethodHandler == nullptr) {
-            const auto jitManager = frame.vm.jitManager.get();
-            if (jitManager != nullptr) {
-                jitManager->compileMethod(method);
+        // if (!startWith(method.getName(), "jicc")) {
+        //     return;
+        // }
+        // if (method.getName() != "entrySet") {
+        //     return;
+        // }
+        // if (method.getName() == "<clinit>" && method.klass.getClassName() == "java/lang/Math" &&method.getDescriptor() == "()V") {
+            if (method.compiledMethodHandler == nullptr) {
+                const auto jitManager = frame.vm.jitManager.get();
+                if (jitManager != nullptr) {
+                    jitManager->compileMethod(method);
+                }
             }
-        }
+        // }
         // MethodCFG cfg(method);
     }
 
@@ -128,19 +134,19 @@ namespace RexVM {
         frame.vm.garbageCollector->checkStopForCollect(frame.thread);
 
         if (notNativeMethod) [[likely]] {
-            if (method.compiledMethodHandler != nullptr) {
-                method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType);
-                cprintln("run jit {}", methodName);
-                if (frame.markThrow && handleThrowValue(frame)) {
-                    return;
-                }
-                if (frame.markReturn) {
-                    checkAndPassReturnValue(frame);
-                    return;
-                }
-                frame.reader.resetCurrentOffset();
-                return;
-            }
+            // if (method.compiledMethodHandler != nullptr) {
+            //     method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType);
+            //     cprintln("run jit {}", methodName);
+            //     if (frame.markThrow && handleThrowValue(frame)) {
+            //         return;
+            //     }
+            //     if (frame.markReturn) {
+            //         checkAndPassReturnValue(frame);
+            //         return;
+            //     }
+            //     frame.reader.resetCurrentOffset();
+            //     return;
+            // }
 
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {

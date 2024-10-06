@@ -44,6 +44,7 @@ namespace RexVM {
             edges.emplace_back(edge);
         };
 
+        std::vector<u4> exitMethodPC;
         while (!reader.eof()) {
             const auto pc = getPC();
             const auto currentByteCode = reader.readU1();
@@ -184,6 +185,16 @@ namespace RexVM {
                     break;
                 }
 
+                case OpCodeEnum::IRETURN:
+                case OpCodeEnum::LRETURN:
+                case OpCodeEnum::FRETURN:
+                case OpCodeEnum::DRETURN:
+                case OpCodeEnum::ARETURN:
+                case OpCodeEnum::RETURN:
+                case OpCodeEnum::ATHROW:
+                    exitMethodPC.emplace_back(pc);
+                    break;
+
                 default:
                     break;
             }
@@ -215,11 +226,15 @@ namespace RexVM {
 
         for (size_t i = 0; i < blocks.size() - 1; ++i) {
             if (const auto block = blocks[i].get(); block->jumpToBlockIndex.empty()) {
-                block->autoJmp = true;
-                const auto jumpToIdx = i + 1;
-                const auto nextBlock = blocks[jumpToIdx].get();
-                block->jumpToBlockIndex.emplace_back(jumpToIdx);
-                nextBlock->parentBlockIndex.emplace_back(i);
+                const auto lastOpCodePC = block->endPC - 1;
+                if (const auto iter = std::ranges::find(exitMethodPC, lastOpCodePC);
+                    iter == exitMethodPC.end()) {
+                    block->autoJmp = true;
+                    const auto jumpToIdx = i + 1;
+                    const auto nextBlock = blocks[jumpToIdx].get();
+                    block->jumpToBlockIndex.emplace_back(jumpToIdx);
+                    nextBlock->parentBlockIndex.emplace_back(i);
+                }
             }
         }
     }

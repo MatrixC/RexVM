@@ -1,12 +1,15 @@
 add_rules("mode.debug", "mode.release", "mode.check")
 set_languages("c11", "cxx20")
 option("llvm-jit")
-    set_default(false)
+    set_default(true)
     set_description("llvm-jit")
     local llvm_path = os.getenv("LLVM_PATH")
-    add_includedirs(llvm_path .. "/include")
-    add_linkdirs(llvm_path .. "/lib")
-    add_links("LLVM-17")
+    local llvm_version = os.getenv("LLVM_VERSION")
+    local include_dir = llvm_path .. "/include"
+    local lib_dir = llvm_path .. "/lib"
+    add_includedirs(include_dir)
+    add_linkdirs(lib_dir)
+    add_links(llvm_version)
     add_defines("LLVM_JIT")
 option_end()
 
@@ -31,6 +34,7 @@ end
 
 target("rex")
     set_kind("binary")
+    add_options("llvm-jit")
     set_toolchains("clang")
     add_includedirs(
         "third_party/miniz",
@@ -50,14 +54,5 @@ target("rex")
 
         "third_party/miniz/miniz.c"
     )
-
-    -- llvm
---     add_includedirs("/opt/homebrew/Cellar/llvm/18.1.6/include")
---     add_linkdirs("/opt/homebrew/Cellar/llvm/18.1.6/lib")
---     add_links("LLVM-18")
-
-    add_includedirs("/usr/lib/llvm-17/include")
-    add_linkdirs("/usr/lib/llvm-17/lib")
-    add_links("LLVM-17")
 
 target_end()

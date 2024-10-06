@@ -6,6 +6,8 @@
 #include "../class_member.hpp"
 #include "llvm_compiler.hpp"
 #include "jit_help_function.hpp"
+#include "../class.hpp"
+#include "../utils/string_utils.hpp"
 
 #define DEFINE_SYMBOL(hfname) symbol_map[mangle(#hfname)] = ExecutorSymbolDef(ExecutorAddr::fromPtr(&hfname), JITSymbolFlags());
 
@@ -45,7 +47,10 @@ namespace RexVM {
     }
 
 
-    void LLVM_JITManager::compileMethod(Method &method) {
+    CompiledMethodHandler LLVM_JITManager::compileMethod(Method &method) {
+        if (!method.exceptionCatches.empty()) {
+            return nullptr;
+        }
         const auto ctx = threadSafeContext->getContext();
         const auto currentMethodCnt = methodCnt.fetch_add(1);
         const auto moduleName = cformat("module_{}", currentMethodCnt);
@@ -54,8 +59,12 @@ namespace RexVM {
 
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         methodCompiler.compile();
+        methodCompiler.verify();
+        cprintln("compiled method {} {}", method.klass.getClassName(), method.getName());
 
-        module->print(llvm::outs(), nullptr);
+        // if (startWith(compiledMethodName, "<clinit>")) {
+        //      module->print(llvm::outs(), nullptr);
+        // }
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));
@@ -63,5 +72,6 @@ namespace RexVM {
         const auto sym = jit->lookup(compiledMethodName);
         const auto ptr = sym->toPtr<CompiledMethodHandler>();
         method.compiledMethodHandler = ptr;
+        return ptr;
     }
 }

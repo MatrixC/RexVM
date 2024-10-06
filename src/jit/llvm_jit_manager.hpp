@@ -1,14 +1,11 @@
 #ifndef LLVM_JIT_MANAGER_HPP
 #define LLVM_JIT_MANAGER_HPP
+#include "../config.hpp"
+#include "jit_manager.hpp"
 #include <memory>
-#include <llvm/ExecutionEngine/Orc/CompileUtils.h>
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Verifier.h>
 #include <atomic>
-#include "jit_manager.hpp"
 
 namespace RexVM {
 
@@ -25,7 +22,7 @@ namespace RexVM {
 
         void registerHelpFunction() const;
 
-        void compileMethod(Method &method) override;
+        CompiledMethodHandler compileMethod(Method &method) override;
 
     };
 
