@@ -636,6 +636,9 @@ namespace RexVM {
     }
 
     size_t MethodCompiler::pushParams(BlockContext &blockContext, const std::vector<cstring> &paramType, const bool includeThis) {
+        //调用函数 首先需要将函数的参数push到操作数栈中 再由下一个函数pop出参数后执行
+        //所以首先需要计算参数的数量 然后从valueStack中pop出来后 写入当前函数的操作数栈内存
+        //includeThis参数代表计算时是否考虑this指针 主要区分是否是static调用
         std::vector<SlotTypeEnum> paramSlotType;
         if (includeThis) {
             paramSlotType.emplace_back(SlotTypeEnum::REF);
@@ -648,20 +651,20 @@ namespace RexVM {
             }
         }
 
-        //根据Frame的初始化定义 operandStackPtr = lvtPtr + lvtSize
-        //对于编译后的java函数 lvtSize = method.maxLocals 所以可以直接计算出操作数栈的地址
-        //所以 operandStackPtr = lvtPtr + method.maxLocals 它代表第一个栈元素地址
-        //后往前依次写入operandStack(std::stack 不能按index读取)
+        //由于JIT模式下的函数不需要使用操作数栈进行计算 所以操作数栈只用来做函数传参 传参时用首地址即可
+        //根据Frame的初始化定义 操作数栈的首地址 operandStackPtr = lvtPtr + lvtSize
+        //对于普通java函数 lvtSize = method.maxLocals 所以可以直接计算出操作数栈的地址
+        //计算出操作数栈地址后 从后向前依次出valueStack 依次写入操作数栈(std::stack 不能按index读取)
         for (i4 i = CAST_I4(paramSlotType.size()) - 1; i >= 0; --i) {
             //假设有4个参数 则 i = 3,2,1,0
             //具体的参数
             const auto paramValue = blockContext.popValue();
             if (includeThis && i == 0) {
-                //first param: this object
+                //对于需要传this的场景 要判断传入是否为null 为null报npe
                 throwNpeIfNull(blockContext, paramValue);
             }
 
-            //lvtPtr + method.paramSlotSize + i 代表了从最后一个到第一个参数的地址
+            //第i个参数相对于lvt首地址的偏移量
             const auto slotIdx = irBuilder.getInt32(method.maxLocals + i);
             const auto slotPtr =
                     irBuilder.CreateGEP(
@@ -678,7 +681,7 @@ namespace RexVM {
                     );
 
             if (paramValue != nullptr) {
-                //nullptr 是padding
+                //nullptr 可能是padding
                 irBuilder.CreateStore(paramValue, slotPtr);
             }
 
@@ -695,6 +698,14 @@ namespace RexVM {
 
         const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
         const auto paramSlotSize = pushParams(blockContext, paramType, !isStatic);
+
+        //pushParams 完后之后 调用helpFunction llvm_compile_invoke_method_fixed去实际调用的函数
+        //llvm_compile_invoke_method_fixed中除了调用具体函数还有非常重要的几个工作
+        //0. 如果是static 或者 special 调用 则被调函数地址会直接算好写在ir里 直接调用即可
+        //如果是对象函数调用 则如要将index传进去 由method_fixed算处具体的调用函数
+        //1. 虽然已经通过 pushParams 将参数写入操作数栈 但还没有增加当前栈的sp 会在这个method_fixed中增加
+        //2. 在调用完成时 假设有返回值 我们依然可以通过传参同样的方式从当前函数操作数栈里拿到返回值
+        //但拿到返回值理应通过pop操作数栈完成 所以在调用完成后method_fixed还需要做返回值对应sp的减操作
 
         const auto methodRef = klass.getRefMethod(index, isStatic);
         helpFunction->createCallInvokeMethodFixed(irBuilder, getFramePtr(), getConstantPtr(methodRef), paramSlotSize);
@@ -751,7 +762,7 @@ namespace RexVM {
     void MethodCompiler::processInvokeReturn(BlockContext &blockContext, const cview returnType) {
         if (const auto returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
             returnSlotType != SlotTypeEnum::NONE) {
-            //has return value
+            //如果有返回值 则肯定在当前函数操作数栈的第一位 根据地址关系 借助getLocalVariableTableValue函数拿到返回值
             const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
             blockContext.pushValue(returnValue, returnSlotType);
         }

@@ -85,7 +85,7 @@ extern "C" {
         } else {
             const auto index = paramSize;
             const auto cache = frame->mem.resolveInvokeVirtualIndex(index, false);
-            operandStack.sp += CAST_I4( cache->paramSlotSize);
+            operandStack.sp += CAST_I4(cache->paramSlotSize);
 
             const auto instance = frame->getStackOffset( cache->paramSlotSize - 1).refVal;
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
@@ -110,9 +110,9 @@ extern "C" {
             case LLVM_COMPILER_NEW_DYNAMIC_INVOKE: {
                 const auto index = CAST_U2(length & 0xFFFF);
                 const auto paramSize = CAST_U2((length >> 16) & 0xFFFF);
+                //这里跟llvm_compile_invoke_method_fixed一样 因为调用了pushParam传参 所以这里需要将传参的sp加上去
                 operandStack.sp += CAST_I4(paramSize);
                 const auto callSiteObj = invokeDynamic(*frame, index);
-                //operandStack.pop(1);
                 return callSiteObj;
             }
 
