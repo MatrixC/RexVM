@@ -134,19 +134,19 @@ namespace RexVM {
         frame.vm.garbageCollector->checkStopForCollect(frame.thread);
 
         if (notNativeMethod) [[likely]] {
-            // if (method.compiledMethodHandler != nullptr) {
-            //     method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType);
-            //     cprintln("run jit {}", methodName);
-            //     if (frame.markThrow && handleThrowValue(frame)) {
-            //         return;
-            //     }
-            //     if (frame.markReturn) {
-            //         checkAndPassReturnValue(frame);
-            //         return;
-            //     }
-            //     frame.reader.resetCurrentOffset();
-            //     return;
-            // }
+            if (method.compiledMethodHandler != nullptr) {
+                method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType);
+                cprintln("run jit {}", methodName);
+                if (frame.markThrow && handleThrowValue(frame)) {
+                    return;
+                }
+                if (frame.markReturn) {
+                    checkAndPassReturnValue(frame);
+                    return;
+                }
+                frame.reader.resetCurrentOffset();
+                return;
+            }
 
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {

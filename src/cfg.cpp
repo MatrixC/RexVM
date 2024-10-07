@@ -7,8 +7,9 @@
 #include "utils/byte_reader.hpp"
 
 namespace RexVM {
-    MethodBlock::MethodBlock(const Method &method, const u4 startPC, const u4 endPC)
-        : length(endPC - startPC),
+    MethodBlock::MethodBlock(const u4 index, const u4 startPC, const u4 endPC)
+        : index(index),
+          length(endPC - startPC),
           startPC(startPC),
           endPC(endPC) {
         //[startPC, endPC)
@@ -24,6 +25,7 @@ namespace RexVM {
         reader.init(codePtr, method.codeLength);
 
         std::vector<u4> leaders;
+        leaders.emplace_back(0);
         std::vector<u8> edges;
 
         const auto getPC = [&] {
@@ -206,19 +208,28 @@ namespace RexVM {
         std::ranges::sort(edges);
         edges.erase(std::ranges::unique(edges).begin(), edges.end());
 
-        u4 lastBlockStartPC = 0;
-        for (const u4 leaderPC: leaders) {
-            blocks.emplace_back(std::make_unique<MethodBlock>(method, lastBlockStartPC, leaderPC));
-            lastBlockStartPC = leaderPC;
+        // u4 lastBlockStartPC{0};
+        //
+        // for (const u4 leaderPC: leaders) {
+        //     blocks.emplace_back(std::make_unique<MethodBlock>(methodBlockIndex, lastBlockStartPC, leaderPC));
+        //     lastBlockStartPC = leaderPC;
+        // }
+        // blocks.emplace_back(std::make_unique<MethodBlock>(methodBlockIndex, lastBlockStartPC, method.codeLength));
+        //
+        u4 methodBlockIndex{0};
+        const auto leadersSize = leaders.size();
+        for (size_t i = 0; i < leadersSize; ++i) {
+            const auto startPC = leaders[i];
+            const auto endPC = i < leadersSize - 1 ? leaders[i + 1] : method.codeLength;
+            blocks.emplace_back(std::make_unique<MethodBlock>(methodBlockIndex++, startPC, endPC));
         }
-        blocks.emplace_back(std::make_unique<MethodBlock>(method, lastBlockStartPC, method.codeLength));
 
         for (const u8 edge: edges) {
             const auto fromPC = edge >> 32 & 0xFFFFFFFF;
             const auto jumpTo = edge & 0xFFFFFFFF;
 
-            const auto fromPCIndex = std::distance(leaders.begin(), std::ranges::upper_bound(leaders, fromPC));
-            const auto jumpToIndex = std::distance(leaders.begin(), std::ranges::upper_bound(leaders, jumpTo));
+            const auto fromPCIndex = std::distance(leaders.begin(), std::ranges::upper_bound(leaders, fromPC)) - 1;
+            const auto jumpToIndex = std::distance(leaders.begin(), std::ranges::upper_bound(leaders, jumpTo)) - 1;
 
             blocks[fromPCIndex]->jumpToBlockIndex.emplace_back(jumpToIndex);
             blocks[jumpToIndex]->parentBlockIndex.emplace_back(fromPCIndex);

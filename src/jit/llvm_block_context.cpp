@@ -45,8 +45,9 @@ namespace RexVM {
             std::vector<std::tuple<llvm::Value *, llvm::BasicBlock *>> popValues;
             popValues.reserve(passStack.size());
             for (const auto &passItem : passStack) {
-                const auto itemBB = passItem->blockContext.basicBlock;
+                const auto itemBB = passItem->blockContext.lastBasicBlock;
                 const auto itemVal = passItem->remainValue.top();
+                passItem->remainValue.pop();
                 popValues.emplace_back(itemVal, itemBB);
             }
 
@@ -59,11 +60,17 @@ namespace RexVM {
             passStackValues.emplace_back(selectPopValue);
         }
 
+        //check
+        for (const auto &passItem : passStack) {
+            if (!passItem->remainValue.empty()) {
+                panic("error stack");
+            }
+        }
+
         for (i4 i = passStackValues.size() - 1; i >= 0; i --) {
             pushValue(passStackValues[i]);
         }
     }
-
 
     void BlockContext::pushValue(llvm::Value *value) {
         blockValueStack.push(value);
@@ -218,11 +225,8 @@ namespace RexVM {
 
     void BlockContext::compile() {
         const auto &method = methodCompiler.method;
-        if (method.getName() == "isNaN") {
-            int i = 10;
-        }
-
         const auto codeBegin = method.code.get();
+
         methodCompiler.changeBB(*this, basicBlock);
         initPassStack();
 

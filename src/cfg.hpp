@@ -10,7 +10,7 @@ namespace RexVM {
 
     struct MethodBlock {
 
-        explicit MethodBlock(const Method &method, u4 startPC, u4 endPC);
+        explicit MethodBlock(u4 index, u4 startPC, u4 endPC);
 
         u4 index;
         u4 length;

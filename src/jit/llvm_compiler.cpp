@@ -854,9 +854,20 @@ namespace RexVM {
 
 
     void MethodCompiler::compile() {
+        if (cfgBlocks.empty()) {
+            panic("error cfgBlock count");
+        }
+
         for (const auto &cfgBlock: cfgBlocks) {
             cfgBlock->compile();
         }
+
+        const auto firstBlock = cfgBlocks[0]->basicBlock;
+
+        const auto entryBlock = BasicBlock::Create(ctx, "entry", function, firstBlock);
+        irBuilder.SetInsertPoint(entryBlock);
+        irBuilder.CreateBr(firstBlock);
+
 
         exitBB->insertInto(function);
         irBuilder.SetInsertPoint(exitBB);
