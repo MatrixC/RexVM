@@ -4,6 +4,11 @@
 #include "llvm_compiler.hpp"
 
 namespace RexVM {
+
+    PassStack::PassStack(BlockContext &blockContext) : blockContext(blockContext) {
+        remainValue = blockContext.blockValueStack;
+    }
+
     BlockContext::BlockContext(MethodCompiler &methodCompiler, MethodBlock *methodBlock)
         : methodCompiler(methodCompiler),
           irBuilder(methodCompiler.irBuilder),
@@ -15,6 +20,50 @@ namespace RexVM {
         const auto blockName = cformat("{}_{}", methodBlock->startPC, lineNumber);
         basicBlock = llvm::BasicBlock::Create(ctx, blockName);
     }
+
+    void BlockContext::initPassStack() {
+        if (passStack.empty()) {
+            return;
+        }
+
+        if (passStack.size() == 1) {
+            blockValueStack = std::move(passStack[0]->remainValue);
+            return;
+        }
+
+        //check
+        const auto passValueCount = passStack[0]->remainValue.size();
+        for (auto i = 1; i < passStack.size(); i++) {
+            if (passStack[i]->remainValue.size() != passValueCount) {
+                panic("error stack");
+            }
+        }
+
+        std::vector<llvm::Value *> passStackValues;
+        passStackValues.reserve(passValueCount);
+        for (size_t i = 0; i < passValueCount; ++i) {
+            std::vector<std::tuple<llvm::Value *, llvm::BasicBlock *>> popValues;
+            popValues.reserve(passStack.size());
+            for (const auto &passItem : passStack) {
+                const auto itemBB = passItem->blockContext.basicBlock;
+                const auto itemVal = passItem->remainValue.top();
+                popValues.emplace_back(itemVal, itemBB);
+            }
+
+            const auto selectType = std::get<0>(popValues[0])->getType();
+            const auto selectPopValue = irBuilder.CreatePHI(selectType, popValues.size());
+            for (const auto &[val, bb] : popValues) {
+                selectPopValue->addIncoming(val, bb);
+            }
+
+            passStackValues.emplace_back(selectPopValue);
+        }
+
+        for (i4 i = passStackValues.size() - 1; i >= 0; i --) {
+            pushValue(passStackValues[i]);
+        }
+    }
+
 
     void BlockContext::pushValue(llvm::Value *value) {
         blockValueStack.push(value);
@@ -39,6 +88,7 @@ namespace RexVM {
     }
 
     llvm::Value *BlockContext::popValue() {
+        /*
         if (!blockValueStack.empty()) {
             const auto value = blockValueStack.top();
             blockValueStack.pop();
@@ -68,6 +118,10 @@ namespace RexVM {
         }
 
         return selectPopValue;
+        */
+        const auto popValue = blockValueStack.top();
+        blockValueStack.pop();
+        return popValue;
     }
 
     llvm::Value *BlockContext::popValue(const SlotTypeEnum type) {
@@ -101,6 +155,7 @@ namespace RexVM {
     }
 
     llvm::Value *BlockContext::topValue() {
+        /*
         if (!blockValueStack.empty()) {
             return blockValueStack.top();
         }
@@ -128,6 +183,9 @@ namespace RexVM {
         }
 
         return selectPopValue;
+        */
+        const auto popValue = blockValueStack.top();
+        return popValue;
     }
 
     void BlockContext::padding() {
@@ -160,8 +218,13 @@ namespace RexVM {
 
     void BlockContext::compile() {
         const auto &method = methodCompiler.method;
+        if (method.getName() == "isNaN") {
+            int i = 10;
+        }
+
         const auto codeBegin = method.code.get();
         methodCompiler.changeBB(*this, basicBlock);
+        initPassStack();
 
         ByteReader reader{};
         const auto codePtr = method.code.get() + methodBlock->startPC;
@@ -181,6 +244,18 @@ namespace RexVM {
             const auto index = methodBlock->jumpToBlockIndex[0];
             const auto jumpToPC = methodCompiler.cfgBlocks[index]->methodBlock->startPC;
             methodCompiler.jumpToPC(jumpToPC);
+        }
+
+        if (!blockValueStack.empty()) {
+            if (jumpToBlocks.empty()) {
+                panic("error stack");
+            }
+
+            for (const auto &jumpToBlock : jumpToBlocks) {
+                jumpToBlock->passStack.emplace_back(std::make_unique<PassStack>(*this));
+            }
+
+            blockValueStack = {};
         }
     }
 

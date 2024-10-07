@@ -33,6 +33,8 @@ namespace RexVM {
         helpFunction(std::make_unique<LLVMHelpFunction>(module)),
         voidPtrType(PointerType::getUnqual(irBuilder.getVoidTy())) {
 
+        localVariableTable.reserve(method.maxLocals);
+
         const auto functionType =
                 FunctionType::get(
                     irBuilder.getVoidTy(),
@@ -61,9 +63,13 @@ namespace RexVM {
         }
 
         for (size_t i = 0; i < cfg.blocks.size(); ++i) {
-            for (const auto parents = cfg.blocks[i]->parentBlockIndex;
-                 const auto parentIdx: parents) {
+            const auto currentBlock = cfg.blocks[i].get();
+            for (const auto parents = currentBlock->parentBlockIndex; const auto parentIdx: parents) {
                 cfgBlocks[i]->parentBlocks.emplace_back(cfgBlocks[parentIdx].get());
+            }
+
+            for (const auto jumpTos = currentBlock->jumpToBlockIndex; const auto jumpToIdx: jumpTos) {
+                cfgBlocks[i]->jumpToBlocks.emplace_back(cfgBlocks[jumpToIdx].get());
             }
         }
 
@@ -141,10 +147,10 @@ namespace RexVM {
                 return  ConstantFP::getZero(irBuilder.getDoubleTy());
             case SlotTypeEnum::REF:
                 return ConstantPointerNull::get(voidPtrType);
-            default:
+            case SlotTypeEnum::NONE:
                 panic("error slot type");
-            return nullptr;
-        } 
+        }
+        return nullptr;
     }
 
 
@@ -153,6 +159,7 @@ namespace RexVM {
         //在解释器中 因为op stack中的也全都是slot 所以不用做转换
         //但在jit中 Value都是具体的类型 所以需要做转换
         //使用createLoad可以自动转换成对应的类型 代码中会生成align信息
+
         const auto indexValue = irBuilder.getInt32(index);
         const auto type = slotTypeMap(slotType);
 
@@ -186,6 +193,8 @@ namespace RexVM {
 
         irBuilder.CreateStore(value, lvtPtr);
         irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), lvtTypePtr);
+
+        localVariableTable[index] = value;
     }
 
     llvm::Value * MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, const bool isArray, const BasicType type) {

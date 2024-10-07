@@ -15,6 +15,14 @@ namespace RexVM {
     struct Method;
     struct MethodCompiler;
     struct ByteReader;
+    struct BlockContext;
+
+    struct PassStack {
+        BlockContext &blockContext;
+        std::stack<llvm::Value *> remainValue;
+
+        explicit PassStack(BlockContext &blockContext);
+    };
 
     struct BlockContext {
         MethodCompiler &methodCompiler;
@@ -23,10 +31,16 @@ namespace RexVM {
         MethodBlock *methodBlock;
         llvm::BasicBlock *basicBlock;
         llvm::BasicBlock *lastBasicBlock;
+
+        std::vector<std::unique_ptr<PassStack>> passStack;
         std::stack<llvm::Value *> blockValueStack;
+
+        std::vector<BlockContext *> jumpToBlocks;
         std::vector<BlockContext *> parentBlocks;
 
         explicit BlockContext(MethodCompiler &methodCompiler, MethodBlock *methodBlock);
+
+        void initPassStack();
 
         u4 pc{};
 

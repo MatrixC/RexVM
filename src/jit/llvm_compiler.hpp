@@ -43,6 +43,7 @@ namespace RexVM {
         llvm::IRBuilder<> irBuilder;
         std::unique_ptr<LLVMHelpFunction> helpFunction;
 
+        std::vector<llvm::Value *> localVariableTable;
         llvm::PointerType *voidPtrType{};
         llvm::Function *function{};
         llvm::BasicBlock *currentBB{};
