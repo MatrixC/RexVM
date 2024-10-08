@@ -1117,15 +1117,11 @@ namespace RexVM {
                 break;
             }
 
-            case OpCodeEnum::GETSTATIC: {
-                const auto index = byteReader.readU2();
-                methodCompiler.getStatic(*this, index);
-                break;
-            }
-
+            case OpCodeEnum::GETSTATIC:
             case OpCodeEnum::PUTSTATIC: {
                 const auto index = byteReader.readU2();
-                methodCompiler.putStatic(*this, index);
+                const auto opType = CAST_I4(opCode) - CAST_I4(OpCodeEnum::GETSTATIC);
+                methodCompiler.getOrPutStatic(*this, index, opType);
                 break;
             }
 

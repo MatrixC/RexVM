@@ -79,9 +79,12 @@ extern "C" {
 
         Method *invokeMethod{nullptr};
         if (method != nullptr) {
-            operandStack.sp += CAST_I4(paramSize);
             invokeMethod = static_cast<Method *>(method);
             invokeMethod->klass.clinit(*frame);
+            if (invokeMethod->getName() == "initProperties") {
+                int i = 10;
+            }
+            operandStack.sp += CAST_I4(paramSize);
         } else {
             const auto index = paramSize;
             const auto cache = frame->mem.resolveInvokeVirtualIndex(index, false);

@@ -72,7 +72,7 @@ namespace RexVM {
     }
 
     void LLVMHelpFunction::createCallInvokeMethodFixed(IRBuilder<> &irBuilder, Value *framePtr, Value *method,
-                                                        const uint16_t paramSlotSize) const {
+                                                        const u2 paramSlotSize, const cview methodName) const {
         irBuilder.CreateCall(invokeMethodFixed, {framePtr, method, irBuilder.getInt16(paramSlotSize)});
     }
 

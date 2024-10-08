@@ -107,10 +107,16 @@ namespace RexVM {
         // if (method.isNative() || startWith(className, "java") || startWith(className, "sun") || startWith(className, "rex")) {
         //     return;
         // }
-        // if (!startWith(method.getName(), "jicc")) {
+        if (!startWith(method.getName(), "jicc")) {
+            return;
+        }
+        // if (!startWith(method.getName(), "initializeSystemClass")) {
         //     return;
         // }
         // if (method.getName() != "entrySet") {
+        //     return;
+        // }
+        // if (method.getName() != "initializeSystemClass") {
         //     return;
         // }
         // if (method.getName() == "<clinit>" && method.klass.getClassName() == "java/lang/Math" &&method.getDescriptor() == "()V") {

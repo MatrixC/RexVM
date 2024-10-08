@@ -105,11 +105,9 @@ namespace RexVM {
 
         llvm::Value *getConstantPtr(void *ptr);
 
-        [[nodiscard]] std::tuple<Field *, void *> getFieldInfo(u2 index, bool isStatic) const;
+        [[nodiscard]] std::tuple<Field *, Slot *> getFieldInfo(u2 index, bool isStatic) const;
 
-        void getStatic(BlockContext &blockContext, u2 index);
-
-        void putStatic(BlockContext &blockContext, u2 index);
+        void getOrPutStatic(BlockContext &blockContext, u2 index, u1 opType);
 
         void getField(BlockContext &blockContext, u2 index);
 

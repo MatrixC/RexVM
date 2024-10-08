@@ -17,6 +17,9 @@
 namespace RexVM {
     using namespace llvm;
 
+    constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
+    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
+
     MethodCompiler::MethodCompiler(
         VM &vm,
         Method &method,
@@ -170,7 +173,7 @@ namespace RexVM {
                     indexValue
                 );
 
-        return irBuilder.CreateLoad(type, ptr);
+        return irBuilder.CreateLoad(type, ptr, cformat("local_{}", index));
     }
 
     void MethodCompiler::setLocalVariableTableValue(const u4 index, llvm::Value *value, SlotTypeEnum slotType) {
@@ -599,27 +602,27 @@ namespace RexVM {
         return ConstantExpr::getIntToPtr(ptrInt, voidPtrType);
     }
 
-    std::tuple<Field *, void *> MethodCompiler::getFieldInfo(const u2 index, const bool isStatic) const {
+    std::tuple<Field *, Slot *> MethodCompiler::getFieldInfo(const u2 index, const bool isStatic) const {
         const auto fieldRef = klass.getRefField(index, isStatic);
         const auto fieldClass = &fieldRef->klass;
         const auto dataPtr = isStatic ? fieldClass->staticData.get() + fieldRef->slotId : nullptr;
         return std::make_tuple(fieldRef, dataPtr);
     }
 
-    void MethodCompiler::getStatic(BlockContext &blockContext, const u2 index) {
+    void MethodCompiler::getOrPutStatic(BlockContext &blockContext, const u2 index, const u1 opType) {
         const auto [field, dataPtr] = getFieldInfo(index, true);
         const auto type = field->getFieldSlotType();
         const auto klassPtr = &field->klass;
+        const auto staticBegin = &klassPtr->staticData[field->slotId];
+        const auto llvmDataPtr = getConstantPtr(staticBegin);
         helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
-        const auto value = irBuilder.CreateLoad(slotTypeMap(type), getConstantPtr(dataPtr));
-        blockContext.pushValue(value, type);
-    }
-
-    void MethodCompiler::putStatic(BlockContext &blockContext, const u2 index) {
-        const auto [field, dataPtr] = getFieldInfo(index, true);
-        const auto type = field->getFieldSlotType();
-        const auto value = blockContext.popValue(type);
-        irBuilder.CreateStore(value, getConstantPtr(dataPtr));
+        if (opType == 0) {
+            const auto value = irBuilder.CreateLoad(slotTypeMap(type), llvmDataPtr, field->getName());
+            blockContext.pushValue(value, type);
+        } else {
+            const auto value = blockContext.popValue(type);
+            irBuilder.CreateStore(value, llvmDataPtr);
+        }
     }
 
     void MethodCompiler::getField(BlockContext &blockContext, const u2 index) {
@@ -629,7 +632,7 @@ namespace RexVM {
         const auto oop = blockContext.popValue();
         throwNpeIfNull(blockContext, oop);
         const auto fieldDataPtr = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
-        const auto value = irBuilder.CreateLoad(slotTypeMap(type), fieldDataPtr);
+        const auto value = irBuilder.CreateLoad(slotTypeMap(type), fieldDataPtr, field->getName());
         blockContext.pushValue(value, type);
     }
 
@@ -717,7 +720,13 @@ namespace RexVM {
         //但拿到返回值理应通过pop操作数栈完成 所以在调用完成后method_fixed还需要做返回值对应sp的减操作
 
         const auto methodRef = klass.getRefMethod(index, isStatic);
-        helpFunction->createCallInvokeMethodFixed(irBuilder, getFramePtr(), getConstantPtr(methodRef), paramSlotSize);
+        helpFunction->createCallInvokeMethodFixed(
+            irBuilder,
+            getFramePtr(),
+            getConstantPtr(methodRef),
+            paramSlotSize,
+            methodName
+        );
         processInvokeReturn(blockContext, returnType);
     }
 
@@ -738,13 +747,20 @@ namespace RexVM {
                 irBuilder,
                 getFramePtr(),
                 getConstantPtr(invokeMethod),
-                paramSlotSize
+                paramSlotSize,
+                methodName
             );
             return;
         }
 
         //Add sp and invoke method
-        helpFunction->createCallInvokeMethodFixed(irBuilder, getFramePtr(), getZeroValue(SlotTypeEnum::REF), index);
+        helpFunction->createCallInvokeMethodFixed(
+            irBuilder,
+            getFramePtr(),
+            getZeroValue(SlotTypeEnum::REF),
+            index,
+            methodName
+        );
         processInvokeReturn(blockContext, returnType);
     }
 
@@ -868,35 +884,9 @@ namespace RexVM {
         irBuilder.SetInsertPoint(entryBlock);
         irBuilder.CreateBr(firstBlock);
 
-
         exitBB->insertInto(function);
         irBuilder.SetInsertPoint(exitBB);
         irBuilder.CreateRetVoid();
-
-        // ByteReader reader{};
-        // const auto codePtr = method.code.get();
-        // reader.init(codePtr, method.codeLength);
-        //
-        //
-        // while (!reader.eof()) {
-        //     const auto currentByteCode = reader.readU1();
-        //     const auto opCode = static_cast<OpCodeEnum>(currentByteCode);
-        //     pc = CAST_U4(reader.ptr - reader.begin) - 1;
-        //     processInstruction(opCode, reader);
-        //     reader.resetCurrentOffset();
-        // }
-        //
-        // if (!valueStack.empty()) {
-        //     panic("error value stack");
-        // }
-        //
-        // // irBuilder.CreateBr(returnBB);
-        //
-        // changeBB(blockContext, returnBB);
-        // irBuilder.CreateRetVoid();
-        //
-        // verifyFunction(*function);
-
     }
 
     void MethodCompiler::verify() const {

@@ -62,9 +62,9 @@ namespace RexVM {
         methodCompiler.verify();
         cprintln("compiled method {} {}", method.klass.getClassName(), method.getName());
 
-        // if (startWith(compiledMethodName, "<clinit>")) {
-        //      module->print(llvm::outs(), nullptr);
-        // }
+        if (startWith(compiledMethodName, "initializeSystemClass")) {
+             module->print(llvm::outs(), nullptr);
+        }
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));

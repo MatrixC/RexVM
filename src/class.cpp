@@ -395,7 +395,7 @@ namespace RexVM {
 
     void InstanceClass::moveConstantPool(ClassFile &cf) {
         constantPool.reserve(cf.constantPool.size());
-        std::move(cf.constantPool.begin(), cf.constantPool.end(), std::back_inserter(constantPool));
+        std::ranges::move(cf.constantPool, std::back_inserter(constantPool));
     }
 
     void InstanceClass::calcFieldSlotId() {
@@ -439,7 +439,7 @@ namespace RexVM {
         if (staticSlotCount <= 0) {
             return;
         }
-        staticData = std::make_unique<Slot[]>(staticSlotCount);
+        // staticData = std::make_unique<Slot[]>(staticSlotCount);
         for (const auto &field: fields) {
             if (!field->isStatic()) {
                 continue;
