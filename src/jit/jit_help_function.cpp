@@ -79,12 +79,9 @@ extern "C" {
 
         Method *invokeMethod{nullptr};
         if (method != nullptr) {
+            operandStack.sp += CAST_I4(paramSize);
             invokeMethod = static_cast<Method *>(method);
             invokeMethod->klass.clinit(*frame);
-            if (invokeMethod->getName() == "initProperties") {
-                int i = 10;
-            }
-            operandStack.sp += CAST_I4(paramSize);
         } else {
             const auto index = paramSize;
             const auto cache = frame->mem.resolveInvokeVirtualIndex(index, false);
@@ -96,7 +93,8 @@ extern "C" {
         }
 
         frame->runMethodInner(*invokeMethod);
-        operandStack.pop(getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType)));
+        operandStack.sp = -1;
+        // operandStack.pop(getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType)));
     }
 
     void *llvm_compile_new_object(void *framePtr, uint8_t type, const int32_t length, void *klass) {

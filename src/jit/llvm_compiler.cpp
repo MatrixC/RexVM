@@ -734,6 +734,10 @@ namespace RexVM {
         const auto [className, methodName, methodDescriptor] =
          getConstantStringFromPoolByClassNameType(constantPool, index);
 
+        if (methodName == "getProperty") {
+            int i = 10;
+        }
+
         const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
         const auto paramSlotSize = pushParams(blockContext, paramType, true);
 

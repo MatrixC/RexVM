@@ -1035,7 +1035,7 @@ namespace RexVM {
             }
 
             case OpCodeEnum::TABLESWITCH: {
-                const auto nextPc = CAST_U4(byteReader.ptr - byteReader.begin);
+                const auto nextPc = CAST_U4(byteReader.ptr - methodCompiler.method.code.get());
                 if (const auto mod = nextPc % 4; mod != 0) {
                     byteReader.skip(4 - mod);
                 }
@@ -1060,7 +1060,7 @@ namespace RexVM {
             }
 
             case OpCodeEnum::LOOKUPSWITCH: {
-                const auto nextPc = CAST_U4(byteReader.ptr - byteReader.begin);
+                const auto nextPc = CAST_U4(byteReader.ptr - methodCompiler.method.code.get());
                 if (const auto mod = nextPc % 4; mod != 0) {
                     byteReader.skip(4 - mod);
                 }

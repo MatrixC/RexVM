@@ -103,30 +103,22 @@ namespace RexVM {
         if (method.isNative()) {
             return;
         }
-        // const auto className = method.klass.getClassName();
-        // if (method.isNative() || startWith(className, "java") || startWith(className, "sun") || startWith(className, "rex")) {
-        //     return;
-        // }
-        if (!startWith(method.getName(), "jicc")) {
+        const auto className = method.klass.getClassName();
+        if (startWith(className, "java")) {
             return;
         }
+        // if (!startWith(method.getName(), "jicc")) {
+        //     return;
+        // }
         // if (!startWith(method.getName(), "initializeSystemClass")) {
         //     return;
         // }
-        // if (method.getName() != "entrySet") {
-        //     return;
-        // }
-        // if (method.getName() != "initializeSystemClass") {
-        //     return;
-        // }
-        // if (method.getName() == "<clinit>" && method.klass.getClassName() == "java/lang/Math" &&method.getDescriptor() == "()V") {
-            if (method.compiledMethodHandler == nullptr) {
-                const auto jitManager = frame.vm.jitManager.get();
-                if (jitManager != nullptr) {
-                    jitManager->compileMethod(method);
-                }
+        if (method.compiledMethodHandler == nullptr) {
+            const auto jitManager = frame.vm.jitManager.get();
+            if (jitManager != nullptr) {
+                jitManager->compileMethod(method);
             }
-        // }
+        }
         // MethodCFG cfg(method);
     }
 
