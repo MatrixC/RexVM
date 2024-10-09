@@ -34,7 +34,7 @@ namespace RexVM {
 
         invokeMethodFixed = module.getOrInsertFunction("llvm_compile_invoke_method_fixed",
                                                         FunctionType::get(
-                                                            voidTy, {voidPtrTy, voidPtrTy, int16Ty}, false));
+                                                            voidPtrTy, {voidPtrTy, voidPtrTy, int16Ty}, false));
 
         newObject = module.getOrInsertFunction("llvm_compile_new_object",
                                                FunctionType::get(voidPtrTy, {
@@ -71,9 +71,9 @@ namespace RexVM {
         irBuilder.CreateCall(clinit, {framePtr, klass});
     }
 
-    void LLVMHelpFunction::createCallInvokeMethodFixed(IRBuilder<> &irBuilder, Value *framePtr, Value *method,
+    Value *LLVMHelpFunction::createCallInvokeMethodFixed(IRBuilder<> &irBuilder, Value *framePtr, Value *method,
                                                         const u2 paramSlotSize, const cview methodName) const {
-        irBuilder.CreateCall(invokeMethodFixed, {framePtr, method, irBuilder.getInt16(paramSlotSize)});
+        return irBuilder.CreateCall(invokeMethodFixed, {framePtr, method, irBuilder.getInt16(paramSlotSize)}, methodName);
     }
 
     Value *LLVMHelpFunction::createCallNew(IRBuilder<> &irBuilder, Value *framePtr, const uint8_t type, Value *length,

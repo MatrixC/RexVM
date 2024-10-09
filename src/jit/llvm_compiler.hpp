@@ -115,6 +115,8 @@ namespace RexVM {
 
         size_t pushParams(BlockContext &blockContext, const std::vector<cstring> &paramType, bool includeThis);
 
+        void invokeCommon(BlockContext &blockContext, cview methodName, cview returnType, llvm::Value *methodRef, size_t paramSlotSize);
+
         void invokeStaticMethod(BlockContext &blockContext, u2 index, bool isStatic);
 
         void invokeVirtualMethod(BlockContext &blockContext, u2 index);

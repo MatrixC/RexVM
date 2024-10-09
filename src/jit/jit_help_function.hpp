@@ -34,7 +34,7 @@ extern "C" {
 
     void llvm_compile_clinit(void *framePtr, void *klass);
 
-    void llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize);
+    void *llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize);
 
     void *llvm_compile_new_object(void *framePtr, uint8_t type, int32_t length, void *klass);
 

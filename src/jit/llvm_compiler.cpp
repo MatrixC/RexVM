@@ -532,8 +532,10 @@ namespace RexVM {
     }
 
     void MethodCompiler::ifOp(BlockContext &blockContext, const i4 offset, llvm::Value *val1, llvm::Value *val2, const OpCodeEnum op) {
-        const auto jumpTo = offsetToPC(blockContext, offset);
-        const auto jumpToBB = getBlockContext(jumpTo)->basicBlock;
+        const auto jumpToBB = getBlockContext(offsetToPC(blockContext, offset))->basicBlock;
+        // const auto nextOpCodeBB = cfgBlocks[blockContext.methodBlock->index + 1]->basicBlock;
+        //下一个block的起始opCode偏移量是3 if本身占一个 readI2的offset占2个
+        const auto nextOpCodeBB = getBlockContext(offsetToPC(blockContext, 3))->basicBlock;
         llvm::Value *cmp{nullptr};
         switch (op) {
             case OpCodeEnum::IFEQ:
@@ -563,9 +565,10 @@ namespace RexVM {
                 panic("error type");
                 break;
         }
-        const auto elseBB = BasicBlock::Create(ctx);
+        //const auto elseBB = BasicBlock::Create(ctx);
+        const auto elseBB = nextOpCodeBB;
         irBuilder.CreateCondBr(cmp, jumpToBB, elseBB);
-        changeBB(blockContext, elseBB);
+        // changeBB(blockContext, elseBB);
     }
 
     void MethodCompiler::jumpToPC(const u4 pc) {
@@ -703,6 +706,41 @@ namespace RexVM {
         return paramSlotType.size();
     }
 
+    void MethodCompiler::invokeCommon(
+        BlockContext &blockContext,
+        const cview methodName,
+        const cview returnType,
+        llvm::Value *methodRef,
+        const size_t paramSlotSize
+    ) {
+        const auto throwExceptionBB = BasicBlock::Create(ctx);
+        const auto successReturnBB = BasicBlock::Create(ctx);;
+
+        const auto invokeException =
+                helpFunction->createCallInvokeMethodFixed(
+                    irBuilder,
+                    getFramePtr(),
+                    methodRef,
+                    paramSlotSize,
+                    methodName
+                );
+
+        const auto successReturn =
+                irBuilder.CreateICmpEQ(
+                    invokeException,
+                    getZeroValue(SlotTypeEnum::REF),
+                    cformat("{}_suc_ret", methodName)
+                );
+
+        irBuilder.CreateCondBr(successReturn, successReturnBB, throwExceptionBB);
+
+        changeBB(blockContext, throwExceptionBB);
+        exitMethod();
+
+        changeBB(blockContext, successReturnBB);
+        processInvokeReturn(blockContext, returnType);
+    }
+
     void MethodCompiler::invokeStaticMethod(BlockContext &blockContext, const u2 index, const bool isStatic) {
         //isStatic ? static method : special method
         const auto [className, methodName, methodDescriptor] =
@@ -720,23 +758,13 @@ namespace RexVM {
         //但拿到返回值理应通过pop操作数栈完成 所以在调用完成后method_fixed还需要做返回值对应sp的减操作
 
         const auto methodRef = klass.getRefMethod(index, isStatic);
-        helpFunction->createCallInvokeMethodFixed(
-            irBuilder,
-            getFramePtr(),
-            getConstantPtr(methodRef),
-            paramSlotSize,
-            methodName
-        );
-        processInvokeReturn(blockContext, returnType);
+
+        invokeCommon(blockContext, methodName, returnType, getConstantPtr(methodRef), paramSlotSize);
     }
 
     void MethodCompiler::invokeVirtualMethod(BlockContext &blockContext, const u2 index) {
         const auto [className, methodName, methodDescriptor] =
          getConstantStringFromPoolByClassNameType(constantPool, index);
-
-        if (methodName == "getProperty") {
-            int i = 10;
-        }
 
         const auto [paramType, returnType] = parseMethodDescriptor(methodDescriptor);
         const auto paramSlotSize = pushParams(blockContext, paramType, true);
@@ -747,25 +775,28 @@ namespace RexVM {
                     ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
                     ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
 
-            helpFunction->createCallInvokeMethodFixed(
-                irBuilder,
-                getFramePtr(),
-                getConstantPtr(invokeMethod),
-                paramSlotSize,
-                methodName
-            );
-            return;
+            invokeCommon(blockContext, methodName, returnType, getConstantPtr(invokeMethod), paramSlotSize);
+            // helpFunction->createCallInvokeMethodFixed(
+            //     irBuilder,
+            //     getFramePtr(),
+            //     getConstantPtr(invokeMethod),
+            //     paramSlotSize,
+            //     methodName
+            // );
+        } else {
+            invokeCommon(blockContext, methodName, returnType, getZeroValue(SlotTypeEnum::REF), index);
+
+            //Add sp and invoke method
+            // helpFunction->createCallInvokeMethodFixed(
+            //     irBuilder,
+            //     getFramePtr(),
+            //     getZeroValue(SlotTypeEnum::REF),
+            //     index,
+            //     methodName
+            // );
         }
 
-        //Add sp and invoke method
-        helpFunction->createCallInvokeMethodFixed(
-            irBuilder,
-            getFramePtr(),
-            getZeroValue(SlotTypeEnum::REF),
-            index,
-            methodName
-        );
-        processInvokeReturn(blockContext, returnType);
+        // processInvokeReturn(blockContext, returnType);
     }
 
     void MethodCompiler::invokeDynamic(BlockContext &blockContext, const u2 index) {

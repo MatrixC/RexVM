@@ -60,10 +60,10 @@ namespace RexVM {
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         methodCompiler.compile();
         methodCompiler.verify();
-        // cprintln("compiled method {} {}", method.klass.getClassName(), method.getName());
+        cprintln("compiled method {} {}", method.klass.getClassName(), method.getName());
 
-        if (startWith(compiledMethodName, "initializeSystemClass")) {
-             // module->print(llvm::outs(), nullptr);
+        if (startWith(compiledMethodName, "jicc_testa7")) {
+             module->print(llvm::outs(), nullptr);
         }
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);

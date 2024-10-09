@@ -27,7 +27,7 @@ namespace RexVM {
         void createCallReturnCommon(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value, u1 type) const;
 
         void createCallClinit(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *klass) const;
-        void createCallInvokeMethodFixed(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *method, u2 paramSlotSize, cview methodName) const;
+        llvm::Value *createCallInvokeMethodFixed(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *method, u2 paramSlotSize, cview methodName) const;
         llvm::Value *createCallNew(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, uint8_t type, llvm::Value *length, llvm::Value *klass) const;
         void createCallThrowException(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *exception, u4 pc, u1 fixedException) const;
         llvm::Value * createCallInstanceOf(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u1 type, llvm::Value *oop, llvm::Value *checkClass) const;

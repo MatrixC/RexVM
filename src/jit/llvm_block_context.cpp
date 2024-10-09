@@ -51,13 +51,17 @@ namespace RexVM {
                 popValues.emplace_back(itemVal, itemBB);
             }
 
-            const auto selectType = std::get<0>(popValues[0])->getType();
-            const auto selectPopValue = irBuilder.CreatePHI(selectType, popValues.size());
-            for (const auto &[val, bb] : popValues) {
-                selectPopValue->addIncoming(val, bb);
+            if (const auto firstValue = std::get<0>(popValues[0]); firstValue == nullptr) {
+                //paddingValue
+                passStackValues.emplace_back(nullptr);
+            } else {
+                const auto selectType = firstValue->getType();
+                const auto selectPopValue = irBuilder.CreatePHI(selectType, popValues.size());
+                for (const auto &[val, bb] : popValues) {
+                    selectPopValue->addIncoming(val, bb);
+                }
+                passStackValues.emplace_back(selectPopValue);
             }
-
-            passStackValues.emplace_back(selectPopValue);
         }
 
         //check
@@ -67,7 +71,7 @@ namespace RexVM {
             }
         }
 
-        for (i4 i = passStackValues.size() - 1; i >= 0; i --) {
+        for (i4 i = CAST_I4(passStackValues.size() - 1); i >= 0; --i) {
             pushValue(passStackValues[i]);
         }
     }
@@ -1297,7 +1301,6 @@ namespace RexVM {
             case OpCodeEnum::IFNONNULL: {
                 const auto curOp = CAST_U1(opCode) - (static_cast<u1>(OpCodeEnum::IFNULL) - static_cast<u1>(OpCodeEnum::IFEQ));
                 const auto offset = byteReader.readI2();
-                const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
                 const auto val = popValue();
                 methodCompiler.ifOp(*this, offset, val, methodCompiler.getZeroValue(SlotTypeEnum::REF), static_cast<OpCodeEnum>(curOp));
                 break;

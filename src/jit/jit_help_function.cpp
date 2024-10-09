@@ -73,7 +73,7 @@ extern "C" {
         instanceClass->clinit(*frame);
     }
 
-    void llvm_compile_invoke_method_fixed(void *framePtr, void *method, const uint16_t paramSize) {
+    void *llvm_compile_invoke_method_fixed(void *framePtr, void *method, const uint16_t paramSize) {
         const auto frame = static_cast<Frame *>(framePtr);
         auto &operandStack = frame->operandStackContext;
 
@@ -93,8 +93,17 @@ extern "C" {
         }
 
         frame->runMethodInner(*invokeMethod);
+        if (frame->markThrow) {
+            //JIT函数当前无法处理异常 所以在执行的JIT函数也肯定没有异常表 向上抛出异常即可
+            return frame->throwObject;
+        }
+
+        const auto retSlotSize = getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType));
+        if (operandStack.sp - retSlotSize != -1) {
+            panic("error stack");
+        }
         operandStack.sp = -1;
-        // operandStack.pop(getSlotTypeStoreCount(getSlotTypeByPrimitiveClassName(invokeMethod->returnType)));
+        return nullptr;
     }
 
     void *llvm_compile_new_object(void *framePtr, uint8_t type, const int32_t length, void *klass) {
