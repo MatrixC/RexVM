@@ -33,6 +33,9 @@ namespace RexVM {
         };
 
         const auto addLabel = [&](const u4 pc, const i4 offset) {
+            if (offset < 0) {
+                this->jumpFront = true;
+            }
             const auto jumpTo = CAST_U4(CAST_I4(pc) + offset);
             leaders.emplace_back(jumpTo);
             const auto edge = (CAST_U8(pc) << 32) | jumpTo;

@@ -36,7 +36,7 @@ namespace RexVM {
         helpFunction(std::make_unique<LLVMHelpFunction>(module)),
         voidPtrType(PointerType::getUnqual(irBuilder.getVoidTy())) {
 
-        localVariableTable.reserve(method.maxLocals);
+        // localVariableTable.reserve(method.maxLocals);
 
         const auto functionType =
                 FunctionType::get(
@@ -52,6 +52,7 @@ namespace RexVM {
             module
         );
 
+        entryBlock = BasicBlock::Create(ctx, "entry", function);
         exitBB = BasicBlock::Create(ctx, "exit_method");
 
         initCFGBlocks();
@@ -156,6 +157,23 @@ namespace RexVM {
         return nullptr;
     }
 
+    void MethodCompiler::initLocalVariable(BlockContext &blockContext) {
+        //将函数所有的参数load进第一个块的localVariableTable中
+        for (size_t i = 0; i < method.paramSlotType.size(); ++i) {
+            const auto indexValue = irBuilder.getInt32(i);
+            const auto type = slotTypeMap(method.paramSlotType[i]);
+
+            const auto ptr =
+                    irBuilder.CreateGEP(
+                        irBuilder.getInt64Ty(),
+                        getLocalVariableTablePtr(),
+                        indexValue
+                    );
+
+            blockContext.localVariableTable[i] =
+                irBuilder.CreateLoad(type, ptr, cformat("local_{}", CAST_I4(i)));
+        }
+    }
 
     llvm::Value *MethodCompiler::getLocalVariableTableValue(const u4 index, const SlotTypeEnum slotType) {
         //lvt指向Slot[] 先通过GEP获得index对应的Slot指针
@@ -196,8 +214,6 @@ namespace RexVM {
 
         irBuilder.CreateStore(value, lvtPtr);
         irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), lvtTypePtr);
-
-        localVariableTable[index] = value;
     }
 
     llvm::Value * MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, const bool isArray, const BasicType type) {
@@ -326,13 +342,18 @@ namespace RexVM {
 
 
     void MethodCompiler::load(BlockContext &blockContext, const u4 index, const SlotTypeEnum slotType) {
-        const auto value = getLocalVariableTableValue(index, slotType);
+        const auto value =
+                useLVT ? blockContext.localVariableTable[index] : getLocalVariableTableValue(index, slotType);
         blockContext.pushValue(value, slotType);
     }
 
     void MethodCompiler::store(BlockContext &blockContext, const u4 index, const SlotTypeEnum slotType) {
         const auto value = blockContext.popValue(slotType);
-        setLocalVariableTableValue(index, value, slotType); 
+        if (useLVT) {
+            blockContext.localVariableTable[index] = value;
+        } else {
+            setLocalVariableTableValue(index, value, slotType);
+        }
     }
 
     void MethodCompiler::arrayLength(BlockContext &blockContext, llvm::Value *arrayRef) {
@@ -345,50 +366,51 @@ namespace RexVM {
                                    const uint8_t type) {
         //arrayRef 是 arrayOop
         throwNpeIfNull(blockContext, arrayRef);
+        llvm::Value *dataPtr{nullptr};
         switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_BYTE_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_CHAR_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_SHORT_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_LONG_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
                 blockContext.pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I8), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_FLOAT_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_DOUBLE_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
                 blockContext.pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F8), dataPtr));
                 break;
             }
             case LLVM_COMPILER_OBJ_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::REF), dataPtr));
                 break;
             }
@@ -400,57 +422,45 @@ namespace RexVM {
 
     void MethodCompiler::arrayStore(BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, const uint8_t type) {
         throwNpeIfNull(blockContext, arrayRef);
+        llvm::Value *dataPtr{nullptr};
          switch (type) {
-            case LLVM_COMPILER_INT_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
-                irBuilder.CreateStore(value, dataPtr);
+            case LLVM_COMPILER_INT_ARRAY_TYPE:
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
                 break;
-            }
 
-            case LLVM_COMPILER_BYTE_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
-                irBuilder.CreateStore(value, dataPtr);
+            case LLVM_COMPILER_BYTE_ARRAY_TYPE:
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
                 break;
-            }
 
-            case LLVM_COMPILER_CHAR_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
-                irBuilder.CreateStore(value, dataPtr);
+            case LLVM_COMPILER_CHAR_ARRAY_TYPE:
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
                 break;
-            }
 
-            case LLVM_COMPILER_SHORT_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
-                irBuilder.CreateStore(value, dataPtr);
+            case LLVM_COMPILER_SHORT_ARRAY_TYPE:
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
                 break;
-            }
 
-            case LLVM_COMPILER_LONG_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
-                irBuilder.CreateStore(value, dataPtr);
+            case LLVM_COMPILER_LONG_ARRAY_TYPE:
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
                 break;
-            }
 
-            case LLVM_COMPILER_FLOAT_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
-                irBuilder.CreateStore(value, dataPtr);
+            case LLVM_COMPILER_FLOAT_ARRAY_TYPE:
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
                 break;
-            }
 
-            case LLVM_COMPILER_DOUBLE_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
-                irBuilder.CreateStore(value, dataPtr);
+            case LLVM_COMPILER_DOUBLE_ARRAY_TYPE:
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
                 break;
-            }
-            case LLVM_COMPILER_OBJ_ARRAY_TYPE: {
-                const auto dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
-                irBuilder.CreateStore(value, dataPtr);
+
+            case LLVM_COMPILER_OBJ_ARRAY_TYPE:
+                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
                 break;
-            }
 
             default:
                 panic("error type");
         }
+
+        irBuilder.CreateStore(value, dataPtr);
     }
 
     void MethodCompiler::lCmp(BlockContext &blockContext, llvm::Value *val1, llvm::Value *val2) {
@@ -608,7 +618,7 @@ namespace RexVM {
     std::tuple<Field *, Slot *> MethodCompiler::getFieldInfo(const u2 index, const bool isStatic) const {
         const auto fieldRef = klass.getRefField(index, isStatic);
         const auto fieldClass = &fieldRef->klass;
-        const auto dataPtr = isStatic ? fieldClass->staticData.get() + fieldRef->slotId : nullptr;
+        const auto dataPtr = isStatic ? &fieldClass->staticData[fieldRef->slotId] : nullptr;
         return std::make_tuple(fieldRef, dataPtr);
     }
 
@@ -616,9 +626,10 @@ namespace RexVM {
         const auto [field, dataPtr] = getFieldInfo(index, true);
         const auto type = field->getFieldSlotType();
         const auto klassPtr = &field->klass;
-        const auto staticBegin = &klassPtr->staticData[field->slotId];
-        const auto llvmDataPtr = getConstantPtr(staticBegin);
-        helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
+        const auto llvmDataPtr = getConstantPtr(dataPtr);
+        // helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
+        // clinit放在一起 让llir看起来简化一些
+        initClasses.emplace(klassPtr);
         if (opType == 0) {
             const auto value = irBuilder.CreateLoad(slotTypeMap(type), llvmDataPtr, field->getName());
             blockContext.pushValue(value, type);
@@ -670,6 +681,7 @@ namespace RexVM {
         //根据Frame的初始化定义 操作数栈的首地址 operandStackPtr = lvtPtr + lvtSize
         //对于普通java函数 lvtSize = method.maxLocals 所以可以直接计算出操作数栈的地址
         //计算出操作数栈地址后 从后向前依次出valueStack 依次写入操作数栈(std::stack 不能按index读取)
+        addParamSlot(blockContext, paramSlotType.size());
         for (i4 i = CAST_I4(paramSlotType.size()) - 1; i >= 0; --i) {
             //假设有4个参数 则 i = 3,2,1,0
             //具体的参数
@@ -679,21 +691,8 @@ namespace RexVM {
                 throwNpeIfNull(blockContext, paramValue);
             }
 
-            //第i个参数相对于lvt首地址的偏移量
-            const auto slotIdx = irBuilder.getInt32(method.maxLocals + i);
-            const auto slotPtr =
-                    irBuilder.CreateGEP(
-                        irBuilder.getInt64Ty(),
-                        getLocalVariableTablePtr(),
-                        slotIdx
-                    );
-
-            const auto slotTypePtr =
-                    irBuilder.CreateGEP(
-                        irBuilder.getInt8Ty(),
-                        getLocalVariableTableTypePtr(),
-                        slotIdx
-                    );
+            const auto slotPtr = invokeMethodParamPtr[i];
+            const auto slotTypePtr = invokeMethodParamTypePtr[i];
 
             if (paramValue != nullptr) {
                 //nullptr 可能是padding
@@ -722,6 +721,7 @@ namespace RexVM {
                     getFramePtr(),
                     methodRef,
                     paramSlotSize,
+                    blockContext.pc,
                     methodName
                 );
 
@@ -729,13 +729,11 @@ namespace RexVM {
                 irBuilder.CreateICmpEQ(
                     invokeException,
                     getZeroValue(SlotTypeEnum::REF),
-                    cformat("{}_suc_ret", methodName)
+                    cformat("{}_exception", methodName)
                 );
 
-        irBuilder.CreateCondBr(successReturn, successReturnBB, throwExceptionBB);
-
-        changeBB(blockContext, throwExceptionBB);
-        exitMethod();
+        //如果调用中发生了异常 在JIT有处理异常能力之前 先直接退出
+        irBuilder.CreateCondBr(successReturn, successReturnBB, exitBB);
 
         changeBB(blockContext, successReturnBB);
         processInvokeReturn(blockContext, returnType);
@@ -823,14 +821,17 @@ namespace RexVM {
         if (const auto returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
             returnSlotType != SlotTypeEnum::NONE) {
             //如果有返回值 则肯定在当前函数操作数栈的第一位 根据地址关系 借助getLocalVariableTableValue函数拿到返回值
-            const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
+            // const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
+            const auto returnValue =
+                    irBuilder.CreateLoad(slotTypeMap(returnSlotType), getInvokeReturnPtr(blockContext), "invoke_return");
             blockContext.pushValue(returnValue, returnSlotType);
         }
     }
 
     void MethodCompiler::newOpCode(BlockContext &blockContext, const uint8_t type, llvm::Value *length,
                                    llvm::Value *klass) {
-        const auto newObject = helpFunction->createCallNew(irBuilder, getFramePtr(), type, length, klass);
+        const auto newObject =
+            helpFunction->createCallNew(irBuilder, getFramePtr(), type, length, klass);
         blockContext.pushValue(newObject);
     }
 
@@ -902,9 +903,83 @@ namespace RexVM {
         helpFunction->createCallMonitor(irBuilder, oop, type);
     }
 
+    void MethodCompiler::iinc(BlockContext &blockContext, const i4 index, const i4 value) {
+        if (useLVT) {
+            const auto currentValue = blockContext.localVariableTable[index];
+            const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
+            blockContext.localVariableTable[index] = incValue;
+        } else {
+            const auto currentValue = getLocalVariableTableValue(index, SlotTypeEnum::I4);
+            const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
+            setLocalVariableTableValue(index, incValue, SlotTypeEnum::I4);
+        }
+    }
+
+    void MethodCompiler::initCommonBlock() {
+        const auto firstBlockContext= cfgBlocks[0].get();
+        const auto firstBlock = firstBlockContext->basicBlock;
+        irBuilder.SetInsertPoint(entryBlock);
+        for (const auto initClass : initClasses) {
+            helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(initClass));
+        }
+        irBuilder.CreateBr(firstBlock);
+
+        exitBB->insertInto(function);
+        irBuilder.SetInsertPoint(exitBB);
+        irBuilder.CreateRetVoid();
+    }
+
+    void MethodCompiler::addParamSlot(const BlockContext &blockContext, const u4 paramCount) {
+        //把传参的PTR都在entry里初始化完成 后续调用直接使用
+        if (invokeMethodParamPtr.size() >= paramCount) {
+            return;
+        }
+        const auto addCount = paramCount - invokeMethodParamPtr.size();
+        irBuilder.SetInsertPoint(entryBlock);
+        const auto currentCount = invokeMethodParamPtr.size();
+
+        for (size_t i = 0; i < addCount; ++i) {
+            const auto realIdx = i +currentCount;
+            const auto slotIdx = irBuilder.getInt32(method.maxLocals + realIdx);
+            const auto paramName = cformat("param_{}", realIdx);
+            const auto paramTypeName = cformat("paramType_{}", realIdx);
+
+            const auto slotPtr =
+                    irBuilder.CreateGEP(irBuilder.getInt64Ty(), getLocalVariableTablePtr(), slotIdx, paramName);
+            const auto slotTypePtr =
+                    irBuilder.CreateGEP(irBuilder.getInt8Ty(), getLocalVariableTableTypePtr(), slotIdx, paramTypeName);
+
+            invokeMethodParamPtr.emplace_back(slotPtr);
+            invokeMethodParamTypePtr.emplace_back(slotTypePtr);
+        }
+
+        irBuilder.SetInsertPoint(blockContext.lastBasicBlock);
+    }
+
+    llvm::Value * MethodCompiler::getInvokeReturnPtr(const BlockContext &blockContext) {
+        if (returnValuePtr != nullptr) {
+            return returnValuePtr;
+        }
+
+        irBuilder.SetInsertPoint(entryBlock);
+        returnValuePtr =
+                irBuilder.CreateGEP(
+                    irBuilder.getInt64Ty(),
+                    getLocalVariableTablePtr(),
+                    irBuilder.getInt32(method.maxLocals),
+                    "invoke_return_ptr"
+                );
+        irBuilder.SetInsertPoint(blockContext.lastBasicBlock);
+        return returnValuePtr;
+    }
 
 
-    void MethodCompiler::compile() {
+
+    bool MethodCompiler::compile() {
+        if (cfg.jumpFront) {
+            return false;
+        }
+
         if (cfgBlocks.empty()) {
             panic("error cfgBlock count");
         }
@@ -913,15 +988,8 @@ namespace RexVM {
             cfgBlock->compile();
         }
 
-        const auto firstBlock = cfgBlocks[0]->basicBlock;
-
-        const auto entryBlock = BasicBlock::Create(ctx, "entry", function, firstBlock);
-        irBuilder.SetInsertPoint(entryBlock);
-        irBuilder.CreateBr(firstBlock);
-
-        exitBB->insertInto(function);
-        irBuilder.SetInsertPoint(exitBB);
-        irBuilder.CreateRetVoid();
+        initCommonBlock();
+        return true;
     }
 
     void MethodCompiler::verify() const {

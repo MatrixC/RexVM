@@ -58,13 +58,15 @@ namespace RexVM {
         auto module = std::make_unique<Module>(moduleName, *ctx);
 
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
-        methodCompiler.compile();
-        methodCompiler.verify();
-        cprintln("compiled method {} {}", method.klass.getClassName(), method.getName());
-
-        if (startWith(compiledMethodName, "jicc_testa7")) {
-             module->print(llvm::outs(), nullptr);
+        if (!methodCompiler.compile()) {
+            return nullptr;;
         }
+        methodCompiler.verify();
+        // cprintln("compiled method {} {}", method.klass.getClassName(), method.getName());
+
+        // if (startWith(compiledMethodName, "saveAndRemoveProperties")) {
+             module->print(llvm::outs(), nullptr);
+        // }
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));

@@ -1,6 +1,7 @@
 #ifndef LLVM_COMPILER_HPP
 #define LLVM_COMPILER_HPP
 #include <vector>
+#include <unordered_set>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Verifier.h>
 #include "../config.hpp"
@@ -17,6 +18,7 @@ namespace RexVM {
     struct Field;
     struct LLVMHelpFunction;
     struct BlockContext;
+    struct Class;
 
     struct MethodCompiler {
         explicit MethodCompiler(
@@ -33,7 +35,9 @@ namespace RexVM {
         VM &vm;
         Method &method;
         InstanceClass &klass;
-        std::vector<std::unique_ptr<ConstantInfo> > &constantPool;
+        std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
+        bool useLVT{true};
+        std::unordered_set<Class *> initClasses;
 
         MethodCFG cfg;
         std::vector<std::unique_ptr<BlockContext>> cfgBlocks;
@@ -43,11 +47,14 @@ namespace RexVM {
         llvm::IRBuilder<> irBuilder;
         std::unique_ptr<LLVMHelpFunction> helpFunction;
 
-        std::vector<llvm::Value *> localVariableTable;
         llvm::PointerType *voidPtrType{};
         llvm::Function *function{};
         llvm::BasicBlock *currentBB{};
+        llvm::BasicBlock *entryBlock{};
         llvm::BasicBlock *exitBB{};
+        llvm::Value *returnValuePtr{};
+        std::vector<llvm::Value *> invokeMethodParamPtr;
+        std::vector<llvm::Value *> invokeMethodParamTypePtr;
 
         [[nodiscard]] BlockContext *getBlockContext(u4 leaderPC) const;
 
@@ -60,6 +67,8 @@ namespace RexVM {
         [[nodiscard]] llvm::Argument *getLocalVariableTablePtr() const;
 
         [[nodiscard]] llvm::Argument *getLocalVariableTableTypePtr() const;
+
+        void initLocalVariable(BlockContext &blockContext);
 
         llvm::Value *getLocalVariableTableValue(u4 index, SlotTypeEnum slotType);
 
@@ -141,7 +150,15 @@ namespace RexVM {
 
         void monitor(BlockContext &blockContext, u1 type, llvm::Value *oop);
 
-        void compile();
+        void iinc(BlockContext &blockContext, i4 index, i4 value);
+
+        void initCommonBlock();
+
+        void addParamSlot(const BlockContext &blockContext, u4 paramCount);
+
+        llvm::Value *getInvokeReturnPtr(const BlockContext &blockContext);
+
+        bool compile();
 
         void verify() const;
     };

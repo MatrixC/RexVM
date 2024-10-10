@@ -73,9 +73,13 @@ extern "C" {
         instanceClass->clinit(*frame);
     }
 
-    void *llvm_compile_invoke_method_fixed(void *framePtr, void *method, const uint16_t paramSize) {
+    void *llvm_compile_invoke_method_fixed(void *framePtr, void *method, const uint16_t paramSize, uint32_t pc) {
         const auto frame = static_cast<Frame *>(framePtr);
         auto &operandStack = frame->operandStackContext;
+
+        if (frame->method.getName() == "saveAndRemoveProperties" && pc == 88) {
+           int i = 10;
+        }
 
         Method *invokeMethod{nullptr};
         if (method != nullptr) {
@@ -95,6 +99,7 @@ extern "C" {
         frame->runMethodInner(*invokeMethod);
         if (frame->markThrow) {
             //JIT函数当前无法处理异常 所以在执行的JIT函数也肯定没有异常表 向上抛出异常即可
+            frame->jitPc = pc;
             return frame->throwObject;
         }
 

@@ -30,6 +30,9 @@ namespace RexVM {
 
         std::vector<std::unique_ptr<MethodBlock>> blocks;
 
+        //是否有向前jump 这种暂时不支持编译
+        bool jumpFront{false};
+
         void build();
 
     };

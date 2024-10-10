@@ -76,6 +76,48 @@ namespace RexVM {
         }
     }
 
+    void BlockContext::initLocalVariableTable() {
+        if (!methodCompiler.useLVT) {
+            return;
+        }
+
+        localVariableTable = std::make_unique<llvm::Value *[]>(methodCompiler.method.maxLocals);
+        if (parentBlocks.empty()) {
+            if (methodBlock->index != 0) {
+                panic("error block");
+            }
+            methodCompiler.initLocalVariable(*this);
+            return;
+        }
+
+        if (parentBlocks.size() == 1) {
+            std::copy_n(
+                parentBlocks[0]->localVariableTable.get(),
+                methodCompiler.method.maxLocals,
+                localVariableTable.get()
+            );
+            return;
+        }
+
+        for (u2 i = 0; i < methodCompiler.method.maxLocals; ++i) {
+            const auto firstParentLV = parentBlocks[0]->localVariableTable[i];
+            if (firstParentLV == nullptr) {
+                //padding value
+                continue;
+            }
+            const auto selectType = firstParentLV->getType();
+            const auto selectPopValue = irBuilder.CreatePHI(selectType, parentBlocks.size());
+            for (const auto &parent : parentBlocks) {
+                const auto parentLV = parent->localVariableTable[i];
+                const auto parentLastBB = parent->lastBasicBlock;
+                selectPopValue->addIncoming(parentLV, parentLastBB);
+            }
+
+            localVariableTable[i] = selectPopValue;
+        }
+    }
+
+
     void BlockContext::pushValue(llvm::Value *value) {
         blockValueStack.push(value);
     }
@@ -99,37 +141,6 @@ namespace RexVM {
     }
 
     llvm::Value *BlockContext::popValue() {
-        /*
-        if (!blockValueStack.empty()) {
-            const auto value = blockValueStack.top();
-            blockValueStack.pop();
-            return value;
-        }
-
-        if (parentBlocks.empty()) {
-            panic("error stack");
-            return nullptr;
-        }
-
-        if (parentBlocks.size() == 1) {
-            return parentBlocks[0]->popValue();
-        }
-
-        std::vector<std::tuple<llvm::Value *, llvm::BasicBlock *>> popValues;
-        popValues.reserve(parentBlocks.size());
-        for (const auto &parentBlock : parentBlocks) {
-            const auto val = parentBlock->popValue();
-            popValues.emplace_back(val, parentBlock->lastBasicBlock);
-        }
-
-        const auto selectType = std::get<0>(popValues[0])->getType();
-        const auto selectPopValue = irBuilder.CreatePHI(selectType, popValues.size());
-        for (const auto &[val, bb] : popValues) {
-            selectPopValue->addIncoming(val, bb);
-        }
-
-        return selectPopValue;
-        */
         const auto popValue = blockValueStack.top();
         blockValueStack.pop();
         return popValue;
@@ -166,37 +177,7 @@ namespace RexVM {
     }
 
     llvm::Value *BlockContext::topValue() {
-        /*
-        if (!blockValueStack.empty()) {
-            return blockValueStack.top();
-        }
-
-        if (parentBlocks.empty()) {
-            panic("error stack");
-            return nullptr;
-        }
-
-        if (parentBlocks.size() == 1) {
-            return parentBlocks[0]->topValue();
-        }
-
-        std::vector<std::tuple<llvm::Value *, llvm::BasicBlock *>> popValues;
-        popValues.reserve(parentBlocks.size());
-        for (const auto &parentBlock : parentBlocks) {
-            const auto val = parentBlock->topValue();
-            popValues.emplace_back(val, parentBlock->lastBasicBlock);
-        }
-
-        const auto selectType = std::get<0>(popValues[0])->getType();
-        const auto selectPopValue = irBuilder.CreatePHI(selectType, popValues.size());
-        for (const auto &[val, bb] : popValues) {
-            selectPopValue->addIncoming(val, bb);
-        }
-
-        return selectPopValue;
-        */
-        const auto popValue = blockValueStack.top();
-        return popValue;
+        return blockValueStack.top();
     }
 
     void BlockContext::padding() {
@@ -233,6 +214,7 @@ namespace RexVM {
 
         methodCompiler.changeBB(*this, basicBlock);
         initPassStack();
+        initLocalVariableTable();
 
         ByteReader reader{};
         const auto codePtr = method.code.get() + methodBlock->startPC;
@@ -859,9 +841,7 @@ namespace RexVM {
             case OpCodeEnum::IINC: {
                 const auto index = byteReader.readU1();
                 const auto value = byteReader.readI1();
-                const auto currentValue = methodCompiler.getLocalVariableTableValue(index, SlotTypeEnum::I4);
-                const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
-                methodCompiler.setLocalVariableTableValue(index, incValue, SlotTypeEnum::I4);
+                methodCompiler.iinc(*this, index, value);
                 break;
             }
 
@@ -1266,9 +1246,7 @@ namespace RexVM {
 
                     case OpCodeEnum::IINC: {
                         const auto value = byteReader.readI2();
-                        const auto currentValue = methodCompiler.getLocalVariableTableValue(index, SlotTypeEnum::I4);
-                        const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
-                        methodCompiler.setLocalVariableTableValue(index, incValue, SlotTypeEnum::I4);
+                        methodCompiler.iinc(*this, index, value);
                         break;
                     }
 

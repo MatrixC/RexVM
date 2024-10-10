@@ -3,6 +3,7 @@
 #include "../config.hpp"
 #include <stack>
 #include <vector>
+#include <memory>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Verifier.h>
 #include "../opcode.hpp"
@@ -29,11 +30,19 @@ namespace RexVM {
         llvm::IRBuilder<> &irBuilder;
 
         MethodBlock *methodBlock;
+        //起始块
         llvm::BasicBlock *basicBlock;
+        //最后块
         llvm::BasicBlock *lastBasicBlock;
 
+        //从上个块传下来的StackValue
         std::vector<std::unique_ptr<PassStack>> passStack;
+        //当前块的StackValue
         std::stack<llvm::Value *> blockValueStack;
+
+        //当前块的本地变量表
+        // std::vector<llvm::Value *> localVariableTable;
+        std::unique_ptr<llvm::Value *[]> localVariableTable;
 
         std::vector<BlockContext *> jumpToBlocks;
         std::vector<BlockContext *> parentBlocks;
@@ -41,6 +50,8 @@ namespace RexVM {
         explicit BlockContext(MethodCompiler &methodCompiler, MethodBlock *methodBlock);
 
         void initPassStack();
+
+        void initLocalVariableTable();
 
         u4 pc{};
 
