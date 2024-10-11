@@ -40,7 +40,7 @@ extern "C" {
 
     void llvm_compile_throw_exception(void *framePtr, void *exOop, uint32_t pc, uint8_t fixedException);
 
-    int32_t llvm_compile_check_cast(void *framePtr, uint8_t type, void *popOop, void *check);
+    int32_t llvm_compile_check_cast(void *framePtr, uint8_t type, void *popOop, void *check, uint32_t pc);
 
     void llvm_compile_monitor(void *oop, uint8_t type);
 }

@@ -36,7 +36,8 @@ namespace RexVM {
         Method &method;
         InstanceClass &klass;
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
-        bool useLVT{true};
+        bool useLVT{false}; //使用block的本地变量表(不写frame的栈内存 把llvm::Value保存在context的数组中)
+        bool checkStackError{true}; //是否做字节码执行后的栈数量检查 如果开启则函数编译结束后如果栈的元素数量不为0会报错
         std::unordered_set<Class *> initClasses;
 
         MethodCFG cfg;
@@ -62,6 +63,8 @@ namespace RexVM {
 
         llvm::Value *getZeroValue(SlotTypeEnum slotType);
 
+        llvm::Value *getZeroValue(const llvm::Type *type);;
+
         [[nodiscard]] llvm::Argument *getFramePtr() const;
 
         [[nodiscard]] llvm::Argument *getLocalVariableTablePtr() const;
@@ -74,7 +77,7 @@ namespace RexVM {
 
         void setLocalVariableTableValue(u4 index, llvm::Value *value, SlotTypeEnum slotType);
 
-        llvm::Value * getOopDataPtr(llvm::Value *oop, llvm::Value *index, bool isArray, BasicType type);
+        std::tuple<llvm::Type *, llvm::Value *> getOopDataPtr(llvm::Value *oop, llvm::Value *index, bool isArray, BasicType type);
 
         void returnValue(llvm::Value *val, SlotTypeEnum type);
 

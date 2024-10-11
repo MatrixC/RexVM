@@ -65,7 +65,7 @@ namespace RexVM {
         // cprintln("compiled method {} {}", method.klass.getClassName(), method.getName());
 
         // if (startWith(compiledMethodName, "saveAndRemoveProperties")) {
-             module->print(llvm::outs(), nullptr);
+             // module->print(llvm::outs(), nullptr);
         // }
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);

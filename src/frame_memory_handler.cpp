@@ -234,7 +234,7 @@ namespace RexVM {
         }
 
         if (instanceClass->isArray()) {
-            //Only clone and getClass method can be call
+            //Only clone, getClass, toString method can be call
             const auto objectClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
             const auto realInvokeMethod = objectClass->getMethod(methodName,methodDescriptor, false);
             if (realInvokeMethod == nullptr) {

@@ -115,20 +115,6 @@ namespace RexVM {
         if (method.isNative()) {
             return;
         }
-        const auto className = method.klass.getClassName();
-        // if (startWith(className, "java")) {
-        //     return;
-        // }
-        if (!startWith(method.getName(), "jicc")) {
-            return;
-        }
-        // if (!startWith(method.getName(), "initializeSystemClass")) {
-        //     return;
-        // }
-
-        // if (method.getName() == "printStackTrace") {
-        //     return;
-        // }
 
         if (method.compiledMethodHandler == nullptr) {
             const auto jitManager = frame.vm.jitManager.get();
@@ -143,24 +129,13 @@ namespace RexVM {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
 
-        static bool notJit = false;
-        // if (method.getName() == "printStackTrace") {
-        //     int i = 10;
-        //     notJit = true;
-        // }
-        //
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
         checkMethodCompile(frame ,method);
-
         frame.vm.garbageCollector->checkStopForCollect(frame.thread);
 
         if (notNativeMethod) [[likely]] {
-            if (!notJit && method.compiledMethodHandler != nullptr) {
+            if (method.compiledMethodHandler != nullptr) {
                 method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType);
-                // cprintln("run jit {}", methodName);
-                // if (frame.markThrow && handleThrowValue(frame)) {
-                //     return;
-                // }
                 //TODO JIT函数的handleThrowValue跟普通函数不一样 所以里面暂不处理异常 直接向上抛出
                 if (frame.markThrow) {
                     handleThrowValueJIT(frame);

@@ -160,9 +160,18 @@ namespace RexVM::Native::Rex {
             return;
         }
         const auto instance = CAST_INSTANCE_OOP(val);
-        const auto toStringMethod = 
-            instance->getInstanceClass()
+        const auto klass = instance->getClass();
+
+        Method *toStringMethod{nullptr};
+        if (klass->isArray()) {
+            const auto objectClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
+            toStringMethod =
+                    objectClass->getMethod("toString" "()Ljava/lang/String;", false);
+        } else {
+            toStringMethod =
+                    instance->getInstanceClass()
                     ->getMethod("toString" "()Ljava/lang/String;", false);
+        }
 
         const auto [retVal, retSlotType] = frame.runMethodManual(*toStringMethod, { Slot(instance) });
         if (frame.markThrow) {

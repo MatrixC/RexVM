@@ -100,17 +100,39 @@ namespace RexVM {
         }
 
         for (u2 i = 0; i < methodCompiler.method.maxLocals; ++i) {
-            const auto firstParentLV = parentBlocks[0]->localVariableTable[i];
-            if (firstParentLV == nullptr) {
-                //padding value
-                continue;
+            bool allEquals{true};
+            const llvm::Value *notNullValue{nullptr};
+            llvm::Value *firstValue{parentBlocks[0]->localVariableTable[i]};
+
+            for (const auto &parent : parentBlocks) {
+                const auto currentValue = parent->localVariableTable[i];
+
+                if (currentValue != nullptr && notNullValue == nullptr) {
+                    notNullValue = currentValue;
+                }
+
+                if (allEquals && currentValue != firstValue) {
+                    allEquals = false;
+                }
             }
-            const auto selectType = firstParentLV->getType();
+
+            // if (notNullValue == nullptr) {
+            //     localVariableTable[i] = nullptr;
+            //     break;
+            // }
+
+            if (allEquals) {
+                localVariableTable[i] = firstValue;
+                break;
+            }
+
+            const auto selectType = notNullValue->getType();
             const auto selectPopValue = irBuilder.CreatePHI(selectType, parentBlocks.size());
             for (const auto &parent : parentBlocks) {
                 const auto parentLV = parent->localVariableTable[i];
                 const auto parentLastBB = parent->lastBasicBlock;
-                selectPopValue->addIncoming(parentLV, parentLastBB);
+                const auto val = parentLV == nullptr ? methodCompiler.getZeroValue(selectType) : parentLV;
+                selectPopValue->addIncoming(val, parentLastBB);
             }
 
             localVariableTable[i] = selectPopValue;
@@ -238,7 +260,7 @@ namespace RexVM {
 
         if (!blockValueStack.empty()) {
             if (jumpToBlocks.empty()) {
-                panic("error stack");
+                // panic("error stack");
             }
 
             for (const auto &jumpToBlock : jumpToBlocks) {

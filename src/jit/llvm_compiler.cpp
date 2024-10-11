@@ -157,6 +157,27 @@ namespace RexVM {
         return nullptr;
     }
 
+    llvm::Value *MethodCompiler::getZeroValue(const Type *type) {
+        if (type == voidPtrType) {
+            return getZeroValue(SlotTypeEnum::REF);
+        }
+        if (type == irBuilder.getInt32Ty()) {
+            return getZeroValue(SlotTypeEnum::I4);
+        }
+        if (type == irBuilder.getInt64Ty()) {
+            return getZeroValue(SlotTypeEnum::I8);
+        }
+        if (type == irBuilder.getFloatTy()) {
+            return getZeroValue(SlotTypeEnum::F4);
+        }
+        if (type == irBuilder.getDoubleTy()) {
+            return getZeroValue(SlotTypeEnum::F8);
+        }
+        panic("error type");
+        return nullptr;
+    }
+
+
     void MethodCompiler::initLocalVariable(BlockContext &blockContext) {
         //将函数所有的参数load进第一个块的localVariableTable中
         for (size_t i = 0; i < method.paramSlotType.size(); ++i) {
@@ -216,7 +237,7 @@ namespace RexVM {
         irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), lvtTypePtr);
     }
 
-    llvm::Value * MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, const bool isArray, const BasicType type) {
+    std::tuple<llvm::Type *, llvm::Value *> MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, const bool isArray, const BasicType type) {
         const auto offset =
             irBuilder.getInt32(isArray ? ARRAY_OOP_DATA_FIELD_OFFSET : INSTANCE_OOP_DATA_FIELD_OFFSET);
 
@@ -226,16 +247,17 @@ namespace RexVM {
         const auto dataFieldValue = irBuilder.CreateLoad(voidPtrType, oopDataFieldPtr);
         const u4 elementByteSize = isArray ? getElementSizeByBasicType(type) : SLOT_BYTE_SIZE;
         const u4 elementBitSize = elementByteSize * 8;
+        const auto dataPtrType = irBuilder.getIntNTy(elementBitSize);
 
         //InstanceOop element is Slot
         const auto dataFieldPtr =
                 irBuilder.CreateGEP(
-                    irBuilder.getIntNTy(elementBitSize),
+                    dataPtrType,
                     dataFieldValue,
                     index
                 );
 
-        return dataFieldPtr;
+        return std::make_tuple(dataPtrType, dataFieldPtr);
     }
 
     void MethodCompiler::returnValue(llvm::Value *val, SlotTypeEnum type) {
@@ -366,51 +388,58 @@ namespace RexVM {
                                    const uint8_t type) {
         //arrayRef 是 arrayOop
         throwNpeIfNull(blockContext, arrayRef);
+        llvm::Type *dataType{nullptr};
         llvm::Value *dataPtr{nullptr};
         switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE: {
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_BYTE_ARRAY_TYPE: {
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
-                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
+                const auto oriValue = irBuilder.CreateLoad(dataType, dataPtr);
+                const auto i4Value = irBuilder.CreateZExt(oriValue, slotTypeMap(SlotTypeEnum::I4));
+                blockContext.pushValue(i4Value);
                 break;
             }
 
             case LLVM_COMPILER_CHAR_ARRAY_TYPE: {
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
-                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
+                const auto oriValue = irBuilder.CreateLoad(dataType, dataPtr);
+                const auto i4Value = irBuilder.CreateZExt(oriValue, slotTypeMap(SlotTypeEnum::I4));
+                blockContext.pushValue(i4Value);
                 break;
             }
 
             case LLVM_COMPILER_SHORT_ARRAY_TYPE: {
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
-                blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I4), dataPtr));
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
+                const auto oriValue = irBuilder.CreateLoad(dataType, dataPtr);
+                const auto i4Value = irBuilder.CreateSExt(oriValue, slotTypeMap(SlotTypeEnum::I4));
+                blockContext.pushValue(i4Value);
                 break;
             }
 
             case LLVM_COMPILER_LONG_ARRAY_TYPE: {
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
                 blockContext.pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::I8), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_FLOAT_ARRAY_TYPE: {
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F4), dataPtr));
                 break;
             }
 
             case LLVM_COMPILER_DOUBLE_ARRAY_TYPE: {
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
                 blockContext.pushWideValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::F8), dataPtr));
                 break;
             }
             case LLVM_COMPILER_OBJ_ARRAY_TYPE: {
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
                 blockContext.pushValue(irBuilder.CreateLoad(slotTypeMap(SlotTypeEnum::REF), dataPtr));
                 break;
             }
@@ -422,38 +451,42 @@ namespace RexVM {
 
     void MethodCompiler::arrayStore(BlockContext &blockContext, llvm::Value *arrayRef, llvm::Value *index, llvm::Value *value, const uint8_t type) {
         throwNpeIfNull(blockContext, arrayRef);
+        llvm::Type *dataType{nullptr};
         llvm::Value *dataPtr{nullptr};
          switch (type) {
             case LLVM_COMPILER_INT_ARRAY_TYPE:
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_INT);
                 break;
 
             case LLVM_COMPILER_BYTE_ARRAY_TYPE:
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_BYTE);
+                value = irBuilder.CreateTrunc(value, dataType);
                 break;
 
             case LLVM_COMPILER_CHAR_ARRAY_TYPE:
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_CHAR);
+                value = irBuilder.CreateTrunc(value, dataType);
                 break;
 
             case LLVM_COMPILER_SHORT_ARRAY_TYPE:
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_SHORT);
+                value = irBuilder.CreateTrunc(value, dataType);
                 break;
 
             case LLVM_COMPILER_LONG_ARRAY_TYPE:
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_LONG);
                 break;
 
             case LLVM_COMPILER_FLOAT_ARRAY_TYPE:
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_FLOAT);
                 break;
 
             case LLVM_COMPILER_DOUBLE_ARRAY_TYPE:
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_DOUBLE);
                 break;
 
             case LLVM_COMPILER_OBJ_ARRAY_TYPE:
-                dataPtr = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
+                std::tie(dataType, dataPtr) = getOopDataPtr(arrayRef, index, true, BasicType::T_OBJECT);
                 break;
 
             default:
@@ -627,9 +660,9 @@ namespace RexVM {
         const auto type = field->getFieldSlotType();
         const auto klassPtr = &field->klass;
         const auto llvmDataPtr = getConstantPtr(dataPtr);
-        // helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
+        helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
         // clinit放在一起 让llir看起来简化一些
-        initClasses.emplace(klassPtr);
+        // initClasses.emplace(klassPtr);
         if (opType == 0) {
             const auto value = irBuilder.CreateLoad(slotTypeMap(type), llvmDataPtr, field->getName());
             blockContext.pushValue(value, type);
@@ -645,7 +678,7 @@ namespace RexVM {
         const auto slotId = field->slotId;
         const auto oop = blockContext.popValue();
         throwNpeIfNull(blockContext, oop);
-        const auto fieldDataPtr = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
+        const auto [fieldDataType, fieldDataPtr] = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
         const auto value = irBuilder.CreateLoad(slotTypeMap(type), fieldDataPtr, field->getName());
         blockContext.pushValue(value, type);
     }
@@ -657,7 +690,7 @@ namespace RexVM {
         const auto value = blockContext.popValue(type);
         const auto oop = blockContext.popValue();
         throwNpeIfNull(blockContext, oop);
-        const auto fieldDataPtr = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
+        const auto [fieldDataType, fieldDataPtr] = getOopDataPtr(oop, irBuilder.getInt32(slotId), false, BasicType::T_OBJECT);
         irBuilder.CreateStore(value, fieldDataPtr);
     }
 
@@ -768,6 +801,9 @@ namespace RexVM {
         const auto paramSlotSize = pushParams(blockContext, paramType, true);
 
         if (isMethodHandleInvoke(className, methodName)) {
+            if (methodName == "invoke") {
+                int i = 10;
+            }
             const auto invokeMethod =
                     vm.bootstrapClassLoader
                     ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
@@ -867,7 +903,8 @@ namespace RexVM {
                     getFramePtr(),
                     LLVM_COMPILER_CHECK_CAST,
                     ref,
-                    getConstantPtr(checkClass)
+                    getConstantPtr(checkClass),
+                    blockContext.pc
                 );
 
         const auto endBB = BasicBlock::Create(ctx);
@@ -891,9 +928,10 @@ namespace RexVM {
                 helpFunction->createCallInstanceOf(
                     irBuilder,
                     getFramePtr(),
-                    LLVM_COMPILER_CHECK_CAST,
+                    LLVM_COMPILER_INSTANCE_OF,
                     ref,
-                    getConstantPtr(checkClass)
+                    getConstantPtr(checkClass),
+                    blockContext.pc
                 );
         blockContext.pushValue(checkRet);
     }
@@ -919,9 +957,9 @@ namespace RexVM {
         const auto firstBlockContext= cfgBlocks[0].get();
         const auto firstBlock = firstBlockContext->basicBlock;
         irBuilder.SetInsertPoint(entryBlock);
-        for (const auto initClass : initClasses) {
-            helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(initClass));
-        }
+        // for (const auto initClass : initClasses) {
+        //     helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(initClass));
+        // }
         irBuilder.CreateBr(firstBlock);
 
         exitBB->insertInto(function);
@@ -977,7 +1015,13 @@ namespace RexVM {
 
     bool MethodCompiler::compile() {
         if (cfg.jumpFront) {
+            //暂不支持编译这种方法
             return false;
+        }
+
+        if (method.klass.getClassName() == "org/junit/platform/launcher/core/LauncherFactory$$Lambda$30" &&
+            method.id.getId() == "accept(Ljava/lang/Object;)V") {
+            int i = 10;
         }
 
         if (cfgBlocks.empty()) {
