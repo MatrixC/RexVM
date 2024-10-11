@@ -1,7 +1,8 @@
 add_rules("mode.debug", "mode.release", "mode.check")
 set_languages("c11", "cxx20")
 option("llvm-jit")
-    set_default(true)
+    set_default(false)
+    set_showmenu(true)
     set_description("llvm-jit")
     local llvm_path = os.getenv("LLVM_PATH")
     local llvm_version = os.getenv("LLVM_VERSION")
@@ -43,7 +44,6 @@ target("rex")
     )
     add_files(
         "src/*.cpp",
-        "src/jit/*.cpp",
         "src/utils/*.cpp",
         "src/native/*.cpp",
         "src/native/core/*.cpp",
@@ -51,8 +51,11 @@ target("rex")
         "src/native/sun/*.cpp",
         "src/native/rex/*.cpp",
     
-
         "third_party/miniz/miniz.c"
     )
+
+if get_config("llvm-jit") then
+    add_files("src/jit/*.cpp")
+end
 
 target_end()

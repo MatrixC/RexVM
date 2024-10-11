@@ -12,13 +12,8 @@ namespace RexVM {
         const auto int16Ty = Type::getInt16Ty(context);
         const auto int32Ty = Type::getInt32Ty(context);
         const auto int64Ty = Type::getInt64Ty(context);
-        const auto floatTy = Type::getFloatTy(context);
-        const auto doubleTy = Type::getDoubleTy(context);
         const auto voidPtrTy = PointerType::getUnqual(voidTy);
 
-        //void (void *)
-        const auto type0 = FunctionType::get(voidTy, {voidPtrTy, int32Ty}, false);
-        //void *(void *, uint32_t);
         const auto type1 = FunctionType::get(voidPtrTy, {voidPtrTy, int32Ty}, false);
 
         getInstanceConstant = module.getOrInsertFunction("llvm_compile_get_instance_constant", type1);

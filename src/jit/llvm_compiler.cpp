@@ -17,8 +17,11 @@
 namespace RexVM {
     using namespace llvm;
 
-    constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
-    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
+    // constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
+    // constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
+
+    constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = 32;
+    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = 32;
 
     MethodCompiler::MethodCompiler(
         VM &vm,
@@ -745,7 +748,6 @@ namespace RexVM {
         llvm::Value *methodRef,
         const size_t paramSlotSize
     ) {
-        const auto throwExceptionBB = BasicBlock::Create(ctx);
         const auto successReturnBB = BasicBlock::Create(ctx);;
 
         const auto invokeException =
@@ -801,36 +803,16 @@ namespace RexVM {
         const auto paramSlotSize = pushParams(blockContext, paramType, true);
 
         if (isMethodHandleInvoke(className, methodName)) {
-            if (methodName == "invoke") {
-                int i = 10;
-            }
             const auto invokeMethod =
                     vm.bootstrapClassLoader
                     ->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
                     ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
 
             invokeCommon(blockContext, methodName, returnType, getConstantPtr(invokeMethod), paramSlotSize);
-            // helpFunction->createCallInvokeMethodFixed(
-            //     irBuilder,
-            //     getFramePtr(),
-            //     getConstantPtr(invokeMethod),
-            //     paramSlotSize,
-            //     methodName
-            // );
         } else {
             invokeCommon(blockContext, methodName, returnType, getZeroValue(SlotTypeEnum::REF), index);
-
-            //Add sp and invoke method
-            // helpFunction->createCallInvokeMethodFixed(
-            //     irBuilder,
-            //     getFramePtr(),
-            //     getZeroValue(SlotTypeEnum::REF),
-            //     index,
-            //     methodName
-            // );
         }
 
-        // processInvokeReturn(blockContext, returnType);
     }
 
     void MethodCompiler::invokeDynamic(BlockContext &blockContext, const u2 index) {
@@ -1012,16 +994,10 @@ namespace RexVM {
     }
 
 
-
     bool MethodCompiler::compile() {
         if (cfg.jumpFront) {
             //暂不支持编译这种方法
             return false;
-        }
-
-        if (method.klass.getClassName() == "org/junit/platform/launcher/core/LauncherFactory$$Lambda$30" &&
-            method.id.getId() == "accept(Ljava/lang/Object;)V") {
-            int i = 10;
         }
 
         if (cfgBlocks.empty()) {

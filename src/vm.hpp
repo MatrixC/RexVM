@@ -33,7 +33,9 @@ namespace RexVM {
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
         std::unique_ptr<GarbageCollect> garbageCollector;
         std::unique_ptr<VMThread> mainThread;
+#ifdef LLVM_JIT
         std::unique_ptr<LLVM_JITManager> jitManager;
+#endif
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
         cstring javaHome{};
         cstring javaClassPath{};

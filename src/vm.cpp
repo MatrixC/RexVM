@@ -10,9 +10,9 @@
 #include "file_system.hpp"
 #include "garbage_collect.hpp"
 #include "bootstrap_helper.hpp"
-#include "jit/jit_manager.hpp"
+#ifdef LLVM_JIT
 #include "jit/llvm_jit_manager.hpp"
-#include "oop.hpp"
+#endif
 
 
 namespace RexVM {
@@ -51,7 +51,9 @@ namespace RexVM {
         mainThread->setThreadName("main"); //like openjdk
         garbageCollector->start();
 
+#ifdef LLVM_JIT
         jitManager = std::make_unique<LLVM_JITManager>(*this);
+#endif
 
         if (!initVMBootstrapMethods(*this)) {
             return false;
@@ -76,8 +78,6 @@ namespace RexVM {
         garbageCollector->join();
         stringPool->clear();
         garbageCollector->collectAll();
-
-        cprintln("succ {}, failed {}", jitManager->successMethodCnt.load(), jitManager->failedMethodCnt.load());
     }
 
     VM::VM(ApplicationParameter &params) : params(params) {

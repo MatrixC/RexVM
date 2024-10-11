@@ -12,7 +12,9 @@
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
 #include "garbage_collect.hpp"
+#ifdef LLVM_JIT
 #include "jit/llvm_jit_manager.hpp"
+#endif
 
 namespace RexVM {
 
@@ -111,24 +113,19 @@ namespace RexVM {
         }
     }
 
-    void checkMethodCompile(const Frame &frame, Method &method) {
-        if (method.isNative()) {
-            return;
-        }
+    void executeFrame(Frame &frame, [[maybe_unused]] cview methodName) {
+        auto &method = frame.method;
+        const auto notNativeMethod = !method.isNative();
 
-        if (method.canCompile && method.compiledMethodHandler == nullptr) {
+#ifdef LLVM_JIT
+        method.invokeCounter++;
+        if (notNativeMethod && method.canCompile && method.compiledMethodHandler == nullptr) {
             if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
                 jitManager->compileMethod(method);
             }
         }
-    }
+#endif
 
-    void executeFrame(Frame &frame, [[maybe_unused]] cview methodName) {
-        auto &method = frame.method;
-        method.invokeCounter++;
-        checkMethodCompile(frame ,method);
-
-        const auto notNativeMethod = !method.isNative();
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
         frame.vm.garbageCollector->checkStopForCollect(frame.thread);
