@@ -76,6 +76,8 @@ namespace RexVM {
         garbageCollector->join();
         stringPool->clear();
         garbageCollector->collectAll();
+
+        cprintln("succ {}, failed {}", jitManager->successMethodCnt.load(), jitManager->failedMethodCnt.load());
     }
 
     VM::VM(ApplicationParameter &params) : params(params) {

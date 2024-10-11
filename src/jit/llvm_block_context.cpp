@@ -116,11 +116,6 @@ namespace RexVM {
                 }
             }
 
-            // if (notNullValue == nullptr) {
-            //     localVariableTable[i] = nullptr;
-            //     break;
-            // }
-
             if (allEquals) {
                 localVariableTable[i] = firstValue;
                 break;
@@ -259,8 +254,8 @@ namespace RexVM {
         }
 
         if (!blockValueStack.empty()) {
-            if (jumpToBlocks.empty()) {
-                // panic("error stack");
+            if (methodCompiler.checkStackError && jumpToBlocks.empty()) {
+                panic("error stack");
             }
 
             for (const auto &jumpToBlock : jumpToBlocks) {

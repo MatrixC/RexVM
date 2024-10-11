@@ -102,20 +102,21 @@ namespace RexVM {
     struct Method : ClassMember {
         u2 maxLocals{};
         u4 codeLength{};
+        u4 invokeCounter{};
         std::unique_ptr<u1[]> code;
         std::vector<std::unique_ptr<ExceptionCatchItem>> exceptionCatches;
         std::vector<std::unique_ptr<LineNumberItem>> lineNumbers;
+        NativeMethodHandler nativeMethodHandler{};
+        CompiledMethodHandler compiledMethodHandler{};
 
         CompositeArray<u2> exceptionsIndex;
-
         std::unique_ptr<MethodAnnotationContainer> methodAnnotationContainer;
 
         std::vector<cstring> paramType;
         cstring returnType;
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
-        NativeMethodHandler nativeMethodHandler{};
-        CompiledMethodHandler compiledMethodHandler{};
+        bool canCompile{true};
 
         explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index = 0);
 

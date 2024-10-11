@@ -116,21 +116,21 @@ namespace RexVM {
             return;
         }
 
-        if (method.compiledMethodHandler == nullptr) {
-            const auto jitManager = frame.vm.jitManager.get();
-            if (jitManager != nullptr) {
+        if (method.canCompile && method.compiledMethodHandler == nullptr) {
+            if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
                 jitManager->compileMethod(method);
             }
         }
-        // MethodCFG cfg(method);
     }
 
     void executeFrame(Frame &frame, [[maybe_unused]] cview methodName) {
         auto &method = frame.method;
+        method.invokeCounter++;
+        checkMethodCompile(frame ,method);
+
         const auto notNativeMethod = !method.isNative();
 
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
-        checkMethodCompile(frame ,method);
         frame.vm.garbageCollector->checkStopForCollect(frame.thread);
 
         if (notNativeMethod) [[likely]] {

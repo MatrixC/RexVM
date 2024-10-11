@@ -2,7 +2,6 @@
 #define LLVM_JIT_MANAGER_HPP
 #include "../config.hpp"
 #include "jit_manager.hpp"
-#include <memory>
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <atomic>
@@ -13,7 +12,9 @@ namespace RexVM {
 
     class LLVM_JITManager final : public JITManager {
     public:
-        std::atomic_int32_t methodCnt{0};
+        std::atomic_uint32_t methodCnt{0};
+        std::atomic_uint32_t successMethodCnt{0};
+        std::atomic_uint32_t failedMethodCnt{0};
 
         explicit LLVM_JITManager(VM &vm);
 

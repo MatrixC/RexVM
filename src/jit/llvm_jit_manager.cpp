@@ -48,7 +48,11 @@ namespace RexVM {
 
 
     CompiledMethodHandler LLVM_JITManager::compileMethod(Method &method) {
+        if (!method.canCompile || method.compiledMethodHandler != nullptr) {
+            return nullptr;
+        }
         if (!method.exceptionCatches.empty()) {
+            ++failedMethodCnt;
             return nullptr;
         }
         const auto ctx = threadSafeContext->getContext();
@@ -59,14 +63,10 @@ namespace RexVM {
 
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         if (!methodCompiler.compile()) {
+            ++failedMethodCnt;
             return nullptr;;
         }
         methodCompiler.verify();
-        // cprintln("compiled method {} {}", method.klass.getClassName(), method.getName());
-
-        // if (startWith(compiledMethodName, "saveAndRemoveProperties")) {
-             // module->print(llvm::outs(), nullptr);
-        // }
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));
@@ -74,6 +74,7 @@ namespace RexVM {
         const auto sym = jit->lookup(compiledMethodName);
         const auto ptr = sym->toPtr<CompiledMethodHandler>();
         method.compiledMethodHandler = ptr;
+        ++successMethodCnt;
         return ptr;
     }
 }
