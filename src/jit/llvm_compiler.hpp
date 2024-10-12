@@ -81,7 +81,7 @@ namespace RexVM {
 
         void returnValue(llvm::Value *val, SlotTypeEnum type);
 
-        void throwNpeIfZero(BlockContext &blockContext, llvm::Value *val, SlotTypeEnum slotType);
+        void throwIfZero(BlockContext &blockContext, llvm::Value *val, SlotTypeEnum slotType);
 
         void throwNpeIfNull(BlockContext &blockContext, llvm::Value *val);
 

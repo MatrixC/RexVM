@@ -75,6 +75,7 @@ extern "C" {
 
     void *llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize, uint32_t pc) {
         const auto frame = static_cast<Frame *>(framePtr);
+        frame->jitPc = pc;
         auto &operandStack = frame->operandStackContext;
 
         Method *invokeMethod{nullptr};
@@ -101,7 +102,7 @@ extern "C" {
 
         if (frame->markThrow) {
             //JIT函数当前无法处理异常 所以在执行的JIT函数也肯定没有异常表 向上抛出异常即可
-            frame->jitPc = pc;
+            // frame->jitPc = pc;
             return frame->throwObject;
         }
 

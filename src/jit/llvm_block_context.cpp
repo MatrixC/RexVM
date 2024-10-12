@@ -686,7 +686,7 @@ namespace RexVM {
             case OpCodeEnum::IDIV: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
-                methodCompiler.throwNpeIfZero(*this, val2, SlotTypeEnum::I4);
+                methodCompiler.throwIfZero(*this, val2, SlotTypeEnum::I4);
                 pushValue(irBuilder.CreateSDiv(val1, val2));
                 break;
             }
@@ -694,7 +694,7 @@ namespace RexVM {
             case OpCodeEnum::LDIV: {
                 const auto val2 = popWideValue();
                 const auto val1 = popWideValue();
-                methodCompiler.throwNpeIfZero(*this, val2, SlotTypeEnum::I8);
+                methodCompiler.throwIfZero(*this, val2, SlotTypeEnum::I8);
                 pushWideValue(irBuilder.CreateSDiv(val1, val2));
                 break;
             }
@@ -716,7 +716,7 @@ namespace RexVM {
             case OpCodeEnum::IREM: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
-                methodCompiler.throwNpeIfZero(*this, val2, SlotTypeEnum::I4);
+                methodCompiler.throwIfZero(*this, val2, SlotTypeEnum::I4);
                 pushValue(irBuilder.CreateSRem(val1, val2));
                 break;
             }
@@ -724,7 +724,7 @@ namespace RexVM {
             case OpCodeEnum::LREM: {
                 const auto val2 = popWideValue();
                 const auto val1 = popWideValue();
-                methodCompiler.throwNpeIfZero(*this, val2, SlotTypeEnum::I8);
+                methodCompiler.throwIfZero(*this, val2, SlotTypeEnum::I8);
                 pushWideValue(irBuilder.CreateSRem(val1, val2));
                 break;
             }
@@ -732,7 +732,7 @@ namespace RexVM {
             case OpCodeEnum::FREM: {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
-                methodCompiler.throwNpeIfZero(*this, val2, SlotTypeEnum::F4);
+                methodCompiler.throwIfZero(*this, val2, SlotTypeEnum::F4);
                 pushValue(irBuilder.CreateFRem(val1, val2));
                 break;
             }
@@ -740,7 +740,7 @@ namespace RexVM {
             case OpCodeEnum::DREM: {
                 const auto val2 = popWideValue();
                 const auto val1 = popWideValue();
-                methodCompiler.throwNpeIfZero(*this, val2, SlotTypeEnum::F8);
+                methodCompiler.throwIfZero(*this, val2, SlotTypeEnum::F8);
                 pushWideValue(irBuilder.CreateFRem(val1, val2));
                 break;
             }

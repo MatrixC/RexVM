@@ -143,7 +143,7 @@ namespace RexVM {
     }
 
     u4 Frame::pc() const {
-        if (jitPc > 0) {
+        if (jitPc >= 0) {
             return jitPc;
         }
         return nextPc() - 1;

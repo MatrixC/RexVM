@@ -1,10 +1,8 @@
 #ifndef NATIVE_CORE_JAVA_LANG_THROWABLE_HPP
 #define NATIVE_CORE_JAVA_LANG_THROWABLE_HPP
 #include "../../config.hpp"
-#include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"
-#include "../../string_pool.hpp"
 #include "../../key_slot_id.hpp"
 
 namespace RexVM::Native::Core {
@@ -35,7 +33,7 @@ namespace RexVM::Native::Core {
         //frame is native fillInStackTrace
         //frame->previous is public synchronized Throwable fillInStackTrace()
         //so skip them
-        for (Frame *currentFrame = (&frame)->previous->previous; currentFrame != nullptr; currentFrame = currentFrame->previous) {
+        for (const Frame *currentFrame = frame.previous->previous; currentFrame != nullptr; currentFrame = currentFrame->previous) {
             const auto &method = currentFrame->method;
             const auto &klass = method.klass;
             if (!notCheck && (&klass == throwableClass || klass.isSubClassOf(throwableClass))) {
@@ -51,7 +49,7 @@ namespace RexVM::Native::Core {
         }
 
         const auto arrayOop = frame.mem.newObjArrayOop(stackTraceElementArrayClass, stackTraceElements.size());
-        std::copy(stackTraceElements.begin(), stackTraceElements.end(), arrayOop->data.get());
+        std::ranges::copy(stackTraceElements, arrayOop->data.get());
         self->setFieldValue(throwableClassStacktraceFID, Slot(nullptr));
         self->setFieldValue(throwableClassBacktraceFID, Slot(arrayOop));
         frame.returnRef(self);

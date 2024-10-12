@@ -295,7 +295,7 @@ namespace RexVM {
         exitMethod();
     }
 
-    void MethodCompiler::throwNpeIfZero(BlockContext &blockContext, llvm::Value *val, const SlotTypeEnum slotType) {
+    void MethodCompiler::throwIfZero(BlockContext &blockContext, llvm::Value *val, const SlotTypeEnum slotType) {
         // if (value == zero) {
         //   throwNpe(frame);
         //   return;
@@ -326,7 +326,7 @@ namespace RexVM {
 
 
     void MethodCompiler::throwNpeIfNull(BlockContext &blockContext, llvm::Value *val) {
-        throwNpeIfZero(blockContext, val, SlotTypeEnum::REF);
+        throwIfZero(blockContext, val, SlotTypeEnum::REF);
     }
 
     void MethodCompiler::throwException(BlockContext &blockContext, llvm::Value *ex) {
