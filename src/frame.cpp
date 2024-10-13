@@ -143,14 +143,10 @@ namespace RexVM {
     }
 
     u4 Frame::pc() const {
-        if (jitPc >= 0) {
-            return jitPc;
-        }
-        return nextPc() - 1;
+        return pcCode;
     }
 
     u4 Frame::nextPc() const {
-        //return CAST_U4(reader.ptr - method.code.get());
         return CAST_U4(reader.ptr - reader.begin);
     }
 

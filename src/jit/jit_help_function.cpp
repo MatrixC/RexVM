@@ -75,7 +75,7 @@ extern "C" {
 
     void *llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize, uint32_t pc) {
         const auto frame = static_cast<Frame *>(framePtr);
-        frame->jitPc = pc;
+        frame->pcCode = pc;
         auto &operandStack = frame->operandStackContext;
 
         Method *invokeMethod{nullptr};
@@ -161,7 +161,7 @@ extern "C" {
 
     void llvm_compile_throw_exception(void *framePtr, void *exOop, const uint32_t pc, const uint8_t fixedException) {
         const auto frame = static_cast<Frame *>(framePtr);
-        frame->jitPc = pc;
+        frame->pcCode = pc;
 
         if (exOop == nullptr) {
             if (fixedException == LLVM_COMPILER_FIXED_EXCEPTION_NPE) {
@@ -180,7 +180,7 @@ extern "C" {
 
     int32_t llvm_compile_check_cast(void *framePtr, const uint8_t type, void *popOop, void *check, const uint32_t pc) {
         const auto frame = static_cast<Frame *>(framePtr);
-        frame->jitPc = pc;
+        frame->pcCode = pc;
         const auto refVal = CAST_REF(popOop);
         const auto checkClass = CAST_CLASS(check);
         if (refVal == nullptr) {

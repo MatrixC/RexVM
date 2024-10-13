@@ -148,6 +148,7 @@ namespace RexVM {
 
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
+                frame.pcCode = CAST_U4(byteReader.ptr - byteReader.begin);
                 frame.currentByteCode = frame.reader.readU1();
                 #ifdef DEBUG
                 ATTR_UNUSED const auto pc = frame.pc();
@@ -194,7 +195,6 @@ namespace RexVM {
         const auto backupFrame = thread.currentFrame;
         thread.currentFrame = &frame;
 
-        
         const auto &method = frame.method;
         EXCLUDE_EXECUTE_METHODS(method)
         auto lock = false;
@@ -206,7 +206,11 @@ namespace RexVM {
             monitorHandler->lock();
             lock = true;
         }
-        executeFrame(frame, cformat("{}#{}", method.klass.toView(), method.toView()));
+        cview methodName{};
+#ifdef DEBUG
+        methodName = cformat("{}#{}", method.klass.toView(), method.toView());
+#endif
+        executeFrame(frame, methodName);
         if (lock) {
             monitorHandler->unlock();
         }
