@@ -338,29 +338,20 @@ namespace RexVM {
 
     void Frame::throwException(InstanceOop * const val, u4 throwPc) {
         markThrow = true;
-        //throwObject = std::make_unique<FrameThrowable>(val, method, throwPc);
-        throwObject = val;
+        pushRef(val);
     }
 
     void Frame::throwException(InstanceOop * const val) {
         throwException(val, pc());
     }
 
-    // void Frame::passException(std::unique_ptr<FrameThrowable> lastException) {
-    //     markThrow = true;
-    //     throwObject = std::move(lastException);
-    //     throwObject->addPath(method, pc());
-    // }
-
     void Frame::passException(InstanceOop *lastException) {
         markThrow = true;
-        throwObject = lastException;
+        pushRef(lastException);
     }
 
     void Frame::cleanThrow() {
         markThrow = false;
-        //throwObject.reset();
-        throwObject = nullptr;
     }
 
     Slot Frame::getStackOffset(size_t offset) const {

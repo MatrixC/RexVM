@@ -760,10 +760,6 @@ namespace RexVM {
                     methodName
                 );
 
-        if (paramSlotSize == 86 && blockContext.pc == 430) {
-            int i = 10;
-        }
-
         const auto successReturn =
                 irBuilder.CreateICmpEQ(
                     invokeException,

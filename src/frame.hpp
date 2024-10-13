@@ -57,8 +57,6 @@ namespace RexVM {
         SlotTypeEnum returnType{};
 
         bool markThrow{false};
-        //std::unique_ptr<FrameThrowable> throwObject;
-        InstanceOop *throwObject{nullptr};
 
         explicit Frame(VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize = 0);
         ~Frame();

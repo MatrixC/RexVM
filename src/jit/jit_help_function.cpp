@@ -102,8 +102,11 @@ extern "C" {
 
         if (frame->markThrow) {
             //JIT函数当前无法处理异常 所以在执行的JIT函数也肯定没有异常表 向上抛出异常即可
+            //TODO
+            return framePtr;
             // frame->jitPc = pc;
-            return frame->throwObject;
+            // return frame->popRef();
+            // return frame->throwObject;
         }
 
         operandStack.sp = -1;

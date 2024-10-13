@@ -230,13 +230,6 @@ namespace RexVM {
         const auto &method = methodCompiler.method;
         const auto codeBegin = method.code.get();
 
-        if (methodCompiler.method.klass.getClassName() == "ORG_1_6_Pojo"
-            && methodCompiler.method.getName() == "readObject"
-            && methodCompiler.method.getDescriptor() == "(Lcom/alibaba/fastjson2/JSONReader;Ljava/lang/reflect/Type;Ljava/lang/Object;J)Ljava/lang/Object;"
-            && methodBlock->startPC == 415) {
-            int i = 10;
-        }
-
         methodCompiler.changeBB(*this, basicBlock);
         initPassStack();
         initLocalVariableTable();

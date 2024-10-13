@@ -29,8 +29,7 @@ namespace RexVM {
 
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
-        //const auto throwInstance = frame.throwObject->throwValue;
-        const auto throwInstance = frame.throwObject;
+        const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
         const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->getClass());
         auto &method = frame.method;
         const auto handler =
@@ -54,17 +53,17 @@ namespace RexVM {
                 throwToTopFrame(frame, throwInstance);
                 frame.cleanThrow();
                 return true;
-            } else {
-                previousFrame->passException(frame.throwObject);
-                return true;
             }
+            previousFrame->passException(throwInstance);
+            return true;
         }
 
         return false;
     }
 
     void handleThrowValueJIT(Frame &frame) {
-        const auto throwInstance = frame.throwObject;
+        // const auto throwInstance = frame.throwObject;
+        const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
         const auto previousFrame = frame.previous;
         if (previousFrame == nullptr) {
             //TOP Frame
@@ -72,7 +71,7 @@ namespace RexVM {
             frame.cleanThrow();
             return;
         }
-        previousFrame->passException(frame.throwObject);
+        previousFrame->passException(throwInstance);
     }
 
     void checkAndPassReturnValue(const Frame &frame) {
