@@ -2,6 +2,7 @@
 #include "../class_member.hpp"
 #include "../utils/byte_reader.hpp"
 #include "llvm_compiler.hpp"
+#include "../class.hpp"
 
 namespace RexVM {
 
@@ -229,6 +230,13 @@ namespace RexVM {
         const auto &method = methodCompiler.method;
         const auto codeBegin = method.code.get();
 
+        if (methodCompiler.method.klass.getClassName() == "ORG_1_6_Pojo"
+            && methodCompiler.method.getName() == "readObject"
+            && methodCompiler.method.getDescriptor() == "(Lcom/alibaba/fastjson2/JSONReader;Ljava/lang/reflect/Type;Ljava/lang/Object;J)Ljava/lang/Object;"
+            && methodBlock->startPC == 415) {
+            int i = 10;
+        }
+
         methodCompiler.changeBB(*this, basicBlock);
         initPassStack();
         initLocalVariableTable();
@@ -243,7 +251,10 @@ namespace RexVM {
             const auto currentByteCode = reader.readU1();
             const auto opCode = static_cast<OpCodeEnum>(currentByteCode);
 
-            processInstruction(opCode, reader);
+            if (processInstruction(opCode, reader)) {
+                //end block opCode, ignore unreachable code
+                break;
+            }
             reader.resetCurrentOffset();
         }
 
@@ -266,7 +277,8 @@ namespace RexVM {
         }
     }
 
-    void BlockContext::processInstruction(OpCodeEnum opCode, ByteReader &byteReader) {
+    bool BlockContext::processInstruction(OpCodeEnum opCode, ByteReader &byteReader) {
+        bool isEndOpCode{false};
         switch (opCode) {
             case OpCodeEnum::NOP:
                 break;
@@ -1003,6 +1015,7 @@ namespace RexVM {
                 const auto offset = byteReader.readI2();
                 const auto val = popValue();
                 methodCompiler.ifOp(*this, offset, val, methodCompiler.getZeroValue(SlotTypeEnum::I4), opCode);
+                isEndOpCode = true;
                 break;
             }
 
@@ -1017,6 +1030,7 @@ namespace RexVM {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 methodCompiler.ifOp(*this, offset, val1, val2, static_cast<OpCodeEnum>(curOp));
+                isEndOpCode = true;
                 break;
             }
             case OpCodeEnum::IF_ACMPEQ:
@@ -1026,12 +1040,14 @@ namespace RexVM {
                 const auto val2 = popValue();
                 const auto val1 = popValue();
                 methodCompiler.ifOp(*this, offset, val1, val2, static_cast<OpCodeEnum>(curOp));
+                isEndOpCode = true;
                 break;
             }
 
             case OpCodeEnum::GOTO: {
                 const auto offset = byteReader.readI2();
                 methodCompiler.jumpTo(*this, offset);
+                isEndOpCode = true;
                 break;
             }
 
@@ -1057,6 +1073,7 @@ namespace RexVM {
                     currentValue += 1;
                 }
                 methodCompiler.createSwitch(*this, switchValue, cases);
+                isEndOpCode = true;
                 break;
             }
 
@@ -1080,41 +1097,48 @@ namespace RexVM {
                     cases.emplace_back(caseOffset);
                 }
                 methodCompiler.createSwitch(*this, switchValue, cases);
+                isEndOpCode = true;
                 break;
             }
 
             case OpCodeEnum::IRETURN: {
                 const auto retVal = popValue();
                 methodCompiler.returnValue(retVal, SlotTypeEnum::I4);
+                isEndOpCode = true;
                 break;
             }
 
             case OpCodeEnum::LRETURN: {
                 const auto retVal = popWideValue();
                 methodCompiler.returnValue(retVal, SlotTypeEnum::I8);
+                isEndOpCode = true;
                 break;
             }
 
             case OpCodeEnum::FRETURN: {
                 const auto retVal = popValue();
                 methodCompiler.returnValue(retVal, SlotTypeEnum::F4);
+                isEndOpCode = true;
                 break;
             }
 
             case OpCodeEnum::DRETURN: {
                 const auto retVal = popWideValue();
                 methodCompiler.returnValue(retVal, SlotTypeEnum::F8);
+                isEndOpCode = true;
                 break;
             }
 
             case OpCodeEnum::ARETURN: {
                 const auto retVal = popValue();
                 methodCompiler.returnValue(retVal, SlotTypeEnum::REF);
+                isEndOpCode = true;
                 break;
             }
 
             case OpCodeEnum::RETURN: {
                 methodCompiler.returnValue(nullptr, SlotTypeEnum::NONE);
+                isEndOpCode = true;
                 break;
             }
 
@@ -1298,12 +1322,14 @@ namespace RexVM {
                 const auto offset = byteReader.readI2();
                 const auto val = popValue();
                 methodCompiler.ifOp(*this, offset, val, methodCompiler.getZeroValue(SlotTypeEnum::REF), static_cast<OpCodeEnum>(curOp));
+                isEndOpCode = true;
                 break;
             }
 
             case OpCodeEnum::GOTO_W: {
                 const auto offset = byteReader.readI4();
                 methodCompiler.jumpTo(*this, offset);
+                isEndOpCode = true;
                 break;
             }
 
@@ -1311,6 +1337,8 @@ namespace RexVM {
                 panic("not support");
                 break;
         }
+
+        return isEndOpCode;
     }
 
 }

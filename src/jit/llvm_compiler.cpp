@@ -760,6 +760,10 @@ namespace RexVM {
                     methodName
                 );
 
+        if (paramSlotSize == 86 && blockContext.pc == 430) {
+            int i = 10;
+        }
+
         const auto successReturn =
                 irBuilder.CreateICmpEQ(
                     invokeException,
@@ -997,7 +1001,7 @@ namespace RexVM {
     bool MethodCompiler::compile() {
         if (cfg.jumpFront) {
             //暂不支持编译这种方法
-            return false;
+            // return false;
         }
 
         if (cfgBlocks.empty()) {

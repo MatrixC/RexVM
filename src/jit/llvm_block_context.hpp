@@ -83,7 +83,7 @@ namespace RexVM {
 
         void pushNullConst();
 
-        void processInstruction(OpCodeEnum opCode, ByteReader &byteReader);
+        bool processInstruction(OpCodeEnum opCode, ByteReader &byteReader);
 
         void compile();
     };
