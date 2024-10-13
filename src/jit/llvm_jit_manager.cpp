@@ -61,6 +61,12 @@ namespace RexVM {
         const auto compiledMethodName = cformat("{}_{}", method.getName(), currentMethodCnt);
         auto module = std::make_unique<Module>(moduleName, *ctx);
 
+        if (method.klass.getClassName() == "java/util/Hashtable"
+            && method.getName() == "<init>"
+            && method.getDescriptor() == "(IF)V") {
+            module->print(errs(), nullptr);
+        }
+
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         if (!methodCompiler.compile()) {
             ++failedMethodCnt;

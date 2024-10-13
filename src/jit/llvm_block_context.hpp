@@ -41,8 +41,8 @@ namespace RexVM {
         std::stack<llvm::Value *> blockValueStack;
 
         //当前块的本地变量表
-        // std::vector<llvm::Value *> localVariableTable;
-        std::unique_ptr<llvm::Value *[]> localVariableTable;
+        std::vector<llvm::Value *> localVariableTable;
+        // std::unique_ptr<llvm::Value *[]> localVariableTable;
 
         std::vector<BlockContext *> jumpToBlocks;
         std::vector<BlockContext *> parentBlocks;

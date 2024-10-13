@@ -14,7 +14,8 @@ namespace RexVM {
         : methodCompiler(methodCompiler),
           irBuilder(methodCompiler.irBuilder),
           methodBlock(methodBlock),
-          lastBasicBlock(nullptr) {
+          lastBasicBlock(nullptr),
+          localVariableTable(methodCompiler.method.maxLocals, nullptr) {
         const auto &method = methodCompiler.method;
         auto &ctx = methodCompiler.ctx;
         const auto lineNumber = method.getLineNumber(methodBlock->startPC);
@@ -82,7 +83,6 @@ namespace RexVM {
             return;
         }
 
-        localVariableTable = std::make_unique<llvm::Value *[]>(methodCompiler.method.maxLocals);
         if (parentBlocks.empty()) {
             if (methodBlock->index != 0) {
                 panic("error block");
@@ -92,11 +92,9 @@ namespace RexVM {
         }
 
         if (parentBlocks.size() == 1) {
-            std::copy_n(
-                parentBlocks[0]->localVariableTable.get(),
-                methodCompiler.method.maxLocals,
-                localVariableTable.get()
-            );
+            for (size_t i = 0; i < methodCompiler.method.maxLocals; ++i) {
+                localVariableTable[i] = parentBlocks[0]->localVariableTable[i];
+            }
             return;
         }
 
@@ -104,22 +102,25 @@ namespace RexVM {
             bool allEquals{true};
             const llvm::Value *notNullValue{nullptr};
             llvm::Value *firstValue{parentBlocks[0]->localVariableTable[i]};
+            i4 notNullValueIndex{-1};
 
+            size_t idx{0};
+            //int i = 10;
             for (const auto &parent : parentBlocks) {
                 const auto currentValue = parent->localVariableTable[i];
-
                 if (currentValue != nullptr && notNullValue == nullptr) {
                     notNullValue = currentValue;
+                    notNullValueIndex = idx;
                 }
-
                 if (allEquals && currentValue != firstValue) {
                     allEquals = false;
                 }
+                idx++;
             }
 
             if (allEquals) {
                 localVariableTable[i] = firstValue;
-                break;
+                continue;
             }
 
             const auto selectType = notNullValue->getType();
@@ -127,7 +128,10 @@ namespace RexVM {
             for (const auto &parent : parentBlocks) {
                 const auto parentLV = parent->localVariableTable[i];
                 const auto parentLastBB = parent->lastBasicBlock;
-                const auto val = parentLV == nullptr ? methodCompiler.getZeroValue(selectType) : parentLV;
+                const auto selectSlotType = methodCompiler.llvmTypeMap(selectType);
+                const auto zeroValue = methodCompiler.getZeroValue(selectSlotType);
+                const auto val = parentLV == nullptr ? zeroValue : parentLV;
+                const auto valType = val->getType();
                 selectPopValue->addIncoming(val, parentLastBB);
             }
 
@@ -229,6 +233,11 @@ namespace RexVM {
     void BlockContext::compile() {
         const auto &method = methodCompiler.method;
         const auto codeBegin = method.code.get();
+
+        if (method.klass.getClassName() == "java/util/Hashtable" && method.getName() == "<init>" && method.getDescriptor() == "(IF)V"
+            && methodBlock->startPC == 53) {
+            int i = 10;
+        }
 
         methodCompiler.changeBB(*this, basicBlock);
         initPassStack();

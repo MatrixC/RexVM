@@ -36,7 +36,8 @@ namespace RexVM {
         Method &method;
         InstanceClass &klass;
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
-        bool useLVT{false}; //使用block的本地变量表(不写frame的栈内存 把llvm::Value保存在context的数组中)
+        bool useLVT{true}; //使用block的本地变量表(不写frame的栈内存 把llvm::Value保存在context的数组中)
+        bool useClassInitEntry{false};
         bool checkStackError{false}; //是否做字节码执行后的栈数量检查 如果开启则函数编译结束后如果栈的元素数量不为0会报错
         std::unordered_set<Class *> initClasses;
 
@@ -60,6 +61,8 @@ namespace RexVM {
         [[nodiscard]] BlockContext *getBlockContext(u4 leaderPC) const;
 
         llvm::Type *slotTypeMap(SlotTypeEnum slotType);
+
+        SlotTypeEnum llvmTypeMap(const llvm::Type *type);
 
         llvm::Value *getZeroValue(SlotTypeEnum slotType);
 

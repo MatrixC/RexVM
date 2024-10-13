@@ -142,6 +142,27 @@ namespace RexVM {
         }
     }
 
+    SlotTypeEnum MethodCompiler::llvmTypeMap(const Type *type) {
+        if (type == voidPtrType) {
+            return (SlotTypeEnum::REF);
+        }
+        if (type == irBuilder.getInt32Ty()) {
+            return (SlotTypeEnum::I4);
+        }
+        if (type == irBuilder.getInt64Ty()) {
+            return (SlotTypeEnum::I8);
+        }
+        if (type == irBuilder.getFloatTy()) {
+            return (SlotTypeEnum::F4);
+        }
+        if (type == irBuilder.getDoubleTy()) {
+            return (SlotTypeEnum::F8);
+        }
+        panic("error type");
+        return SlotTypeEnum::NONE;
+    }
+
+
     llvm::Value *MethodCompiler::getZeroValue(const SlotTypeEnum slotType) {
         switch (slotType) {
             case SlotTypeEnum::I4:
@@ -156,32 +177,20 @@ namespace RexVM {
                 return ConstantPointerNull::get(voidPtrType);
             case SlotTypeEnum::NONE:
                 panic("error slot type");
+                break;
         }
         return nullptr;
     }
 
     llvm::Value *MethodCompiler::getZeroValue(const Type *type) {
-        if (type == voidPtrType) {
-            return getZeroValue(SlotTypeEnum::REF);
-        }
-        if (type == irBuilder.getInt32Ty()) {
-            return getZeroValue(SlotTypeEnum::I4);
-        }
-        if (type == irBuilder.getInt64Ty()) {
-            return getZeroValue(SlotTypeEnum::I8);
-        }
-        if (type == irBuilder.getFloatTy()) {
-            return getZeroValue(SlotTypeEnum::F4);
-        }
-        if (type == irBuilder.getDoubleTy()) {
-            return getZeroValue(SlotTypeEnum::F8);
-        }
-        panic("error type");
-        return nullptr;
+        return getZeroValue(llvmTypeMap(type));
     }
 
 
     void MethodCompiler::initLocalVariable(BlockContext &blockContext) {
+        if (method.klass.getClassName() == "java/util/Hashtable" && method.getName() == "<init>" && method.getDescriptor() == "(IF)V") {
+            int i = 10;
+        }
         //将函数所有的参数load进第一个块的localVariableTable中
         for (size_t i = 0; i < method.paramSlotType.size(); ++i) {
             const auto indexValue = irBuilder.getInt32(i);
@@ -195,7 +204,7 @@ namespace RexVM {
                     );
 
             blockContext.localVariableTable[i] =
-                irBuilder.CreateLoad(type, ptr, cformat("local_{}", CAST_I4(i)));
+                irBuilder.CreateLoad(type, ptr, cformat("param_{}", CAST_I4(i)));
         }
     }
 
@@ -240,7 +249,7 @@ namespace RexVM {
         irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), lvtTypePtr);
     }
 
-    std::tuple<llvm::Type *, llvm::Value *> MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, const bool isArray, const BasicType type) {
+    std::tuple<Type *, llvm::Value *> MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, const bool isArray, const BasicType type) {
         const auto offset =
             irBuilder.getInt32(isArray ? ARRAY_OOP_DATA_FIELD_OFFSET : INSTANCE_OOP_DATA_FIELD_OFFSET);
 
@@ -636,6 +645,10 @@ namespace RexVM {
             for (size_t i = 1; i < cases.size(); i+= 2) {
                 const auto caseVal = irBuilder.getInt32(cases[i]);
                 const auto caseOffset = cases[i + 1];
+                if (caseOffset == defaultOffset) {
+                    //omit
+                    continue;
+                }
                 const auto caseBB = getBlockContext(offsetToPC(blockContext, caseOffset))->basicBlock;
                 switchIr->addCase(caseVal, caseBB);
             }
@@ -663,9 +676,11 @@ namespace RexVM {
         const auto type = field->getFieldSlotType();
         const auto klassPtr = &field->klass;
         const auto llvmDataPtr = getConstantPtr(dataPtr);
-        helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
+        if (!useClassInitEntry) {
+            helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
+        }
         // clinit放在一起 让llir看起来简化一些
-        // initClasses.emplace(klassPtr);
+        initClasses.emplace(klassPtr);
         if (opType == 0) {
             const auto value = irBuilder.CreateLoad(slotTypeMap(type), llvmDataPtr, field->getName());
             blockContext.pushValue(value, type);
@@ -687,6 +702,12 @@ namespace RexVM {
     }
 
     void MethodCompiler::putField(BlockContext &blockContext, const u2 index) {
+        if (method.klass.getClassName() == "java/util/Hashtable"
+            && method.getName() == "<init>"
+            && method.getDescriptor() == "(IF)V"
+            && blockContext.pc == 88) {
+            int i = 10;
+        }
         const auto [field, ignored] = getFieldInfo(index, false);
         const auto type = field->getFieldSlotType();
         const auto slotId = field->slotId;
@@ -936,17 +957,23 @@ namespace RexVM {
     }
 
     void MethodCompiler::initCommonBlock() {
+        //Entry Block
         const auto firstBlockContext= cfgBlocks[0].get();
         const auto firstBlock = firstBlockContext->basicBlock;
         irBuilder.SetInsertPoint(entryBlock);
-        // for (const auto initClass : initClasses) {
-        //     helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(initClass));
-        // }
+        if (useClassInitEntry) {
+            for (const auto initClass : initClasses) {
+                helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(initClass));
+            }
+        }
         irBuilder.CreateBr(firstBlock);
+        //Entry Block End
 
+        //Exit Block
         exitBB->insertInto(function);
         irBuilder.SetInsertPoint(exitBB);
         irBuilder.CreateRetVoid();
+        //Exit Block End
     }
 
     void MethodCompiler::addParamSlot(const BlockContext &blockContext, const u4 paramCount) {
@@ -961,8 +988,8 @@ namespace RexVM {
         for (size_t i = 0; i < addCount; ++i) {
             const auto realIdx = i +currentCount;
             const auto slotIdx = irBuilder.getInt32(method.maxLocals + realIdx);
-            const auto paramName = cformat("param_{}", realIdx);
-            const auto paramTypeName = cformat("paramType_{}", realIdx);
+            const auto paramName = cformat("invoke_param_{}", realIdx);
+            const auto paramTypeName = cformat("invoke_paramType_{}", realIdx);
 
             const auto slotPtr =
                     irBuilder.CreateGEP(irBuilder.getInt64Ty(), getLocalVariableTablePtr(), slotIdx, paramName);
@@ -995,9 +1022,9 @@ namespace RexVM {
 
 
     bool MethodCompiler::compile() {
-        if (cfg.jumpFront) {
+        if (useLVT && cfg.jumpFront) {
             //暂不支持编译这种方法
-            // return false;
+            return false;
         }
 
         if (cfgBlocks.empty()) {
