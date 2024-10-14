@@ -1,4 +1,5 @@
 #include "llvm_compiler.hpp"
+#include <llvm/IR/Verifier.h>
 #include "llvm_block_context.hpp"
 #include "jit_help_function.hpp"
 #include "llvm_jit_register_help_function.hpp"
@@ -10,7 +11,6 @@
 #include "../class_loader.hpp"
 #include "../constant_info.hpp"
 #include "../method_handle.hpp"
-#include "../oop.hpp"
 #include "../utils/descriptor_parser.hpp"
 
 
@@ -38,8 +38,6 @@ namespace RexVM {
         irBuilder(ctx),
         helpFunction(std::make_unique<LLVMHelpFunction>(module)),
         voidPtrType(PointerType::getUnqual(irBuilder.getVoidTy())) {
-
-        // localVariableTable.reserve(method.maxLocals);
 
         const auto functionType =
                 FunctionType::get(
@@ -82,12 +80,11 @@ namespace RexVM {
 
     }
 
-    void MethodCompiler::startBB(llvm::BasicBlock *nextBasicBlock) {
+    void MethodCompiler::startBB(BasicBlock *nextBasicBlock) {
         currentBB = nextBasicBlock;
         nextBasicBlock->insertInto(function);
         irBuilder.SetInsertPoint(nextBasicBlock);
     }
-
 
 
     void MethodCompiler::changeBB(BlockContext &blockContext, BasicBlock *nextBasicBlock) {
@@ -188,9 +185,6 @@ namespace RexVM {
 
 
     void MethodCompiler::initLocalVariable(BlockContext &blockContext) {
-        if (method.klass.getClassName() == "java/util/Hashtable" && method.getName() == "<init>" && method.getDescriptor() == "(IF)V") {
-            int i = 10;
-        }
         //将函数所有的参数load进第一个块的localVariableTable中
         for (size_t i = 0; i < method.paramSlotType.size(); ++i) {
             const auto indexValue = irBuilder.getInt32(i);
@@ -582,11 +576,11 @@ namespace RexVM {
         blockContext.pushValue(phi);
     }
 
-    u4 MethodCompiler::offsetToPC(BlockContext &blockContext, const i4 offset) {
+    u4 MethodCompiler::offsetToPC(const BlockContext &blockContext, const i4 offset) {
         return CAST_U4(CAST_I4(blockContext.pc) + offset);
     }
 
-    void MethodCompiler::ifOp(BlockContext &blockContext, const i4 offset, llvm::Value *val1, llvm::Value *val2, const OpCodeEnum op) {
+    void MethodCompiler::ifOp(const BlockContext &blockContext, const i4 offset, llvm::Value *val1, llvm::Value *val2, const OpCodeEnum op) {
         const auto jumpToBB = getBlockContext(offsetToPC(blockContext, offset))->basicBlock;
         // const auto nextOpCodeBB = cfgBlocks[blockContext.methodBlock->index + 1]->basicBlock;
         //下一个block的起始opCode偏移量是3 if本身占一个 readI2的offset占2个
@@ -631,12 +625,12 @@ namespace RexVM {
         irBuilder.CreateBr(jumpToBB);
     }
 
-    void MethodCompiler::jumpTo(BlockContext &blockContext, const i4 offset) {
+    void MethodCompiler::jumpTo(const BlockContext &blockContext, const i4 offset) {
         const auto jumpTo = offsetToPC(blockContext, offset);
         jumpToPC(jumpTo);
     }
 
-    void MethodCompiler::createSwitch(BlockContext &blockContext, llvm::Value *val, std::vector<i4> cases) {
+    void MethodCompiler::createSwitch(const BlockContext &blockContext, llvm::Value *val, const std::vector<i4> &cases) {
         const auto defaultOffset = cases[0];
         const auto defaultBlock = getBlockContext(offsetToPC(blockContext, defaultOffset))->basicBlock;
 
@@ -679,7 +673,7 @@ namespace RexVM {
         if (!useClassInitEntry) {
             helpFunction->createCallClinit(irBuilder, getFramePtr(), getConstantPtr(klassPtr));
         }
-        // clinit放在一起 让llir看起来简化一些
+        //把要init的Class收集起来 在函数运行时做整体的初始化
         initClasses.emplace(klassPtr);
         if (opType == 0) {
             const auto value = irBuilder.CreateLoad(slotTypeMap(type), llvmDataPtr, field->getName());
@@ -702,12 +696,6 @@ namespace RexVM {
     }
 
     void MethodCompiler::putField(BlockContext &blockContext, const u2 index) {
-        if (method.klass.getClassName() == "java/util/Hashtable"
-            && method.getName() == "<init>"
-            && method.getDescriptor() == "(IF)V"
-            && blockContext.pc == 88) {
-            int i = 10;
-        }
         const auto [field, ignored] = getFieldInfo(index, false);
         const auto type = field->getFieldSlotType();
         const auto slotId = field->slotId;

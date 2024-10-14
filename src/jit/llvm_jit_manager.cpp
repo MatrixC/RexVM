@@ -1,5 +1,4 @@
 #include "llvm_jit_manager.hpp"
-#include <memory>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Error.h>
 #include "../vm.hpp"
@@ -60,12 +59,6 @@ namespace RexVM {
         const auto moduleName = cformat("module_{}", currentMethodCnt);
         const auto compiledMethodName = cformat("{}_{}", method.getName(), currentMethodCnt);
         auto module = std::make_unique<Module>(moduleName, *ctx);
-
-        if (method.klass.getClassName() == "java/util/Hashtable"
-            && method.getName() == "<init>"
-            && method.getDescriptor() == "(IF)V") {
-            module->print(errs(), nullptr);
-        }
 
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         if (!methodCompiler.compile()) {

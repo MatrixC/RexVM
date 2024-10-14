@@ -3,9 +3,7 @@
 #include "../config.hpp"
 #include <stack>
 #include <vector>
-#include <memory>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Verifier.h>
 #include "../opcode.hpp"
 #include "../cfg.hpp"
 
@@ -42,7 +40,6 @@ namespace RexVM {
 
         //当前块的本地变量表
         std::vector<llvm::Value *> localVariableTable;
-        // std::unique_ptr<llvm::Value *[]> localVariableTable;
 
         std::vector<BlockContext *> jumpToBlocks;
         std::vector<BlockContext *> parentBlocks;

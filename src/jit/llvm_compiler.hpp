@@ -3,7 +3,6 @@
 #include <vector>
 #include <unordered_set>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Verifier.h>
 #include "../config.hpp"
 #include "../opcode.hpp"
 #include "../cfg.hpp"
@@ -106,15 +105,15 @@ namespace RexVM {
 
         void fCmp(BlockContext &blockContext, llvm::Value *val1, llvm::Value *val2, llvm::Value *nanRet);
 
-        static u4 offsetToPC(BlockContext &blockContext, i4 offset);
+        static u4 offsetToPC(const BlockContext &blockContext, i4 offset);
 
-        void ifOp(BlockContext &blockContext, i4 offset, llvm::Value *val1, llvm::Value *val2, OpCodeEnum op);
+        void ifOp(const BlockContext &blockContext, i4 offset, llvm::Value *val1, llvm::Value *val2, OpCodeEnum op);
 
         void jumpToPC(u4 pc);
 
-        void jumpTo(BlockContext &blockContext, i4 offset);
+        void jumpTo(const BlockContext &blockContext, i4 offset);
 
-        void createSwitch(BlockContext &blockContext, llvm::Value *val, std::vector<i4> cases);
+        void createSwitch(const BlockContext &blockContext, llvm::Value *val, const std::vector<i4> &cases);
 
         void exitMethod();
 
