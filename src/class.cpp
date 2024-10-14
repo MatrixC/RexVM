@@ -516,6 +516,9 @@ namespace RexVM {
 
         if (superClass != nullptr) {
            superClass->clinit(frame);
+            if (frame.markThrow) {
+                return;
+            }
         }
 
         initStaticField(frame.thread);
@@ -523,6 +526,9 @@ namespace RexVM {
         const auto clinitMethod = getMethod("<clinit>" "()V", true);
         if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
             frame.runMethodManual(*clinitMethod, {});
+            if (frame.markThrow) {
+                return;
+            }
         }
 
         initSpecialType();

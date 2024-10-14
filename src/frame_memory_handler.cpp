@@ -164,6 +164,9 @@ namespace RexVM {
         const auto fieldRef = klass.getRefField(index, isStatic);
         if (isStatic) {
             fieldRef->klass.clinit(frame);
+            if (frame.markThrow) {
+                return nullptr;
+            }
         }
         executeClassMemberCache.emplace_unique(index, fieldRef);
         return fieldRef;
@@ -177,6 +180,9 @@ namespace RexVM {
         const auto methodRef = klass.getRefMethod(index, isStatic);
         if (isStatic) {
             methodRef->klass.clinit(frame);
+            if (frame.markThrow) {
+                return nullptr;
+            }
         }
         executeClassMemberCache.emplace_unique(index, methodRef);
         return methodRef;

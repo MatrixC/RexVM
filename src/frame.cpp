@@ -1,6 +1,7 @@
 #include "frame.hpp"
 #include "constant_info.hpp"
 #include "class.hpp"
+#include "class_loader.hpp"
 #include "class_member.hpp"
 #include "oop.hpp"
 #include "thread.hpp"
@@ -336,18 +337,16 @@ namespace RexVM {
         returnSlot(Slot(val ? CAST_I8(1) : CAST_I8(0)), SlotTypeEnum::I4);
     }
 
-    void Frame::throwException(InstanceOop * const val, u4 throwPc) {
+    void Frame::throwException(InstanceOop * const val) {
         markThrow = true;
         pushRef(val);
-    }
-
-    void Frame::throwException(InstanceOop * const val) {
-        throwException(val, pc());
-    }
-
-    void Frame::passException(InstanceOop *lastException) {
-        markThrow = true;
-        pushRef(lastException);
+#ifdef DEBUG
+        throwValue = val;
+        const auto throwValueClassName = throwValue->getClass()->getClassName();
+        if (!val->isInstanceOf(classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE))) {
+            int i = 10;
+        }
+#endif
     }
 
     void Frame::cleanThrow() {

@@ -67,6 +67,11 @@ namespace RexVM {
         }
         methodCompiler.verify();
 
+        if (method.getName() == "newInstance" && method.klass.getClassName() == "java/lang/reflect/Constructor") {
+            // module->print(errs(), nullptr);
+            // int i = 10;
+        }
+
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));
 

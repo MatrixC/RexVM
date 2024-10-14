@@ -5,11 +5,12 @@
 #include "utils/byte_reader.hpp"
 
 namespace RexVM {
-    MethodBlock::MethodBlock(const u4 index, const u4 startPC, const u4 endPC)
+    MethodBlock::MethodBlock(const u4 index, const u4 startPC, const u4 endPC, const u4 lastPC)
         : index(index),
           length(endPC - startPC),
           startPC(startPC),
-          endPC(endPC) {
+          endPC(endPC),
+          lastPC(lastPC) {
         //[startPC, endPC)
     }
 
@@ -47,9 +48,11 @@ namespace RexVM {
             edges.emplace_back(edge);
         };
 
-        std::vector<u4> exitMethodPC;
+        std::vector<u4> pcCodes; //记录所有PC 用于查找每个块的最后一个pc
+        std::vector<u4> returnMethodPC; //记录return指令的pc 用户计算autoJump
         while (!reader.eof()) {
             const auto pc = getPC();
+            pcCodes.emplace_back(pc);
             const auto currentByteCode = reader.readU1();
             const auto opCode = static_cast<OpCodeEnum>(currentByteCode);
             switch (opCode) {
@@ -195,7 +198,7 @@ namespace RexVM {
                 case OpCodeEnum::ARETURN:
                 case OpCodeEnum::RETURN:
                 case OpCodeEnum::ATHROW:
-                    exitMethodPC.emplace_back(pc);
+                    returnMethodPC.emplace_back(pc);
                     break;
 
                 default:
@@ -209,20 +212,18 @@ namespace RexVM {
         std::ranges::sort(edges);
         edges.erase(std::ranges::unique(edges).begin(), edges.end());
 
-        // u4 lastBlockStartPC{0};
-        //
-        // for (const u4 leaderPC: leaders) {
-        //     blocks.emplace_back(std::make_unique<MethodBlock>(methodBlockIndex, lastBlockStartPC, leaderPC));
-        //     lastBlockStartPC = leaderPC;
-        // }
-        // blocks.emplace_back(std::make_unique<MethodBlock>(methodBlockIndex, lastBlockStartPC, method.codeLength));
-        //
         u4 methodBlockIndex{0};
         const auto leadersSize = leaders.size();
         for (size_t i = 0; i < leadersSize; ++i) {
             const auto startPC = leaders[i];
+            //最后一个块的endPC = method.codeLength
             const auto endPC = i < leadersSize - 1 ? leaders[i + 1] : method.codeLength;
-            blocks.emplace_back(std::make_unique<MethodBlock>(methodBlockIndex++, startPC, endPC));
+
+            //在pcCode中找到endPC 因为它是下一个块的起始opCodePC 所以取前一个 就是当前块lastPC
+            const auto endPCIdx = std::distance(pcCodes.begin(),  std::ranges::lower_bound(pcCodes, endPC));
+            const auto lastPC = endPCIdx == 0 ? 0 : pcCodes[endPCIdx - 1];
+
+            blocks.emplace_back(std::make_unique<MethodBlock>(methodBlockIndex++, startPC, endPC, lastPC));
         }
 
         for (const u8 edge: edges) {
@@ -238,13 +239,14 @@ namespace RexVM {
 
         for (size_t i = 0; i < blocks.size() - 1; ++i) {
             if (const auto block = blocks[i].get(); block->jumpToBlockIndex.empty()) {
-                const auto lastOpCodePC = block->endPC - 1;
-                if (const auto iter = std::ranges::find(exitMethodPC, lastOpCodePC);
-                    iter == exitMethodPC.end()) {
+                // const auto lastOpCodePC = block->endPC - 1;
+                const auto lastPC = block->lastPC;
+                if (const auto iter = std::ranges::find(returnMethodPC, lastPC); iter == returnMethodPC.end()) {
+                    //如果发现一个块 没有jumpTo 且它的最后一个opCode不是return 则它需要autoJump到下一个块
                     block->autoJmp = true;
                     const auto jumpToIdx = i + 1;
-                    const auto nextBlock = blocks[jumpToIdx].get();
                     block->jumpToBlockIndex.emplace_back(jumpToIdx);
+                    const auto nextBlock = blocks[jumpToIdx].get();
                     nextBlock->parentBlockIndex.emplace_back(i);
                 }
             }

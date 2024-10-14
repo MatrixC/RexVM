@@ -1109,6 +1109,9 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             const auto instanceClass = CAST_INSTANCE_CLASS(frame.mem.getRefClass(index));
             instanceClass->clinit(frame);
+            if (frame.markThrow) {
+                return;
+            }
 
             frame.pushRef(frame.mem.newInstance(instanceClass));
         }

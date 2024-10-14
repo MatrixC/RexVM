@@ -83,6 +83,9 @@ extern "C" {
             operandStack.sp += CAST_I4(paramSize);
             invokeMethod = static_cast<Method *>(method);
             invokeMethod->klass.clinit(*frame);
+            if (frame->markThrow) {
+                return framePtr;
+            }
         } else {
             const auto index = paramSize;
             const auto cache = frame->mem.resolveInvokeVirtualIndex(index, false);

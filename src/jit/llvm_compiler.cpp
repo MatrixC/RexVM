@@ -202,12 +202,11 @@ namespace RexVM {
         }
     }
 
-    llvm::Value *MethodCompiler::getLocalVariableTableValue(const u4 index, const SlotTypeEnum slotType) {
+    llvm::Value *MethodCompiler::getLocalVariableTableValueMemory(const u4 index, const SlotTypeEnum slotType) {
         //lvt指向Slot[] 先通过GEP获得index对应的Slot指针
         //在解释器中 因为op stack中的也全都是slot 所以不用做转换
         //但在jit中 Value都是具体的类型 所以需要做转换
         //使用createLoad可以自动转换成对应的类型 代码中会生成align信息
-
         const auto indexValue = irBuilder.getInt32(index);
         const auto type = slotTypeMap(slotType);
 
@@ -221,7 +220,7 @@ namespace RexVM {
         return irBuilder.CreateLoad(type, ptr, cformat("local_{}", index));
     }
 
-    void MethodCompiler::setLocalVariableTableValue(const u4 index, llvm::Value *value, SlotTypeEnum slotType) {
+    void MethodCompiler::setLocalVariableTableValueMemory(const u4 index, llvm::Value *value, SlotTypeEnum slotType) {
         // 写lvt和lvtType
         const auto indexValue = irBuilder.getInt32(index);
 
@@ -241,6 +240,43 @@ namespace RexVM {
 
         irBuilder.CreateStore(value, lvtPtr);
         irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), lvtTypePtr);
+    }
+
+    void MethodCompiler::writeModifyLocalVariableTable(const BlockContext &blockContext) {
+        if (!useLVT) {
+            return;
+        }
+
+        for (size_t i = 0; i < method.maxLocals; ++i) {
+            if (blockContext.wroteLocalVariableTable[i] != 0) {
+                const auto curVal = blockContext.localVariableTable[i];
+                const auto curValType = llvmTypeMap(curVal->getType());
+                setLocalVariableTableValueMemory(i, curVal, curValType);
+            }
+        }
+    }
+
+    llvm::Value *MethodCompiler::getLocalVariableTableValue(BlockContext &blockContext, const u4 index, const SlotTypeEnum slotType) {
+        llvm::Value *loadVal{nullptr};
+        if (useLVT) {
+            loadVal = blockContext.localVariableTable[index];
+            if (loadVal == nullptr) {
+                loadVal = getLocalVariableTableValueMemory(index, slotType);
+                blockContext.localVariableTable[index] = loadVal;
+            }
+        } else {
+            loadVal = getLocalVariableTableValueMemory(index, slotType);
+        }
+        return loadVal;
+    }
+
+    void MethodCompiler::setLocalVariableTableValue(BlockContext &blockContext, const u4 index, llvm::Value *value, const SlotTypeEnum slotType) {
+        if (useLVT) {
+            blockContext.localVariableTable[index] = value;
+            blockContext.wroteLocalVariableTable[index] = 1;
+        } else {
+            setLocalVariableTableValueMemory(index, value, slotType);
+        }
     }
 
     std::tuple<Type *, llvm::Value *> MethodCompiler::getOopDataPtr(llvm::Value *oop, llvm::Value *index, const bool isArray, const BasicType type) {
@@ -370,18 +406,12 @@ namespace RexVM {
 
 
     void MethodCompiler::load(BlockContext &blockContext, const u4 index, const SlotTypeEnum slotType) {
-        const auto value =
-                useLVT ? blockContext.localVariableTable[index] : getLocalVariableTableValue(index, slotType);
-        blockContext.pushValue(value, slotType);
+        blockContext.pushValue(getLocalVariableTableValue(blockContext, index, slotType), slotType);
     }
 
     void MethodCompiler::store(BlockContext &blockContext, const u4 index, const SlotTypeEnum slotType) {
         const auto value = blockContext.popValue(slotType);
-        if (useLVT) {
-            blockContext.localVariableTable[index] = value;
-        } else {
-            setLocalVariableTableValue(index, value, slotType);
-        }
+        setLocalVariableTableValue(blockContext, index, value, slotType);
     }
 
     void MethodCompiler::arrayLength(BlockContext &blockContext, llvm::Value *arrayRef) {
@@ -933,15 +963,9 @@ namespace RexVM {
     }
 
     void MethodCompiler::iinc(BlockContext &blockContext, const i4 index, const i4 value) {
-        if (useLVT) {
-            const auto currentValue = blockContext.localVariableTable[index];
-            const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
-            blockContext.localVariableTable[index] = incValue;
-        } else {
-            const auto currentValue = getLocalVariableTableValue(index, SlotTypeEnum::I4);
-            const auto incValue = irBuilder.CreateAdd(currentValue, irBuilder.getInt32(value));
-            setLocalVariableTableValue(index, incValue, SlotTypeEnum::I4);
-        }
+        const auto curVal = getLocalVariableTableValue(blockContext, index, SlotTypeEnum::I4);
+        const auto incValue = irBuilder.CreateAdd(curVal, irBuilder.getInt32(value));
+        setLocalVariableTableValue(blockContext, index, incValue, SlotTypeEnum::I4);
     }
 
     void MethodCompiler::initCommonBlock() {

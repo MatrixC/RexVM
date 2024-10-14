@@ -15,7 +15,8 @@ namespace RexVM {
           irBuilder(methodCompiler.irBuilder),
           methodBlock(methodBlock),
           lastBasicBlock(nullptr),
-          localVariableTable(methodCompiler.method.maxLocals, nullptr) {
+          localVariableTable(methodCompiler.method.maxLocals, nullptr),
+          wroteLocalVariableTable(methodCompiler.method.maxLocals, 0) {
         const auto &method = methodCompiler.method;
         auto &ctx = methodCompiler.ctx;
         const auto lineNumber = method.getLineNumber(methodBlock->startPC);
@@ -83,55 +84,8 @@ namespace RexVM {
             return;
         }
 
-        if (parentBlocks.empty()) {
-            if (methodBlock->index != 0) {
-                panic("error block");
-            }
-            methodCompiler.initLocalVariable(*this);
-            return;
-        }
-
-        if (parentBlocks.size() == 1) {
-            for (size_t i = 0; i < methodCompiler.method.maxLocals; ++i) {
-                localVariableTable[i] = parentBlocks[0]->localVariableTable[i];
-            }
-            return;
-        }
-
-        for (u2 i = 0; i < methodCompiler.method.maxLocals; ++i) {
-            bool allEquals{true};
-            const llvm::Value *notNullValue{nullptr};
-            llvm::Value *firstValue{parentBlocks[0]->localVariableTable[i]};
-
-            size_t idx{0};
-            for (const auto &parent : parentBlocks) {
-                const auto currentValue = parent->localVariableTable[i];
-                if (currentValue != nullptr && notNullValue == nullptr) {
-                    notNullValue = currentValue;
-                }
-                if (allEquals && currentValue != firstValue) {
-                    allEquals = false;
-                }
-                idx++;
-            }
-
-            if (allEquals) {
-                localVariableTable[i] = firstValue;
-                continue;
-            }
-
-            const auto selectType = notNullValue->getType();
-            const auto selectPopValue = irBuilder.CreatePHI(selectType, parentBlocks.size());
-            for (const auto &parent : parentBlocks) {
-                const auto parentLV = parent->localVariableTable[i];
-                const auto parentLastBB = parent->lastBasicBlock;
-                const auto selectSlotType = methodCompiler.llvmTypeMap(selectType);
-                const auto val = parentLV == nullptr ? methodCompiler.getZeroValue(selectSlotType) : parentLV;
-                selectPopValue->addIncoming(val, parentLastBB);
-            }
-
-            localVariableTable[i] = selectPopValue;
-        }
+        //如果只有一个parent 则直接copy
+        //否则保持空
     }
 
 
@@ -233,6 +187,13 @@ namespace RexVM {
         initPassStack();
         initLocalVariableTable();
 
+        if (method.getName() == "newInstance" && method.klass.getClassName() == "java/lang/reflect/Constructor") {
+           if (methodBlock->startPC == 21) {
+               int i = 10;
+           }
+            // int i = 10;
+        }
+
         ByteReader reader{};
         const auto codePtr = method.code.get() + methodBlock->startPC;
         const auto codeLength = methodBlock->endPC - methodBlock->startPC;
@@ -240,13 +201,28 @@ namespace RexVM {
 
         while (!reader.eof()) {
             pc = CAST_U4(reader.ptr - codeBegin);
+            const auto lastOpCode = pc == methodBlock->lastPC;
             const auto currentByteCode = reader.readU1();
             const auto opCode = static_cast<OpCodeEnum>(currentByteCode);
 
-            if (processInstruction(opCode, reader)) {
-                //end block opCode, ignore unreachable code
+            if (isEndOpCode(opCode)) {
+                //如果是跳转指令 说明是最后一条指令 在处理最后一条跳转指令之前 先把修改的内存写完
+                methodCompiler.writeModifyLocalVariableTable(*this);
+            }
+
+            processInstruction(opCode, reader);
+
+            if (methodBlock->autoJmp && lastOpCode) {
+                //因为autoJump的最后一条指令不是跳转 跳转是在后续加的 所以要把存储写在这里
+                methodCompiler.writeModifyLocalVariableTable(*this);
+            }
+
+            if (isEndOpCode(opCode)) {
+                //在end code后直接退出 不再继续扫描 否则会因为一些不可达的字节码而引起生成的ir有问题
+                //在fastjson2的反序列化中发现这个例子 它自动生成的ORG_POJO类中有不可达代码
                 break;
             }
+
             reader.resetCurrentOffset();
         }
 

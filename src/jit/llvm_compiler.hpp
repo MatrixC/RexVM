@@ -75,9 +75,15 @@ namespace RexVM {
 
         void initLocalVariable(BlockContext &blockContext);
 
-        llvm::Value *getLocalVariableTableValue(u4 index, SlotTypeEnum slotType);
+        llvm::Value *getLocalVariableTableValueMemory(u4 index, SlotTypeEnum slotType);
 
-        void setLocalVariableTableValue(u4 index, llvm::Value *value, SlotTypeEnum slotType);
+        void setLocalVariableTableValueMemory(u4 index, llvm::Value *value, SlotTypeEnum slotType);
+
+        void writeModifyLocalVariableTable(const BlockContext &blockContext);
+
+        llvm::Value *getLocalVariableTableValue(BlockContext &blockContext, u4 index, SlotTypeEnum slotType);
+
+        void setLocalVariableTableValue(BlockContext &blockContext, u4 index, llvm::Value *value, SlotTypeEnum slotType);
 
         std::tuple<llvm::Type *, llvm::Value *> getOopDataPtr(llvm::Value *oop, llvm::Value *index, bool isArray, BasicType type);
 

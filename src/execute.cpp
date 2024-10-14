@@ -54,7 +54,7 @@ namespace RexVM {
                 frame.cleanThrow();
                 return true;
             }
-            previousFrame->passException(throwInstance);
+            previousFrame->throwException(throwInstance);
             return true;
         }
 
@@ -71,7 +71,7 @@ namespace RexVM {
             frame.cleanThrow();
             return;
         }
-        previousFrame->passException(throwInstance);
+        previousFrame->throwException(throwInstance);
     }
 
     void checkAndPassReturnValue(const Frame &frame) {
@@ -115,19 +115,25 @@ namespace RexVM {
     void executeFrame(Frame &frame, [[maybe_unused]] cview methodName) {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
+        method.invokeCounter++;
 
 #ifdef LLVM_JIT
-        method.invokeCounter++;
-        if (notNativeMethod && method.canCompile && method.compiledMethodHandler == nullptr) {
-            if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
-                jitManager->compileMethod(method);
+        do {
+            if (notNativeMethod && method.canCompile && method.compiledMethodHandler == nullptr) {
+                if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
+                    jitManager->compileMethod(method);
+                }
             }
-        }
+        } while (false);
 #endif
 
-
+        // printExecuteLog = true;
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
         frame.vm.garbageCollector->checkStopForCollect(frame.thread);
+
+        if (method.getName() == "checkMemberAccess") {
+            int i = 10;
+        }
 
         if (notNativeMethod) [[likely]] {
             if (method.compiledMethodHandler != nullptr) {
@@ -155,6 +161,10 @@ namespace RexVM {
                 ATTR_UNUSED const auto sourceFile = method.klass.sourceFile;
                 ATTR_UNUSED const auto lineNumber = method.getLineNumber(pc);
                 #endif
+
+                if (methodName == "java/lang/ref/Reference#<clinit>" && pc == 38) {
+                    int i = 10;
+                }
 
                 OpCodeHandlers[frame.currentByteCode](frame);
                 if (frame.markThrow && handleThrowValue(frame)) {
@@ -205,11 +215,13 @@ namespace RexVM {
             monitorHandler->lock();
             lock = true;
         }
-        cview methodName{};
+
 #ifdef DEBUG
-        methodName = cformat("{}#{}", method.klass.toView(), method.toView());
+        executeFrame(frame, cformat("{}#{}", method.klass.toView(), method.toView()));
+#else
+        executeFrame(frame, "");
 #endif
-        executeFrame(frame, methodName);
+
         if (lock) {
             monitorHandler->unlock();
         }
