@@ -49,6 +49,9 @@ namespace RexVM::Native::Core {
         }
         if (initialize && klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
             CAST_INSTANCE_CLASS(klass)->clinit(frame);
+            if (frame.markThrow) {
+                return;
+            }
         }
         frame.returnRef(klass->getMirror(&frame));
     }

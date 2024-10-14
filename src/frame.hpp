@@ -57,6 +57,9 @@ namespace RexVM {
         SlotTypeEnum returnType{};
 
         bool markThrow{false};
+#ifdef DEBUG
+        InstanceOop *throwValue{nullptr};
+#endif
 
         explicit Frame(VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize = 0);
         ~Frame();
@@ -120,10 +123,7 @@ namespace RexVM {
         void returnF8(f8 val);
         void returnBoolean(bool val);
 
-        void throwException(InstanceOop * val, u4 pc);
         void throwException(InstanceOop * val);
-        //void passException(std::unique_ptr<FrameThrowable> lastException);
-        void passException(InstanceOop *lastException);
         void cleanThrow();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;

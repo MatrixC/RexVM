@@ -14,6 +14,9 @@ namespace RexVM {
     void throwAssignException(Frame &frame, cview className, cview message) {
         const auto instanceClass = frame.mem.getInstanceClass(className);
         instanceClass->clinit(frame);
+        if (frame.markThrow) {
+            return;
+        }
         const auto throwable = frame.mem.newInstance(instanceClass);
         const auto hasMessage = !message.empty();
         const auto initMethod = 

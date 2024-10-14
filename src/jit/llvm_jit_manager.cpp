@@ -67,6 +67,10 @@ namespace RexVM {
         }
         methodCompiler.verify();
 
+        if (method.getName() == "acquireConstructorAccessor") {
+            // module->print(errs(), nullptr);
+        }
+
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));
 
