@@ -12,40 +12,34 @@ namespace RexVM {
         const auto int16Ty = Type::getInt16Ty(context);
         const auto int32Ty = Type::getInt32Ty(context);
         const auto int64Ty = Type::getInt64Ty(context);
-        const auto voidPtrTy = PointerType::getUnqual(voidTy);
+        const auto ptrTy = PointerType::getUnqual(voidTy);
 
-        const auto type1 = FunctionType::get(voidPtrTy, {voidPtrTy, int32Ty}, false);
+        const auto getInstanceConstantType = FunctionType::get(ptrTy, {ptrTy, int32Ty}, false);
+        getInstanceConstant = module.getOrInsertFunction("llvm_compile_get_instance_constant", getInstanceConstantType);
 
-        getInstanceConstant = module.getOrInsertFunction("llvm_compile_get_instance_constant", type1);
+        const auto arrayLengthType = FunctionType::get(int32Ty, {ptrTy}, false);
+        arrayLength = module.getOrInsertFunction("llvm_compile_array_length", arrayLengthType);
 
-        arrayLength = module.getOrInsertFunction("llvm_compile_array_length",
-                                                 FunctionType::get(int32Ty, {voidPtrTy}, false));
+        const auto returnCommonType = FunctionType::get(voidTy, {ptrTy, int64Ty, int8Ty}, false);
+        returnCommon = module.getOrInsertFunction("llvm_compile_return_common", returnCommonType);
 
-        returnCommon = module.getOrInsertFunction("llvm_compile_return_common",
-                                                  FunctionType::get(voidTy, {voidPtrTy, int64Ty, int8Ty}, false));
+        const auto clinitType = FunctionType::get(voidTy, {ptrTy, ptrTy}, false);
+        clinit = module.getOrInsertFunction("llvm_compile_clinit", clinitType);
 
-        clinit = module.getOrInsertFunction("llvm_compile_clinit",
-                                            FunctionType::get(voidTy, {voidPtrTy, voidPtrTy}, false));
+        const auto invokeMethodType = FunctionType::get(ptrTy, {ptrTy, ptrTy, int16Ty, int32Ty}, false);
+        invokeMethodFixed = module.getOrInsertFunction("llvm_compile_invoke_method_fixed", invokeMethodType);
 
-        invokeMethodFixed = module.getOrInsertFunction("llvm_compile_invoke_method_fixed",
-                                                        FunctionType::get(
-                                                            voidPtrTy, {voidPtrTy, voidPtrTy, int16Ty, int32Ty}, false));
+        const auto newObjectType = FunctionType::get(ptrTy, {ptrTy, int8Ty, int32Ty, ptrTy}, false);
+        newObject = module.getOrInsertFunction("llvm_compile_new_object", newObjectType);
 
-        newObject = module.getOrInsertFunction("llvm_compile_new_object",
-                                               FunctionType::get(voidPtrTy, {
-                                                                     voidPtrTy, int8Ty, int32Ty, voidPtrTy
-                                                                 }, false));
+        const auto throwType = FunctionType::get(voidTy, {ptrTy, ptrTy, int32Ty, int8Ty}, false);
+        throwException = module.getOrInsertFunction("llvm_compile_throw_exception", throwType);
 
-        throwException = module.getOrInsertFunction("llvm_compile_throw_exception",
-                                                    FunctionType::get(voidTy, {voidPtrTy, voidPtrTy, int32Ty, int8Ty}, false));
+        const auto instanceOfType = FunctionType::get(int32Ty, {ptrTy, int8Ty, ptrTy, ptrTy, int32Ty}, false);
+        instanceOf = module.getOrInsertFunction("llvm_compile_check_cast", instanceOfType);
 
-        instanceOf = module.getOrInsertFunction("llvm_compile_check_cast",
-                                                FunctionType::get(int32Ty, {voidPtrTy, int8Ty, voidPtrTy, voidPtrTy, int32Ty},
-                                                                  false));
-
-        monitor = module.getOrInsertFunction("llvm_compile_monitor",
-                                             FunctionType::get(voidTy, {voidPtrTy, int8Ty},
-                                                               false));
+        const auto monitorType = FunctionType::get(voidTy, {ptrTy, int8Ty}, false);
+        monitor = module.getOrInsertFunction("llvm_compile_monitor", monitorType);
     }
 
 

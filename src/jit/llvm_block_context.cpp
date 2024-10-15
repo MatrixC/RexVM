@@ -15,8 +15,8 @@ namespace RexVM {
           irBuilder(methodCompiler.irBuilder),
           methodBlock(methodBlock),
           lastBasicBlock(nullptr),
-          localVariableTable(methodCompiler.method.maxLocals, nullptr),
-          wroteLocalVariableTable(methodCompiler.method.maxLocals, 0) {
+          localVariableTable(methodCompiler.localCount, nullptr),
+          wroteLocalVariableTable(methodCompiler.localCount, 0) {
         const auto &method = methodCompiler.method;
         auto &ctx = methodCompiler.ctx;
         const auto lineNumber = method.getLineNumber(methodBlock->startPC);
@@ -84,8 +84,34 @@ namespace RexVM {
             return;
         }
 
-        //如果只有一个parent 则直接copy
-        //否则保持空
+        if (parentBlocks.empty()) {
+            return;
+        }
+
+        if (parentBlocks.size() == 1) {
+            //如果只有一个父节点 则lvt不会有变化 直接拷贝父节点的即可
+            localVariableTable = parentBlocks[0]->localVariableTable;
+        }
+
+        for (size_t i = 0; i < methodCompiler.localCount; ++i) {
+            const auto val = parentBlocks[0]->localVariableTable[i];
+            if (val == nullptr) {
+                //没值 就不用再缓存了
+                continue;
+            }
+            //如果有多个父节点 且他们对应位置的值都相同则取 不同则不取
+            auto allEqual{true};
+            for (size_t j = 1; j < parentBlocks.size(); ++j) {
+                if (const auto curVal = parentBlocks[j]->localVariableTable[i]; curVal != val) {
+                    allEqual = false;
+                    break;
+                }
+            }
+
+            if (allEqual) {
+                localVariableTable[i] = val;
+            }
+        }
     }
 
 
@@ -186,13 +212,6 @@ namespace RexVM {
         methodCompiler.changeBB(*this, basicBlock);
         initPassStack();
         initLocalVariableTable();
-
-        if (method.getName() == "newInstance" && method.klass.getClassName() == "java/lang/reflect/Constructor") {
-           if (methodBlock->startPC == 21) {
-               int i = 10;
-           }
-            // int i = 10;
-        }
 
         ByteReader reader{};
         const auto codePtr = method.code.get() + methodBlock->startPC;

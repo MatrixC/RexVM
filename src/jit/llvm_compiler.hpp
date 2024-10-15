@@ -27,6 +27,7 @@ namespace RexVM {
             cview compiledMethodName
         );
 
+        void initLocalPtr();
         void initCFGBlocks();
         void startBB(llvm::BasicBlock *nextBasicBlock);
         void changeBB(BlockContext &blockContext, llvm::BasicBlock *nextBasicBlock);
@@ -34,6 +35,7 @@ namespace RexVM {
         VM &vm;
         Method &method;
         InstanceClass &klass;
+        size_t localCount;
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
         bool useLVT{true}; //使用block的本地变量表(不写frame的栈内存 把llvm::Value保存在context的数组中)
         bool useClassInitEntry{false};
@@ -54,6 +56,8 @@ namespace RexVM {
         llvm::BasicBlock *entryBlock{};
         llvm::BasicBlock *exitBB{};
         llvm::Value *returnValuePtr{};
+        std::vector<llvm::Value *> localPtr;
+        std::vector<llvm::Value *> localTypePtr;
         std::vector<llvm::Value *> invokeMethodParamPtr;
         std::vector<llvm::Value *> invokeMethodParamTypePtr;
 
@@ -72,8 +76,6 @@ namespace RexVM {
         [[nodiscard]] llvm::Argument *getLocalVariableTablePtr() const;
 
         [[nodiscard]] llvm::Argument *getLocalVariableTableTypePtr() const;
-
-        void initLocalVariable(BlockContext &blockContext);
 
         llvm::Value *getLocalVariableTableValueMemory(u4 index, SlotTypeEnum slotType);
 
@@ -167,7 +169,7 @@ namespace RexVM {
 
         void addParamSlot(const BlockContext &blockContext, u4 paramCount);
 
-        llvm::Value *getInvokeReturnPtr(const BlockContext &blockContext);
+        llvm::Value *getInvokeReturnPtr(const BlockContext &blockContext) const;
 
         bool compile();
 

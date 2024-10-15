@@ -31,13 +31,16 @@ namespace RexVM {
     ) : vm(vm),
         method(method),
         klass(method.klass),
+        localCount(method.maxLocals),
         constantPool(klass.constantPool),
         cfg(method),
         module(module),
         ctx(module.getContext()),
         irBuilder(ctx),
         helpFunction(std::make_unique<LLVMHelpFunction>(module)),
-        voidPtrType(PointerType::getUnqual(irBuilder.getVoidTy())) {
+        voidPtrType(PointerType::getUnqual(irBuilder.getVoidTy())),
+        localPtr(localCount, nullptr),
+        localTypePtr(localCount, nullptr) {
 
         const auto functionType =
                 FunctionType::get(
@@ -56,8 +59,46 @@ namespace RexVM {
         entryBlock = BasicBlock::Create(ctx, "entry", function);
         exitBB = BasicBlock::Create(ctx, "exit_method");
 
+        initLocalPtr();
         initCFGBlocks();
     }
+
+    void MethodCompiler::initLocalPtr() {
+        irBuilder.SetInsertPoint(entryBlock);
+        //初始化LVT的指针
+        for (size_t i = 0; i < localCount; ++i) {
+            const auto indexValue = irBuilder.getInt32(i);
+
+            const auto lvtPtr =
+                    irBuilder.CreateGEP(
+                        irBuilder.getInt64Ty(),
+                        getLocalVariableTablePtr(),
+                        indexValue,
+                        cformat("local_ptr_{}", i)
+                    );
+
+            const auto lvtTypePtr =
+                    irBuilder.CreateGEP(
+                        irBuilder.getInt8Ty(),
+                        getLocalVariableTableTypePtr(),
+                        indexValue,
+                        cformat("local_type_ptr_{}", i)
+                    );
+
+            localPtr[i] = lvtPtr;
+            localTypePtr[i] = lvtTypePtr;
+        }
+
+        //初始化调用函数后返回结果的指针
+        returnValuePtr =
+                irBuilder.CreateGEP(
+                    irBuilder.getInt64Ty(),
+                    getLocalVariableTablePtr(),
+                    irBuilder.getInt32(localCount),
+                    "invoke_return_ptr"
+                );
+    }
+
 
     void MethodCompiler::initCFGBlocks() {
         cfgBlocks.reserve(cfg.blocks.size());
@@ -183,61 +224,20 @@ namespace RexVM {
         return getZeroValue(llvmTypeMap(type));
     }
 
-
-    void MethodCompiler::initLocalVariable(BlockContext &blockContext) {
-        //将函数所有的参数load进第一个块的localVariableTable中
-        for (size_t i = 0; i < method.paramSlotType.size(); ++i) {
-            const auto indexValue = irBuilder.getInt32(i);
-            const auto type = slotTypeMap(method.paramSlotType[i]);
-
-            const auto ptr =
-                    irBuilder.CreateGEP(
-                        irBuilder.getInt64Ty(),
-                        getLocalVariableTablePtr(),
-                        indexValue
-                    );
-
-            blockContext.localVariableTable[i] =
-                irBuilder.CreateLoad(type, ptr, cformat("param_{}", CAST_I4(i)));
-        }
-    }
-
     llvm::Value *MethodCompiler::getLocalVariableTableValueMemory(const u4 index, const SlotTypeEnum slotType) {
         //lvt指向Slot[] 先通过GEP获得index对应的Slot指针
         //在解释器中 因为op stack中的也全都是slot 所以不用做转换
         //但在jit中 Value都是具体的类型 所以需要做转换
         //使用createLoad可以自动转换成对应的类型 代码中会生成align信息
-        const auto indexValue = irBuilder.getInt32(index);
         const auto type = slotTypeMap(slotType);
-
-        const auto ptr =
-                irBuilder.CreateGEP(
-                    irBuilder.getInt64Ty(),
-                    getLocalVariableTablePtr(),
-                    indexValue
-                );
-
+        const auto ptr = localPtr[index];
         return irBuilder.CreateLoad(type, ptr, cformat("local_{}", index));
     }
 
     void MethodCompiler::setLocalVariableTableValueMemory(const u4 index, llvm::Value *value, SlotTypeEnum slotType) {
         // 写lvt和lvtType
-        const auto indexValue = irBuilder.getInt32(index);
-
-        const auto lvtPtr =
-                irBuilder.CreateGEP(
-                    irBuilder.getInt64Ty(),
-                    getLocalVariableTablePtr(),
-                    indexValue
-                );
-
-        const auto lvtTypePtr =
-                irBuilder.CreateGEP(
-                    irBuilder.getInt8Ty(),
-                    getLocalVariableTableTypePtr(),
-                    indexValue
-                );
-
+        const auto lvtPtr = localPtr[index];
+        const auto lvtTypePtr = localTypePtr[index];
         irBuilder.CreateStore(value, lvtPtr);
         irBuilder.CreateStore(irBuilder.getInt8(static_cast<uint8_t>(slotType)), lvtTypePtr);
     }
@@ -247,7 +247,7 @@ namespace RexVM {
             return;
         }
 
-        for (size_t i = 0; i < method.maxLocals; ++i) {
+        for (size_t i = 0; i < localCount; ++i) {
             if (blockContext.wroteLocalVariableTable[i] != 0) {
                 const auto curVal = blockContext.localVariableTable[i];
                 const auto curValType = llvmTypeMap(curVal->getType());
@@ -283,15 +283,17 @@ namespace RexVM {
         const auto offset =
             irBuilder.getInt32(isArray ? ARRAY_OOP_DATA_FIELD_OFFSET : INSTANCE_OOP_DATA_FIELD_OFFSET);
 
+        //先通过oop和偏移量 获取到data字段的地址
         const auto oopDataFieldPtr =
                 irBuilder.CreateGEP(irBuilder.getInt8Ty(), oop, offset);
 
         const auto dataFieldValue = irBuilder.CreateLoad(voidPtrType, oopDataFieldPtr);
+        //InstanceOop element is Slot
         const u4 elementByteSize = isArray ? getElementSizeByBasicType(type) : SLOT_BYTE_SIZE;
         const u4 elementBitSize = elementByteSize * 8;
         const auto dataPtrType = irBuilder.getIntNTy(elementBitSize);
 
-        //InstanceOop element is Slot
+        //再通过slotId或者数据的index 获取具体数据的地址
         const auto dataFieldPtr =
                 irBuilder.CreateGEP(
                     dataPtrType,
@@ -754,7 +756,7 @@ namespace RexVM {
 
         //由于JIT模式下的函数不需要使用操作数栈进行计算 所以操作数栈只用来做函数传参 传参时用首地址即可
         //根据Frame的初始化定义 操作数栈的首地址 operandStackPtr = lvtPtr + lvtSize
-        //对于普通java函数 lvtSize = method.maxLocals 所以可以直接计算出操作数栈的地址
+        //对于普通java函数 lvtSize = localCount 所以可以直接计算出操作数栈的地址
         //计算出操作数栈地址后 从后向前依次出valueStack 依次写入操作数栈(std::stack 不能按index读取)
         addParamSlot(blockContext, paramSlotType.size());
         for (i4 i = CAST_I4(paramSlotType.size()) - 1; i >= 0; --i) {
@@ -878,7 +880,7 @@ namespace RexVM {
         if (const auto returnSlotType = getSlotTypeByPrimitiveClassName(returnType);
             returnSlotType != SlotTypeEnum::NONE) {
             //如果有返回值 则肯定在当前函数操作数栈的第一位 根据地址关系 借助getLocalVariableTableValue函数拿到返回值
-            // const auto returnValue = getLocalVariableTableValue(method.maxLocals, returnSlotType);
+            // const auto returnValue = getLocalVariableTableValue(localCount, returnSlotType);
             const auto returnValue =
                     irBuilder.CreateLoad(slotTypeMap(returnSlotType), getInvokeReturnPtr(blockContext), "invoke_return");
             blockContext.pushValue(returnValue, returnSlotType);
@@ -999,7 +1001,7 @@ namespace RexVM {
 
         for (size_t i = 0; i < addCount; ++i) {
             const auto realIdx = i +currentCount;
-            const auto slotIdx = irBuilder.getInt32(method.maxLocals + realIdx);
+            const auto slotIdx = irBuilder.getInt32(localCount + realIdx);
             const auto paramName = cformat("invoke_param_{}", realIdx);
             const auto paramTypeName = cformat("invoke_paramType_{}", realIdx);
 
@@ -1015,30 +1017,12 @@ namespace RexVM {
         irBuilder.SetInsertPoint(blockContext.lastBasicBlock);
     }
 
-    llvm::Value * MethodCompiler::getInvokeReturnPtr(const BlockContext &blockContext) {
-        if (returnValuePtr != nullptr) {
-            return returnValuePtr;
-        }
-
-        irBuilder.SetInsertPoint(entryBlock);
-        returnValuePtr =
-                irBuilder.CreateGEP(
-                    irBuilder.getInt64Ty(),
-                    getLocalVariableTablePtr(),
-                    irBuilder.getInt32(method.maxLocals),
-                    "invoke_return_ptr"
-                );
-        irBuilder.SetInsertPoint(blockContext.lastBasicBlock);
+    llvm::Value * MethodCompiler::getInvokeReturnPtr(const BlockContext &blockContext) const {
         return returnValuePtr;
     }
 
 
     bool MethodCompiler::compile() {
-        if (useLVT && cfg.jumpFront) {
-            //暂不支持编译这种方法
-            return false;
-        }
-
         if (cfgBlocks.empty()) {
             panic("error cfgBlock count");
         }

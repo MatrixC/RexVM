@@ -24,6 +24,8 @@ namespace RexVM {
         reader.init(codePtr, method.codeLength);
 
         std::vector<u4> leaders;
+        leaders.reserve(20);
+
         leaders.emplace_back(0);
         std::vector<u8> edges;
 
@@ -49,7 +51,11 @@ namespace RexVM {
         };
 
         std::vector<u4> pcCodes; //记录所有PC 用于查找每个块的最后一个pc
+        pcCodes.reserve(200);
+
         std::vector<u4> returnMethodPC; //记录return指令的pc 用户计算autoJump
+        pcCodes.reserve(20);
+
         while (!reader.eof()) {
             const auto pc = getPC();
             pcCodes.emplace_back(pc);
