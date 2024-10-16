@@ -57,9 +57,7 @@ namespace RexVM {
         SlotTypeEnum returnType{};
 
         bool markThrow{false};
-#ifdef DEBUG
-        InstanceOop *throwValue{nullptr};
-#endif
+        InstanceOop *throwValue{nullptr}; //for JIT
 
         explicit Frame(VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize = 0);
         ~Frame();

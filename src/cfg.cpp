@@ -3,6 +3,11 @@
 #include "class_member.hpp"
 #include "opcode.hpp"
 #include "utils/byte_reader.hpp"
+#include "class_member.hpp"
+#include "class.hpp"
+#include "class_loader.hpp"
+#include "constant_info.hpp"
+
 
 namespace RexVM {
     MethodBlock::MethodBlock(const u4 index, const u4 startPC, const u4 endPC, const u4 lastPC)
@@ -24,10 +29,17 @@ namespace RexVM {
         reader.init(codePtr, method.codeLength);
 
         std::vector<u4> leaders;
-        leaders.reserve(20);
+        leaders.reserve(40);
 
         leaders.emplace_back(0);
         std::vector<u8> edges;
+
+        if (!method.exceptionCatches.empty()) {
+            for (const auto &exception : method.exceptionCatches) {
+                const auto handlerPC = exception->handler;
+                leaders.emplace_back(handlerPC);
+            }
+        }
 
         const auto getPC = [&] {
             return CAST_U4(reader.ptr - reader.begin);
@@ -230,6 +242,27 @@ namespace RexVM {
             const auto lastPC = endPCIdx == 0 ? 0 : pcCodes[endPCIdx - 1];
 
             blocks.emplace_back(std::make_unique<MethodBlock>(methodBlockIndex++, startPC, endPC, lastPC));
+        }
+
+        if (!method.exceptionCatches.empty()) {
+            //添加异常
+            for (const auto &exception : method.exceptionCatches) {
+                const auto handlerPC = exception->handler;
+                const auto handleBlockIndex = std::distance(leaders.begin(), std::ranges::lower_bound(leaders, handlerPC));
+                const auto handleMethodBlock = blocks[handleBlockIndex].get();
+                handleMethodBlock->exceptionHandlerBlock = true;
+                handleMethodBlock->catchStartPC = exception->start;
+                handleMethodBlock->catchEndPC = exception->end;
+                if (exception->catchType != 0) {
+                    if (exception->catchClass == nullptr) {
+                        const auto &constantPool = method.klass.constantPool;
+                        const auto exClassName =
+                                getConstantStringFromPoolByIndexInfo(constantPool, exception->catchType);
+                        exception->catchClass = method.klass.classLoader.getInstanceClass(exClassName);
+                    }
+                    handleMethodBlock->catchClass = exception->catchClass;
+                }
+            }
         }
 
         for (const u8 edge: edges) {

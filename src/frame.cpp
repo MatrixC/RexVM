@@ -339,14 +339,8 @@ namespace RexVM {
 
     void Frame::throwException(InstanceOop * const val) {
         markThrow = true;
-        pushRef(val);
-#ifdef DEBUG
+        // pushRef(val);
         throwValue = val;
-        const auto throwValueClassName = throwValue->getClass()->getClassName();
-        if (!val->isInstanceOf(classLoader.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THROWABLE))) {
-            int i = 10;
-        }
-#endif
     }
 
     void Frame::cleanThrow() {

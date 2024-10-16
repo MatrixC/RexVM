@@ -10,6 +10,7 @@
 #include "interpreter.hpp"
 #include "thread.hpp"
 #include "basic_java_class.hpp"
+#include "cfg.hpp"
 #include "string_pool.hpp"
 #include "garbage_collect.hpp"
 #ifdef LLVM_JIT
@@ -29,7 +30,8 @@ namespace RexVM {
 
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
-        const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
+        // const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
+        const auto throwInstance = frame.throwValue;
         const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->getClass());
         auto &method = frame.method;
         const auto handler =
@@ -62,8 +64,8 @@ namespace RexVM {
     }
 
     void handleThrowValueJIT(Frame &frame) {
-        // const auto throwInstance = frame.throwObject;
-        const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
+        const auto throwInstance = frame.throwValue;
+        // const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
         const auto previousFrame = frame.previous;
         if (previousFrame == nullptr) {
             //TOP Frame
@@ -116,6 +118,8 @@ namespace RexVM {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
         method.invokeCounter++;
+
+        MethodCFG cfg(method);
 
 #ifdef LLVM_JIT
         do {

@@ -6,6 +6,7 @@
 namespace RexVM {
 
     struct Method;
+    struct InstanceClass;
 
     struct MethodBlock {
 
@@ -16,6 +17,11 @@ namespace RexVM {
         u4 startPC{}; //第一个opCode PC
         u4 endPC{}; //下一个块第一个opCode PC 所以是左闭右开[startPC, endPC)
         u4 lastPC{}; //当前块的最后一个opCode PC
+
+        bool exceptionHandlerBlock{false};
+        u4 catchStartPC{};
+        u4 catchEndPC{};
+        InstanceClass *catchClass{};
 
         //如果一段无跳转的opCode中 中间某个指令被跳转 则会在那里形成新块
         //但是它上面的一条指令没有显式的做跳转 所以需要标记autoJmp 在生成ir时补上一条跳转指令
