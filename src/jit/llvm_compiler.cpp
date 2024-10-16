@@ -45,7 +45,7 @@ namespace RexVM {
         const auto functionType =
                 FunctionType::get(
                     irBuilder.getVoidTy(),
-                    {voidPtrType, voidPtrType, voidPtrType},
+                    {voidPtrType, voidPtrType, voidPtrType, voidPtrType},
                     false
                 );
 
@@ -150,6 +150,10 @@ namespace RexVM {
 
     Argument *MethodCompiler::getLocalVariableTableTypePtr() const {
         return function->arg_begin() + 2;
+    }
+
+    Argument *MethodCompiler::getThrowValuePtr() const {
+        return function->arg_begin() + 3;
     }
 
     BlockContext *MethodCompiler::getBlockContext(const u4 leaderPC) const {
@@ -1021,6 +1025,9 @@ namespace RexVM {
         return returnValuePtr;
     }
 
+    llvm::Value *MethodCompiler::loadThrowValue() {
+        return irBuilder.CreateLoad(voidPtrType, getThrowValuePtr());
+    }
 
     bool MethodCompiler::compile() {
         if (cfgBlocks.empty()) {

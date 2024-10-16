@@ -77,6 +77,8 @@ namespace RexVM {
 
         [[nodiscard]] llvm::Argument *getLocalVariableTableTypePtr() const;
 
+        [[nodiscard]] llvm::Argument *getThrowValuePtr() const;
+
         llvm::Value *getLocalVariableTableValueMemory(u4 index, SlotTypeEnum slotType);
 
         void setLocalVariableTableValueMemory(u4 index, llvm::Value *value, SlotTypeEnum slotType);
@@ -169,7 +171,9 @@ namespace RexVM {
 
         void addParamSlot(const BlockContext &blockContext, u4 paramCount);
 
-        llvm::Value *getInvokeReturnPtr(const BlockContext &blockContext) const;
+        [[nodiscard]] llvm::Value *getInvokeReturnPtr(const BlockContext &blockContext) const;
+
+        llvm::Value *loadThrowValue();
 
         bool compile();
 

@@ -119,7 +119,7 @@ namespace RexVM {
         const auto notNativeMethod = !method.isNative();
         method.invokeCounter++;
 
-        MethodCFG cfg(method);
+        // MethodCFG cfg(method);
 
 #ifdef LLVM_JIT
         do {
@@ -141,7 +141,7 @@ namespace RexVM {
 
         if (notNativeMethod) [[likely]] {
             if (method.compiledMethodHandler != nullptr) {
-                method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType);
+                method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType, &frame.throwValue);
                 //TODO JIT函数的handleThrowValue跟普通函数不一样 所以里面暂不处理异常 直接向上抛出
                 if (frame.markThrow) {
                     handleThrowValueJIT(frame);

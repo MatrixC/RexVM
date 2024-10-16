@@ -117,7 +117,7 @@ namespace RexVM {
     struct Frame;
     struct VMThread;
     using MethodHandler = void (*)(Frame &frame);
-    using CompiledMethodHandler = void (*)(void *frame, void *lvt, void *lvtType);
+    using CompiledMethodHandler = void (*)(void *frame, void *lvt, void *lvtType, void *throwValuePtr);
     using NativeMethodHandler = MethodHandler;
     using VMThreadNativeHandler = std::function<void()>;
 
