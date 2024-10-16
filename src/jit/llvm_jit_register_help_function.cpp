@@ -40,6 +40,9 @@ namespace RexVM {
 
         const auto monitorType = FunctionType::get(voidTy, {ptrTy, int8Ty}, false);
         monitor = module.getOrInsertFunction("llvm_compile_monitor", monitorType);
+
+        const auto matchCatchType = FunctionType::get(int8Ty, {ptrTy, ptrTy}, false);
+        matchCatch = module.getOrInsertFunction("llvm_compile_match_catch", matchCatchType);
     }
 
 
@@ -82,4 +85,10 @@ namespace RexVM {
     void LLVMHelpFunction::createCallMonitor(IRBuilder<> &irBuilder, Value *oop, const u1 type) const {
         irBuilder.CreateCall(monitor, {oop, irBuilder.getInt8(type)});
     }
+
+    Value *
+    LLVMHelpFunction::createCallMatchCatch(IRBuilder<> &irBuilder, Value *exClass, Value *catchClass) const {
+        return irBuilder.CreateCall(monitor, {exClass, catchClass});
+    }
+
 }

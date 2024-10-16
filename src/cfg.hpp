@@ -37,12 +37,16 @@ namespace RexVM {
 
         const Method &method;
 
+        bool hasExceptionTable{false};
+
         std::vector<std::unique_ptr<MethodBlock>> blocks;
 
         //是否有向前jump 这种暂时不支持编译
         bool jumpFront{false};
 
         void build();
+
+        [[nodiscard]] std::vector<MethodBlock *> findCatchBlock(u4 pc) const;
 
     };
 }

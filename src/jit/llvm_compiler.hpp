@@ -175,6 +175,8 @@ namespace RexVM {
 
         llvm::Value *loadThrowValue();
 
+        [[nodiscard]] BlockContext *getCatchBlockContext(u4 pc, llvm::Value *ex) const;
+
         bool compile();
 
         void verify() const;

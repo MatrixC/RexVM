@@ -43,6 +43,8 @@ extern "C" {
     int32_t llvm_compile_check_cast(void *framePtr, uint8_t type, void *popOop, void *check, uint32_t pc);
 
     void llvm_compile_monitor(void *oop, uint8_t type);
+
+    uint8_t llvm_compile_match_catch(void *exClass, void *catchClass);
 }
 
 #endif

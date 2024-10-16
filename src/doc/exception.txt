@@ -1,0 +1,48 @@
+一 RexVM的解释器异常设计
+
+抛出异常的过程
+通过frame.throwException 标记当前frame为异常状态 并在frame记录异常对象
+
+
+抛出异常(调用frame.throwException)的主要场景
+1. athrow 指令
+2. 某些指令的除零或者NPE
+3. native函数中的主动抛出
+4. 向previous传递异常
+5. 异常辅助函数
+
+
+处理异常的过程
+如果发现当前frame里有异常 按照pc查找有没有处理块
+    1. 如果有对应异常处理块 则跳到处理块执行
+        1.1 如果执行无异常
+            1.1.1 异常处理块正常结束: 退出处理块 清除异常标记
+            1.1.2 异常处理块异常结束: 调用throwException标记异常 然后退出 回到0
+    2. 如果没有对应异常处理块
+        2.1 如果有previous 则调用它的throwException抛出当前异常到如果有previous frame 退出当前frame
+        2.2 如果没有previous 说明调到了top函数 可能是main函数 也可以能是Thread run函数
+            这种情况下调用frame.throwToTopFrame 其中会调用printStackTrace来打印异常信息到标准流
+
+
+重点: 当一个frame中有异常状态时 它应该不顾一切地退回到解释器循环(退出当前指令)
+frame.runMethod方法会创建frame执行一个新函数 假如背调函数发生异常时 自己完成了处理 则当前frame不会被标记为异常
+当前栈被标记异常的原因只有可能是子栈处理不了 抛到当前栈来了 此时我们的正常行为就是
+    退出正常执行流程 转移到异常的处理函数 [找处理块 处理 清除异常状态]
+
+
+1. frame.runMethod为什么后接 if (frame.markThrow) { reutrn; }
+    frame是当前栈 调用runMethod后创建新frame去运行函数
+    当 frame.markThrow 为true时 只有一种情况
+        被调的函数发生了异常 标记了frame异常状态 且被调函数没有能力处理该异常 所以将异常抛到了当前栈
+        此时当前栈应该退出正常执行链路 开始查询该异常有无对应处理块 有则进入该块 无则继续向上抛出
+        这里return的意思就是退出执行 一直到解释器层 等待handleThrowValue方法做处理
+
+2. clinit的异常
+<clinit>函数不是jvm字节码中直接调用的 是有一些指令如new getstatic等间接调用的
+<clinit>函数中的异常都会被ExceptionInInitializerError包装一下
+<clinit>函数的异常可以被上层捕获 在这些间接调用的指令上就可以捕获到xceptionInInitializerError
+
+
+二 对于JIT异常处理的思考
+1. 因为异常处理块是用pop的方式来获得异常对象 而JIT里编译用的是编译态栈 所以需要在异常块前在编译态栈里push一个load异常oop
+2. 指令层面 需要在所有可能抛出异常的指令上 进行异常判断

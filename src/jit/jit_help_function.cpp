@@ -218,6 +218,19 @@ extern "C" {
         }
     }
 
+    uint8_t llvm_compile_match_catch(void *exClass, void *catchClass) {
+        if (exClass == catchClass) {
+            return 0;
+        }
+
+        const auto iExClass = CAST_INSTANCE_CLASS(exClass);
+        const auto iCatchClass = CAST_INSTANCE_CLASS(catchClass);
+        if (iCatchClass->isSuperClassOf(iExClass)) {
+            return 0;
+        }
+        return 1;
+    }
+
 
 
 }

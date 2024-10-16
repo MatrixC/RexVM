@@ -105,6 +105,7 @@ namespace RexVM {
     void VMThread::start(Frame *currentFrame_, bool userThread) {
         if (getStatus() != ThreadStatusEnum::NEW) {
             throwIllegalThreadStateException(*currentFrame_);
+            return;
         }
 
         vm.threadManager->addThread(this, userThread);

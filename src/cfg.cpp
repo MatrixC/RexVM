@@ -24,6 +24,8 @@ namespace RexVM {
     }
 
     void MethodCFG::build() {
+        hasExceptionTable = !method.exceptionCatches.empty();
+
         ByteReader reader{};
         const auto codePtr = method.code.get();
         reader.init(codePtr, method.codeLength);
@@ -291,4 +293,27 @@ namespace RexVM {
             }
         }
     }
+
+    std::vector<MethodBlock *> MethodCFG::findCatchBlock(const u4 pc) const {
+        if (!hasExceptionTable) {
+            return {};
+        }
+        std::vector<MethodBlock *> result;
+        result.reserve(5);
+        for (const auto &methodBlock: blocks) {
+            if (!methodBlock->exceptionHandlerBlock) {
+                continue;
+            }
+            if (pc >= methodBlock->catchStartPC && pc < methodBlock->catchEndPC) {
+                const auto mb = methodBlock.get();
+                result.emplace_back(mb);
+                if (mb->catchClass == nullptr) {
+                    //catch all
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
 }

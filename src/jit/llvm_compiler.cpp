@@ -17,11 +17,14 @@
 namespace RexVM {
     using namespace llvm;
 
-    // constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
-    // constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
-
+#ifdef DEBUG
+    constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
+    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
+#else
+    //release编译不支持Oop的offsetof
     constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = 32;
     constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = 32;
+#endif
 
     MethodCompiler::MethodCompiler(
         VM &vm,
@@ -1028,6 +1031,32 @@ namespace RexVM {
     llvm::Value *MethodCompiler::loadThrowValue() {
         return irBuilder.CreateLoad(voidPtrType, getThrowValuePtr());
     }
+
+    BlockContext *MethodCompiler::getCatchBlockContext(u4 pc, llvm::Value *ex) const {
+        // const auto blk = cfg.findCatchBlock(pc);
+        // if (blk == nullptr) {
+        //     return nullptr;
+        // }
+        //
+        // if (blk->catchClass == nullptr) {
+        //     //jump to this blk
+        // }
+
+        //get ex.klass
+        //get catch.klass
+        // if (catchClass == exClass || catchClass->isSuperClassOf(exClass)) {
+        //     return item->handler;
+        // }
+        // void matchCatch(void *exClass, void *catchClass) {
+        //     return exClass == catchClass || catchClass->isSuperClassOf(exClass);
+        // }
+
+
+
+
+        return nullptr;
+    }
+
 
     bool MethodCompiler::compile() {
         if (cfgBlocks.empty()) {

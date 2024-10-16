@@ -981,6 +981,9 @@ namespace RexVM {
             // auto &fieldClass = fieldRef->klass;
             // fieldClass.clinit(frame);
             const auto fieldRef = frame.mem.getRefField(index, true);
+            if (frame.markThrow) {
+                return;
+            }
             auto &fieldClass = fieldRef->klass;
             const auto value = fieldClass.getFieldValue(fieldRef->slotId);
             const auto type = fieldRef->getFieldSlotType();
@@ -993,6 +996,9 @@ namespace RexVM {
             // auto &fieldClass = fieldRef->klass;
             // fieldClass.clinit(frame);
             const auto fieldRef = frame.mem.getRefField(index, true);
+            if (frame.markThrow) {
+                return;
+            }
             auto &fieldClass = fieldRef->klass;
             if (fieldRef->isWideType()) {
                 frame.pop();
@@ -1006,6 +1012,9 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             //const auto fieldRef = frame.klass.getRefField(index, false);
             const auto fieldRef = frame.mem.getRefField(index, false);
+            if (frame.markThrow) {
+                return;
+            }
             const auto instance = CAST_INSTANCE_OOP(frame.popRef());
             ASSERT_IF_NULL_THROW_NPE(instance);
             const auto value = instance->getFieldValue(fieldRef->slotId);
@@ -1017,6 +1026,9 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             //const auto fieldRef = frame.klass.getRefField(index, false);
             const auto fieldRef = frame.mem.getRefField(index, false);
+            if (frame.markThrow) {
+                return;
+            }
             if (fieldRef->isWideType()) {
                 frame.pop();
             }
@@ -1066,6 +1078,9 @@ namespace RexVM {
         void invokeStaticCommon(Frame &frame, const u2 index) {
             //const auto invokeMethod = frame.klass.getRefMethod(index, isStatic);
             const auto invokeMethod = frame.mem.getRefMethod(index, isStatic);
+            if (frame.markThrow) {
+                return;
+            }
             //already execute in frame.getRefMethod
             // if constexpr (clinit) {
             //     invokeMethod->klass.clinit(frame);

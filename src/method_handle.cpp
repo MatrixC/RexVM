@@ -85,6 +85,9 @@ namespace RexVM {
                 type = Slot(createMethodType(frame, methodHandleMemberDescriptor));
                 break;
         }
+        if (frame.markThrow) {
+            return nullptr;
+        }
 
         const auto methodHandleClass = frame.mem.getInstanceClass(methodHandleClassName);
         const auto methodHandleClassMirrorOop = methodHandleClass->getMirror(&frame);
@@ -185,7 +188,11 @@ namespace RexVM {
         linkCallSiteParams.emplace_back(callerClass->getMirror(&frame));
         linkCallSiteParams.emplace_back(methodHandle);
         linkCallSiteParams.emplace_back(frame.mem.getInternString(invokeName));
-        linkCallSiteParams.emplace_back(createMethodType(frame, invokeDescriptor));
+        const auto mt = createMethodType(frame, invokeDescriptor);
+        if (frame.markThrow) {
+            return nullptr;
+        }
+        linkCallSiteParams.emplace_back(mt);
         linkCallSiteParams.emplace_back(argObjArrayOop);
         linkCallSiteParams.emplace_back(appendixResultArrayOop);
         frame.runMethodManual(*linkCallSiteImplMethod, linkCallSiteParams);

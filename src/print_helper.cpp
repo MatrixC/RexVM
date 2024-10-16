@@ -94,6 +94,9 @@ namespace RexVM {
                 "([Ljava/lang/Object;)Ljava/lang/String;";
         const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
+        if (frame.markThrow) {
+            return "";
+        }
         const auto ret = val.refVal == nullptr ? "null" : VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val.refVal));
         return cformat("Array: {} {}", klass->toView(), ret);
     }

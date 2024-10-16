@@ -517,6 +517,8 @@ namespace RexVM {
         if (superClass != nullptr) {
            superClass->clinit(frame);
             if (frame.markThrow) {
+                //最深层以外在这里异常
+                initStatus = ClassInitStatusEnum::LOADED;
                 return;
             }
         }
@@ -527,6 +529,8 @@ namespace RexVM {
         if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
             frame.runMethodManual(*clinitMethod, {});
             if (frame.markThrow) {
+                //最深层的clinit在此处异常
+                initStatus = ClassInitStatusEnum::LOADED;
                 return;
             }
         }

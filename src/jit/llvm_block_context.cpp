@@ -213,6 +213,11 @@ namespace RexVM {
         initPassStack();
         initLocalVariableTable();
 
+        if (methodBlock->exceptionHandlerBlock) {
+            //对于异常处理块 它获取异常对象的方式是做一次pop
+            pushValue(methodCompiler.loadThrowValue());
+        }
+
         ByteReader reader{};
         const auto codePtr = method.code.get() + methodBlock->startPC;
         const auto codeLength = methodBlock->endPC - methodBlock->startPC;

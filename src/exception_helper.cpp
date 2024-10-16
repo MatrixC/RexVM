@@ -30,6 +30,9 @@ namespace RexVM {
             initParams.emplace_back(frame.mem.getInternString(message));
         }
         frame.runMethodManual(*initMethod, initParams);
+        if (frame.markThrow) {
+            return;
+        }
         frame.throwException(throwable);
     }
 
