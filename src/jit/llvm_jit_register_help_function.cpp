@@ -32,7 +32,7 @@ namespace RexVM {
         const auto newObjectType = FunctionType::get(ptrTy, {ptrTy, int8Ty, int32Ty, ptrTy}, false);
         newObject = module.getOrInsertFunction("llvm_compile_new_object", newObjectType);
 
-        const auto throwType = FunctionType::get(voidTy, {ptrTy, ptrTy, int32Ty, int8Ty}, false);
+        const auto throwType = FunctionType::get(voidTy, {ptrTy, ptrTy, int32Ty, int8Ty, ptrTy}, false);
         throwException = module.getOrInsertFunction("llvm_compile_throw_exception", throwType);
 
         const auto instanceOfType = FunctionType::get(int32Ty, {ptrTy, int8Ty, ptrTy, ptrTy, int32Ty}, false);
@@ -43,6 +43,9 @@ namespace RexVM {
 
         const auto matchCatchType = FunctionType::get(int8Ty, {ptrTy, ptrTy}, false);
         matchCatch = module.getOrInsertFunction("llvm_compile_match_catch", matchCatchType);
+
+        const auto classCheckType = FunctionType::get(int32Ty, {ptrTy, ptrTy, int8Ty}, false);
+        classCheck = module.getOrInsertFunction("llvm_compile_class_check", classCheckType);
     }
 
 
@@ -73,8 +76,14 @@ namespace RexVM {
         return irBuilder.CreateCall(newObject, {framePtr, irBuilder.getInt8(type), length, klass});
     }
 
-    void LLVMHelpFunction::createCallThrowException(IRBuilder<> &irBuilder, Value *framePtr, Value *exception, const u4 pc, const u1 fixedException) const {
-        irBuilder.CreateCall(throwException, {framePtr, exception, irBuilder.getInt32(pc), irBuilder.getInt8(fixedException)});
+    void LLVMHelpFunction::createCallThrowException(
+        IRBuilder<> &irBuilder, Value *framePtr, Value *exception,
+        const u4 pc, const u1 fixedException, Value *exField
+    ) const {
+        irBuilder.CreateCall(
+            throwException,
+            {framePtr, exception, irBuilder.getInt32(pc), irBuilder.getInt8(fixedException), exField}
+        );
     }
 
     Value *LLVMHelpFunction::createCallInstanceOf(IRBuilder<> &irBuilder, Value *framePtr, const u1 type, Value *oop,
@@ -90,5 +99,10 @@ namespace RexVM {
     LLVMHelpFunction::createCallMatchCatch(IRBuilder<> &irBuilder, Value *exClass, Value *catchClass) const {
         return irBuilder.CreateCall(monitor, {exClass, catchClass});
     }
+
+    Value *LLVMHelpFunction::createCallClassCheck(IRBuilder<> &irBuilder, Value *pa, Value *pb, const u1 type) const {
+        return irBuilder.CreateCall(classCheck, {pa, pb, irBuilder.getInt8(type)});
+    }
+
 
 }

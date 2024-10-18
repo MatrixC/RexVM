@@ -165,20 +165,35 @@ extern "C" {
         }
     }
 
-    void llvm_compile_throw_exception(void *framePtr, void *exOop, const uint32_t pc, const uint8_t fixedException) {
+    void llvm_compile_throw_exception(
+        void *framePtr,
+        void *exOop,
+        const uint32_t pc,
+        const uint8_t fixedException,
+        void *exField
+    ) {
         const auto frame = static_cast<Frame *>(framePtr);
         frame->pcCode = CAST_I4(pc);
 
-        if (exOop == nullptr) {
-            if (fixedException == LLVM_COMPILER_FIXED_EXCEPTION_NPE) {
-                throwNullPointException(*frame);
-                return;
-            }
+        if (fixedException == LLVM_COMPILER_FIXED_EXCEPTION_NPE) {
+            throwNullPointException(*frame);
+            return;
+        }
 
-            if (fixedException == LLVM_COMPILER_FIXED_EXCEPTION_DIV_BY_ZERO) {
-                throwArithmeticExceptionDivByZero(*frame);
-                return;
-            }
+        if (fixedException == LLVM_COMPILER_FIXED_EXCEPTION_DIV_BY_ZERO) {
+            throwArithmeticExceptionDivByZero(*frame);
+            return;
+        }
+
+        if (fixedException == LLVM_COMPILER_FIXED_EXCEPTION_CLASS_CHECK) {
+            const auto refVal = CAST_REF(exOop);
+            const auto checkClass = CAST_CLASS(exField);
+            throwClassCastException(*frame, refVal->getClass()->getClassName(), checkClass->getClassName());
+            return;
+        }
+
+        if (exOop == nullptr) {
+            panic("exOop can't be null");
         }
 
         frame->throwException(CAST_INSTANCE_OOP(exOop));
@@ -229,6 +244,22 @@ extern "C" {
             return 0;
         }
         return 1;
+    }
+
+    int32_t llvm_compile_class_check(void *pa, void *pb, const uint8_t type) {
+        switch (type) {
+            case LLVM_COMPILER_CLASS_CHECK_IS_INSTANCE_OF: {
+                const auto ppa = CAST_REF(pa);
+                const auto ppb = CAST_CLASS(pb);
+                const auto instanceOf = ppa->isInstanceOf(ppb);
+                return instanceOf ? 1 : 0;
+            }
+
+            default:
+                panic("error");
+        }
+
+        return -1;
     }
 
 

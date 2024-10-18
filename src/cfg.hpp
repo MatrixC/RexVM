@@ -46,7 +46,7 @@ namespace RexVM {
 
         void build();
 
-        [[nodiscard]] std::vector<MethodBlock *> findCatchBlock(u4 pc) const;
+        [[nodiscard]] std::vector<MethodBlock *> findCatchBlock(u4 pc, const InstanceClass *exClass) const;
 
     };
 }

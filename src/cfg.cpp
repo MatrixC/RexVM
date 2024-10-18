@@ -294,7 +294,7 @@ namespace RexVM {
         }
     }
 
-    std::vector<MethodBlock *> MethodCFG::findCatchBlock(const u4 pc) const {
+    std::vector<MethodBlock *> MethodCFG::findCatchBlock(const u4 pc, const InstanceClass *exClass) const {
         if (!hasExceptionTable) {
             return {};
         }
@@ -306,10 +306,18 @@ namespace RexVM {
             }
             if (pc >= methodBlock->catchStartPC && pc < methodBlock->catchEndPC) {
                 const auto mb = methodBlock.get();
-                result.emplace_back(mb);
                 if (mb->catchClass == nullptr) {
                     //catch all
+                    result.emplace_back(mb);
                     break;
+                }
+
+                if (exClass == nullptr) {
+                    result.emplace_back(mb);
+                } else {
+                    if (mb->catchClass == exClass || mb->catchClass->isSuperClassOf(exClass)) {
+                        result.emplace_back(mb);
+                    }
                 }
             }
         }

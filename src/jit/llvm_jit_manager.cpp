@@ -42,6 +42,7 @@ namespace RexVM {
         DEFINE_SYMBOL(llvm_compile_check_cast)
         DEFINE_SYMBOL(llvm_compile_monitor)
         DEFINE_SYMBOL(llvm_compile_match_catch)
+        DEFINE_SYMBOL(llvm_compile_class_check)
 
         cantFail(jd.define(absoluteSymbols(symbol_map)));
     }

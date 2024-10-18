@@ -1012,9 +1012,6 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             //const auto fieldRef = frame.klass.getRefField(index, false);
             const auto fieldRef = frame.mem.getRefField(index, false);
-            if (frame.markThrow) {
-                return;
-            }
             const auto instance = CAST_INSTANCE_OOP(frame.popRef());
             ASSERT_IF_NULL_THROW_NPE(instance);
             const auto value = instance->getFieldValue(fieldRef->slotId);
@@ -1026,9 +1023,6 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             //const auto fieldRef = frame.klass.getRefField(index, false);
             const auto fieldRef = frame.mem.getRefField(index, false);
-            if (frame.markThrow) {
-                return;
-            }
             if (fieldRef->isWideType()) {
                 frame.pop();
             }
