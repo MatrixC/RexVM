@@ -17,6 +17,7 @@ namespace RexVM {
         std::atomic_uint32_t failedMethodCnt{0};
 
         explicit LLVM_JITManager(VM &vm);
+        ~LLVM_JITManager();
 
         std::unique_ptr<llvm::orc::LLJIT> jit;
         std::unique_ptr<llvm::orc::ThreadSafeContext> threadSafeContext;
@@ -24,6 +25,7 @@ namespace RexVM {
         void registerHelpFunction() const;
 
         CompiledMethodHandler compileMethod(Method &method) override;
+
 
     };
 

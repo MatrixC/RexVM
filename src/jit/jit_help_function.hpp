@@ -50,9 +50,11 @@ extern "C" {
 
     void llvm_compile_monitor(void *oop, uint8_t type);
 
-    uint8_t llvm_compile_match_catch(void *exClass, void *catchClass);
+    int32_t llvm_compile_match_catch(void *oop, void **catchClassArray, int32_t size);
 
     int32_t llvm_compile_class_check(void *pa, void *pb, uint8_t type);
+
+    void llvm_compile_clean_throw(void *framePtr);
 }
 
 #endif

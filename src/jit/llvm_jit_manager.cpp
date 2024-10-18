@@ -8,7 +8,7 @@
 #include "../class.hpp"
 #include "../utils/string_utils.hpp"
 
-#define DEFINE_SYMBOL(hfname) symbol_map[mangle(#hfname)] = ExecutorSymbolDef(ExecutorAddr::fromPtr(&hfname), JITSymbolFlags());
+#define DEFINE_SYMBOL(hf_name) symbol_map[mangle(#hf_name)] = ExecutorSymbolDef(ExecutorAddr::fromPtr(&hf_name), JITSymbolFlags());
 
 
 namespace RexVM {
@@ -43,6 +43,7 @@ namespace RexVM {
         DEFINE_SYMBOL(llvm_compile_monitor)
         DEFINE_SYMBOL(llvm_compile_match_catch)
         DEFINE_SYMBOL(llvm_compile_class_check)
+        DEFINE_SYMBOL(llvm_compile_clean_throw)
 
         cantFail(jd.define(absoluteSymbols(symbol_map)));
     }
@@ -65,7 +66,7 @@ namespace RexVM {
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         if (!methodCompiler.compile()) {
             ++failedMethodCnt;
-            return nullptr;;
+            return nullptr;
         }
         methodCompiler.verify();
 
@@ -83,4 +84,9 @@ namespace RexVM {
         ++successMethodCnt;
         return ptr;
     }
+
+    LLVM_JITManager::~LLVM_JITManager() {
+        cprintln("success: {}, failed: {}", successMethodCnt.load(), failedMethodCnt.load());
+    }
+
 }

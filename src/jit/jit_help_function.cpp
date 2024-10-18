@@ -84,7 +84,7 @@ extern "C" {
             invokeMethod = static_cast<Method *>(method);
             invokeMethod->klass.clinit(*frame);
             if (frame->markThrow) {
-                return framePtr;
+                return frame->throwValue;
             }
         } else {
             const auto index = paramSize;
@@ -106,10 +106,11 @@ extern "C" {
         if (frame->markThrow) {
             //JIT函数当前无法处理异常 所以在执行的JIT函数也肯定没有异常表 向上抛出异常即可
             //TODO
-            return framePtr;
+            // return framePtr;
             // frame->jitPc = pc;
             // return frame->popRef();
             // return frame->throwObject;
+            return frame->throwValue;
         }
 
         operandStack.sp = -1;
@@ -233,22 +234,29 @@ extern "C" {
         }
     }
 
-    uint8_t llvm_compile_match_catch(void *exClass, void *catchClass) {
-        if (exClass == catchClass) {
-            return 0;
+    int32_t llvm_compile_match_catch(void *oop, void **catchClassArray, int32_t size) {
+        const auto exOop = CAST_REF(oop);
+        const auto exClass = exOop->getClass();
+
+        for (int32_t i = 0; i < size; ++i) {
+            const auto cPtr = catchClassArray[i];
+            const auto catchClass = CAST_INSTANCE_CLASS(cPtr);
+            if (exClass == catchClass || catchClass->isSuperClassOf(exClass)) {
+               return i;
+            }
         }
 
-        const auto iExClass = CAST_INSTANCE_CLASS(exClass);
-        const auto iCatchClass = CAST_INSTANCE_CLASS(catchClass);
-        if (iCatchClass->isSuperClassOf(iExClass)) {
-            return 0;
-        }
-        return 1;
+        return -1;
     }
 
     int32_t llvm_compile_class_check(void *pa, void *pb, const uint8_t type) {
         switch (type) {
             case LLVM_COMPILER_CLASS_CHECK_IS_INSTANCE_OF: {
+                if (pa == nullptr) {
+                    //兼容instanceOf指令 checkClass指令肯定不会传null
+                    //这样可以让instanceOf的JIT少一步判断 直接返回
+                    return 0;
+                }
                 const auto ppa = CAST_REF(pa);
                 const auto ppb = CAST_CLASS(pb);
                 const auto instanceOf = ppa->isInstanceOf(ppb);
@@ -262,6 +270,10 @@ extern "C" {
         return -1;
     }
 
-
+    void llvm_compile_clean_throw(void *framePtr) {
+        const auto frame = static_cast<Frame *>(framePtr);
+        frame->cleanOperandStack();
+        frame->cleanThrow();
+    }
 
 }

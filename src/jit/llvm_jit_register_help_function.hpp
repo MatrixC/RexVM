@@ -21,6 +21,7 @@ namespace RexVM {
         llvm::FunctionCallee monitor{};
         llvm::FunctionCallee matchCatch{};
         llvm::FunctionCallee classCheck{};
+        llvm::FunctionCallee cleanThrow{};
 
 
         llvm::Value *createCallGetInstanceConstant(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u2 index) const;
@@ -34,8 +35,10 @@ namespace RexVM {
         void createCallThrowException(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *exception, u4 pc, u1 fixedException, llvm::Value *exField) const;
         llvm::Value * createCallInstanceOf(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u1 type, llvm::Value *oop, llvm::Value *checkClass, u4 pc) const;
         void createCallMonitor(llvm::IRBuilder<> &irBuilder, llvm::Value *oop, u1 type) const;
-        llvm::Value *createCallMatchCatch(llvm::IRBuilder<> &irBuilder, llvm::Value *exClass, llvm::Value *catchClass) const;
+        llvm::Value *createCallMatchCatch(llvm::IRBuilder<> &irBuilder, llvm::Value *oop, llvm::Value *catchClasses,
+                                          u4 size) const;
         llvm::Value *createCallClassCheck(llvm::IRBuilder<> &irBuilder, llvm::Value *pa, llvm::Value *pb, u1 type) const;
+        void createCleanThrow(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr) const;
 
     };
 

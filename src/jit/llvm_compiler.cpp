@@ -1,4 +1,6 @@
 #include "llvm_compiler.hpp"
+
+#include <llvm/ExecutionEngine/JITLink/JITLink.h>
 #include <llvm/IR/Verifier.h>
 #include "llvm_block_context.hpp"
 #include "jit_help_function.hpp"
@@ -362,10 +364,19 @@ namespace RexVM {
         irBuilder.CreateCondBr(cmpIsNull, isNullBB, elseBB);
 
         changeBB(blockContext, isNullBB);
+        //不管是否要处理异常 都得先抛出异常
+        //如果有处理块 则尝试处理 否则直接退出函数
+        helpFunction->createCallThrowException(
+            irBuilder,
+            getFramePtr(),
+            getZeroValue(SlotTypeEnum::REF),
+            blockContext.pc,
+            fixedException,
+            getZeroValue(SlotTypeEnum::REF)
+        );
 
         if (useException) {
             //处理异常
-
             //在已经知道要发生异常的场景下 先找异常处理程序 如果能找到则直接处理 就不用抛异常了
             //如果找不到 再抛异常
             const auto fixedExceptionClass =
@@ -378,27 +389,10 @@ namespace RexVM {
                 const auto blkCtx = cfgBlocks[catchBlock->index].get();
                 irBuilder.CreateBr(blkCtx->basicBlock);
             } else {
-                helpFunction->createCallThrowException(
-                    irBuilder,
-                    getFramePtr(),
-                    getZeroValue(SlotTypeEnum::REF),
-                    blockContext.pc,
-                    fixedException,
-                    getZeroValue(SlotTypeEnum::REF)
-                );
                 exitMethod();
             }
             //处理异常end
         } else {
-            //没启动异常编译功能 直接抛异常
-            helpFunction->createCallThrowException(
-                irBuilder,
-                getFramePtr(),
-                getZeroValue(SlotTypeEnum::REF),
-                blockContext.pc,
-                fixedException,
-                getZeroValue(SlotTypeEnum::REF)
-            );
             exitMethod();
         }
 
@@ -836,7 +830,8 @@ namespace RexVM {
         llvm::Value *methodRef,
         const size_t paramSlotSize
     ) {
-        const auto successReturnBB = BasicBlock::Create(ctx);;
+        const auto successReturnBB = BasicBlock::Create(ctx);
+        BasicBlock *exceptionBB = useException ? BasicBlock::Create(ctx) : exitBB;
 
         const auto invokeException =
                 helpFunction->createCallInvokeMethodFixed(
@@ -849,14 +844,44 @@ namespace RexVM {
                 );
 
         const auto successReturn =
-                irBuilder.CreateICmpEQ(
-                    invokeException,
-                    getZeroValue(SlotTypeEnum::REF),
-                    cformat("{}_exception", methodName)
-                );
+        irBuilder.CreateICmpEQ(
+            invokeException,
+            getZeroValue(SlotTypeEnum::REF),
+            cformat("{}_exception", methodName)
+        );
 
         //如果调用中发生了异常 在JIT有处理异常能力之前 先直接退出
-        irBuilder.CreateCondBr(successReturn, successReturnBB, exitBB);
+        irBuilder.CreateCondBr(successReturn, successReturnBB, exceptionBB);
+
+        if (useException) {
+            changeBB(blockContext, exceptionBB);
+            const auto catchBlks = cfg.findCatchBlock(blockContext.pc, nullptr);
+            if (catchBlks.empty()) {
+                irBuilder.CreateBr(exitBB);
+            } else {
+                const auto arrayType = ArrayType::get(voidPtrType, catchBlks.size());
+                const auto catchClassArray = irBuilder.CreateAlloca(arrayType);
+                for (size_t i = 0; i < catchBlks.size(); ++i) {
+                    const auto ptr = irBuilder.CreateGEP(voidPtrType, catchClassArray, irBuilder.getInt32(i));
+                    irBuilder.CreateStore(getConstantPtr(catchBlks[i]->catchClass), ptr);
+                }
+                const auto matchIdx =
+                        helpFunction->createCallMatchCatch(
+                            irBuilder,
+                            invokeException,
+                            catchClassArray,
+                            catchBlks.size()
+                        );
+
+                const auto switchCatchBB = irBuilder.CreateSwitch(matchIdx, exitBB);
+                for (size_t i = 0; i < catchBlks.size(); ++i) {
+                    const auto blk = catchBlks[i];
+                    const auto blkCtx = cfgBlocks[blk->index].get();
+                    switchCatchBB->addCase(irBuilder.getInt32(i), blkCtx->basicBlock);
+                }
+            }
+        }
+
 
         changeBB(blockContext, successReturnBB);
         processInvokeReturn(blockContext, returnType);
@@ -996,7 +1021,20 @@ namespace RexVM {
             LLVM_COMPILER_FIXED_EXCEPTION_CLASS_CHECK,
             getConstantPtr(checkClass)
         );
-        exitMethod();
+
+        if (useException) {
+            const auto fixedExceptionClass = klass.classLoader.getInstanceClass("java/lang/ClassCastException");
+            const auto catchBlocks = cfg.findCatchBlock(blockContext.pc, fixedExceptionClass);
+            if (!catchBlocks.empty()) {
+                const auto catchBlock = catchBlocks.back();
+                const auto blkCtx = cfgBlocks[catchBlock->index].get();
+                irBuilder.CreateBr(blkCtx->basicBlock);
+            } else {
+                exitMethod();
+            }
+        } else {
+            exitMethod();
+        }
 
         changeBB(blockContext, endBB);
     }
@@ -1004,17 +1042,6 @@ namespace RexVM {
     void MethodCompiler::instanceOf(BlockContext &blockContext, const u2 index, llvm::Value *ref) {
         const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
         const auto checkClass = klass.classLoader.getClass(className);
-
-        const auto isNullBB = BasicBlock::Create(ctx);
-        const auto isNotNullBB = BasicBlock::Create(ctx);
-        const auto getResultBB = BasicBlock::Create(ctx);
-        const auto valIsNull = irBuilder.CreateICmpEQ(ref, getZeroValue(SlotTypeEnum::REF));
-        irBuilder.CreateCondBr(valIsNull, isNullBB, isNotNullBB);
-
-        changeBB(blockContext, isNullBB);
-        irBuilder.CreateBr(getResultBB);
-
-        changeBB(blockContext, isNotNullBB);
         const auto checkRet =
                 helpFunction->createCallClassCheck(
                     irBuilder,
@@ -1022,13 +1049,7 @@ namespace RexVM {
                     getConstantPtr(checkClass),
                     LLVM_COMPILER_CLASS_CHECK_IS_INSTANCE_OF
                 );
-        irBuilder.CreateBr(getResultBB);
-
-        changeBB(blockContext, getResultBB);
-        const auto result = irBuilder.CreatePHI(irBuilder.getInt32Ty(), 2);
-        result->addIncoming(getZeroValue(SlotTypeEnum::I4), isNullBB);
-        result->addIncoming(checkRet, isNotNullBB);
-        blockContext.pushValue(result);
+        blockContext.pushValue(checkRet);
     }
 
     void MethodCompiler::monitor(BlockContext &blockContext, const u1 type, llvm::Value *oop) {
@@ -1094,6 +1115,7 @@ namespace RexVM {
     }
 
     llvm::Value *MethodCompiler::loadThrowValue() {
+        helpFunction->createCleanThrow(irBuilder, getFramePtr());
         return irBuilder.CreateLoad(voidPtrType, getThrowValuePtr());
     }
 
@@ -1124,6 +1146,13 @@ namespace RexVM {
 
 
     bool MethodCompiler::compile() {
+        // if (!useException && !method.exceptionCatches.empty()) {
+        //     return false;
+        // }
+        // if (!method.exceptionCatches.empty()) {
+        //     return false;
+        // }
+        //
         if (cfgBlocks.empty()) {
             panic("error cfgBlock count");
         }

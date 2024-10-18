@@ -41,11 +41,14 @@ namespace RexVM {
         const auto monitorType = FunctionType::get(voidTy, {ptrTy, int8Ty}, false);
         monitor = module.getOrInsertFunction("llvm_compile_monitor", monitorType);
 
-        const auto matchCatchType = FunctionType::get(int8Ty, {ptrTy, ptrTy}, false);
+        const auto matchCatchType = FunctionType::get(int32Ty, {ptrTy, ptrTy, int32Ty}, false);
         matchCatch = module.getOrInsertFunction("llvm_compile_match_catch", matchCatchType);
 
         const auto classCheckType = FunctionType::get(int32Ty, {ptrTy, ptrTy, int8Ty}, false);
         classCheck = module.getOrInsertFunction("llvm_compile_class_check", classCheckType);
+
+        const auto cleanThrowType = FunctionType::get(voidTy, {ptrTy}, false);
+        cleanThrow = module.getOrInsertFunction("llvm_compile_clean_throw", cleanThrowType);
     }
 
 
@@ -96,13 +99,16 @@ namespace RexVM {
     }
 
     Value *
-    LLVMHelpFunction::createCallMatchCatch(IRBuilder<> &irBuilder, Value *exClass, Value *catchClass) const {
-        return irBuilder.CreateCall(monitor, {exClass, catchClass});
+    LLVMHelpFunction::createCallMatchCatch(IRBuilder<> &irBuilder, Value *oop, Value *catchClasses, const u4 size) const {
+        return irBuilder.CreateCall(matchCatch, {oop, catchClasses, irBuilder.getInt32(size)});
     }
 
     Value *LLVMHelpFunction::createCallClassCheck(IRBuilder<> &irBuilder, Value *pa, Value *pb, const u1 type) const {
         return irBuilder.CreateCall(classCheck, {pa, pb, irBuilder.getInt8(type)});
     }
 
+    void LLVMHelpFunction::createCleanThrow(IRBuilder<> &irBuilder, Value *framePtr) const {
+        irBuilder.CreateCall(cleanThrow, {framePtr});
+    }
 
 }

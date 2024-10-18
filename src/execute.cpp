@@ -43,11 +43,11 @@ namespace RexVM {
         if (handler) {
             //clean [operand] stack and push the catched exception to stack(must)
             frame.cleanOperandStack();
-            frame.pushRef(throwInstance);
+            frame.cleanThrow();
 
+            frame.pushRef(throwInstance);
             const auto gotoOffset = *handler;
             frame.reader.gotoOffset(gotoOffset);
-            frame.cleanThrow();
         } else {
             const auto previousFrame = frame.previous;
             if (previousFrame == nullptr) {
