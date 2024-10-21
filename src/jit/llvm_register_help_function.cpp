@@ -1,4 +1,4 @@
-#include "llvm_jit_register_help_function.hpp"
+#include "llvm_register_help_function.hpp"
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 

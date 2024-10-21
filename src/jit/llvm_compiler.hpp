@@ -6,8 +6,6 @@
 #include "../config.hpp"
 #include "../opcode.hpp"
 #include "../cfg.hpp"
-#include "llvm_jit_register_help_function.hpp"
-#include "llvm_block_context.hpp"
 
 namespace RexVM {
     struct VM;
@@ -26,6 +24,7 @@ namespace RexVM {
             llvm::Module &module,
             cview compiledMethodName
         );
+        ~MethodCompiler();
 
         void initLocalPtr();
         void initCFGBlocks();

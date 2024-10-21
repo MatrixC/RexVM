@@ -1,15 +1,12 @@
 #include "llvm_compiler.hpp"
-
 #include <llvm/ExecutionEngine/JITLink/JITLink.h>
-#include <llvm/IR/Verifier.h>
 #include "llvm_block_context.hpp"
 #include "jit_help_function.hpp"
-#include "llvm_jit_register_help_function.hpp"
+#include "llvm_register_help_function.hpp"
 #include "../vm.hpp"
 #include "../frame.hpp"
 #include "../class.hpp"
 #include "../class_member.hpp"
-#include "../cfg.hpp"
 #include "../oop.hpp"
 #include "../class_loader.hpp"
 #include "../constant_info.hpp"
@@ -70,6 +67,9 @@ namespace RexVM {
         initLocalPtr();
         initCFGBlocks();
     }
+
+    MethodCompiler::~MethodCompiler() = default;
+
 
     void MethodCompiler::initLocalPtr() {
         irBuilder.SetInsertPoint(entryBlock);
