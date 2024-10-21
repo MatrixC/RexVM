@@ -31,11 +31,6 @@ extern "C" {
         return nullptr;
     }
 
-    int32_t llvm_compile_array_length(void *arrayOop) {
-        const auto array = CAST_ARRAY_OOP(arrayOop);
-        return static_cast<int32_t>(array->getDataLength());
-    }
-
     void llvm_compile_return_common(void *framePtr, const int64_t val, uint8_t type) {
         const auto frame = static_cast<Frame *>(framePtr);
         switch (static_cast<SlotTypeEnum>(type)) {
@@ -67,17 +62,20 @@ extern "C" {
         }
     }
 
-    void llvm_compile_clinit(void *framePtr, void *klass) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        const auto instanceClass = CAST_INSTANCE_CLASS(klass);
-        instanceClass->clinit(*frame);
-    }
-
-    void *llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize, uint32_t pc) {
+    void *llvm_compile_invoke_method_fixed(void *framePtr, void *method, uint16_t paramSize, const uint32_t pc, const int8_t isClinit) {
         const auto frame = static_cast<Frame *>(framePtr);
         frame->pcCode = CAST_I4(pc);
-        auto &operandStack = frame->operandStackContext;
 
+        if (isClinit != 0) {
+            const auto instanceClass = CAST_INSTANCE_CLASS(method);
+            instanceClass->clinit(*frame);
+            if (frame->markThrow) {
+                return frame->throwValue;
+            }
+            return nullptr;
+        }
+
+        auto &operandStack = frame->operandStackContext;
         Method *invokeMethod{nullptr};
         if (method != nullptr) {
             operandStack.sp += CAST_I4(paramSize);
@@ -104,12 +102,6 @@ extern "C" {
         }
 
         if (frame->markThrow) {
-            //JIT函数当前无法处理异常 所以在执行的JIT函数也肯定没有异常表 向上抛出异常即可
-            //TODO
-            // return framePtr;
-            // frame->jitPc = pc;
-            // return frame->popRef();
-            // return frame->throwObject;
             return frame->throwValue;
         }
 
@@ -117,7 +109,7 @@ extern "C" {
         return nullptr;
     }
 
-    void *llvm_compile_new_object(void *framePtr, uint8_t type, const int32_t length, void *klass) {
+    void *llvm_compile_new_object(void *framePtr, uint8_t type, const int32_t length, void *klass, int32_t *exception) {
         //type
         //0: dynamicInvoke
         //1: newObject
@@ -134,12 +126,20 @@ extern "C" {
                 //这里跟llvm_compile_invoke_method_fixed一样 因为调用了pushParam传参 所以这里需要将传参的sp加上去
                 operandStack.sp += CAST_I4(paramSize);
                 const auto callSiteObj = invokeDynamic(*frame, index);
+                if (frame->markThrow) {
+                    *exception = 1;
+                    return frame->throwValue;
+                }
                 return callSiteObj;
             }
 
             case LLVM_COMPILER_NEW_OBJECT: {
                 const auto instanceClass = CAST_INSTANCE_CLASS(klass);
                 instanceClass->clinit(*frame);
+                if (frame->markThrow) {
+                    *exception = 1;
+                    return frame->throwValue;
+                }
                 return frame->mem.newInstance(instanceClass);
             }
 
@@ -200,41 +200,7 @@ extern "C" {
         frame->throwException(CAST_INSTANCE_OOP(exOop));
     }
 
-    int32_t llvm_compile_check_cast(void *framePtr, const uint8_t type, void *popOop, void *check, const uint32_t pc) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->pcCode = CAST_I4(pc);
-        const auto refVal = CAST_REF(popOop);
-        const auto checkClass = CAST_CLASS(check);
-        if (refVal == nullptr) {
-            if (type == LLVM_COMPILER_CHECK_CAST) {
-                //adapt check_cast opcode, return 1 don't exit method
-                return 1;
-            } else {
-                //adapt instance_of opcode, return 0 isn't instanceOf
-                return 0;
-            }
-        }
-
-        const auto instanceOf = refVal->isInstanceOf(checkClass);
-        const int32_t result = instanceOf ? 1 : 0;
-
-        if (type == LLVM_COMPILER_CHECK_CAST && !instanceOf) {
-            throwClassCastException(*frame, refVal->getClass()->getClassName(), checkClass->getClassName());
-        }
-
-        return result;
-    }
-
-    void llvm_compile_monitor(void *oop, const uint8_t type) {
-        const auto refVal = CAST_REF(oop);
-        if (type == LLVM_COMPILER_MONITOR_ENTER) {
-            refVal->lock();
-        } else {
-            refVal->unlock();
-        }
-    }
-
-    int32_t llvm_compile_match_catch(void *oop, void **catchClassArray, int32_t size) {
+    int32_t llvm_compile_match_catch(void *oop, void **catchClassArray, const int32_t size) {
         const auto exOop = CAST_REF(oop);
         const auto exClass = exOop->getClass();
 
@@ -249,9 +215,26 @@ extern "C" {
         return -1;
     }
 
-    int32_t llvm_compile_class_check(void *pa, void *pb, const uint8_t type) {
+    int32_t llvm_compile_misc(void *framePtr, void *pa, void *pb, const uint8_t type) {
         switch (type) {
-            case LLVM_COMPILER_CLASS_CHECK_IS_INSTANCE_OF: {
+            case LLVM_COMPILER_MISC_MONITOR_ENTER: {
+                const auto refVal = CAST_REF(pa);
+                refVal->lock();
+                return 0;
+            }
+
+            case LLVM_COMPILER_MISC_MONITOR_EXIT: {
+                const auto refVal = CAST_REF(pa);
+                refVal->unlock();
+                return 0;
+            }
+
+            case LLVM_COMPILER_MISC_ARRAY_LENGTH: {
+                const auto array = CAST_ARRAY_OOP(pa);
+                return static_cast<int32_t>(array->getDataLength());
+            }
+
+            case LLVM_COMPILER_MISC_CHECK_INSTANCE_OF: {
                 if (pa == nullptr) {
                     //兼容instanceOf指令 checkClass指令肯定不会传null
                     //这样可以让instanceOf的JIT少一步判断 直接返回
@@ -263,17 +246,15 @@ extern "C" {
                 return instanceOf ? 1 : 0;
             }
 
-            default:
-                panic("error");
+            case LLVM_COMPILER_MISC_CLEAN_THROW: {
+                const auto frame = static_cast<Frame *>(framePtr);
+                frame->cleanOperandStack();
+                frame->cleanThrow();
+                return 0;
+            }
         }
 
         return -1;
-    }
-
-    void llvm_compile_clean_throw(void *framePtr) {
-        const auto frame = static_cast<Frame *>(framePtr);
-        frame->cleanOperandStack();
-        frame->cleanThrow();
     }
 
 }

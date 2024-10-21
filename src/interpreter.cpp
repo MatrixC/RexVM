@@ -1137,7 +1137,11 @@ namespace RexVM {
             const auto length = frame.popI4();
 
             const auto elementClass = frame.mem.getRefClass(classIndex);
-            
+            CAST_INSTANCE_CLASS(elementClass)->clinit(frame);
+            if (frame.markThrow) {
+                return;
+            }
+
             const auto array = frame.mem.getObjectArrayClass(*elementClass);
             frame.pushRef(frame.mem.newObjArrayOop(array, length));
         }

@@ -65,10 +65,8 @@ namespace RexVM {
 
     void handleThrowValueJIT(Frame &frame) {
         const auto throwInstance = frame.throwValue;
-        // const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
         const auto previousFrame = frame.previous;
         if (previousFrame == nullptr) {
-            //TOP Frame
             throwToTopFrame(frame, throwInstance);
             frame.cleanThrow();
             return;
@@ -119,10 +117,14 @@ namespace RexVM {
         const auto notNativeMethod = !method.isNative();
         method.invokeCounter++;
 
-        // MethodCFG cfg(method);
+        if (method.klass.getClassName() == "com/azul/tooling/in/Tooling" && method.getName() == "<clinit>") {
+            int i = 10;
+        }
+
 
 #ifdef LLVM_JIT
         do {
+            // break;
             if (notNativeMethod && method.canCompile && method.compiledMethodHandler == nullptr) {
                 if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
                     jitManager->compileMethod(method);
@@ -135,15 +137,11 @@ namespace RexVM {
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
         frame.vm.garbageCollector->checkStopForCollect(frame.thread);
 
-        if (method.getName() == "checkMemberAccess") {
-            int i = 10;
-        }
-
         if (notNativeMethod) [[likely]] {
             if (method.compiledMethodHandler != nullptr) {
                 method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType, &frame.throwValue);
-                //TODO JIT函数的handleThrowValue跟普通函数不一样 所以里面暂不处理异常 直接向上抛出
                 if (frame.markThrow) {
+                    //JIT函数的异常 可以catch的在函数里已经完成 抛出的都是无法catch的
                     handleThrowValueJIT(frame);
                     return;
                 }
@@ -166,11 +164,8 @@ namespace RexVM {
                 ATTR_UNUSED const auto lineNumber = method.getLineNumber(pc);
                 #endif
 
-                if (methodName == "java/lang/ref/Reference#<clinit>" && pc == 38) {
-                    int i = 10;
-                }
-
                 OpCodeHandlers[frame.currentByteCode](frame);
+
                 if (frame.markThrow && handleThrowValue(frame)) {
                     return;
                 }
@@ -221,7 +216,7 @@ namespace RexVM {
         }
 
 #ifdef DEBUG
-        executeFrame(frame, cformat("{}#{}", method.klass.toView(), method.toView()));
+       executeFrame(frame, cformat("{}#{}", method.klass.toView(), method.toView()));
 #else
         executeFrame(frame, "");
 #endif

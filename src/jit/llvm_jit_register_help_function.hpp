@@ -8,37 +8,30 @@
 namespace RexVM {
 
     struct LLVMHelpFunction {
+
         explicit LLVMHelpFunction(llvm::Module &module);
 
         llvm::FunctionCallee getInstanceConstant{};
-        llvm::FunctionCallee arrayLength{};
         llvm::FunctionCallee returnCommon{};
-        llvm::FunctionCallee clinit{};
         llvm::FunctionCallee invokeMethodFixed{};
         llvm::FunctionCallee newObject{};
         llvm::FunctionCallee throwException{};
-        llvm::FunctionCallee instanceOf{};
-        llvm::FunctionCallee monitor{};
         llvm::FunctionCallee matchCatch{};
-        llvm::FunctionCallee classCheck{};
-        llvm::FunctionCallee cleanThrow{};
-
+        llvm::FunctionCallee misc{};
 
         llvm::Value *createCallGetInstanceConstant(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u2 index) const;
 
-        llvm::Value *createCallArrayLength(llvm::IRBuilder<> &irBuilder, llvm::Value *arrayRef) const;
         void createCallReturnCommon(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *value, u1 type) const;
 
-        void createCallClinit(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *klass) const;
-        llvm::Value *createCallInvokeMethodFixed(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *method, u2 paramSlotSize, u4 pc, cview methodName) const;
-        llvm::Value *createCallNew(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, uint8_t type, llvm::Value *length, llvm::Value *klass) const;
+        llvm::Value *createCallInvokeMethodFixed(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *method, u2 paramSlotSize, u4 pc, cview methodName, bool isClinit) const;
+
+        llvm::Value *createCallNew(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, uint8_t type, llvm::Value *length, llvm::Value *klass, llvm::Value *hasException) const;
+
         void createCallThrowException(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *exception, u4 pc, u1 fixedException, llvm::Value *exField) const;
-        llvm::Value * createCallInstanceOf(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, u1 type, llvm::Value *oop, llvm::Value *checkClass, u4 pc) const;
-        void createCallMonitor(llvm::IRBuilder<> &irBuilder, llvm::Value *oop, u1 type) const;
-        llvm::Value *createCallMatchCatch(llvm::IRBuilder<> &irBuilder, llvm::Value *oop, llvm::Value *catchClasses,
-                                          u4 size) const;
-        llvm::Value *createCallClassCheck(llvm::IRBuilder<> &irBuilder, llvm::Value *pa, llvm::Value *pb, u1 type) const;
-        void createCleanThrow(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr) const;
+
+        llvm::Value *createCallMatchCatch(llvm::IRBuilder<> &irBuilder, llvm::Value *oop, llvm::Value *catchClasses, u4 size) const;
+
+        llvm::Value * createCallMisc(llvm::IRBuilder<> &irBuilder, llvm::Value *framePtr, llvm::Value *pa, llvm::Value *pb, u1 type) const;
 
     };
 

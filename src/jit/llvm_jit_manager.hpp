@@ -17,7 +17,7 @@ namespace RexVM {
         std::atomic_uint32_t failedMethodCnt{0};
 
         explicit LLVM_JITManager(VM &vm);
-        ~LLVM_JITManager();
+        ~LLVM_JITManager() override;
 
         std::unique_ptr<llvm::orc::LLJIT> jit;
         std::unique_ptr<llvm::orc::ThreadSafeContext> threadSafeContext;

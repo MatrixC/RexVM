@@ -33,17 +33,12 @@ namespace RexVM {
         SymbolMap symbol_map;
 
         DEFINE_SYMBOL(llvm_compile_get_instance_constant)
-        DEFINE_SYMBOL(llvm_compile_array_length)
         DEFINE_SYMBOL(llvm_compile_return_common)
-        DEFINE_SYMBOL(llvm_compile_clinit)
         DEFINE_SYMBOL(llvm_compile_invoke_method_fixed)
         DEFINE_SYMBOL(llvm_compile_new_object)
         DEFINE_SYMBOL(llvm_compile_throw_exception)
-        DEFINE_SYMBOL(llvm_compile_check_cast)
-        DEFINE_SYMBOL(llvm_compile_monitor)
         DEFINE_SYMBOL(llvm_compile_match_catch)
-        DEFINE_SYMBOL(llvm_compile_class_check)
-        DEFINE_SYMBOL(llvm_compile_clean_throw)
+        DEFINE_SYMBOL(llvm_compile_misc)
 
         cantFail(jd.define(absoluteSymbols(symbol_map)));
     }
@@ -53,7 +48,7 @@ namespace RexVM {
         if (!method.canCompile || method.compiledMethodHandler != nullptr) {
             return nullptr;
         }
-        if (!method.exceptionCatches.empty()) {
+        if (!MethodCompiler::useException && !method.exceptionCatches.empty()) {
             ++failedMethodCnt;
             return nullptr;
         }
@@ -69,11 +64,6 @@ namespace RexVM {
             return nullptr;
         }
         methodCompiler.verify();
-
-        if (method.getName() == "newInstance" && method.klass.getClassName() == "java/lang/reflect/Constructor") {
-            // module->print(errs(), nullptr);
-            // int i = 10;
-        }
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));

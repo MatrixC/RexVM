@@ -82,3 +82,14 @@ frame.runMethod方法会创建frame执行一个新函数 假如背调函数发�
     5.1 invoke指令执行的函数异常
     5.2 invokedynamic指令过程中的异常
 
+特别注意
+    当前编译的基本单位是函数CFG中的每一个Block 从字节码的角度来说 理论上每个Block 除了最后一条指令 不会再有跳转
+    useLVT优化的识别方式也是如果判断这条指令为Block最后一条指令 则做一次localMemory的写入
+    但是异常引来了一个不确定性 就是异常发生的指令也会跳转 当前发现一个bug就是异常跳转后 没有写local内存导致的
+    解决这个问题有两种方式
+        1. 按照异常再次细化block
+        2. 在异常的switch跳转处做特殊处理 写入内存
+    当前使用的是2方式来解决问题 但也因此引入了一个问题
+    在 helpFunction->createCallNew 的调用中 也可能会引发异常 但因为这个指令后一般会跟一个pushValue指令
+    此次也没有为异常划分block 所以不好处理 暂不处理new invokeDynamic等引起的异常
+
