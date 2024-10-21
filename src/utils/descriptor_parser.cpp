@@ -1,5 +1,6 @@
 #include "descriptor_parser.hpp"
 #include "string_utils.hpp"
+#include "../exception.hpp"
 
 namespace RexVM {
 

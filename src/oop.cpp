@@ -1,5 +1,4 @@
 #include "oop.hpp"
-#include <algorithm>
 #include "class.hpp"
 #include "class_member.hpp"
 #include "thread.hpp"
@@ -7,7 +6,7 @@
 
 namespace RexVM {
 
-    Oop::Oop(Class *klass, size_t dataLength) :
+    Oop::Oop(Class *klass, const size_t dataLength) :
             comClass(klass, dataLength),
             comFlags(nullptr, FINALIZED_MASK) {
         //dataLength >= 65535, not support
@@ -16,7 +15,7 @@ namespace RexVM {
 #endif
     }
 
-    bool Oop::isInstanceOf(Class *checkClass) const {
+    bool Oop::isInstanceOf(const Class *checkClass) const {
         return checkClass->isAssignableFrom(this->getClass());
     }
 
@@ -39,7 +38,7 @@ namespace RexVM {
     u2 Oop::getFlags() const {
         return comFlags.getData();
     }
-    void Oop::setFlags(u2 flags) {
+    void Oop::setFlags(const u2 flags) {
         comFlags.setData(flags);
     }
 
@@ -77,9 +76,9 @@ namespace RexVM {
         getAndInitMonitor()->monitorMtx.unlock();
     }
 
-    void Oop::wait(VMThread &currentThread, size_t timeout) {
+    void Oop::wait(const VMThread &currentThread, const size_t timeout) {
         const auto selfMonitor = getAndInitMonitor();
-        std::unique_lock<std::recursive_mutex> lock(selfMonitor->monitorMtx, std::adopt_lock);
+        std::unique_lock lock(selfMonitor->monitorMtx, std::adopt_lock);
         const auto backupStatus = currentThread.getStatus();
         currentThread.setStatus(ThreadStatusEnum::WAITING);
         if (timeout == 0) [[likely]] {
@@ -161,11 +160,12 @@ namespace RexVM {
                 //sizeof(ByteTypeArrayOop) = sizeof(TypeArrayOop) + sizeof(ptr)
                 return sizeof(ByteTypeArrayOop) + dataLength * elementSize;
             }
+            default:
+                return 0;
         }
-        return 0;
     }
 
-    void initInstanceField(const InstanceOop *oop, InstanceClass *klass) {
+    void initInstanceField(const InstanceOop *oop, const InstanceClass *klass) {
         //std::memset(oop->data.get(), 0, sizeof(Slot) * oop->getDataLength());
         for (const auto &field: klass->fields) {
             if (!field->isStatic()) {
@@ -211,30 +211,30 @@ namespace RexVM {
 
     InstanceOop::~InstanceOop() = default;
 
-    Slot InstanceOop::getFieldValue(size_t index) const {
+    Slot InstanceOop::getFieldValue(const size_t index) const {
         return data[index];
     }
 
-    void InstanceOop::setFieldValue(size_t index, Slot value) const {
+    void InstanceOop::setFieldValue(const size_t index, const Slot value) const {
         data[index] = value;
     }
     
-    void InstanceOop::setFieldValue(const cview &id, Slot value) const {
+    void InstanceOop::setFieldValue(const cview &id, const Slot value) const {
         const auto instanceClass = getInstanceClass();
-        auto field = instanceClass->getField(id, false);
+        const auto field = instanceClass->getField(id, false);
         data[field->slotId] = value;
     }
 
     [[nodiscard]] Slot InstanceOop::getFieldValue(const cview &id) const {
         const auto instanceClass = getInstanceClass();
-        auto field = instanceClass->getField(id, false);
+        const auto field = instanceClass->getField(id, false);
         return data[field->slotId];
     }
 
     InstanceOop *InstanceOop::clone(InstanceOop *newInstance) const {
         const auto from = this->data.get();
         const auto to = newInstance->data.get();
-        std::copy(from, from + getDataLength(), to);
+        std::copy_n(from, getDataLength(), to);
         return newInstance;
     }
 
@@ -242,7 +242,7 @@ namespace RexVM {
         return CAST_INSTANCE_CLASS(getClass());
     }
 
-    ArrayOop::ArrayOop(const OopTypeEnum type, ArrayClass *klass, const size_t dataLength) :
+    ArrayOop::ArrayOop(const OopTypeEnum, ArrayClass *klass, const size_t dataLength) :
             Oop(klass, dataLength) {
     }
 

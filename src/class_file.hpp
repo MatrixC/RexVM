@@ -5,7 +5,6 @@
 #include <vector>
 #include "config.hpp"
 #include "attribute_info.hpp"
-#include "composite_string.hpp"
 
 namespace RexVM {
 

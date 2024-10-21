@@ -1,10 +1,9 @@
 #include "llvm_jit_manager.hpp"
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Error.h>
-#include "../vm.hpp"
-#include "../class_member.hpp"
 #include "llvm_compiler.hpp"
 #include "jit_help_function.hpp"
+#include "../class_member.hpp"
 #include "../class.hpp"
 #include "../utils/string_utils.hpp"
 
@@ -19,7 +18,16 @@ namespace RexVM {
         InitializeNativeTarget();
         InitializeNativeTargetAsmPrinter();
         InitializeNativeTargetAsmParser();
-        jit = cantFail(LLJITBuilder().create());
+
+        auto jitTarget = JITTargetMachineBuilder::detectHost();
+        jitTarget->setCodeGenOptLevel(CodeGenOptLevel::None);
+
+        jit = cantFail(
+            LLJITBuilder()
+            .setJITTargetMachineBuilder(std::move(*jitTarget))
+            .create()
+        );
+
         threadSafeContext = std::make_unique<ThreadSafeContext>(std::make_unique<LLVMContext>());
         registerHelpFunction();
     }
@@ -64,6 +72,19 @@ namespace RexVM {
             return nullptr;
         }
         methodCompiler.verify();
+
+        if (method.getName() == "<clinit>") {
+            // module->print(errs(), nullptr);
+
+            if (method.klass.getClassName() == "java/util/Properties") {
+                return nullptr;
+            }
+
+            if (method.klass.getClassName() == "java/util/Dictionary<init>") {
+                return nullptr;
+            }
+        }
+
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));

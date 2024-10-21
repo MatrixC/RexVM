@@ -11,7 +11,7 @@
 
 namespace RexVM {
 
-    class Oop;
+    struct Oop;
     struct CompositeString;
 
     using u1 = std::uint8_t;

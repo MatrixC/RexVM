@@ -1,6 +1,5 @@
 #include <vector>
 #include "utils/format.hpp"
-#include "utils/time.hpp"
 #include "vm.hpp"
 
 void printUsage() {

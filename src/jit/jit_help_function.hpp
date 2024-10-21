@@ -26,6 +26,7 @@ constexpr uint8_t LLVM_COMPILER_MISC_MONITOR_EXIT = 1;
 constexpr uint8_t LLVM_COMPILER_MISC_ARRAY_LENGTH = 2;
 constexpr uint8_t LLVM_COMPILER_MISC_CHECK_INSTANCE_OF = 3;
 constexpr uint8_t LLVM_COMPILER_MISC_CLEAN_THROW = 4;
+constexpr uint8_t LLVM_COMPILER_MISC_SAFE_POINT = 5;
 
 extern "C" {
     void *llvm_compile_get_instance_constant(void *framePtr, uint32_t index);

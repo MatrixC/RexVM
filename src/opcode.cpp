@@ -266,7 +266,7 @@ namespace RexVM {
                 return false;
         }
     }
-    bool isReturnOpCode(OpCodeEnum opCode) {
+    bool isReturnOpCode(const OpCodeEnum opCode) {
         switch (opCode) {
             case OpCodeEnum::IRETURN:
             case OpCodeEnum::LRETURN:

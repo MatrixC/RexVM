@@ -4,7 +4,6 @@
 #include "mirror_oop.hpp"
 #include "frame.hpp"
 #include "constant_info.hpp"
-#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 

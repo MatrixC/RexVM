@@ -1,7 +1,6 @@
 #ifndef GARBAGE_COLLECT_HPP
 #define GARBAGE_COLLECT_HPP
 #include "config.hpp"
-#include <mutex>
 #include <vector>
 #include <thread>
 #include <atomic>

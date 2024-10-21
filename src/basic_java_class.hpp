@@ -3,7 +3,6 @@
 
 #include <array>
 #include "config.hpp"
-#include "composite_ptr.hpp"
 
 namespace RexVM {
 

@@ -1,7 +1,6 @@
 #ifndef CONSTANT_INFO_HPP
 #define CONSTANT_INFO_HPP
 
-#include <bit>
 #include <hash_table8.hpp>
 #include <vector>
 #include <tuple>

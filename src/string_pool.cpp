@@ -2,16 +2,14 @@
 #include "class_loader.hpp"
 #include "oop.hpp"
 #include "utils/string_utils.hpp"
-#include "utils/format.hpp"
 #include "vm.hpp"
 #include "key_slot_id.hpp"
 #include "memory.hpp"
-#include "frame.hpp"
 #include "thread.hpp"
 
 namespace RexVM {
 
-    bool VMStringHelper::equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t arrayLength) {
+    bool VMStringHelper::equalJavaString(const InstanceOop *oop, const cchar_16 *rawPtr, const size_t arrayLength) {
         const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
         const auto charArrayPtr = charArray->data.get();
         const auto charArrayLength = charArray->getDataLength();
@@ -21,12 +19,12 @@ namespace RexVM {
                 );
     }
 
-    InstanceOop *VMStringHelper::createJavaString(VMThread *thread, ccstr str, size_t size) {
+    InstanceOop *VMStringHelper::createJavaString(VMThread *thread, const ccstr str, const size_t size) {
         const auto utf16Vec = utf8ToUtf16Vec(str, size);
         const auto vmHash = VMStringHelper::getKeyIndex(str, size);
         const auto utf16Ptr = utf16Vec.data();
         const auto utf16Length = utf16Vec.size();
-        auto &vm = thread->vm;
+        const auto &vm = thread->vm;
 
         const auto charArrayOop = vm.oopManager->newCharArrayOop(thread, utf16Length);
         if (utf16Length > 0) [[likely]] {
@@ -38,7 +36,7 @@ namespace RexVM {
         return result;
     }
 
-    cstring VMStringHelper::getJavaString(InstanceOop *oop) {
+    cstring VMStringHelper::getJavaString(const InstanceOop *oop) {
         const auto charArray = CAST_CHAR_TYPE_ARRAY_OOP(oop->getFieldValue(stringClassValueFieldSlotId).refVal);
         if (charArray->getDataLength() == 0) {
             return {};
@@ -57,7 +55,7 @@ namespace RexVM {
         }
     }
 
-    bool StringTable::find(ccstr str, size_t size, Value &ret) const {
+    bool StringTable::find(const ccstr str, const size_t size, Value &ret) const {
         //TODO 对于size为0的是不是还可以优化
         const auto index = VMStringHelper::getKeyIndex(str, size);
         auto current = table[index];
@@ -79,9 +77,9 @@ namespace RexVM {
         return false;
     }
 
-    void StringTable::insert(Value value) {
+    void StringTable::insert(const Value value) {
         const auto [hasHash, index] = value->getStringHash();
-        auto newNode = new Node(value);
+        const auto newNode = new Node(value);
 
         if (table[index] == nullptr) {
             table[index] = newNode;
@@ -138,12 +136,12 @@ namespace RexVM {
     StringPool::~StringPool() = default;
 
 
-    InstanceOop *StringPool::getInternString(VMThread *thread, ccstr str, size_t size) {
+    InstanceOop *StringPool::getInternString(VMThread *thread, const ccstr str, const size_t size) {
         if (str == nullptr) {
             panic("point nullptr");
         }
 
-        std::lock_guard<SpinLock> guard(lock);
+        std::lock_guard guard(lock);
         InstanceOop *result = nullptr;
 
         if (stringTable->find(str, size, result)) {
@@ -156,7 +154,7 @@ namespace RexVM {
         return result;
     }
 
-    InstanceOop *StringPool::getInternString(VMThread *thread, ccstr str) {
+    InstanceOop *StringPool::getInternString(VMThread *thread, const ccstr str) {
         if (str == nullptr) {
             panic("point nullptr");
         }
@@ -164,9 +162,9 @@ namespace RexVM {
         return getInternString(thread, str, strlen(str));
     }
 
-    InstanceOop *StringPool::getInternString(VMThread *thread, cview str) {
+    InstanceOop *StringPool::getInternString(VMThread *thread, const cview str) {
         if (str.data() == nullptr) {
-            if (str.size() == 0) {
+            if (str.empty()) {
                 //cview可能是CompositeString 产生的
                 //空的CompositeString 指针部分为nullptr 会因为后续函数异常
                 return getInternString(thread, "", 0);
@@ -178,7 +176,7 @@ namespace RexVM {
     }
 
     void StringPool::gcStringOop(InstanceOop *oop) {
-        std::lock_guard<SpinLock> guard(lock);
+        std::lock_guard guard(lock);
         stringTable->erase(oop);
     }
 

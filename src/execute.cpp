@@ -117,14 +117,13 @@ namespace RexVM {
         const auto notNativeMethod = !method.isNative();
         method.invokeCounter++;
 
-        if (method.klass.getClassName() == "com/azul/tooling/in/Tooling" && method.getName() == "<clinit>") {
-            int i = 10;
-        }
-
-
 #ifdef LLVM_JIT
         do {
-            // break;
+            // if (!startWith())
+            // if (!startWith(method.getName(), "jicc")) {
+            //     break;
+            // }
+
             if (notNativeMethod && method.canCompile && method.compiledMethodHandler == nullptr) {
                 if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
                     jitManager->compileMethod(method);

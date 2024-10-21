@@ -1,6 +1,5 @@
 #include "class_member.hpp"
 
-#include <utility>
 #include <optional>
 #include "constant_info.hpp"
 #include "attribute_info.hpp"

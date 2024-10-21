@@ -1,7 +1,5 @@
 #ifndef COMPOSITE_PTR_HPP
 #define COMPOSITE_PTR_HPP
-#include <type_traits>
-#include <bit>
 #include <cstring>
 #include "exception.hpp"
 

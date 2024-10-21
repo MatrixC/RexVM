@@ -27,8 +27,8 @@ namespace RexVM {
     constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
 #else
     //release编译不支持Oop的offsetof
-    constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = 32;
-    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = 32;
+    constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = sizeof(Oop);
+    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = sizeof(Oop);
 #endif
 
     MethodCompiler::MethodCompiler(
@@ -1182,11 +1182,13 @@ namespace RexVM {
             }
         }
 
+#ifdef DEBUG
         if (verifyFunction(*function, &outs())) {
             cprintlnErr("verify failed method: {} {} {}", klass.getClassName(), method.getName(), method.getDescriptor());
             module.print(llvm::errs(), nullptr);
             panic("exit");
         }
+#endif
     }
 
 

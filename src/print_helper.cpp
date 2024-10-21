@@ -5,7 +5,6 @@
 #include "oop.hpp"
 #include "frame.hpp"
 #include "basic_type.hpp"
-#include "basic_java_class.hpp"
 #include "string_pool.hpp"
 #include "class_file.hpp"
 #include "constant_info.hpp"

@@ -252,6 +252,9 @@ extern "C" {
                 frame->cleanThrow();
                 return 0;
             }
+
+            default:
+                panic("error type");
         }
 
         return -1;

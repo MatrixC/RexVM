@@ -2,17 +2,15 @@
 #define THREAD_HPP
 
 #include <vector>
-#include <memory>
 #include <thread>
 #include <queue>
-#include <mutex>
 #include "config.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
 
 namespace RexVM {
 
-    class Oop;
+    struct Oop;
     struct VM;
     struct Frame;
     struct Method;
@@ -40,7 +38,6 @@ namespace RexVM {
         volatile bool stopForCollect{false};
         volatile bool gcSafe{true};
 
-        
 
 #ifdef DEBUG
         cstring threadName{};
@@ -63,11 +60,11 @@ namespace RexVM {
         void start(Frame *currentFrame_, bool userThread);
         void join();
 
-        void setStatus(ThreadStatusEnum status);
+        void setStatus(ThreadStatusEnum status) const;
         [[nodiscard]] ThreadStatusEnum getStatus() const;
         [[nodiscard]] bool isDaemon() const;
         [[nodiscard]] bool isAlive() const;
-        void setDaemon(bool on);
+        void setDaemon(bool on) const;
         void getCollectRoots(std::vector<ref> &result) const;
         void getCollectRootsBak(std::vector<ref> &result) const;
 

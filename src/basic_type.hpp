@@ -3,8 +3,6 @@
 
 #include <array>
 #include "config.hpp"
-#include "exception.hpp"
-#include "composite_ptr.hpp"
 
 namespace RexVM {
     extern const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY;

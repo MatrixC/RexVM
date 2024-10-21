@@ -2,7 +2,6 @@
 #include <filesystem>
 #include "basic_java_class.hpp"
 #include "utils/class_path.hpp"
-#include "class_member.hpp"
 #include "class_loader.hpp"
 #include "string_pool.hpp"
 #include "thread.hpp"
@@ -10,7 +9,6 @@
 #include "file_system.hpp"
 #include "garbage_collect.hpp"
 #include "bootstrap_helper.hpp"
-#include "cfg.hpp"
 #include "class.hpp"
 #ifdef LLVM_JIT
 #include "jit/llvm_jit_manager.hpp"
@@ -87,12 +85,6 @@ namespace RexVM {
 
     void VM::start() {
         initVM();
-
-        // auto jmain = bootstrapClassLoader->getInstanceClass("JMain2");
-        // const auto jmethod = jmain->getMethod("jicc_a2", "()V", true);
-        // MethodCFG cfg(*jmethod);
-        // int i = 10;
-
         runMainMethod();
         joinThreads();
         exitVM();

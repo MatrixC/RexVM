@@ -3,7 +3,6 @@
 #include "class_member.hpp"
 #include "opcode.hpp"
 #include "utils/byte_reader.hpp"
-#include "class_member.hpp"
 #include "class.hpp"
 #include "class_loader.hpp"
 #include "constant_info.hpp"

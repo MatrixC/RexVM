@@ -1,12 +1,8 @@
 #include "exception_helper.hpp"
 #include "frame.hpp"
-#include "class_loader.hpp"
 #include "class.hpp"
 #include "oop.hpp"
-#include "vm.hpp"
-#include "memory.hpp"
 #include "string_pool.hpp"
-#include "key_slot_id.hpp"
 #include "utils/class_utils.hpp"
 
 namespace RexVM {

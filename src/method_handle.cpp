@@ -11,6 +11,7 @@
 #include "thread.hpp"
 #include "utils/descriptor_parser.hpp"
 #include "utils/class_utils.hpp"
+#include "utils/string_utils.hpp"
 
 namespace RexVM {
     bool isMethodHandleInvoke(const cview className, const cview memberName) {
