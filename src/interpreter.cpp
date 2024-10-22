@@ -1137,10 +1137,7 @@ namespace RexVM {
             const auto length = frame.popI4();
 
             const auto elementClass = frame.mem.getRefClass(classIndex);
-            CAST_INSTANCE_CLASS(elementClass)->clinit(frame);
-            if (frame.markThrow) {
-                return;
-            }
+            //这里只是创建一块内存 不需要调用<clinit>
 
             const auto array = frame.mem.getObjectArrayClass(*elementClass);
             frame.pushRef(frame.mem.newObjArrayOop(array, length));

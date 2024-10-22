@@ -1,5 +1,6 @@
 #include "llvm_compiler.hpp"
 #include <llvm/ExecutionEngine/JITLink/JITLink.h>
+#include <llvm/IR/Verifier.h>
 #include "llvm_block_context.hpp"
 #include "jit_help_function.hpp"
 #include "llvm_register_help_function.hpp"

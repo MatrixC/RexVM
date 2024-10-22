@@ -23,10 +23,10 @@ namespace RexVM {
     constexpr size_t GC_STOP_WAIT_TIME_OUT = 100;
 
     constexpr size_t GC_ROOT_START_SIZE = 8192;
-    //100MB
-    constexpr size_t GC_MEMORY_THRESHOLD = 100 * 1024 * 1024;
-    //Frequency 5s
-    constexpr size_t GC_SLEEP_TIME = 5000;
+    //1MB
+    constexpr size_t GC_MEMORY_THRESHOLD = 1 * 1024 * 1024;
+    //Frequency 5ms
+    constexpr size_t GC_SLEEP_TIME = 5;
 
     struct FinalizeRunner {
 
@@ -91,7 +91,7 @@ namespace RexVM {
         size_t collectSuccessCount{0};
 
         bool enableLog{true};
-        bool enableGC{false};
+        bool enableGC{true};
 
         Class *stringClass{nullptr};
 

@@ -119,11 +119,7 @@ namespace RexVM {
 
 #ifdef LLVM_JIT
         do {
-            // if (!startWith())
-            // if (!startWith(method.getName(), "jicc")) {
-            //     break;
-            // }
-
+            break;
             if (notNativeMethod && method.canCompile && method.compiledMethodHandler == nullptr) {
                 if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
                     jitManager->compileMethod(method);
