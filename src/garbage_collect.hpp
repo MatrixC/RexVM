@@ -91,6 +91,7 @@ namespace RexVM {
         size_t collectSuccessCount{0};
 
         bool enableLog{true};
+        bool enableFinalize{false};
         bool enableGC{true};
 
         Class *stringClass{nullptr};
@@ -124,13 +125,16 @@ namespace RexVM {
         void processCollect(GarbageCollectContext &context) const;
         void collectOopHolder(OopHolder &holder, GarbageCollectContext &context) const;
 
-        static void deleteOop(ref oop);
+        void deleteOop(ref oop) const;
         
     };
 
 #ifdef DEBUG
     extern emhash8::HashMap<ref, cview> collectedOopDesc;
+    extern emhash8::HashMap<ref, cstring> collectedOopDesc2;
+    extern emhash8::HashMap<ref, cstring> collectedOopDesc3;
     cview getCollectedOopDesc(ref oop);
+    cstring getCollectedOopDesc2(ref oop);
 #endif
 
 

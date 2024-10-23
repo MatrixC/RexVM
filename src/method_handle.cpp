@@ -27,7 +27,7 @@ namespace RexVM {
     }
 
     //代替MethodType.fromMethodDescriptorString
-    InstanceOop *createMethodType(Frame &frame, cview methodDescriptor) {
+    InstanceOop *createMethodType(Frame &frame, const cview methodDescriptor) {
         const auto [paramType, returnTypeType] = parseMethodDescriptor(methodDescriptor);
         const auto returnTypeOop = frame.mem.getClass(returnTypeType)->getMirror(&frame);
         const auto classArrayOop = frame.mem.newClassObjArrayOop(paramType.size());
@@ -176,7 +176,7 @@ namespace RexVM {
             }
             argResults.emplace_back(argResult);
         }
-        
+
         const auto argObjArrayOop = frame.mem.newObjectObjArrayOop(arraySize);
         //这个oop分配必须放在这里 之前是放在for循环上面的 因为for循环中有函数调用 就被gc掉了
         FOR_FROM_ZERO(arraySize) {

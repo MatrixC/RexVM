@@ -20,7 +20,7 @@ namespace RexVM {
         return result;
     }
 
-    cstring joinString(std::vector<cstring> strs, const cstring &joiner) {
+    cstring joinString(const std::vector<cstring> &strs, const cstring &joiner) {
         if (strs.empty()) {
             return {};
         }
@@ -32,7 +32,7 @@ namespace RexVM {
         return result;
     }
 
-    cstring joinString(std::unordered_set<cstring> strs, const cstring &joiner) {
+    cstring joinString(const std::unordered_set<cstring> &strs, const cstring &joiner) {
         if (strs.empty()) {
             return {};
         }

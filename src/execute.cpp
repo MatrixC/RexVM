@@ -119,7 +119,7 @@ namespace RexVM {
 
 #ifdef LLVM_JIT
         do {
-            break;
+            // break;
             if (notNativeMethod && method.canCompile && method.compiledMethodHandler == nullptr) {
                 if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
                     jitManager->compileMethod(method);
@@ -158,6 +158,11 @@ namespace RexVM {
                 ATTR_UNUSED const auto sourceFile = method.klass.sourceFile;
                 ATTR_UNUSED const auto lineNumber = method.getLineNumber(pc);
                 #endif
+
+
+                if (method.getName() == "rehash" && pc == 5) {
+                    int i = 10;
+                }
 
                 OpCodeHandlers[frame.currentByteCode](frame);
 
@@ -211,7 +216,7 @@ namespace RexVM {
         }
 
 #ifdef DEBUG
-       executeFrame(frame, cformat("{}#{}", method.klass.toView(), method.toView()));
+        executeFrame(frame, cformat("{}#{}", method.klass.toView(), method.toView()));
 #else
         executeFrame(frame, "");
 #endif

@@ -3,6 +3,7 @@
 #include "class.hpp"
 #include "class_member.hpp"
 #include "oop.hpp"
+#include "mirror_oop.hpp"
 #include "memory.hpp"
 #include "vm.hpp"
 #include "string_pool.hpp"
@@ -20,49 +21,71 @@ namespace RexVM {
     }
 
     InstanceOop *FrameMemoryHandler::newInstance(InstanceClass * klass) const {
-        return oopManager.newInstance(&vmThread, klass);
+        const auto oop = oopManager.newInstance(&vmThread, klass);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     MirOop *FrameMemoryHandler::newMirror(InstanceClass * klass, const voidPtr mirror, const MirrorObjectTypeEnum type) const {
-        return oopManager.newMirror(&vmThread, klass, mirror, type);
+        const auto oop = oopManager.newMirror(&vmThread, klass, mirror, type);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     ObjArrayOop *FrameMemoryHandler::newObjArrayOop(ObjArrayClass * klass, const size_t length) const {
-        return oopManager.newObjArrayOop(&vmThread, klass, length);
+        const auto oop = oopManager.newObjArrayOop(&vmThread, klass, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     ObjArrayOop *FrameMemoryHandler::newObjectObjArrayOop(const size_t length) const {
-        return oopManager.newObjectObjArrayOop(&vmThread, length);
+        const auto oop = oopManager.newObjectObjArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     ObjArrayOop *FrameMemoryHandler::newClassObjArrayOop(const size_t length) const {
-        return oopManager.newClassObjArrayOop(&vmThread, length);
+        const auto oop = oopManager.newClassObjArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     ObjArrayOop *FrameMemoryHandler::newStringObjArrayOop(const size_t length) const {
-        return oopManager.newStringObjArrayOop(&vmThread, length);
+        const auto oop = oopManager.newStringObjArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     TypeArrayOop *FrameMemoryHandler::newTypeArrayOop(const BasicType type, const size_t length) const {
-        return oopManager.newTypeArrayOop(&vmThread, type, length);
+        const auto oop = oopManager.newTypeArrayOop(&vmThread, type, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(const size_t length) const {
-        return oopManager.newByteArrayOop(&vmThread, length);
+        const auto oop = oopManager.newByteArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(const size_t length, const u1 *initBuffer) const {
-        return oopManager.newByteArrayOop(&vmThread, length, initBuffer);
+        const auto oop = oopManager.newByteArrayOop(&vmThread, length, initBuffer);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     CharTypeArrayOop *FrameMemoryHandler::newCharArrayOop(const size_t length) const {
-        return oopManager.newCharArrayOop(&vmThread, length);
+        const auto oop = oopManager.newCharArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     ref FrameMemoryHandler::newMultiArrayOop(const u2 index, i4 *dimLength, const i2 dimCount) {
         const auto &constantPool = frame.constantPool;
         const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
-        return newMultiArrayOop(dimLength, dimCount, className, 0);
+        const auto oop = newMultiArrayOop(dimLength, dimCount, className, 0);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     ref FrameMemoryHandler::newMultiArrayOop(i4 *dimLength, const i2 dimCount, const cview name, const i4 currentDim) {
@@ -92,39 +115,57 @@ namespace RexVM {
     }
 
     InstanceOop *FrameMemoryHandler::newBooleanOop(const i4 value) const {
-        return oopManager.newBooleanOop(&vmThread, value);
+        const auto oop = oopManager.newBooleanOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     InstanceOop *FrameMemoryHandler::newByteOop(const i4 value) const {
-        return oopManager.newByteOop(&vmThread, value);
+        const auto oop = oopManager.newByteOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     InstanceOop *FrameMemoryHandler::newCharOop(const i4 value) const {
-        return oopManager.newCharOop(&vmThread, value);
+        const auto oop = oopManager.newCharOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     InstanceOop *FrameMemoryHandler::newShortOop(const i4 value) const {
-        return oopManager.newShortOop(&vmThread, value);
+        const auto oop = oopManager.newShortOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     InstanceOop *FrameMemoryHandler::newIntegerOop(const i4 value) const {
-        return oopManager.newIntegerOop(&vmThread, value);
+        const auto oop = oopManager.newIntegerOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     InstanceOop *FrameMemoryHandler::newFloatOop(const f4 value) const {
-        return oopManager.newFloatOop(&vmThread, value);
+        const auto oop = oopManager.newFloatOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     InstanceOop *FrameMemoryHandler::newLongOop(const i8 value) const {
-        return oopManager.newLongOop(&vmThread, value);
+        const auto oop = oopManager.newLongOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     InstanceOop *FrameMemoryHandler::newDoubleOop(const f8 value) const {
-        return oopManager.newDoubleOop(&vmThread, value);
+        const auto oop = oopManager.newDoubleOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     InstanceOop *FrameMemoryHandler::getInternString(const cview str) const {
-        return stringPool.getInternString(&vmThread, str);
+        const auto oop = stringPool.getInternString(&vmThread, str);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
     Class *FrameMemoryHandler::getClass(const cview name) const {

@@ -51,6 +51,8 @@ namespace RexVM {
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
         ClassLoader &classLoader;
 
+        std::vector<ref> nativeCreateRefs; //native函数创建的ref 用来作为gc root 避免被异常回收
+
         bool markReturn{false};
         bool existReturnValue{false};
         Slot returnValue{};
@@ -129,12 +131,15 @@ namespace RexVM {
         [[nodiscard]] ref getThis() const;
         [[nodiscard]] InstanceOop *getThisInstance() const;
         void getLocalObjects(std::vector<ref> &result) const;
+        void addCreateRef(ref oop);
   
         void printCallStack() const;
         void printLocalSlot();
         void printStackSlot();
         void printCollectRoots();
         void printReturn();
+
+        [[nodiscard]] std::vector<cstring> getCallStack() const;
 
         static void printStr(ref oop);
         void print();

@@ -9,6 +9,7 @@
 #include "print_helper.hpp"
 #include "string_pool.hpp"
 #include "frame_memory_handler.hpp"
+#include "utils/string_utils.hpp"
 
 namespace RexVM {
 
@@ -82,7 +83,32 @@ namespace RexVM {
         }
     }
 
-    Frame::~Frame() = default;
+    Frame::~Frame() {
+        //清空此次函数所使用的栈内存 否则脏数据会影响gc root的获取
+
+        //清空lvt和操作数栈内存 操作数栈的元素数量根据maxSp来获取
+        //如果是native函数 因为不会改变maxSp 所以直接取最大值2(调用其他函数返回一个I8或者F8的情况)
+        const auto maxOperandStackSize =
+                method.nativeMethodHandler == nullptr ? operandStackContext.maxSp + 1 : 2;
+
+        i4 elementSize = CAST_I4(localVariableTableSize) + maxOperandStackSize;
+
+        auto cleanStartPtr = localVariableTable;
+        auto cleanStartTypePtr = localVariableTableType;
+        if (markReturn) {
+            // 函数返回的返回值 是通过向上一个栈做push实现的 上一个栈push后对应的位置正好是当前栈的开头
+            // 所以如果不加判断的清理 会把当前函数的返回值被清掉
+            const auto returnValueSlotCount = getSlotTypeStoreCount(returnType);
+            elementSize -= returnValueSlotCount;
+            cleanStartPtr += returnValueSlotCount;
+            cleanStartTypePtr += returnValueSlotCount;
+        }
+
+        if (elementSize > 0) {
+            std::fill_n(cleanStartPtr, elementSize, ZERO_SLOT);
+            std::fill_n(cleanStartTypePtr, elementSize, SlotTypeEnum::NONE);
+        }
+    }
 
     ClassLoader *Frame::getCurrentClassLoader() const {
         //TODO: This klass's class loader
@@ -371,6 +397,27 @@ namespace RexVM {
         }
     }
 
+    void Frame::addCreateRef(ref oop) {
+        if (method.isNative() || !thread.gcSafe) {
+            nativeCreateRefs.emplace_back(oop);
+        }
+#ifdef DEBUG
+        int i = 10;
+        std::vector<cstring> stack;
+        for (auto cur = this; cur != nullptr; cur = cur->previous) {
+            stack.emplace_back(cformat("{}:{}:{}",
+                                       cur->klass.getClassName(),
+                                       cur->method.getName(),
+                                       cur->method.getLineNumber(cur->pc()))
+            );
+        }
+
+        extern emhash8::HashMap<ref, cstring> collectedOopDesc2;
+        // const auto oopDesc = cformat("{} {}:{}", oop->getClass()->getClassName(), method.getName(), method.getLineNumber(pc()));
+        collectedOopDesc2.emplace(oop, joinString(stack, "    "));
+#endif
+    }
+
     void Frame::printCallStack() const {
         for (auto f = this; f != nullptr; f = f->previous) {
             const auto nativeMethod = f->method.isNative();
@@ -422,6 +469,20 @@ namespace RexVM {
         if (markReturn && existReturnValue) {
             cprintln("Return {}", formatSlot(*this, returnValue, returnType));
         }
+    }
+
+    std::vector<cstring> Frame::getCallStack() const {
+        std::vector<cstring> stacks;
+        for (auto cur = this; cur != nullptr; cur = cur->previous) {
+            stacks.emplace_back(
+                cformat(
+                    "{}#{}:{}",
+                    cur->klass.getClassName(),
+                    cur->method.getName(),
+                    cur->method.getLineNumber(cur->pc())
+                ));
+        }
+        return stacks;
     }
 
     void Frame::printStr(ref oop) {

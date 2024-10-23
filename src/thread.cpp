@@ -167,12 +167,19 @@ namespace RexVM {
                 result.emplace_back(slot.refVal);
             }
         }
+
+        for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
+            if (!cur->nativeCreateRefs.empty()) {
+                result.insert(result.end(), cur->nativeCreateRefs.begin(), cur->nativeCreateRefs.end());
+            }
+        }
     }
 
     void VMThread::getCollectRootsBak(std::vector<ref> &result) const {
         for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
             cur->getLocalObjects(result);
             cur->operandStackContext.getStackObjects(result);
+            result.insert(result.end(), cur->nativeCreateRefs.begin(), cur->nativeCreateRefs.end());
         }
     }
 
@@ -218,18 +225,13 @@ namespace RexVM {
     bool ThreadManager::checkAllThreadStopForCollect() {
         std::lock_guard lock(threadsMtx);
 
-        return std::ranges::all_of(
-            threads,
-            [](const auto &item) {
-                return item->getStatus() == ThreadStatusEnum::TERMINATED || item->stopForCollect;
+        for (const auto &item : threads) {
+            if (item->getStatus() != ThreadStatusEnum::TERMINATED && !item->stopForCollect) {
+                //不是TERMINATED状态的才需要判断
+                return false;
             }
-        );
-        // for (const auto &item : threads) {
-        //     if (item->getStatus() != ThreadStatusEnum::TERMINATED && !item->stopForCollect) {
-        //         return false;
-        //     }
-        // }
-        // return true;
+        }
+        return true;
     }
 
     std::vector<VMThread *> ThreadManager::getThreads() {

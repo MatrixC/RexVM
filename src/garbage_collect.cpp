@@ -40,7 +40,7 @@ namespace RexVM {
     void GarbageCollectContext::printLog(const VM &vm) const {
         const auto &oopManager = vm.oopManager;
         const auto timeCost = endTime - startTime;
-        cprintln("gc [{} cost:{}ms], crt:{}[{}KB], col:{}[{}KB], rem:{}[{}KB]",
+        cprintln("gc [{} {}ms], crt:{}[{:.2f}KB], col:{}[{:.2f}KB], rem:{}[{:.2f}KB]",
                  millisecondsToReadableTime(startTime), timeCost,
                  tempAllocatedOopCount, CAST_F4(tempAllocatedOopMemory) / 1024,
                  collectedOopCount.load(), CAST_F4(collectedOopMemory) / 1024,
@@ -70,15 +70,6 @@ namespace RexVM {
         gcThread = std::thread([this]() {
             setThreadName("GC Thread");
             while (!this->vm.exit) {
-                // {
-                //     std::unique_lock<std::mutex> guard(notifyCollectMtx);
-                //     notifyCollectCv.wait(guard, [this] { return notifyCollect; });
-                // }
-                // if (!this->vm.exit) {
-                //     this->run();
-                // }
-                // notifyCollect = false;
-                //TODO GC的启动机制暂时使用定时方式 待优化
                 std::this_thread::sleep_for(std::chrono::milliseconds(collectSleepTime));
                 if (vm.oopManager->allocatedOopMemory > collectMemoryThreshold) {
                     this->run();
@@ -98,7 +89,7 @@ namespace RexVM {
             return;
         }
 
-        std::unique_lock<std::mutex> lock(checkStopMtx);
+        std::unique_lock lock(checkStopMtx);
         thread.stopForCollect = true;
         checkStopCv.wait(lock, [this] { return !checkStop; });
         thread.stopForCollect = false;
@@ -152,6 +143,15 @@ namespace RexVM {
         sumCollectedMemory += context.tempAllocatedOopMemory;
         if (enableLog) {
             context.printLog(vm);
+#ifdef DEBUG
+            // for (const auto thread : vm.threadManager->threads) {
+            //     cprintln("thread: {}", thread->getName());
+            //     for (const auto cur = thread->currentFrame; auto callStack : cur->getCallStack()) {
+            //         cprintln("  {}", callStack);
+            //     }
+            //     cprintln("");
+            // }
+#endif
         }
 
         vm.mainThread->clearTraced();
@@ -171,11 +171,24 @@ namespace RexVM {
         startTheWorld();
     }
 
-    void GarbageCollect::deleteOop(ref oop) {
+    void GarbageCollect::deleteOop(ref oop) const {
         const auto klass = oop->getClass();
 
 #ifdef DEBUG
         collectedOopDesc.emplace(oop, klass->getClassName());
+        // const auto t1 = collectedOopDesc2[oop];
+        // std::vector<cstring> t22;
+        // for (const auto thread : vm.threadManager->threads) {
+        //     const auto t23 = thread->currentFrame->getCallStack();
+        //     for (auto str : t23) {
+        //         t22.emplace_back(str);
+        //     }
+        // }
+        // collectedOopDesc3.emplace_unique(oop, joinString(t22, "    "));
+        //
+        // collectedOopDesc.emplace(oop, cformat("{}    {}", klass->getClassName(), joinString(t22, "    ")));
+        // collectedOopDesc2.emplace(oop, t1 + "    " + joinString(t22, "    "));
+
 #endif
 
         if (klass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
@@ -338,10 +351,12 @@ namespace RexVM {
         const auto oopHolders = getHolders();
         for (const auto &holder : oopHolders) {
             for (const auto &oop : holder->oops) {
-                if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
-                    traceMarkOop(oop);
-                    finalizeRunner.add(CAST_INSTANCE_OOP(oop));
-                    continue;
+                if (enableFinalize) {
+                    if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
+                        traceMarkOop(oop);
+                        finalizeRunner.add(CAST_INSTANCE_OOP(oop));
+                        continue;
+                    }
                 }
 
                 if (oop->getClass()->getSpecialClassType() == SpecialClassEnum::THREAD_CLASS) {
@@ -460,7 +475,7 @@ namespace RexVM {
 
     void FinalizeRunner::add(InstanceOop *oop) {
         {
-            std::lock_guard<std::mutex> lock(dequeMtx);
+            std::lock_guard lock(dequeMtx);
             oopDeque.emplace_back(oop);
         }
         cv.notify_all();
@@ -480,7 +495,7 @@ namespace RexVM {
     bool FinalizeRunner::runOneOop() {
         InstanceOop *oop = nullptr;
         {
-            std::unique_lock<std::mutex> lock(dequeMtx);
+            std::unique_lock lock(dequeMtx);
             if (oopDeque.empty()) {
                 return false;
             }
@@ -501,7 +516,7 @@ namespace RexVM {
             collector.checkStopForCollect(*finalizeThread);
             
             if (!runOne) {
-                std::unique_lock<std::mutex> lock(dequeMtx);
+                std::unique_lock lock(dequeMtx);
                 cv.wait(lock, [this] { 
                     return !oopDeque.empty() 
                             || collector.checkStop
@@ -515,6 +530,9 @@ namespace RexVM {
         if (!collector.enableGC) {
             return;
         }
+        if (!collector.enableFinalize) {
+            return;
+        }
 
         const auto &vm = collector.vm;
         const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
@@ -526,12 +544,12 @@ namespace RexVM {
         const auto setDaemonMethod = threadClass->getMethod("setDaemon" "(Z)V", false);
         const auto threadNameOop = vm.stringPool->getInternString(mainThread, "Finalize Thread");
 
-        const std::vector<Slot> constructorParams = { 
+        const std::vector constructorParams = {
             Slot(finalizeThread), 
             Slot(threadNameOop) 
         };
 
-        const std::vector<Slot> setDaemonParams = { 
+        const std::vector setDaemonParams = {
             Slot(finalizeThread), 
             Slot(CAST_I4(1))
         };
@@ -545,9 +563,27 @@ namespace RexVM {
 
 #ifdef DEBUG
     emhash8::HashMap<ref, cview> collectedOopDesc;
+    emhash8::HashMap<ref, cstring> collectedOopDesc3;
+    emhash8::HashMap<ref, cstring> collectedOopDesc2;
     cview getCollectedOopDesc(ref oop) {
         const auto iter = collectedOopDesc.find(oop);
         if (iter != collectedOopDesc.end()) {
+            return iter->second;
+        }
+        return "not found";
+    }
+
+    cstring getCollectedOopDesc2(ref oop) {
+        const auto iter = collectedOopDesc2.find(oop);
+        if (iter != collectedOopDesc2.end()) {
+            return iter->second;
+        }
+        return "not found";
+    }
+
+    cstring getCollectedOopDesc3(ref oop) {
+        const auto iter = collectedOopDesc3.find(oop);
+        if (iter != collectedOopDesc3.end()) {
             return iter->second;
         }
         return "not found";

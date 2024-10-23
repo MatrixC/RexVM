@@ -14,7 +14,8 @@ namespace RexVM {
         const auto timePoint = std::chrono::time_point<std::chrono::system_clock>(ms);
         const std::time_t timeT = std::chrono::system_clock::to_time_t(timePoint);
         const auto tm = *std::localtime(&timeT);
-        return cformat("{:%Y-%m-%d %H:%M:%S}", tm);
+        // return cformat("{:%Y-%m-%d %H:%M:%S}", tm);
+        return cformat("{:%H:%M:%S}", tm);
     }
     
 }

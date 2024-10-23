@@ -4,13 +4,16 @@
 namespace RexVM {
 
     StackContext::StackContext(Slot *memory, SlotTypeEnum *memoryType, i4 pos) :
-        sp(pos), memory(memory), memoryType(memoryType) {
+        sp(pos), maxSp(sp), memory(memory), memoryType(memoryType) {
     }
 
     void StackContext::push(Slot val, SlotTypeEnum slotType) {
         ++sp;
         memory[sp] = val;
         memoryType[sp] = slotType;
+        if (sp > maxSp) {
+            maxSp = sp;
+        }
     }
 
     void StackContext::push(std::tuple<Slot, SlotTypeEnum> valWithType) {

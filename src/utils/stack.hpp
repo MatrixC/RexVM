@@ -13,6 +13,7 @@ namespace RexVM {
     struct StackContext {
         //栈顶指针 默认值为-1 始终指向最后一个插入的元素
         i4 sp;
+        i4 maxSp;
 
         Slot *memory;
         SlotTypeEnum *memoryType;
