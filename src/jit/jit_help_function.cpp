@@ -105,6 +105,14 @@ extern "C" {
             return frame->throwValue;
         }
 
+
+        if (invokeMethod->slotType == SlotTypeEnum::REF) {
+            //如果有返回值 很关键 否则gc root 扫描不到jit函数调用其他函数的返回值 会被直接回收
+            if (const auto returnValue = frame->operandStackContext.top().refVal; returnValue != nullptr) {
+                frame->addCreateRef(returnValue);
+            }
+        }
+
         operandStack.sp = -1;
         return nullptr;
     }

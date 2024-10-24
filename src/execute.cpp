@@ -159,11 +159,6 @@ namespace RexVM {
                 ATTR_UNUSED const auto lineNumber = method.getLineNumber(pc);
                 #endif
 
-
-                if (method.getName() == "rehash" && pc == 5) {
-                    int i = 10;
-                }
-
                 OpCodeHandlers[frame.currentByteCode](frame);
 
                 if (frame.markThrow && handleThrowValue(frame)) {
