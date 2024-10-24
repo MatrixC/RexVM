@@ -247,7 +247,7 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(frame.pop().refVal);
     }
 
-    ref invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
+    InstanceOop *invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
         ThreadSafeGuard threadGuard(frame.thread);
 
         const auto &methodClass = frame.klass;

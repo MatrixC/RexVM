@@ -398,7 +398,7 @@ namespace RexVM {
     }
 
     void Frame::addCreateRef(ref oop) {
-        if (method.isNative() || !thread.gcSafe) {
+        if (method.isNative() || !thread.gcSafe || method.compiledMethodHandler != nullptr) {
             nativeCreateRefs.emplace_back(oop);
         }
 #ifdef DEBUG
@@ -477,8 +477,8 @@ namespace RexVM {
             stacks.emplace_back(
                 cformat(
                     "{}#{}:{}",
-                    cur->klass.getClassName(),
-                    cur->method.getName(),
+                    cur->klass.toView(),
+                    cur->method.toView(),
                     cur->method.getLineNumber(cur->pc())
                 ));
         }

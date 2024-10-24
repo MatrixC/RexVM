@@ -12,6 +12,7 @@
 #include "method_handle.hpp"
 #include "composite_ptr.hpp"
 #include "utils/descriptor_parser.hpp"
+#include "method_handle.hpp"
 
 namespace RexVM {
 
@@ -301,6 +302,13 @@ namespace RexVM {
         panic("method not found");
         return nullptr;
      }
+
+    InstanceOop *FrameMemoryHandler::invokeDynamic(const u2 invokeDynamicIdx) const {
+        const auto oop = RexVM::invokeDynamic(frame, invokeDynamicIdx);
+        frame.addCreateRef(oop);
+        return oop;
+    }
+
 
 
 }

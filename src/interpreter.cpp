@@ -10,8 +10,8 @@
 #include "oop.hpp"
 #include "mirror_oop.hpp"
 #include "class_loader.hpp"
-#include "method_handle.hpp"
 #include "thread.hpp"
+#include "method_handle.hpp"
 
 namespace RexVM {
 
@@ -1107,7 +1107,7 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             frame.reader.readU2(); //ignore zero
 
-            const auto callSiteObj = invokeDynamic(frame, index);
+            const auto callSiteObj = frame.mem.invokeDynamic(index);
             if (callSiteObj == nullptr) {
                 return;
             }

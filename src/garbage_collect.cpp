@@ -307,7 +307,7 @@ namespace RexVM {
         for (const auto &thread: vm.threadManager->getThreads()) {
             const auto status = thread->getStatus();
             if (status != ThreadStatusEnum::TERMINATED) {
-                thread->getCollectRoots(gcRoots);
+                thread->getCollectRootsBak(gcRoots);
                 gcRoots.emplace_back(thread);
             } else {
                 //TODO 考虑在这里回收Thread

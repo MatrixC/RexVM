@@ -99,6 +99,8 @@ namespace RexVM {
                                                 InstanceClass *instanceClass
         );
 
+        [[nodiscard]] InstanceOop *invokeDynamic(u2 invokeDynamicIdx) const;
+
     };
 
 }

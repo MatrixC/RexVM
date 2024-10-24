@@ -125,7 +125,7 @@ extern "C" {
                 const auto paramSize = CAST_U2((length >> 16) & 0xFFFF);
                 //这里跟llvm_compile_invoke_method_fixed一样 因为调用了pushParam传参 所以这里需要将传参的sp加上去
                 operandStack.sp += CAST_I4(paramSize);
-                const auto callSiteObj = invokeDynamic(*frame, index);
+                const auto callSiteObj = frame->mem.invokeDynamic(index);
                 if (frame->markThrow) {
                     *exception = 1;
                     return frame->throwValue;
