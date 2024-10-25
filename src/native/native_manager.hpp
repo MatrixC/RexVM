@@ -2,7 +2,7 @@
 #define NATIVE_MANAGER_HPP
 
 #include <hash_table8.hpp>
-#include "../config.hpp"
+#include "../basic.hpp"
 
 namespace RexVM {
 

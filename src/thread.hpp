@@ -4,7 +4,7 @@
 #include <vector>
 #include <thread>
 #include <queue>
-#include "config.hpp"
+#include "basic.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
 

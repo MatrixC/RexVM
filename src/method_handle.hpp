@@ -1,6 +1,6 @@
 #ifndef METHOD_HANDLE_HPP
 #define METHOD_HANDLE_HPP
-#include "config.hpp"
+#include "basic.hpp"
 #include "class.hpp"
 
 namespace RexVM {

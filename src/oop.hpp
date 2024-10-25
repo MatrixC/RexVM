@@ -5,7 +5,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <tuple>
-#include "config.hpp"
+#include "basic.hpp"
 #include "composite_ptr.hpp"
 
 namespace RexVM {

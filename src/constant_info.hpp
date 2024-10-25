@@ -5,7 +5,7 @@
 #include <vector>
 #include <tuple>
 #include "basic_macro.hpp"
-#include "config.hpp"
+#include "basic.hpp"
 #include "composite_string.hpp"
 #include "utils/binary.hpp"
 

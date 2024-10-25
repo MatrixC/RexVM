@@ -3,7 +3,7 @@
 
 #include <algorithm>
 #include <mutex>
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

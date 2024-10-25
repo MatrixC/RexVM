@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_set>
 #include <miniz.h>
-#include "../config.hpp"
+#include "../basic.hpp"
 
 namespace RexVM {
 

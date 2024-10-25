@@ -1,6 +1,6 @@
 #ifndef FRAME_MEMORY_HANDLER_HPP
 #define FRAME_MEMORY_HANDLER_HPP
-#include "config.hpp"
+#include "basic.hpp"
 #include "basic_java_class.hpp"
 #include <hash_table8.hpp>
 

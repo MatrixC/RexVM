@@ -1,5 +1,5 @@
 #include "opcode.hpp"
-#include "config.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
     const std::array<cview, OPCODE_ENUM_COUNT> OPCODE_NAMES = {

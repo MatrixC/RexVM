@@ -1,6 +1,6 @@
 #ifndef LLVM_BLOCK_CONTEXT_HPP
 #define LLVM_BLOCK_CONTEXT_HPP
-#include "../config.hpp"
+#include "../basic.hpp"
 #include <stack>
 #include <vector>
 #include <llvm/IR/IRBuilder.h>

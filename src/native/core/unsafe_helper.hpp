@@ -1,7 +1,7 @@
 #ifndef NATIVE_CORE_UNSAFE_HELPER_HPP
 #define NATIVE_CORE_UNSAFE_HELPER_HPP
 #include <atomic>
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

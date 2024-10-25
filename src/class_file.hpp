@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <vector>
-#include "config.hpp"
+#include "basic.hpp"
 #include "attribute_info.hpp"
 
 namespace RexVM {

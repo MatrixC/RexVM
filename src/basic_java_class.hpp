@@ -2,7 +2,7 @@
 #define BASIC_JAVA_CLASS_HPP
 
 #include <array>
-#include "config.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
 

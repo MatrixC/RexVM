@@ -1,6 +1,6 @@
 #ifndef LLVM_JIT_MANAGER_HPP
 #define LLVM_JIT_MANAGER_HPP
-#include "../config.hpp"
+#include "../basic.hpp"
 #include "jit_manager.hpp"
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>

@@ -1,4 +1,4 @@
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../basic_java_class.hpp"
 #include "native_core.hpp"
 

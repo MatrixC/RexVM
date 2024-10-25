@@ -1,5 +1,5 @@
-#ifndef CONFIG_HPP
-#define CONFIG_HPP
+#ifndef BASIC_HPP
+#define BASIC_HPP
 
 #include <cstdint>
 #include <cstddef>

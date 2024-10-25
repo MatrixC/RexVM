@@ -1,7 +1,7 @@
 #ifndef CLASS_HPP
 #define CLASS_HPP
 
-#include "config.hpp"
+#include "basic.hpp"
 #include "basic_type.hpp"
 #include <vector>
 #include <memory>

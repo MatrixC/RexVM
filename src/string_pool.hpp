@@ -4,7 +4,7 @@
 #include <memory>
 #include <mutex>
 #include <vector>
-#include "config.hpp"
+#include "basic.hpp"
 #include "utils/spin_lock.hpp"
 #include "composite_string.hpp"
 

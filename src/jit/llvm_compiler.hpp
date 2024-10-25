@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_set>
 #include <llvm/IR/IRBuilder.h>
-#include "../config.hpp"
+#include "../basic.hpp"
 #include "../opcode.hpp"
 #include "../cfg.hpp"
 

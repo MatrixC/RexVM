@@ -1,5 +1,5 @@
 #include "jit_help_function.hpp"
-#include "../config.hpp"
+#include "../basic.hpp"
 #include "../frame.hpp"
 #include "../class.hpp"
 #include "../class_member.hpp"

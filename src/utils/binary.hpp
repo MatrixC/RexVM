@@ -5,7 +5,7 @@
 #include <fstream>
 #include <memory>
 #include "format.hpp"
-#include "../config.hpp"
+#include "../basic.hpp"
 
 namespace RexVM {
 

@@ -1,6 +1,6 @@
 #ifndef LLVM_REGISTER_HELP_FUNCTION_HPP
 #define LLVM_REGISTER_HELP_FUNCTION_HPP
-#include "../config.hpp"
+#include "../basic.hpp"
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
 

@@ -1,6 +1,6 @@
 #include "file_system.hpp"
 #include <filesystem>
-#include "config.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
 

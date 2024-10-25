@@ -1,7 +1,7 @@
 #ifndef OPCODE_HPP
 #define OPCODE_HPP
 
-#include "config.hpp"
+#include "basic.hpp"
 #include <array>
 
 namespace RexVM {

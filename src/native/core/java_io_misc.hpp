@@ -4,7 +4,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <chrono>
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

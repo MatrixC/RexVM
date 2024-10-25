@@ -1,6 +1,6 @@
 #ifndef MIRROR_OOP_HPP
 #define MIRROR_OOP_HPP
-#include "config.hpp"
+#include "basic.hpp"
 #include "composite_ptr.hpp"
 #include "oop.hpp"
 

@@ -1,6 +1,6 @@
 #ifndef NATIVE_CORE_JAVA_LANG_THROWABLE_HPP
 #define NATIVE_CORE_JAVA_LANG_THROWABLE_HPP
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"
 #include "../../key_slot_id.hpp"

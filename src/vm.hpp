@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 #include <chrono>
-#include "config.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
 

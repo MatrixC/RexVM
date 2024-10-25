@@ -1,6 +1,6 @@
 #ifndef REX_CLASSES_HPP
 #define REX_CLASSES_HPP
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include <array>
 
 namespace RexVM {

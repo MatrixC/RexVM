@@ -2,7 +2,7 @@
 #define NATIVE_CORE_UNSAFE_HPP
 #include <atomic>
 #include "unsafe_helper.hpp"
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

@@ -1,7 +1,7 @@
 #ifndef CLASS_MEMBER_HPP
 #define CLASS_MEMBER_HPP
 
-#include "config.hpp"
+#include "basic.hpp"
 #include <memory>
 #include <vector>
 #include <algorithm>

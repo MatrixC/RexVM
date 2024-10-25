@@ -1,7 +1,7 @@
 #ifndef NATIVE_CORE_JAVA_LANG_RUNTIME_HPP
 #define NATIVE_CORE_JAVA_LANG_RUNTIME_HPP
 #include <thread>
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

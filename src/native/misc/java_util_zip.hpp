@@ -2,7 +2,7 @@
 #define NATIVE_CORE_DEFINE_CLASS_HPP
 #include <algorithm>
 #include <miniz.h>
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../oop.hpp"

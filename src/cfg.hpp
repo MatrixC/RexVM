@@ -1,6 +1,6 @@
 #ifndef CFG_HPP
 #define CFG_HPP
-#include "config.hpp"
+#include "basic.hpp"
 #include <vector>
 
 namespace RexVM {

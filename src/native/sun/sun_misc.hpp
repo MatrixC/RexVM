@@ -1,6 +1,6 @@
 #ifndef NATIVE_SUN_MISC_HPP
 #define NATIVE_SUN_MISC_HPP
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

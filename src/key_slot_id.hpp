@@ -1,6 +1,6 @@
 #ifndef KEY_SLOT_ID_HPP
 #define KEY_SLOT_ID_HPP
-#include "config.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
 

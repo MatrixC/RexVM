@@ -2,7 +2,7 @@
 #define REX_PRINT_HPP
 #include <string>
 #include <array>
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../oop.hpp"

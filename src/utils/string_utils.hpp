@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <unordered_set>
-#include "../config.hpp"
+#include "../basic.hpp"
 
 namespace RexVM {
 

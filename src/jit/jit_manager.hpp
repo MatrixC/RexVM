@@ -1,6 +1,6 @@
 #ifndef JIT_MANAGER_HPP
 #define JIT_MANAGER_HPP
-#include "../config.hpp"
+#include "../basic.hpp"
 
 namespace RexVM {
 

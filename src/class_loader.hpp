@@ -7,7 +7,7 @@
 #include <atomic>
 #include <hash_table8.hpp>
 #include "basic_type.hpp"
-#include "config.hpp"
+#include "basic.hpp"
 #include "basic_java_class.hpp"
 
 namespace RexVM {

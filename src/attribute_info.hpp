@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <hash_table8.hpp>
-#include "config.hpp"
+#include "basic.hpp"
 #include "utils/binary.hpp"
 #include "utils/format.hpp"
 #include "exception.hpp"
