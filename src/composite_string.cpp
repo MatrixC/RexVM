@@ -6,10 +6,9 @@ namespace RexVM {
 
     CompositeString CompositeString::EMPTY{nullptr};
 
-    CompositeString::CompositeString() {
-    }
+    CompositeString::CompositeString() = default;
 
-    CompositeString::CompositeString(const Char *str, CommonSize size) {
+    CompositeString::CompositeString(const Char *str, const CommonSize size) {
         if (str == nullptr || size == 0) {
             return;
         }
@@ -19,7 +18,7 @@ namespace RexVM {
         copy(str, size);
     }
 
-    CompositeString::CompositeString(const Char16 *str, CommonSize size) {
+    CompositeString::CompositeString(const Char16 *str, const CommonSize size) {
         const auto newSize = size * 2;
         if (newSize > COM_DATA_SHIFT_MASK) {
             panic("not support length");
@@ -102,7 +101,7 @@ namespace RexVM {
         CompositeString(str1.data(), str1.size(), str2.data(), str2.size()) {
     }
 
-    CompositeString::CompositeString(CompositeString &&other) {
+    CompositeString::CompositeString(CompositeString &&other) noexcept {
         _data.composite = other._data.composite;
         other._data.reset();
     }
@@ -230,7 +229,7 @@ namespace RexVM {
             return EMPTY;
         }
 
-        return CompositeString(c_str(), selfSize, other.c_str(), otherSize);
+        return {c_str(), selfSize, other.c_str(), otherSize};
     }
 
     bool CompositeString::operator==(const Char *other) const {
@@ -274,11 +273,11 @@ namespace RexVM {
     }
 
     std::string CompositeString::toString() const {
-        return std::string(c_str(), size());
+        return {c_str(), size()};
     }
 
     std::string_view CompositeString::toStringView() const {
-        return std::string_view(c_str(), size());
+        return {c_str(), size()};
     }
 
     std::ostream& operator<<(std::ostream& out, const CompositeString &str) {
