@@ -18,16 +18,12 @@
 namespace RexVM {
     using namespace llvm;
 
-    bool MethodCompiler::useException = true;
+    // constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
+    // constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
 
-#ifdef DEBUG
-    constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
-    constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
-#else
     //release编译不支持Oop的offsetof
     constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = sizeof(Oop);
     constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = sizeof(Oop);
-#endif
 
     MethodCompiler::MethodCompiler(
         VM &vm,
@@ -39,6 +35,9 @@ namespace RexVM {
         klass(method.klass),
         localCount(method.maxLocals),
         constantPool(klass.constantPool),
+        useLVTOptimize(vm.params.jitLVTOptimize),
+        checkStackError(vm.params.jitCheckStack),
+        useException(vm.params.jitSupportException),
         cfg(method),
         module(module),
         ctx(module.getContext()),
@@ -256,7 +255,7 @@ namespace RexVM {
     }
 
     void MethodCompiler::writeModifyLocalVariableTable(const BlockContext &blockContext) {
-        if (!useLVT) {
+        if (!useLVTOptimize) {
             return;
         }
 
@@ -271,7 +270,7 @@ namespace RexVM {
 
     llvm::Value *MethodCompiler::getLocalVariableTableValue(BlockContext &blockContext, const u4 index, const SlotTypeEnum slotType) {
         llvm::Value *loadVal{nullptr};
-        if (useLVT) {
+        if (useLVTOptimize) {
             loadVal = blockContext.localVariableTable[index];
             if (loadVal == nullptr) {
                 loadVal = getLocalVariableTableValueMemory(index, slotType);
@@ -284,7 +283,7 @@ namespace RexVM {
     }
 
     void MethodCompiler::setLocalVariableTableValue(BlockContext &blockContext, const u4 index, llvm::Value *value, const SlotTypeEnum slotType) {
-        if (useLVT) {
+        if (useLVTOptimize) {
             blockContext.localVariableTable[index] = value;
             blockContext.wroteLocalVariableTable[index] = 1;
         } else {

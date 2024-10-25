@@ -36,9 +36,9 @@ namespace RexVM {
         InstanceClass &klass;
         size_t localCount;
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
-        bool useLVT{true}; //使用block的本地变量表(不写frame的栈内存 把llvm::Value保存在context的数组中)
-        bool checkStackError{false}; //是否做字节码执行后的栈数量检查 如果开启则函数编译结束后如果栈的元素数量不为0会报错
-        static bool useException;
+        bool useLVTOptimize; //使用block的本地变量表(不写frame的栈内存 把llvm::Value保存在context的数组中)
+        bool checkStackError; //是否做字节码执行后的栈数量检查 如果开启则函数编译结束后如果栈的元素数量不为0会报错
+        bool useException;
         std::unordered_set<Class *> initClasses;
 
         MethodCFG cfg;

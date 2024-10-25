@@ -1,6 +1,7 @@
 #include "descriptor_parser.hpp"
 #include "string_utils.hpp"
 #include "../exception.hpp"
+#include "../basic_type.hpp"
 
 namespace RexVM {
 
@@ -33,7 +34,7 @@ namespace RexVM {
                 break;
 
             case '[': {
-                decltype(firstChar) arrayElementFirstChar;
+                decltype(firstChar) arrayElementFirstChar{};
                 size_t arrayLength = 1;
                 for (size_t arrayPos = 1; arrayPos < size; ++arrayPos) {
                     arrayElementFirstChar = descriptor[arrayPos];

@@ -2,9 +2,10 @@
 #include "format.hpp"
 #include <ranges>
 #include <string>
+#include "../exception.hpp"
 
 namespace RexVM {
-    std::vector<cview> splitString(cview str, char delimiter) {
+    std::vector<cview> splitString(cview str, const char delimiter) {
 
         std::vector<cview> result;
         size_t start = 0;
@@ -20,39 +21,39 @@ namespace RexVM {
         return result;
     }
 
-    cstring joinString(const std::vector<cstring> &strs, const cstring &joiner) {
-        if (strs.empty()) {
+    cstring joinString(const std::vector<cstring> &str, const cstring &joiner) {
+        if (str.empty()) {
             return {};
         }
-        auto result = strs[0];
-        for (size_t i = 1; i < strs.size(); ++i) {
+        auto result = str[0];
+        for (size_t i = 1; i < str.size(); ++i) {
             result.append(joiner);
-            result.append(strs[i]);
+            result.append(str[i]);
         }
         return result;
     }
 
-    cstring joinString(const std::unordered_set<cstring> &strs, const cstring &joiner) {
-        if (strs.empty()) {
+    cstring joinString(const std::unordered_set<cstring> &str, const cstring &joiner) {
+        if (str.empty()) {
             return {};
         }
         auto first = true;
         cstring result{};
-        for (const auto &item : strs) {
+        for (const auto &item : str) {
             result += first ? item : (joiner + item);
             first = false;
         }
         return result;
     }
 
-    bool startWith(cview str, cview prefix) {
+    bool startWith(const cview str, const cview prefix) {
         if (prefix.size() > str.size()) {
             return false;
         }
         return str.substr(0, prefix.size()) == prefix;
     }
 
-    bool endsWith(cview str, cview suffix) {
+    bool endsWith(const cview str, const cview suffix) {
         if (suffix.size() > str.size()) {
             return false;
         }
@@ -60,7 +61,7 @@ namespace RexVM {
     }
 
     void ltrim(cstring &s) {
-        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        s.erase(s.begin(), std::ranges::find_if(s, [](const unsigned char ch) {
             return !std::isspace(ch);
         }));
     }
@@ -71,13 +72,13 @@ namespace RexVM {
         }).base(), s.end());
     }
 
-    cstring concatView(cview str1, cview str2) {
+    cstring concatView(const cview str1, const cview str2) {
         cstring result(str1);
         result += str2;
         return result;
     }
 
-    cstring concatView(cview str1, cview str2, cview str3) {
+    cstring concatView(const cview str1, const cview str2, const cview str3) {
         cstring result(str1);
         result += str2;
         result += str3;
@@ -102,8 +103,12 @@ namespace RexVM {
         for (size_t i = 0; i < utf16Size; ) {
             uint32_t codepoint;
             if (utf16[i] >= 0xD800 && utf16[i] <= 0xDBFF) {  // High surrogate
-                if (i + 1 >= utf16Size) throw std::runtime_error("Invalid UTF-16 sequence");
-                if (utf16[i + 1] < 0xDC00 || utf16[i + 1] > 0xDFFF) throw std::runtime_error("Invalid UTF-16 sequence");
+                if (i + 1 >= utf16Size) {
+                    panic("Invalid UTF-16 sequence");
+                }
+                if (utf16[i + 1] < 0xDC00 || utf16[i + 1] > 0xDFFF) {
+                    panic("Invalid UTF-16 sequence");
+                }
                 codepoint = ((utf16[i] - 0xD800) << 10) + (utf16[i + 1] - 0xDC00) + 0x10000;
                 i += 2;
             } else {
@@ -130,20 +135,24 @@ namespace RexVM {
         return utf8;
     }
 
-    std::vector<char16_t> utf8ToUtf16Vec(const char *utf8, size_t utf8Size) {
+    std::vector<char16_t> utf8ToUtf16Vec(const char *utf8, const size_t utf8Size) {
         std::vector<char16_t> utf16Vec;
         utf16Vec.reserve(utf8Size);
         for (size_t i = 0; i < utf8Size; ) {
             uint32_t codepoint;
-            size_t extraBytesToRead = (uint8_t(utf8[i]) >> 3 == 0b11110) ? 3 :
-                                      (uint8_t(utf8[i]) >> 4 == 0b1110) ? 2 :
-                                      (uint8_t(utf8[i]) >> 5 == 0b110) ? 1 : 0;
+            const size_t extraBytesToRead = (static_cast<uint8_t>(utf8[i]) >> 3 == 0b11110) ? 3 :
+                                                (static_cast<uint8_t>(utf8[i]) >> 4 == 0b1110) ? 2 :
+                                                    (static_cast<uint8_t>(utf8[i]) >> 5 == 0b110) ? 1 : 0;
 
             if (extraBytesToRead > 0) {
                 codepoint = utf8[i] & (0xFF >> (extraBytesToRead + 2));
                 for (size_t j = 1; j <= extraBytesToRead; ++j) {
-                    if (i + j >= utf8Size) throw std::runtime_error("Invalid UTF-8 sequence");
-                    if ((utf8[i + j] & 0xC0) != 0x80) throw std::runtime_error("Invalid UTF-8 sequence");
+                    if (i + j >= utf8Size) {
+                        panic("Invalid UTF-16 sequence");
+                    }
+                    if ((utf8[i + j] & 0xC0) != 0x80) {
+                        panic("Invalid UTF-16 sequence");
+                    }
                     codepoint = (codepoint << 6) | (utf8[i + j] & 0x3F);
                 }
                 i += extraBytesToRead + 1;
@@ -164,10 +173,10 @@ namespace RexVM {
         return utf16Vec;
     }
 
-    size_t utf8Length(const cstring &str) {
+    size_t utf8Length(const cview str) {
         size_t len = 0;
-        for (size_t i = 0; i < str.size(); ++i) {
-            if ((str[i] & 0xC0) != 0x80) {
+        for (const auto c : str) {
+            if ((c & 0xC0) != 0x80) {
                 ++len;
             }
         }

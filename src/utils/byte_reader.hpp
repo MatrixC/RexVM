@@ -1,7 +1,6 @@
 #ifndef BYTE_READER_HPP
 #define BYTE_READER_HPP
 #include "../config.hpp"
-#include "binary.hpp"
 
 namespace RexVM {
 

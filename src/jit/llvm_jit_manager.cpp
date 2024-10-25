@@ -5,6 +5,7 @@
 #include "jit_help_function.hpp"
 #include "../class_member.hpp"
 #include "../class.hpp"
+#include "../vm.hpp"
 #include "../utils/string_utils.hpp"
 
 #define DEFINE_SYMBOL(hf_name) symbol_map[mangle(#hf_name)] = ExecutorSymbolDef(ExecutorAddr::fromPtr(&hf_name), JITSymbolFlags());
@@ -20,7 +21,8 @@ namespace RexVM {
         InitializeNativeTargetAsmParser();
 
         auto jitTarget = JITTargetMachineBuilder::detectHost();
-        jitTarget->setCodeGenOptLevel(CodeGenOptLevel::None);
+        const auto compileOptimizeLevel = static_cast<CodeGenOptLevel>(vm.params.jitCompileOptimizeLevel);
+        jitTarget->setCodeGenOptLevel(compileOptimizeLevel);
 
         jit = cantFail(
             LLJITBuilder()
@@ -53,11 +55,9 @@ namespace RexVM {
 
 
     CompiledMethodHandler LLVM_JITManager::compileMethod(Method &method) {
-        if (!method.canCompile || method.compiledMethodHandler != nullptr) {
-            return nullptr;
-        }
-        if (!MethodCompiler::useException && !method.exceptionCatches.empty()) {
+        if (!vm.params.jitSupportException && !method.exceptionCatches.empty()) {
             ++failedMethodCnt;
+            method.canCompile = false;
             return nullptr;
         }
         const auto ctx = threadSafeContext->getContext();
@@ -69,22 +69,10 @@ namespace RexVM {
         MethodCompiler methodCompiler(vm, method, *module, compiledMethodName);
         if (!methodCompiler.compile()) {
             ++failedMethodCnt;
+            method.canCompile = false;
             return nullptr;
         }
         methodCompiler.verify();
-
-        if (method.getName() == "<clinit>") {
-            // module->print(errs(), nullptr);
-
-            if (method.klass.getClassName() == "java/util/Properties") {
-                return nullptr;
-            }
-
-            if (method.klass.getClassName() == "java/util/Dictionary<init>") {
-                return nullptr;
-            }
-        }
-
 
         auto TSM = ThreadSafeModule(std::move(module), *threadSafeContext);
         cantFail(jit->addIRModule(std::move(TSM)));
@@ -97,7 +85,9 @@ namespace RexVM {
     }
 
     LLVM_JITManager::~LLVM_JITManager() {
-        cprintln("success: {}, failed: {}", successMethodCnt.load(), failedMethodCnt.load());
+#ifdef DEBUG
+        cprintln("jit compile success: {}, failed: {}", successMethodCnt.load(), failedMethodCnt.load());
+#endif
     }
 
 }

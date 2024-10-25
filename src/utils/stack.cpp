@@ -3,11 +3,11 @@
 
 namespace RexVM {
 
-    StackContext::StackContext(Slot *memory, SlotTypeEnum *memoryType, i4 pos) :
+    StackContext::StackContext(Slot *memory, SlotTypeEnum *memoryType, const i4 pos) :
         sp(pos), maxSp(sp), memory(memory), memoryType(memoryType) {
     }
 
-    void StackContext::push(Slot val, SlotTypeEnum slotType) {
+    void StackContext::push(const Slot val, const SlotTypeEnum slotType) {
         ++sp;
         memory[sp] = val;
         memoryType[sp] = slotType;
@@ -47,7 +47,7 @@ namespace RexVM {
         sp = -1;
     }
 
-     Slot StackContext::getStackOffset(size_t offset) const {
+     Slot StackContext::getStackOffset(const size_t offset) const {
          return memory[sp - offset];
      }
 

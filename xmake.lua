@@ -11,7 +11,6 @@ option("llvm-jit")
     add_includedirs(include_dir)
     add_linkdirs(lib_dir)
     add_links(llvm_version)
-    --add_cxxflags("-fno-exceptions")
     add_cxxflags("-funwind-tables")
     add_cxxflags("-D_GNU_SOURCE")
     add_cxxflags("-D__STDC_CONSTANT_MACROS")
@@ -43,6 +42,7 @@ target("rex")
     set_kind("binary")
     add_options("llvm-jit")
     set_toolchains("clang")
+    add_cxxflags("-fno-exceptions")
     add_includedirs(
         "third_party/miniz",
         "third_party/fmt/include",

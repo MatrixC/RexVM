@@ -31,10 +31,10 @@ namespace RexVM {
             std::uint32_t codepoint;
             if (str[i] >= 0xD800 && str[i] <= 0xDBFF) {  // High surrogate
                 if (i + 1 >= size) {
-                    throw std::runtime_error("Invalid UTF-16 sequence");
+                    panic("Invalid UTF-16 sequence");
                 }
                 if (str[i + 1] < 0xDC00 || str[i + 1] > 0xDFFF) {
-                    throw std::runtime_error("Invalid UTF-16 sequence");
+                    panic("Invalid UTF-16 sequence");
                 }
                 codepoint = ((str[i] - 0xD800) << 10) + (str[i + 1] - 0xDC00) + 0x10000;
                 i += 2;

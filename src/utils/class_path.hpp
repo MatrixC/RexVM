@@ -3,7 +3,6 @@
 
 #include <memory>
 #include <fstream>
-#include <utility>
 #include <vector>
 #include <unordered_set>
 #include <miniz.h>
@@ -21,13 +20,13 @@ namespace RexVM {
         const ClassPathTypeEnum type;
         const cstring path;
 
-        explicit ClassPath(ClassPathTypeEnum type, cview path) : type(type), path(path) {
+        explicit ClassPath(const ClassPathTypeEnum type, const cview path) : type(type), path(path) {
         }
 
         virtual ~ClassPath() = default;
 
         virtual std::unique_ptr<std::istream> getStream(cview filePath) = 0;
-        virtual cstring getVMClassPath() const;
+        [[nodiscard]] virtual cstring getVMClassPath() const;
 
         bool operator==(const ClassPath &other) const {
             return path == other.path;
@@ -59,7 +58,7 @@ namespace RexVM {
         std::unordered_set<cstring> processedPath;
 
         explicit CombineClassPath(cview path, cview javaHome = {});
-        cstring getVMClassPath() const override;
+        [[nodiscard]] cstring getVMClassPath() const override;
 
         std::unique_ptr<std::istream> getStream(cview filePath) override;
 

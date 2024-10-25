@@ -48,7 +48,16 @@ namespace RexVM {
         );
     }
 
-    GarbageCollect::GarbageCollect(VM &vm) : vm(vm), finalizeRunner(vm, *this) {
+    GarbageCollect::GarbageCollect(VM &vm)
+        : vm(vm),
+          finalizeRunner(vm, *this),
+          gcRootReserveSize(vm.params.gcGCRootReserveSize),
+          collectMemoryThreshold(vm.params.gcCollectMemoryThreshold),
+          collectStopWaitTimeout(vm.params.gcCollectStopWaitTimeout),
+          collectSleepTime(vm.params.gcCollectSleepTime),
+          enableGC(vm.params.gcEnable),
+          enableLog(vm.params.gcEnableLog),
+          enableFinalize(vm.params.gcEnableFinalize) {
     }
 
     void GarbageCollect::notify() {
@@ -291,7 +300,7 @@ namespace RexVM {
 
     std::vector<ref> GarbageCollect::getGarbageCollectRoots() const {
         std::vector<ref> gcRoots;
-        gcRoots.reserve(GC_ROOT_START_SIZE);
+        gcRoots.reserve(vm.params.gcGCRootReserveSize);
         getClassStaticRef(gcRoots);
         getThreadRef(gcRoots);
         return gcRoots;

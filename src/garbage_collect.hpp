@@ -19,15 +19,6 @@ namespace RexVM {
     struct OopHolder;
     struct GarbageCollect;
 
-    //wait 100ms
-    constexpr size_t GC_STOP_WAIT_TIME_OUT = 100;
-
-    constexpr size_t GC_ROOT_START_SIZE = 8192;
-    //1MB
-    constexpr size_t GC_MEMORY_THRESHOLD = 1 * 1024 * 1024;
-    //Frequency 5ms
-    constexpr size_t GC_SLEEP_TIME = 5;
-
     struct FinalizeRunner {
 
         explicit FinalizeRunner(VM &vm, GarbageCollect &collector);
@@ -83,16 +74,17 @@ namespace RexVM {
         std::mutex notifyCollectMtx;
         std::condition_variable notifyCollectCv;
         std::thread gcThread;
-        size_t collectMemoryThreshold{GC_MEMORY_THRESHOLD};
-        size_t collectStopWaitTimeout{GC_STOP_WAIT_TIME_OUT};
-        size_t collectSleepTime{GC_SLEEP_TIME};
+        size_t gcRootReserveSize;
+        size_t collectMemoryThreshold;
+        size_t collectStopWaitTimeout;
+        size_t collectSleepTime;
         size_t sumCollectedMemory{0};
         size_t collectStartCount{0};
         size_t collectSuccessCount{0};
 
-        bool enableLog{false};
+        bool enableGC;
+        bool enableLog{true};
         bool enableFinalize{false};
-        bool enableGC{true};
 
         Class *stringClass{nullptr};
 
@@ -128,7 +120,23 @@ namespace RexVM {
         void deleteOop(ref oop) const;
 
 
+#ifdef DEBUG
+
+        void recordOopCreate(Frame &frame, ref oop);
+
+#endif
+
     };
+
+#ifdef DEBUG
+    extern emhash8::HashMap<ref, cview> collectedOopDesc;
+    extern emhash8::HashMap<ref, cstring> collectedOopDesc2;
+    extern emhash8::HashMap<ref, cstring> collectedOopDesc3;
+    cview getCollectedOopDesc(ref oop);
+    cstring getCollectedOopDesc2(ref oop);
+#endif
+
+
 }
 
 #endif

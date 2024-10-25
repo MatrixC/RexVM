@@ -1,11 +1,12 @@
 #include "byte_reader.hpp"
+#include "binary.hpp"
 
 namespace RexVM {
 
     ByteReader::ByteReader() : ptr(nullptr) {
     }
 
-    void ByteReader::init(u1 *in, size_t length_) {
+    void ByteReader::init(u1 *in, const size_t length_) {
         begin = in;
         ptr = in;
         length = length_;

@@ -4,7 +4,6 @@
 #include <vector>
 #include <tuple>
 #include "../config.hpp"
-#include "../basic_type.hpp"
 
 namespace RexVM {
 

@@ -1,5 +1,4 @@
 #include "time.hpp"
-#include <ostream>
 
 namespace RexVM {
 
@@ -9,8 +8,8 @@ namespace RexVM {
         return CAST_I8(ms);
     }
 
-    cstring millisecondsToReadableTime(i8 timestamp) {
-        std::chrono::milliseconds ms(timestamp);
+    cstring millisecondsToReadableTime(const i8 timestamp) {
+        const std::chrono::milliseconds ms(timestamp);
         const auto timePoint = std::chrono::time_point<std::chrono::system_clock>(ms);
         const std::time_t timeT = std::chrono::system_clock::to_time_t(timePoint);
         const auto tm = *std::localtime(&timeT);

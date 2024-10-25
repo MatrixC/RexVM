@@ -118,9 +118,13 @@ namespace RexVM {
         method.invokeCounter++;
 
 #ifdef LLVM_JIT
-        do {
-            break;
-            if (notNativeMethod && method.canCompile && method.compiledMethodHandler == nullptr) {
+        do { //try to compile
+            if (frame.vm.params.jitEnable
+                && notNativeMethod
+                && method.canCompile
+                && method.compiledMethodHandler == nullptr
+                && method.invokeCounter >= frame.vm.params.jitCompileMethodInvokeCountThreshold
+            ) {
                 if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
                     jitManager->compileMethod(method);
                 }
@@ -158,6 +162,10 @@ namespace RexVM {
                 ATTR_UNUSED const auto sourceFile = method.klass.sourceFile;
                 ATTR_UNUSED const auto lineNumber = method.getLineNumber(pc);
                 #endif
+
+                if (method.getName() == "rehash" && pc == 5) {
+                    int i = 10;
+                }
 
                 OpCodeHandlers[frame.currentByteCode](frame);
 

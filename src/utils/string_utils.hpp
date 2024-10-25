@@ -8,8 +8,8 @@
 namespace RexVM {
 
     std::vector<cview> splitString(cview str, char delimiter);
-    cstring joinString(const std::vector<cstring> &strs, const cstring &joiner);
-    cstring joinString(const std::unordered_set<cstring> &strs, const cstring &joiner);
+    cstring joinString(const std::vector<cstring> &str, const cstring &joiner);
+    cstring joinString(const std::unordered_set<cstring> &str, const cstring &joiner);
 
     bool startWith(cview str, cview prefix);
     bool endsWith(cview str, cview suffix);

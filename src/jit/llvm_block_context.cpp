@@ -80,7 +80,7 @@ namespace RexVM {
     }
 
     void BlockContext::initLocalVariableTable() {
-        if (!methodCompiler.useLVT) {
+        if (!methodCompiler.useLVTOptimize) {
             return;
         }
 
