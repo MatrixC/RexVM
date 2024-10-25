@@ -1,0 +1,33 @@
+GC
+    GC过程的第一步是收集gc roots 有两大部分 类的静态引用变量 和 线程中的引用变量
+    线程中的引用变量主要在两个位置 函数的lvt 和 函数的操作数栈
+    因为解释器会根据指令一直更新lvt和操作数栈 所以对于解释器使用过的内存 直接扫描线程中的stackMemory即可
+    而对于非解释器执行的函数 主要有两类 native函数 JIT函数
+    native函数
+        lvt只用作参数读取 所以等于不会使用lvt 新创建的对象 只有在native栈中有引用 也不会放进操作数栈内存
+        所以假设有这种情况 native函数装创建了对象 并且调用了另一个函数 这个函数中触发了jit 那刚才创建的对象必然会被回收
+        假设有以下逻辑
+            const auto objectA = frame.mem.newInstance(ObjectAClass);
+            frame.runMethod(MethodB); //MethodB 中发生了GC
+        那objectA必然会被回收 因为它还没有跟其他对象做任何关联 也不存在stack内存中 扫描不对
+        解决这个问题 主要方式是需要让gc模块感知到某个native函数frame中创建了对象
+        所以在frame.mem的创建对象中调用一个函数Frame::addCreateRef
+        在native函数 jit函数 以及标记了!gcSafe的函数中 它会发挥总用 把分配的对象都记录在frame的nativeCreateRefs中
+        在gc获取gc root时将 nativeCreateRefs 一并提供 解决问题
+
+    !gcSafe函数
+        上面提到的!gcSafe函数当前只有一个场景 就是invokeDynamic
+        invokeDynamic 并不是单独的函数 但它其中有大量的native逻辑 并且会在解释器中执行
+        这就会导致解释器中 进入该指令时 其中申请的对象 既不能通过stackMemory扫描到 又无法通过native条件被addCreateRef函数添加
+        所以就需要在invokeDynamic指令中做一个标记!gcSafe 然后在addCreateRef中判断如果有这个标记 也记录新分配的对象 提供给gc使用
+
+    JIT函数
+        JIT函数的情况和native函数比较相似 不使用lvt 不使用操作数栈 无法通过扫描stackMemory来获取对象
+        所以还是依赖 addCreateRef 来记录分配的对象 当前还有一个特殊的地方是 对于invoke函数后的引用类结果 通过addCreateRef函数记录
+        否则被invoke函数中分配的对象 返回到JIT函数后 如果还未使用就调用了B函数 并且B函数中发生了GC 则该对象肯定被回收
+        解释器模式下因为调用函数的结果会被被调函数push到当前函数的操作数栈 所以能被扫描到 所以无问题
+        JIT函数会将返回值直接记录在它的native栈中 所以会扫描不到
+        所以JIT函数在invoke后会判断返回类型调用 addCreateRef 该过程在 llvm_compile_invoke_method_fixed 中实现
+        native函数中其实也应该对函数的返回做addCreateRef的记录 在runMethodManual中实现
+
+函数运行过后 一定要清理刚刚用过的stackMemory 否则残留的脏数据会影响后续的gc root

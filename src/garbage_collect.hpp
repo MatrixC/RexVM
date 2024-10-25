@@ -90,7 +90,7 @@ namespace RexVM {
         size_t collectStartCount{0};
         size_t collectSuccessCount{0};
 
-        bool enableLog{true};
+        bool enableLog{false};
         bool enableFinalize{false};
         bool enableGC{true};
 
@@ -126,18 +126,9 @@ namespace RexVM {
         void collectOopHolder(OopHolder &holder, GarbageCollectContext &context) const;
 
         void deleteOop(ref oop) const;
-        
+
+
     };
-
-#ifdef DEBUG
-    extern emhash8::HashMap<ref, cview> collectedOopDesc;
-    extern emhash8::HashMap<ref, cstring> collectedOopDesc2;
-    extern emhash8::HashMap<ref, cstring> collectedOopDesc3;
-    cview getCollectedOopDesc(ref oop);
-    cstring getCollectedOopDesc2(ref oop);
-#endif
-
-
 }
 
 #endif

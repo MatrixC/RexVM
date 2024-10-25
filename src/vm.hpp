@@ -22,6 +22,9 @@ namespace RexVM {
     struct ApplicationParameter {
         cstring userClassPath;
         std::vector<cstring> userParams;
+
+        bool gcEnable{true};
+
     };
 
     struct VM {

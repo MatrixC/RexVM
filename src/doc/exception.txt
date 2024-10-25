@@ -92,4 +92,3 @@ frame.runMethod方法会创建frame执行一个新函数 假如背调函数发�
     当前使用的是2方式来解决问题 但也因此引入了一个问题
     在 helpFunction->createCallNew 的调用中 也可能会引发异常 但因为这个指令后一般会跟一个pushValue指令
     此次也没有为异常划分block 所以不好处理 暂不处理new invokeDynamic等引起的异常
-

@@ -146,9 +146,14 @@ namespace RexVM {
                 std::make_tuple(Slot(popI8()), runMethod.slotType);
             case SlotTypeEnum::F8:
                 return std::make_tuple(Slot(popF8()), runMethod.slotType);
-            default:
+            default: {
+                const auto returnValue = pop();
+                if (runMethod.slotType == SlotTypeEnum::REF && returnValue.refVal != nullptr) {
+                    addCreateRef(returnValue.refVal);
+                }
                 //除了I8和F8,其他类型只需要pop一个值
-                return std::make_tuple(pop(), runMethod.slotType);
+                return std::make_tuple(returnValue, runMethod.slotType);
+            }
         }
     }
 
@@ -401,21 +406,6 @@ namespace RexVM {
         if (method.isNative() || !thread.gcSafe || method.compiledMethodHandler != nullptr) {
             nativeCreateRefs.emplace_back(oop);
         }
-#ifdef DEBUG
-        int i = 10;
-        std::vector<cstring> stack;
-        for (auto cur = this; cur != nullptr; cur = cur->previous) {
-            stack.emplace_back(cformat("{}:{}:{}",
-                                       cur->klass.getClassName(),
-                                       cur->method.getName(),
-                                       cur->method.getLineNumber(cur->pc()))
-            );
-        }
-
-        extern emhash8::HashMap<ref, cstring> collectedOopDesc2;
-        // const auto oopDesc = cformat("{} {}:{}", oop->getClass()->getClassName(), method.getName(), method.getLineNumber(pc()));
-        collectedOopDesc2.emplace(oop, joinString(stack, "    "));
-#endif
     }
 
     void Frame::printCallStack() const {

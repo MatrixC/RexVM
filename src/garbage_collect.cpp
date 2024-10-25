@@ -143,15 +143,6 @@ namespace RexVM {
         sumCollectedMemory += context.tempAllocatedOopMemory;
         if (enableLog) {
             context.printLog(vm);
-#ifdef DEBUG
-            // for (const auto thread : vm.threadManager->threads) {
-            //     cprintln("thread: {}", thread->getName());
-            //     for (const auto cur = thread->currentFrame; auto callStack : cur->getCallStack()) {
-            //         cprintln("  {}", callStack);
-            //     }
-            //     cprintln("");
-            // }
-#endif
         }
 
         vm.mainThread->clearTraced();
@@ -173,23 +164,6 @@ namespace RexVM {
 
     void GarbageCollect::deleteOop(ref oop) const {
         const auto klass = oop->getClass();
-
-#ifdef DEBUG
-        collectedOopDesc.emplace(oop, klass->getClassName());
-        // const auto t1 = collectedOopDesc2[oop];
-        // std::vector<cstring> t22;
-        // for (const auto thread : vm.threadManager->threads) {
-        //     const auto t23 = thread->currentFrame->getCallStack();
-        //     for (auto str : t23) {
-        //         t22.emplace_back(str);
-        //     }
-        // }
-        // collectedOopDesc3.emplace_unique(oop, joinString(t22, "    "));
-        //
-        // collectedOopDesc.emplace(oop, cformat("{}    {}", klass->getClassName(), joinString(t22, "    ")));
-        // collectedOopDesc2.emplace(oop, t1 + "    " + joinString(t22, "    "));
-
-#endif
 
         if (klass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
             delete CAST_OBJ_ARRAY_OOP(oop);
@@ -307,7 +281,7 @@ namespace RexVM {
         for (const auto &thread: vm.threadManager->getThreads()) {
             const auto status = thread->getStatus();
             if (status != ThreadStatusEnum::TERMINATED) {
-                thread->getCollectRootsBak(gcRoots);
+                thread->getCollectRoots(gcRoots);
                 gcRoots.emplace_back(thread);
             } else {
                 //TODO 考虑在这里回收Thread
@@ -560,34 +534,5 @@ namespace RexVM {
 
     }
 
-
-#ifdef DEBUG
-    emhash8::HashMap<ref, cview> collectedOopDesc;
-    emhash8::HashMap<ref, cstring> collectedOopDesc3;
-    emhash8::HashMap<ref, cstring> collectedOopDesc2;
-    cview getCollectedOopDesc(ref oop) {
-        const auto iter = collectedOopDesc.find(oop);
-        if (iter != collectedOopDesc.end()) {
-            return iter->second;
-        }
-        return "not found";
-    }
-
-    cstring getCollectedOopDesc2(ref oop) {
-        const auto iter = collectedOopDesc2.find(oop);
-        if (iter != collectedOopDesc2.end()) {
-            return iter->second;
-        }
-        return "not found";
-    }
-
-    cstring getCollectedOopDesc3(ref oop) {
-        const auto iter = collectedOopDesc3.find(oop);
-        if (iter != collectedOopDesc3.end()) {
-            return iter->second;
-        }
-        return "not found";
-    }
-#endif
 
 }
