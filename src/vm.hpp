@@ -25,7 +25,7 @@ namespace RexVM {
     constexpr size_t JIT_COMPILE_OPTIMIZE_LEVEL = 0;
 
 #ifdef DEBUG
-    constexpr size_t GC_MEMORY_THRESHOLD = 1 * 1024 * 1024; //1M
+    constexpr size_t GC_MEMORY_THRESHOLD = 0.5 * 1024 * 1024; //1M
     constexpr size_t GC_SLEEP_TIME = 500; //500ms
 
     constexpr size_t JIT_INVOKE_COUNT_THRESHOLD = 0;

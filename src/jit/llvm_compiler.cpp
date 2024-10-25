@@ -21,7 +21,6 @@ namespace RexVM {
     // constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = offsetof(InstanceOop, data);
     // constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = offsetof(ObjArrayOop, data);
 
-    //release编译不支持Oop的offsetof
     constexpr u2 INSTANCE_OOP_DATA_FIELD_OFFSET = sizeof(Oop);
     constexpr u2 ARRAY_OOP_DATA_FIELD_OFFSET = sizeof(Oop);
 
@@ -710,6 +709,7 @@ namespace RexVM {
     }
 
     void MethodCompiler::jumpTo(const BlockContext &blockContext, const i4 offset) {
+        safePoint(); //循环回边
         const auto jumpTo = offsetToPC(blockContext, offset);
         jumpToPC(jumpTo);
     }
@@ -929,6 +929,8 @@ namespace RexVM {
                     irBuilder.CreateLoad(slotTypeMap(returnSlotType), getInvokeReturnPtr(blockContext), "invoke_return");
             blockContext.pushValue(returnValue, returnSlotType);
         }
+
+        safePoint();
     }
 
     void MethodCompiler::newOpCode(BlockContext &blockContext, const uint8_t type, llvm::Value *length,
@@ -1161,6 +1163,17 @@ namespace RexVM {
         );
         return irBuilder.CreateLoad(voidPtrType, getThrowValuePtr());
     }
+
+    void MethodCompiler::safePoint() {
+        helpFunction->createCallMisc(
+            irBuilder,
+            getFramePtr(),
+            getZeroValue(SlotTypeEnum::REF),
+            getZeroValue(SlotTypeEnum::REF),
+            LLVM_COMPILER_MISC_SAFE_POINT
+        );
+    }
+
 
     bool MethodCompiler::compile() {
         if (cfgBlocks.empty()) {

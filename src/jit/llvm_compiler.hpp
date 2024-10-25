@@ -178,6 +178,8 @@ namespace RexVM {
 
         llvm::Value *loadThrowValue();
 
+        void safePoint();
+
         bool compile();
 
         void verify() const;

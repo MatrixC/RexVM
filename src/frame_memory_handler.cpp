@@ -13,6 +13,7 @@
 #include "composite_ptr.hpp"
 #include "utils/descriptor_parser.hpp"
 #include "method_handle.hpp"
+#include "garbage_collect.hpp"
 
 namespace RexVM {
 
@@ -309,6 +310,9 @@ namespace RexVM {
         return oop;
     }
 
+    void FrameMemoryHandler::safePoint() const {
+        frame.vm.garbageCollector->checkStopForCollect(frame.thread);
+    }
 
 
 }

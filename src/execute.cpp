@@ -31,6 +31,7 @@ namespace RexVM {
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
         // const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
+        frame.mem.safePoint();
         const auto throwInstance = frame.throwValue;
         const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->getClass());
         auto &method = frame.method;
@@ -134,7 +135,6 @@ namespace RexVM {
 
         // printExecuteLog = true;
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
-        frame.vm.garbageCollector->checkStopForCollect(frame.thread);
 
         if (notNativeMethod) [[likely]] {
             if (method.compiledMethodHandler != nullptr) {
@@ -162,10 +162,6 @@ namespace RexVM {
                 ATTR_UNUSED const auto sourceFile = method.klass.sourceFile;
                 ATTR_UNUSED const auto lineNumber = method.getLineNumber(pc);
                 #endif
-
-                if (method.getName() == "rehash" && pc == 5) {
-                    int i = 10;
-                }
 
                 OpCodeHandlers[frame.currentByteCode](frame);
 

@@ -216,6 +216,7 @@ namespace RexVM {
         if (methodBlock->exceptionHandlerBlock) {
             //对于异常处理块 它获取异常对象的方式是做一次pop
             pushValue(methodCompiler.loadThrowValue());
+            methodCompiler.safePoint();
         }
 
         ByteReader reader{};

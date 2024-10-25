@@ -101,6 +101,8 @@ namespace RexVM {
 
         [[nodiscard]] InstanceOop *invokeDynamic(u2 invokeDynamicIdx) const;
 
+        void safePoint() const;
+
     };
 
 }

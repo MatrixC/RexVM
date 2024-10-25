@@ -31,3 +31,9 @@ GC
         native函数中其实也应该对函数的返回做addCreateRef的记录 在runMethodManual中实现
 
 函数运行过后 一定要清理刚刚用过的stackMemory 否则残留的脏数据会影响后续的gc root
+
+当前SafePoint位置
+    1. 方法调用后
+    2. 循环回边前(goto 指令前)
+    3. 对象分配前(new, newarray 等指令前)
+    4. 异常处理处(athrow 后, catch 块前)

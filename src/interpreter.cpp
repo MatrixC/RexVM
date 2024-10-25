@@ -887,6 +887,7 @@ namespace RexVM {
         void goto_(Frame &frame) {
             const auto offset = frame.reader.readI2();
             frame.reader.relativeOffset(offset);
+            frame.mem.safePoint();
         }
 
         void jsr(Frame &frame) {
@@ -1066,6 +1067,7 @@ namespace RexVM {
                 instanceClass
             );
             frame.runMethodInner(*realInvokeMethod);
+            frame.mem.safePoint();
         }
 
         template<bool isStatic>
@@ -1080,6 +1082,7 @@ namespace RexVM {
             //     invokeMethod->klass.clinit(frame);
             // }
             frame.runMethodInner(*invokeMethod);
+            frame.mem.safePoint();
         }
 
         void invokevirtual(Frame &frame) {
@@ -1154,6 +1157,7 @@ namespace RexVM {
             ASSERT_IF_NULL_THROW_NPE(ex);
             const auto exOop = CAST_INSTANCE_OOP(ex);
             frame.throwException(exOop);
+            frame.mem.safePoint();
         }
 
         void checkcast(Frame &frame) {
@@ -1270,6 +1274,7 @@ namespace RexVM {
         void goto_w(Frame &frame) {
             const auto offset = frame.reader.readI4();
             frame.reader.relativeOffset(offset);
+            frame.mem.safePoint();
         }
         
     }

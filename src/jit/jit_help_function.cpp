@@ -1,5 +1,6 @@
 #include "jit_help_function.hpp"
 #include "../basic.hpp"
+#include "../vm.hpp"
 #include "../frame.hpp"
 #include "../class.hpp"
 #include "../class_member.hpp"
@@ -7,6 +8,7 @@
 #include "../constant_info.hpp"
 #include "../exception_helper.hpp"
 #include "../method_handle.hpp"
+#include "../garbage_collect.hpp"
 
 extern "C" {
 
@@ -107,7 +109,7 @@ extern "C" {
 
 
         if (invokeMethod->slotType == SlotTypeEnum::REF) {
-            //如果有返回值 很关键 否则gc root 扫描不到jit函数调用其他函数的返回值 会被直接回收
+            //如果有返回值 很关键 否则gcroot 扫描不到
             if (const auto returnValue = frame->operandStackContext.top().refVal; returnValue != nullptr) {
                 frame->addCreateRef(returnValue);
             }
@@ -126,6 +128,7 @@ extern "C" {
         //4-13: newArray
         const auto frame = static_cast<Frame *>(framePtr);
         auto &operandStack = frame->operandStackContext;
+        frame->mem.safePoint();
 
         switch (type) {
             case LLVM_COMPILER_NEW_DYNAMIC_INVOKE: {
@@ -206,6 +209,7 @@ extern "C" {
         }
 
         frame->throwException(CAST_INSTANCE_OOP(exOop));
+        frame->mem.safePoint();
     }
 
     int32_t llvm_compile_match_catch(void *oop, void **catchClassArray, const int32_t size) {
@@ -258,6 +262,12 @@ extern "C" {
                 const auto frame = static_cast<Frame *>(framePtr);
                 frame->cleanOperandStack();
                 frame->cleanThrow();
+                return 0;
+            }
+
+            case LLVM_COMPILER_MISC_SAFE_POINT: {
+                const auto frame = static_cast<Frame *>(framePtr);
+                frame->mem.safePoint();
                 return 0;
             }
 
