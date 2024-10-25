@@ -1,40 +1,41 @@
+# Translated by GPT-4o.
+
 # RexVM
+A Java Virtual Machine (JVM) implementation developed using C++.
 
-一个Java虚拟机(JVM)实现，使用C++开发。
+## Features Supported
+* Exception handling, including throw, catch, and fillInStackTrace.
+* Reflection, supporting Class, Field, and Method objects, along with reflective method execution.
+* Java Stream processing, including Lambda expressions and MethodHandle features with the invokeDynamic bytecode instruction.
+* Dynamic class creation, including Proxy dynamic proxy, ClassLoader#defineClass, Unsafe#defineClass, etc.
+* Annotation retrieval on classes, fields, and methods.
+* Multithreading support, including Thread#start, Thread#yield, Thread#sleep, and synchronization functions like Object#wait, Object#notify.
+* Partial IO functionalities, including FileInputStream, FileOutputStream.
+* Most Unsafe functions, including Direct Memory and CompareAndSwap related functions, supporting concurrent classes like Atomic, ConcurrentHashMap.
+* java.util.ServiceLoader.
+* Tracing garbage collection and finalize mechanism (Since v1.1).
+* Just In Time (JIT) compilation, based on LLVM backend, with JVM function-level compilation, supporting all interpreter instructions and exceptions, and mixed execution with the interpreter (Since v1.3).
 
-## 支持特性
-* 异常(Exception)，包括异常的throw，catch，fillInStackTrace等
-* 反射(Reflect)，包括类、字段、方法的Class、Field、Method对象获取以及反射执行函数等
-* 流处理(Java Stream)，包括Lambda表达式，MethodHandle特性以及invokeDynamic字节码指令
-* 动态创建Class，包括Proxy动态代理，ClassLoader#defineClass，Unsafe#defineClass等函数的支持
-* 注解(Annotation)，包括类，字段，方法上的各类Annotation获取
-* 多线程(Thread)，包括Thread#start，Thread#yield，Thread#sleep等线程函数以及Object#wait，Object#notify等同步函数
-* 部分IO功能(IO)，FileInputStream，FileOutputStream
-* 绝大部分Unsafe函数，包括Direct Memory、CompareAndSwap相关函数，支持Atomic、ConcurrentHashMap等concurrent类
-* java.util.ServiceLoader
-* Tracing垃圾回收(Tracing garbage collection)以及finalize机制(Since v1.1)
-* JIT(Just In Time)，基于LLVM后端，JVM函数粒度编译，支持所有解释器指令和异常，可以与解释器混合执行(Since v1.3)
+## Verified Operating Systems and Build Environments
+### Operating Systems and CPU Architectures
+* Mac OS (aarch64)
+* Ubuntu (amd64, aarch64)
+* Windows (amd64)
+### Build Environments
+* clang (17.0)
+* gcc (11.4)
+* msvc (v19.40)
 
-## 已验证的操作系统及编译环境
-### 操作系统及CPU架构
-* Mac OS(aarch64)
-* Ubuntu(amd64, aarch64)
-* Windows(amd64)
-### 编译环境
-* clang(17.0)
-* gcc(11.4)
-* msvc(v19.40)
+## Build
+Requires a C++ compiler supporting C++20 features.
 
-## 构建
-需要C++编译器支持C++20特性
-
-### 1. 克隆仓库
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/MatrixC/RexVM.git
 cd RexVM
 ```
 
-### 2. 安装编译器及构建工具xmake
+### 2. Install Compiler and Build Tool xmake
 #### MacOS
 ```bash
 brew install xmake
@@ -50,33 +51,33 @@ bash <(wget https://raw.githubusercontent.com/tboox/xmake/master/scripts/get.sh 
 Invoke-Expression (Invoke-Webrequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
 ```
 
-### 3. 构建配置
-#### 切换debug/release模式
+### 3. Build Configuration
+#### Switch Between Debug/Release Modes
 ```bash
-# Debug模式
+# Debug mode
 xmake f -m debug
 
-# Release模式
+# Release Mode
 xmake f -m release
 ```
 
-#### 开启JIT功能
-开启JIT功能需要安装LLVM并配置环境变量 LLVM_PATH 和 LLVM_VERSION 并打开JIT编译选项
-Windows环境暂不支持
+#### Enable JIT Feature
+To enable JIT, install LLVM and configure the LLVM_PATH and LLVM_VERSION environment variables, and enable the JIT compilation option. 
+JIT is not supported on Windows.
 ```bash
-# 配置环境变量
+# Configure environment variables
 export LLVM_PATH="/opt/homebrew/Cellar/llvm/18.1.6"
 export LLVM_VERSION="LLVM-18"
 
-# 开启llvm-jit编译选项
+# Enable llvm-jit compilation option
 xmake f --llvm-jit=y -m release
 xmake
 ```
 
-#### 切换优化级别
-修改xmake.lua中的set_optimize
+#### Change Optimization Level
+Modify set_optimize in xmake.lua.
 <br>
-参考xmake手册 [xmake manual](https://xmake.io/mirror/manual/project_target.html)
+Refer to the [xmake manual](https://xmake.io/mirror/manual/project_target.html)
 | Value | Description | gcc/clang | msvc |
 | ----- | ----------- | --------- | ---- |
 | none  | disable optimization | -O0 | -Od |
@@ -91,42 +92,42 @@ xmake
 set_optimize("fastest")
 ```
 
-### 4. 使用xmake构建
+### 4. Build with xmake
 ```bash
 xmake
 ```
 
-### 5. 或生成CMake工程文件，通过make或IDE构建
+### 5. Or Generate CMake Project File and Build with Make or an IDE
 ```bash
-# 生成cmake工程 (clion)
+# Generate cmake project (clion)
 xmake project -k cmake
 
-# 生成Visual Studio工程
+# Generate Visual Studio project
 xmake project -k vsxmake
 
-# 生成Xcode工程
+# Generate Xcode project
 xmake project -k xcode
 ```
 
-## 运行RexVM
+## Running RexVM
 
-RexVM运行依赖JRE中的rt.jar文件，所以需要安装JRE8或者JDK8环境，如openjdk8。
+RexVM requires the rt.jar file from the JRE, so you need to have JRE8 or JDK8, like openjdk8, installed.
 <br>
-安装完成后请配置环境变量JAVA_HOME，也可以配置环境变量CLASSPATH来指定class文件搜索路径。
+After installation, configure the JAVA_HOME environment variable. You can also set the CLASSPATH environment variable to specify the class file search path.
 <br>
 ```bash
-# 执行CLASSPATH环境变量下的Main.class
+# Run Main.class from the CLASSPATH environment variable
 cd RexVM
 xmake run rex Main
 ```
 
-可以将RexVM的编译结果目录配置进PATH环境变量，配置完成后直接用rex执行
+You can add the directory of RexVM's build results to the PATH environment variable. After configuration, use rex directly to execute.
 ```bash
-# 执行当前目录或者CLASSPATH环境变量下的Main.class
+# Run Main.class from the current directory or CLASSPATH
 rex Main
 ```
 
-## 演示
+## Demos
 ### LambdaExample
 ```java
 package rex.example;
@@ -328,12 +329,12 @@ public class AtomicExample {
 ```
 ![image](https://github.com/MatrixC/RexVM/blob/improve_mh/example/AtomicExample.gif)
 
-## 第三方依赖
-* [miniz](https://github.com/richgel999/miniz): zlib库，用于zip、jar包解压
-* [fmtlib](https://github.com/fmtlib/fmt): 格式化输出库，用于格式化打印，代替std::cout，printf等
-* [emhash](https://github.com/ktprime/emhash): 高性能hashmap实现
-* [LLVM](https://github.com/llvm/llvm-project): 编译器基础设施项目
+## Third-party Dependencies
+* [miniz](https://github.com/richgel999/miniz): zlib library for zip and jar extraction.
+* [fmtlib](https://github.com/fmtlib/fmt): Formatting library for formatted printing, replacing std::cout, printf, etc.
+* [emhash](https://github.com/ktprime/emhash): High-performance hashmap implementation.
+* [LLVM](https://github.com/llvm/llvm-project): Compiler infrastructure project.
 
-## 致谢
-* [wind_jvm](https://github.com/wind2412/wind_jvm): 感谢wind_jvm项目帮我了解了invokedynamic的原理以及很多native方法的实现
-* [xmake](https://github.com/xmake-io/xmake): 感谢xmake提供了强大且简单易用的构建工具
+## Acknowledgments
+* [wind_jvm](https://github.com/wind2412/wind_jvm): Thanks to wind_jvm for helping me understand the principles of invokedynamic and many native method implementations.
+* [xmake](https://github.com/xmake-io/xmake): Thanks to xmake for providing a powerful and easy-to-use build tool.
