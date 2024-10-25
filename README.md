@@ -1,6 +1,6 @@
 # RexVM
 
-一个基于解释器的Java虚拟机(JVM)，使用C++开发。
+一个Java虚拟机(JVM)实现，使用C++开发。
 
 ## 支持特性
 * 异常(Exception)，包括异常的throw，catch，fillInStackTrace等
@@ -13,6 +13,7 @@
 * 绝大部分Unsafe函数，包括Direct Memory、CompareAndSwap相关函数，支持Atomic、ConcurrentHashMap等concurrent类
 * java.util.ServiceLoader
 * Tracing垃圾回收(Tracing garbage collection)以及finalize机制(Since v1.1)
+* JIT(Just In Time)，基于LLVM后端，JVM函数粒度编译，支持所有解释器指令和异常，可以与解释器混合执行(Since v1.3)
 
 ## 已验证的操作系统及编译环境
 ### 操作系统及CPU架构
@@ -57,6 +58,19 @@ xmake f -m debug
 
 # release模式
 xmake f -m release
+
+```
+#### 开启JIT功能
+开启JIT功能需要安装LLVM并配置环境变量 LLVM_PATH 和 LLVM_VERSION 并打开JIT编译选项
+Windows环境暂不支持
+```bash
+# 配置环境变量
+export LLVM_PATH="/opt/homebrew/Cellar/llvm/18.1.6"
+export LLVM_VERSION="LLVM-18"
+
+# 开启llvm-jit编译选项
+xmake f --llvm-jit=y -m release
+xmake
 ```
 
 #### 切换优化级别
@@ -318,6 +332,7 @@ public class AtomicExample {
 * [miniz](https://github.com/richgel999/miniz): zlib库，用于zip、jar包解压
 * [fmtlib](https://github.com/fmtlib/fmt): 格式化输出库，用于格式化打印，代替std::cout，printf等
 * [emhash](https://github.com/ktprime/emhash): 高性能hashmap实现
+* [LLVM](https://github.com/llvm/llvm-project): 编译器基础设施项目
 
 ## 致谢
 * [wind_jvm](https://github.com/wind2412/wind_jvm): 感谢wind_jvm项目帮我了解了invokedynamic的原理以及很多native方法的实现
