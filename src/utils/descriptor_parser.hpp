@@ -1,9 +1,7 @@
 #ifndef DESCRIPTOR_PARSER_HPP
 #define DESCRIPTOR_PARSER_HPP
-#include "../config.hpp"
-#include "../basic_type.hpp"
+#include "../basic.hpp"
 #include "format.hpp"
-#include <memory>
 #include <vector>
 #include <tuple>
 

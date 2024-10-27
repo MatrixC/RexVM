@@ -2,15 +2,14 @@
 #define BINARY_HPP
 
 #include <bit>
-#include <type_traits>
 #include <fstream>
 #include <memory>
 #include "format.hpp"
-#include "../config.hpp"
+#include "../basic.hpp"
 
 namespace RexVM {
 
-    inline u2 swap16(u2 x) noexcept {
+    inline u2 swap16(const u2 x) noexcept {
         if constexpr (std::endian::native == std::endian::little) {
             return ((x & 0x00FF) << 8) |
                    ((x & 0xFF00) >> 8);

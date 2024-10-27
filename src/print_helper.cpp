@@ -5,7 +5,6 @@
 #include "oop.hpp"
 #include "frame.hpp"
 #include "basic_type.hpp"
-#include "basic_java_class.hpp"
 #include "string_pool.hpp"
 #include "class_file.hpp"
 #include "constant_info.hpp"
@@ -94,6 +93,9 @@ namespace RexVM {
                 "([Ljava/lang/Object;)Ljava/lang/String;";
         const auto toStringMethod = arraysClass->getMethod("toString", arrayClassName, true);
         auto [val, type] = frame.runMethodManual(*toStringMethod, { Slot(oop) });
+        if (frame.markThrow) {
+            return "";
+        }
         const auto ret = val.refVal == nullptr ? "null" : VMStringHelper::getJavaString(CAST_INSTANCE_OOP(val.refVal));
         return cformat("Array: {} {}", klass->toView(), ret);
     }

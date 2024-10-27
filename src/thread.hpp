@@ -2,17 +2,15 @@
 #define THREAD_HPP
 
 #include <vector>
-#include <memory>
 #include <thread>
 #include <queue>
-#include <mutex>
-#include "config.hpp"
+#include "basic.hpp"
 #include "oop.hpp"
 #include "memory.hpp"
 
 namespace RexVM {
 
-    class Oop;
+    struct Oop;
     struct VM;
     struct Frame;
     struct Method;
@@ -21,9 +19,9 @@ namespace RexVM {
 
     struct VMThreadMethod {
         explicit VMThreadMethod(Method *method, std::vector<Slot> params);
-        explicit VMThreadMethod(VMTheadNativeHandler nativeMethod);
+        explicit VMThreadMethod(VMThreadNativeHandler nativeMethod);
         Method *method{nullptr};
-        VMTheadNativeHandler nativeMethod;
+        VMThreadNativeHandler nativeMethod;
         std::vector<Slot> params;
     };
 
@@ -40,7 +38,6 @@ namespace RexVM {
         volatile bool stopForCollect{false};
         volatile bool gcSafe{true};
 
-        
 
 #ifdef DEBUG
         cstring threadName{};
@@ -59,15 +56,15 @@ namespace RexVM {
         static VMThread *createOriginVMThread(VM &vm);
 
         void addMethod(Method *method, const std::vector<Slot>& params);
-        void addMethod(VMTheadNativeHandler &method);
+        void addMethod(VMThreadNativeHandler &method);
         void start(Frame *currentFrame_, bool userThread);
         void join();
 
-        void setStatus(ThreadStatusEnum status);
+        void setStatus(ThreadStatusEnum status) const;
         [[nodiscard]] ThreadStatusEnum getStatus() const;
         [[nodiscard]] bool isDaemon() const;
         [[nodiscard]] bool isAlive() const;
-        void setDaemon(bool on);
+        void setDaemon(bool on) const;
         void getCollectRoots(std::vector<ref> &result) const;
         void getCollectRootsBak(std::vector<ref> &result) const;
 

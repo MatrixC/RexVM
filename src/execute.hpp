@@ -1,8 +1,7 @@
 #ifndef EXECUTE_HPP
 #define EXECUTE_HPP
-#include "config.hpp"
+#include "basic.hpp"
 #include <vector>
-#include <memory>
 
 #define EXCLUDE_EXECUTE_METHOD(mref, cname, mname, desc) \
     if (mref.getName() == mname && mref.getDescriptor() == desc && mref.klass.getClassName() == cname) { return; }

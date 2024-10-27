@@ -1,7 +1,7 @@
 #ifndef NATIVE_CORE_JAVA_LANG_FLOAT_HPP
 #define NATIVE_CORE_JAVA_LANG_FLOAT_HPP
 #include <cmath>
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

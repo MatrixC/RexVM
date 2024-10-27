@@ -10,11 +10,8 @@
 #include "oop.hpp"
 #include "mirror_oop.hpp"
 #include "class_loader.hpp"
-#include "string_pool.hpp"
-#include "memory.hpp"
-#include "method_handle.hpp"
 #include "thread.hpp"
-#include "key_slot_id.hpp"
+#include "method_handle.hpp"
 
 namespace RexVM {
 
@@ -493,14 +490,12 @@ namespace RexVM {
         void fdiv(Frame &frame) {
             const auto val2 = frame.popF4();   
             const auto val1 = frame.popF4();
-            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushF4(val1 / val2);
         }
 
         void ddiv(Frame &frame) {
             const auto val2 = frame.popF8();   
             const auto val1 = frame.popF8();
-            ASSERT_IF_ZERO_THROW_DIV_ZERO(val2);
             frame.pushF8(val1 / val2);
         }
 
@@ -892,6 +887,7 @@ namespace RexVM {
         void goto_(Frame &frame) {
             const auto offset = frame.reader.readI2();
             frame.reader.relativeOffset(offset);
+            frame.mem.safePoint();
         }
 
         void jsr(Frame &frame) {
@@ -903,9 +899,9 @@ namespace RexVM {
         }
 
         void tableswitch(Frame &frame) {
-            while (frame.nextPc() % 4 != 0) {
-                frame.reader.readU1();
-	        }
+            if (const auto mod = frame.nextPc() % 4; mod != 0) {
+                frame.reader.skip(4 - mod);
+            }
             const auto defaultOffset = frame.reader.readI4();
 	        const auto low = frame.reader.readI4();
 	        const auto high = frame.reader.readI4();
@@ -927,9 +923,9 @@ namespace RexVM {
         }
 
         void lookupswitch(Frame &frame) {
-            while (frame.nextPc() % 4 != 0) {
-                frame.reader.readU1();
-	        }
+            if (const auto mod = frame.nextPc() % 4; mod != 0) {
+                frame.reader.skip(4 - mod);
+            }
             const auto defaultOffset = frame.reader.readI4();
 	        const auto npairs = frame.reader.readI4();
             const auto count = npairs * 2;
@@ -986,6 +982,9 @@ namespace RexVM {
             // auto &fieldClass = fieldRef->klass;
             // fieldClass.clinit(frame);
             const auto fieldRef = frame.mem.getRefField(index, true);
+            if (frame.markThrow) {
+                return;
+            }
             auto &fieldClass = fieldRef->klass;
             const auto value = fieldClass.getFieldValue(fieldRef->slotId);
             const auto type = fieldRef->getFieldSlotType();
@@ -998,6 +997,9 @@ namespace RexVM {
             // auto &fieldClass = fieldRef->klass;
             // fieldClass.clinit(frame);
             const auto fieldRef = frame.mem.getRefField(index, true);
+            if (frame.markThrow) {
+                return;
+            }
             auto &fieldClass = fieldRef->klass;
             if (fieldRef->isWideType()) {
                 frame.pop();
@@ -1046,8 +1048,8 @@ namespace RexVM {
         }
 
         template<bool checkMethodHandle>
-        void invokeVirtualCommon(Frame &frame, u2 index) {
-            auto cache = frame.mem.resolveInvokeVirtualIndex(index, checkMethodHandle);
+        void invokeVirtualCommon(Frame &frame, const u2 index) {
+            const auto cache = frame.mem.resolveInvokeVirtualIndex(index, checkMethodHandle);
             if constexpr (checkMethodHandle) {
                 if (cache->mhMethod != nullptr) {
                     frame.runMethodInner(*cache->mhMethod, cache->mhMethodPopSize);
@@ -1058,19 +1060,29 @@ namespace RexVM {
             ASSERT_IF_NULL_THROW_NPE(instance);
             const auto instanceClass = CAST_INSTANCE_CLASS(instance->getClass());
 
-            const auto realInvokeMethod = frame.mem.linkVirtualMethod(index, cache, instanceClass);
+            const auto realInvokeMethod = frame.mem.linkVirtualMethod(
+                index,
+                cache->methodName,
+                cache->methodDescriptor,
+                instanceClass
+            );
             frame.runMethodInner(*realInvokeMethod);
+            frame.mem.safePoint();
         }
 
-        template<bool clinit, bool isStatic>
-        void invokeStaticCommon(Frame &frame, u2 index) {
+        template<bool isStatic>
+        void invokeStaticCommon(Frame &frame, const u2 index) {
             //const auto invokeMethod = frame.klass.getRefMethod(index, isStatic);
             const auto invokeMethod = frame.mem.getRefMethod(index, isStatic);
+            if (frame.markThrow) {
+                return;
+            }
             //already execute in frame.getRefMethod
             // if constexpr (clinit) {
             //     invokeMethod->klass.clinit(frame);
             // }
             frame.runMethodInner(*invokeMethod);
+            frame.mem.safePoint();
         }
 
         void invokevirtual(Frame &frame) {
@@ -1080,12 +1092,12 @@ namespace RexVM {
 
         void invokespecial(Frame &frame) {
             const auto index = frame.reader.readU2();
-            invokeStaticCommon<false, false>(frame, index);
+            invokeStaticCommon<false>(frame, index);
         }
 
         void invokestatic(Frame &frame) {
             const auto index = frame.reader.readU2();
-            invokeStaticCommon<true, true>(frame, index);
+            invokeStaticCommon<true>(frame, index);
         }
 
         void invokeinterface(Frame &frame) {
@@ -1098,13 +1110,20 @@ namespace RexVM {
             const auto index = frame.reader.readU2();
             frame.reader.readU2(); //ignore zero
 
-            invokeDynamic(frame, index);
+            const auto callSiteObj = frame.mem.invokeDynamic(index);
+            if (callSiteObj == nullptr) {
+                return;
+            }
+            frame.pushRef(callSiteObj);
         }
 
         void new_(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto instanceClass = CAST_INSTANCE_CLASS(frame.mem.getRefClass(index));
             instanceClass->clinit(frame);
+            if (frame.markThrow) {
+                return;
+            }
 
             frame.pushRef(frame.mem.newInstance(instanceClass));
         }
@@ -1121,7 +1140,8 @@ namespace RexVM {
             const auto length = frame.popI4();
 
             const auto elementClass = frame.mem.getRefClass(classIndex);
-            
+            //这里只是创建一块内存 不需要调用<clinit>
+
             const auto array = frame.mem.getObjectArrayClass(*elementClass);
             frame.pushRef(frame.mem.newObjArrayOop(array, length));
         }
@@ -1137,6 +1157,7 @@ namespace RexVM {
             ASSERT_IF_NULL_THROW_NPE(ex);
             const auto exOop = CAST_INSTANCE_OOP(ex);
             frame.throwException(exOop);
+            frame.mem.safePoint();
         }
 
         void checkcast(Frame &frame) {
@@ -1148,7 +1169,6 @@ namespace RexVM {
             const auto checkClass = frame.mem.getRefClass(index);
             if (!ref->isInstanceOf(checkClass)) {
                 throwClassCastException(frame, ref->getClass()->getClassName(), checkClass->getClassName());
-                return;
             }
         }
 
@@ -1222,43 +1242,14 @@ namespace RexVM {
             }
         }
 
-        ref multiArrayHelper(Frame &frame, std::unique_ptr<i4[]> &dimLength, i4 dimCount, cview name, i4 currentDim) {
-            const auto arrayLength = dimLength[currentDim];
-            const auto currentArrayClass = frame.mem.getArrayClass(name);
-            ArrayOop *arrayOop;
-            if (currentArrayClass->type == ClassTypeEnum::TYPE_ARRAY_CLASS) {
-                const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(currentArrayClass);
-                arrayOop = frame.mem.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
-            } else {
-                const auto objArrayClass = CAST_OBJ_ARRAY_CLASS(currentArrayClass);
-                arrayOop = frame.mem.newObjArrayOop(objArrayClass, arrayLength);
-            }
-
-            if (currentDim == dimCount - 1) {
-                return arrayOop;
-            }
-
-            auto objArrayOop = CAST_OBJ_ARRAY_OOP(arrayOop);
-            if (currentDim < dimCount - 1) {
-                const auto childName = name.substr(1);
-                for (auto i = 0; i < arrayLength; ++i) {
-                    objArrayOop->data[i] = multiArrayHelper(frame, dimLength, dimCount, childName, currentDim + 1);
-                }
-            }
-            return objArrayOop;
-        }
-
         void multianewarray(Frame &frame) {
             const auto index = frame.reader.readU2();
             const auto dimension = frame.reader.readU1();
-            const auto &constantPool = frame.constantPool;
-            const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
             auto dimLength = std::make_unique<i4[]>(dimension);
             for (i4 i = dimension - 1; i >= 0; --i) {
                 dimLength[i] = frame.popI4();
             }
-            
-            const auto multiArray = multiArrayHelper(frame, dimLength, dimension, className, 0);
+            const auto multiArray = frame.mem.newMultiArrayOop(index, dimLength.get(), dimension);
             frame.pushRef(multiArray);
         }
 
@@ -1283,6 +1274,7 @@ namespace RexVM {
         void goto_w(Frame &frame) {
             const auto offset = frame.reader.readI4();
             frame.reader.relativeOffset(offset);
+            frame.mem.safePoint();
         }
         
     }

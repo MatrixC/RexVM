@@ -1,6 +1,6 @@
 #ifndef NATIVE_SUN_MISC_HPP
 #define NATIVE_SUN_MISC_HPP
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"
@@ -80,6 +80,9 @@ namespace RexVM::Native::Sun::Misc {
         }
 
         frame.runMethodManual(*constructMethod, constructorParams);
+        if (frame.markThrow) {
+            return;
+        }
         frame.returnRef(instance);
     }
 
@@ -90,6 +93,9 @@ namespace RexVM::Native::Sun::Misc {
         const auto byteBufferClass = frame.mem.getInstanceClass("java/nio/ByteBuffer");
         const auto allocateDirectMethod = byteBufferClass->getMethod("allocateDirect" "(I)Ljava/nio/ByteBuffer;", true);
         const auto [byteBufferOopSlot, slotType] = frame.runMethodManual(*allocateDirectMethod, { Slot(8) });
+        if (frame.markThrow) {
+            return;
+        }
         frame.returnRef(byteBufferOopSlot.refVal);
     }
 

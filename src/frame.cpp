@@ -1,9 +1,7 @@
 #include "frame.hpp"
-#include <utility>
 #include "constant_info.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
-#include "class_loader.hpp"
 #include "oop.hpp"
 #include "thread.hpp"
 #include "vm.hpp"
@@ -11,6 +9,7 @@
 #include "print_helper.hpp"
 #include "string_pool.hpp"
 #include "frame_memory_handler.hpp"
+#include "utils/string_utils.hpp"
 
 namespace RexVM {
 
@@ -30,40 +29,50 @@ namespace RexVM {
         Frame *previousFrame, 
         size_t fixMethodParamSlotSize
     ) :
-            previous(previousFrame),
-            //非native函数直接取method.maxLocals native函数取method.paramSlotSize 如像MethodHandle#invoke一样的特殊函数取fixMethodParamSlotSize
-            methodParamSlotSize(
-                fixMethodParamSlotSize == 0 ?
-                    method.paramSlotSize :
-                    fixMethodParamSlotSize
-            ),
-            localVariableTableSize(
-                !method.isNative() ? 
-                    method.maxLocals : 
-                    std::max(method.paramSlotSize, fixMethodParamSlotSize)
-            ),
-            localVariableTable(
-                previous == nullptr ?
-                    thread.stackMemory.get() :
-                    previous->operandStackContext.getCurrentSlotPtr() + 1
-            ), //Previous last operand slot + 1
-            localVariableTableType(
-                previous == nullptr ?
-                    thread.stackMemoryType.get() :
-                    previous->operandStackContext.getCurrentSlotTypePtr() + 1
-            ), //Previous last operand slot + 1
-            operandStackContext(
-                localVariableTable + localVariableTableSize,
-                localVariableTableType + localVariableTableSize,
-                -1
-            ),
-            vm(thread.vm),
-            thread(thread),
-            method(method),
-            klass(method.klass),
-            mem(FrameMemoryHandler(*this)),
-            constantPool(klass.constantPool),
-            classLoader(klass.classLoader) {
+        previous(previousFrame),
+        //MethodHandle专用
+        //用来解决调用MethodHandle invoke时 需要获得真实ParamSlotSize的问题
+        methodParamSlotSize(
+            fixMethodParamSlotSize == 0 ?
+                method.paramSlotSize :
+                fixMethodParamSlotSize
+        ),
+        //1. 对于native函数来说 如果是普通native函数 直接取 method.paramSlotSize 保存参数
+        //2. 对于native函数 MethodHandle#invoke来说 其实类似于调用普通函数 所以需要取实际的 fixMethodParamSlotSize
+        //3. 对于非native函数则取 method.maxLocals 存放参数和局部变量
+        localVariableTableSize(
+            method.isNative()
+                ? std::max(method.paramSlotSize, fixMethodParamSlotSize) //native情况简化写法
+                : method.maxLocals
+        ),
+        //lvt起始地址 若是第一个函数 直接取 stackMemory.get()
+        //否则取上个栈帧的最后一个操作数栈元素的后一位
+        //若有参数传递 则在runMethodInner里已经对上个栈帧的操作数栈进行了pop 可以直接对齐本栈的参数地址
+        //JIT方式的方法调用也需要通过这种方式来传递参数
+        localVariableTable(
+            previous == nullptr ?
+                thread.stackMemory.get() :
+                previous->operandStackContext.getCurrentSlotPtr() + 1
+        ), //Previous last operand slot + 1
+        localVariableTableType(
+            previous == nullptr ?
+                thread.stackMemoryType.get() :
+                previous->operandStackContext.getCurrentSlotTypePtr() + 1
+        ), //Previous last operand slot + 1
+        //取lvt的后一位
+        operandStackContext(
+            localVariableTable + localVariableTableSize,
+            localVariableTableType + localVariableTableSize,
+            -1
+        ),
+        vm(thread.vm),
+        thread(thread),
+        method(method),
+        klass(method.klass),
+        mem(FrameMemoryHandler(*this)),
+        constantPool(klass.constantPool),
+        classLoader(klass.classLoader) {
+        thread.currentFrame = this;
         const auto nativeMethod = method.isNative();
         if (!nativeMethod) {
             auto codePtr = method.code.get();
@@ -75,7 +84,34 @@ namespace RexVM {
         }
     }
 
-    Frame::~Frame() = default;
+    Frame::~Frame() {
+        //清空此次函数所使用的栈内存 否则脏数据会影响gc root的获取
+
+        //清空lvt和操作数栈内存 操作数栈的元素数量根据maxSp来获取
+        //如果是native函数 因为不会改变maxSp 所以直接取最大值2(调用其他函数返回一个I8或者F8的情况)
+        const auto maxOperandStackSize =
+                method.nativeMethodHandler == nullptr ? operandStackContext.maxSp + 1 : 2;
+
+        i4 elementSize = CAST_I4(localVariableTableSize) + maxOperandStackSize;
+
+        auto cleanStartPtr = localVariableTable;
+        auto cleanStartTypePtr = localVariableTableType;
+        if (markReturn) {
+            // 函数返回的返回值 是通过向上一个栈做push实现的 上一个栈push后对应的位置正好是当前栈的开头
+            // 所以如果不加判断的清理 会把当前函数的返回值被清掉
+            const auto returnValueSlotCount = getSlotTypeStoreCount(returnType);
+            elementSize -= returnValueSlotCount;
+            cleanStartPtr += returnValueSlotCount;
+            cleanStartTypePtr += returnValueSlotCount;
+        }
+
+        if (elementSize > 0) {
+            std::fill_n(cleanStartPtr, elementSize, ZERO_SLOT);
+            std::fill_n(cleanStartTypePtr, elementSize, SlotTypeEnum::NONE);
+        }
+        
+        thread.currentFrame = previous;
+    }
 
     ClassLoader *Frame::getCurrentClassLoader() const {
         //TODO: This klass's class loader
@@ -105,18 +141,21 @@ namespace RexVM {
     std::tuple<Slot, SlotTypeEnum> Frame::runMethodManual(Method &runMethod, std::vector<Slot> params) {
         createFrameAndRunMethod(thread, runMethod, this, std::move(params));
         //Method可能有返回值,需要处理返回值的pop
-        const auto returnSlotType = runMethod.slotType;
-        if (returnSlotType == SlotTypeEnum::NONE) {
-            //void函数，无返回
-            return std::make_tuple(ZERO_SLOT, SlotTypeEnum::NONE);
-        } else {
-            if (returnSlotType == SlotTypeEnum::I8) {
-                return std::make_tuple(Slot(popI8()), returnSlotType);
-            } else if (returnSlotType == SlotTypeEnum::F8) {
-                return std::make_tuple(Slot(popF8()), returnSlotType);
-            } else {
+        switch (runMethod.slotType) {
+            case SlotTypeEnum::NONE:
+                //void函数，无返回
+                return std::make_tuple(ZERO_SLOT, runMethod.slotType);
+            case SlotTypeEnum::I8:
+                std::make_tuple(Slot(popI8()), runMethod.slotType);
+            case SlotTypeEnum::F8:
+                return std::make_tuple(Slot(popF8()), runMethod.slotType);
+            default: {
+                const auto returnValue = pop();
+                if (runMethod.slotType == SlotTypeEnum::REF && returnValue.refVal != nullptr) {
+                    addCreateRef(returnValue.refVal);
+                }
                 //除了I8和F8,其他类型只需要pop一个值
-                return std::make_tuple(pop(), returnSlotType);
+                return std::make_tuple(returnValue, runMethod.slotType);
             }
         }
     }
@@ -138,11 +177,11 @@ namespace RexVM {
     }
 
     u4 Frame::pc() const {
-        return nextPc() - 1;
+        return pcCode;
     }
 
     u4 Frame::nextPc() const {
-        return CAST_U4(reader.ptr - method.code.get());
+        return CAST_U4(reader.ptr - reader.begin);
     }
 
     void Frame::pushRef(ref ref) {
@@ -331,31 +370,14 @@ namespace RexVM {
         returnSlot(Slot(val ? CAST_I8(1) : CAST_I8(0)), SlotTypeEnum::I4);
     }
 
-    void Frame::throwException(InstanceOop * const val, u4 throwPc) {
-        markThrow = true;
-        //throwObject = std::make_unique<FrameThrowable>(val, method, throwPc);
-        throwObject = val;
-    }
-
     void Frame::throwException(InstanceOop * const val) {
-        throwException(val, pc());
-    }
-
-    // void Frame::passException(std::unique_ptr<FrameThrowable> lastException) {
-    //     markThrow = true;
-    //     throwObject = std::move(lastException);
-    //     throwObject->addPath(method, pc());
-    // }
-
-    void Frame::passException(InstanceOop *lastException) {
         markThrow = true;
-        throwObject = lastException;
+        // pushRef(val);
+        throwValue = val;
     }
 
     void Frame::cleanThrow() {
         markThrow = false;
-        //throwObject.reset();
-        throwObject = nullptr;
     }
 
     Slot Frame::getStackOffset(size_t offset) const {
@@ -383,7 +405,13 @@ namespace RexVM {
         }
     }
 
-    void Frame::printCallStack() {
+    void Frame::addCreateRef(ref oop) {
+        if (method.isNative() || !thread.gcSafe || method.compiledMethodHandler != nullptr) {
+            nativeCreateRefs.emplace_back(oop);
+        }
+    }
+
+    void Frame::printCallStack() const {
         for (auto f = this; f != nullptr; f = f->previous) {
             const auto nativeMethod = f->method.isNative();
             cprintln("  {}#{} {}", f->klass.toView(), f->method.toView(), nativeMethod ? "[Native]" : "");
@@ -434,6 +462,20 @@ namespace RexVM {
         if (markReturn && existReturnValue) {
             cprintln("Return {}", formatSlot(*this, returnValue, returnType));
         }
+    }
+
+    std::vector<cstring> Frame::getCallStack() const {
+        std::vector<cstring> stacks;
+        for (auto cur = this; cur != nullptr; cur = cur->previous) {
+            stacks.emplace_back(
+                cformat(
+                    "{}#{}:{}",
+                    cur->klass.toView(),
+                    cur->method.toView(),
+                    cur->method.getLineNumber(cur->pc())
+                ));
+        }
+        return stacks;
     }
 
     void Frame::printStr(ref oop) {

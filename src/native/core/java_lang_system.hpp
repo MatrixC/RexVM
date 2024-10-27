@@ -1,7 +1,7 @@
 #ifndef NATIVE_CORE_JAVA_LANG_SYSTEM_HPP
 #define NATIVE_CORE_JAVA_LANG_SYSTEM_HPP
 
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"
@@ -12,6 +12,7 @@
 #include "../../string_pool.hpp"
 #include "../../file_system.hpp"
 #include "../../utils/time.hpp"
+#include "../../os_platform.hpp"
 #include <thread>
 #include <chrono>
 #include <filesystem>
@@ -128,6 +129,9 @@ namespace RexVM::Native::Core {
         const auto rexPrintStreamClass = frame.mem.getInstanceClass("RexPrintStream");
         if (rexPrintStreamClass != nullptr) {
             rexPrintStreamClass->clinit(frame);
+            if (frame.markThrow) {
+                return;
+            }
             const auto getMethod = rexPrintStreamClass->getMethod("get" "(Ljava/io/PrintStream;)Ljava/io/PrintStream;", true);
             const auto [retVal, retType] = frame.runMethodManual(*getMethod, { Slot(defaultPrintStream) });
             frame.klass.setFieldValue("out" "Ljava/io/PrintStream;", retVal);

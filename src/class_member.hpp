@@ -1,7 +1,7 @@
 #ifndef CLASS_MEMBER_HPP
 #define CLASS_MEMBER_HPP
 
-#include "config.hpp"
+#include "basic.hpp"
 #include <memory>
 #include <vector>
 #include <algorithm>
@@ -102,19 +102,22 @@ namespace RexVM {
     struct Method : ClassMember {
         u2 maxLocals{};
         u4 codeLength{};
+        u4 invokeCounter{};
         std::unique_ptr<u1[]> code;
         std::vector<std::unique_ptr<ExceptionCatchItem>> exceptionCatches;
         std::vector<std::unique_ptr<LineNumberItem>> lineNumbers;
+        NativeMethodHandler nativeMethodHandler{};
+        CompiledMethodHandler compiledMethodHandler{};
 
         CompositeArray<u2> exceptionsIndex;
-
         std::unique_ptr<MethodAnnotationContainer> methodAnnotationContainer;
 
         std::vector<cstring> paramType;
         cstring returnType;
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
-        NativeMethodHandler nativeMethodHandler{};
+        bool canCompile{true};
+        bool markCompile{false};
 
         explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index = 0);
 

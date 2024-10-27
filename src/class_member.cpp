@@ -1,6 +1,5 @@
 #include "class_member.hpp"
 
-#include <utility>
 #include <optional>
 #include "constant_info.hpp"
 #include "attribute_info.hpp"
@@ -348,7 +347,7 @@ namespace RexVM {
 
         for (i4 i = CAST_I4(lineNumbers.size()) - 1; i >= 0; --i) {
             const auto &item = lineNumbers[i];
-            if (pc > item->start) {
+            if (pc >= item->start) {
                 return item->lineNumber;
             }
         }

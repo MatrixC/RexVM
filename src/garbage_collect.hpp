@@ -1,12 +1,9 @@
 #ifndef GARBAGE_COLLECT_HPP
 #define GARBAGE_COLLECT_HPP
-#include "config.hpp"
-#include <memory>
-#include <mutex>
+#include "basic.hpp"
 #include <vector>
 #include <thread>
 #include <atomic>
-#include <chrono>
 #include <deque>
 #include <condition_variable>
 #include <hash_table8.hpp>
@@ -21,15 +18,6 @@ namespace RexVM {
     struct ObjArrayOop;
     struct OopHolder;
     struct GarbageCollect;
-
-    //wait 100ms
-    constexpr size_t GC_STOP_WAIT_TIME_OUT = 100;
-
-    constexpr size_t GC_ROOT_START_SIZE = 8192;
-    //100MB
-    constexpr size_t GC_MEMORY_THRESHOLD = 100 * 1024 * 1024;
-    //Frequency 5s
-    constexpr size_t GC_SLEEP_TIME = 5000;
 
     struct FinalizeRunner {
 
@@ -59,7 +47,7 @@ namespace RexVM {
         i8 traceOopEndTime{};
         i8 endTime{};
 
-        explicit GarbageCollectContext(VM &vm);
+        explicit GarbageCollectContext(const VM &vm);
 
         size_t tempAllocatedOopCount{0};
         size_t tempAllocatedOopMemory{0};
@@ -69,8 +57,8 @@ namespace RexVM {
         void endGetRoots();
         void endTraceOop();
 
-        void collectFinish(VM &vm);
-        void printLog(VM &vm) const;
+        void collectFinish(const VM &vm);
+        void printLog(const VM &vm) const;
     };
 
     struct GarbageCollect {
@@ -86,15 +74,17 @@ namespace RexVM {
         std::mutex notifyCollectMtx;
         std::condition_variable notifyCollectCv;
         std::thread gcThread;
-        size_t collectMemoryThreshold{GC_MEMORY_THRESHOLD};
-        size_t collectStopWaitTimeout{GC_STOP_WAIT_TIME_OUT};
-        size_t collectSleepTime{GC_SLEEP_TIME};
+        size_t gcRootReserveSize;
+        size_t collectMemoryThreshold;
+        size_t collectStopWaitTimeout;
+        size_t collectSleepTime;
         size_t sumCollectedMemory{0};
         size_t collectStartCount{0};
         size_t collectSuccessCount{0};
 
+        bool enableGC;
         bool enableLog{true};
-        bool enableGC{false};
+        bool enableFinalize{false};
 
         Class *stringClass{nullptr};
 
@@ -106,7 +96,7 @@ namespace RexVM {
 
     private:
         
-        bool checkTerminationCollect();
+        [[nodiscard]] bool checkTerminationCollect() const;
         bool stopTheWorld();
         void startTheWorld();
         void run();
@@ -114,25 +104,36 @@ namespace RexVM {
 
         void getClassStaticRef(std::vector<ref> &gcRoots) const;
         void getThreadRef(std::vector<ref> &gcRoots) const;
-        std::vector<ref> getGarbageCollectRoots() const;
-        std::vector<OopHolder *> getHolders() const;
+        [[nodiscard]] std::vector<ref> getGarbageCollectRoots() const;
+        [[nodiscard]] std::vector<OopHolder *> getHolders() const;
 
         void process();
 
         void processTrace(GarbageCollectContext &context);
         void traceMarkOop(ref oop) const;
-        void traceMarkInstanceOopChild(InstanceOop *oop) const;
-        void traceMarkObjArrayOopChild(ObjArrayOop * oop) const;
+        void traceMarkInstanceOopChild(const InstanceOop *oop) const;
+        void traceMarkObjArrayOopChild(const ObjArrayOop * oop) const;
 
-        void processCollect(GarbageCollectContext &context);
-        void collectOopHolder(OopHolder &holder, GarbageCollectContext &context);
-        void deleteOop(ref oop);
-        
+        void processCollect(GarbageCollectContext &context) const;
+        void collectOopHolder(OopHolder &holder, GarbageCollectContext &context) const;
+
+        void deleteOop(ref oop) const;
+
+
+#ifdef DEBUG
+
+        void recordOopCreate(Frame &frame, ref oop);
+
+#endif
+
     };
 
 #ifdef DEBUG
     extern emhash8::HashMap<ref, cview> collectedOopDesc;
+    extern emhash8::HashMap<ref, cstring> collectedOopDesc2;
+    extern emhash8::HashMap<ref, cstring> collectedOopDesc3;
     cview getCollectedOopDesc(ref oop);
+    cstring getCollectedOopDesc2(ref oop);
 #endif
 
 

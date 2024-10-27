@@ -1,6 +1,6 @@
 #ifndef NATIVE_CORE_MISC_HPP
 #define NATIVE_CORE_MISC_HPP
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../string_pool.hpp"

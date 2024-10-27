@@ -1,6 +1,6 @@
 #ifndef MIRROR_BASE_HPP
 #define MIRROR_BASE_HPP
-#include "config.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
 

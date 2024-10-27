@@ -1,0 +1,94 @@
+一 RexVM的解释器异常设计
+
+抛出异常的过程
+通过frame.throwException 标记当前frame为异常状态 并在frame记录异常对象
+
+
+抛出异常(调用frame.throwException)的主要场景
+1. athrow 指令
+2. 某些指令的除零或者NPE
+3. native函数中的主动抛出
+4. 向previous传递异常
+5. 异常辅助函数
+
+
+处理异常的过程
+如果发现当前frame里有异常 按照pc查找有没有处理块
+    1. 如果有对应异常处理块 则跳到处理块执行
+        1.1 如果执行无异常
+            1.1.1 异常处理块正常结束: 退出处理块 清除异常标记
+            1.1.2 异常处理块异常结束: 调用throwException标记异常 然后退出 回到0
+    2. 如果没有对应异常处理块
+        2.1 如果有previous 则调用它的throwException抛出当前异常到如果有previous frame 退出当前frame
+        2.2 如果没有previous 说明调到了top函数 可能是main函数 也可以能是Thread run函数
+            这种情况下调用frame.throwToTopFrame 其中会调用printStackTrace来打印异常信息到标准流
+
+
+重点: 当一个frame中有异常状态时 它应该不顾一切地退回到解释器循环(退出当前指令)
+frame.runMethod方法会创建frame执行一个新函数 假如背调函数发生异常时 自己完成了处理 则当前frame不会被标记为异常
+当前栈被标记异常的原因只有可能是子栈处理不了 抛到当前栈来了 此时我们的正常行为就是
+    退出正常执行流程 转移到异常的处理函数 [找处理块 处理 清除异常状态]
+
+
+1. frame.runMethod为什么后接 if (frame.markThrow) { return; }
+    frame是当前栈 调用runMethod后创建新frame去运行函数
+    当 frame.markThrow 为true时 只有一种情况
+        被调的函数发生了异常 标记了frame异常状态 且被调函数没有能力处理该异常 所以将异常抛到了当前栈
+        此时当前栈应该退出正常执行链路 开始查询该异常有无对应处理块 有则进入该块 无则继续向上抛出
+        这里return的意思就是退出执行 一直到解释器层 等待handleThrowValue方法做处理
+
+2. clinit的异常
+<clinit>函数不是jvm字节码中直接调用的 是有一些指令如new getstatic等间接调用的
+<clinit>函数中的异常都会被ExceptionInInitializerError包装一下
+<clinit>函数的异常可以被上层捕获 在这些间接调用的指令上就可以捕获到ExceptionInInitializerError
+
+
+二 对于JIT异常处理的思考
+1. 因为异常处理块是用pop的方式来获得异常对象 而JIT里编译用的是编译态栈 所以需要在异常块前在编译态栈里push一个load异常oop
+2. 指令层面 需要在所有可能抛出异常的指令上 进行异常判断
+
+异常分类
+指令层面最基本的异常抛出 大致可以分为四类
+1. 一部分计算指令的除零异常
+2. 一部分指令可能引起的NPE
+3. checkcast指令的ClassCastException异常
+4. athrow的异常
+其他还有一类是invoke invokedynamic 以及指令中的类加载引起的异常
+这类异常都是间接通过调用函数中的指令 或者 调用native函数中直接抛出的
+
+其中类初始化函数<clinit>抛出的异常是ExceptionInInitializerError 为固定异常
+
+对于1, 2, 3, 以及<clinit>抛出的异常类型都是编译器可知 可特化处理 其他需要在运行时处理
+对于 throw new RuntimeException() 这种语句 因为是 new 后接一个athrow
+所以理论上也是可知抛出类型的 对这种情况可以做一些优化
+
+异常触发指令
+1. NPE异常
+    1.1 xaload xastore arraylength 数组存取以及长度指令
+    1.2 getfield putfield 字段存取指令
+    1.3 invokevirtual invokeinterface 对象方法调用指令
+    1.4 athrow 指令
+    1.5 monitor 指令
+2. DIV ZERO异常
+    1.1 idiv ldiv 指令
+    1.2 irem lrem frem drem 指令
+3. ClassCastException异常
+    3.1 checkcast 指令
+4. <clinit>导致的ExceptionInInitializerError异常
+    4.1 getstatic putfield 指令
+    4.2 new 指令
+    4.3 invokeStatic 指令
+5. 其他异常
+    5.1 invoke指令执行的函数异常
+    5.2 invokedynamic指令过程中的异常
+
+特别注意
+    当前编译的基本单位是函数CFG中的每一个Block 从字节码的角度来说 理论上每个Block 除了最后一条指令 不会再有跳转
+    useLVT优化的识别方式也是如果判断这条指令为Block最后一条指令 则做一次localMemory的写入
+    但是异常引来了一个不确定性 就是异常发生的指令也会跳转 当前发现一个bug就是异常跳转后 没有写local内存导致的
+    解决这个问题有两种方式
+        1. 按照异常再次细化block
+        2. 在异常的switch跳转处做特殊处理 写入内存
+    当前使用的是2方式来解决问题 但也因此引入了一个问题
+    在 helpFunction->createCallNew 的调用中 也可能会引发异常 但因为这个指令后一般会跟一个pushValue指令
+    此次也没有为异常划分block 所以不好处理 暂不处理new invokeDynamic等引起的异常

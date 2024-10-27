@@ -1,9 +1,6 @@
 #ifndef METHOD_HANDLE_HPP
 #define METHOD_HANDLE_HPP
-#include "config.hpp"
-#include <vector>
-#include <memory>
-#include "vm.hpp"
+#include "basic.hpp"
 #include "class.hpp"
 
 namespace RexVM {
@@ -29,14 +26,14 @@ namespace RexVM {
     constexpr i4 MN_REFERENCE_KIND_MASK = 0x0F000000 >> MN_REFERENCE_KIND_SHIFT;
     constexpr i4 MN_SEARCH_SUPERCLASSES = 0x00100000;
     constexpr i4 MN_SEARCH_INTERFACES   = 0x00200000;
-    inline const cview JAVA_LANG_INVOKE_METHOD_TYPE_NAME = "java/lang/invoke/MethodType";
-    inline const cview METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR = "([Ljava/lang/Object;)Ljava/lang/Object;";
+    inline constexpr cview JAVA_LANG_INVOKE_METHOD_TYPE_NAME = "java/lang/invoke/MethodType";
+    inline constexpr cview METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR = "([Ljava/lang/Object;)Ljava/lang/Object;";
 
     bool isMethodHandleInvoke(cview className, cview memberName);
 
     bool isStaticMethodHandleType(MethodHandleEnum kind);
 
-    void invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
+    InstanceOop *invokeDynamic(Frame &frame, u2 invokeDynamicIdx);
 
     cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, cview name);
 

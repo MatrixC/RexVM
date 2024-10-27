@@ -1,6 +1,6 @@
 #ifndef NATIVE_CORE_JAVA_LANG_THREAD_HPP
 #define NATIVE_CORE_JAVA_LANG_THREAD_HPP
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"
 #include "../../oop.hpp"

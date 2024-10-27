@@ -1,7 +1,6 @@
 #ifndef CLASS_ATTRIBUTE_CONTAINER_HPP
 #define CLASS_ATTRIBUTE_CONTAINER_HPP
-#include "config.hpp"
-#include <memory>
+#include "basic.hpp"
 #include "composite_string.hpp"
 #include "attribute_info.hpp"
 #include "basic_type.hpp"

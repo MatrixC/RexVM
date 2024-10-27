@@ -1,10 +1,10 @@
 #ifndef CLASS_UTIL_HPP
 #define CLASS_UTIL_HPP
-#include "../config.hpp"
+#include "../basic.hpp"
 
 namespace RexVM {
 
-    class Oop;
+    struct Oop;
     struct ClassLoader;
     struct ByteTypeArrayOop;
     struct Class;

@@ -3,13 +3,10 @@
 
 #include <memory>
 #include <mutex>
-#include <atomic>
 #include <condition_variable>
 #include <tuple>
-#include "config.hpp"
-#include "basic_type.hpp"
+#include "basic.hpp"
 #include "composite_ptr.hpp"
-#include "utils/spin_lock.hpp"
 
 namespace RexVM {
 
@@ -33,29 +30,25 @@ namespace RexVM {
     constexpr u2 MIRROR_MASK = 0x4000;     //0100000000000000
     constexpr u2 FINALIZED_MASK = 0x2000;  //0010000000000000
 
-    class Oop {
+    struct Oop {
+#ifdef DEBUG
+        cview className{};
+#endif
 
-    private:
         //classPtr, dataLength
         Composite<Class *, size_t> comClass{};
 
         //low [oopMonitor(48), traced(1) isMirror (1) finalized(1) ...(3) {hasHash(1) hash(9)}] high
         Composite<OopMonitor *, u2> comFlags{};
 
-#ifdef DEBUG
-        cview className{};
-#endif
-
         [[nodiscard]] OopMonitor *getMonitor() const;
 
-    protected:
         [[nodiscard]] u2 getFlags() const;
         void setFlags(u2 flags);
 
-    public:
         explicit Oop(Class *klass, size_t dataLength);
         ~Oop();
-        [[nodiscard]] bool isInstanceOf(Class *checkClass) const;
+        [[nodiscard]] bool isInstanceOf(const Class *checkClass) const;
 
         [[nodiscard]] Class *getClass() const;
         [[nodiscard]] size_t getDataLength() const;
@@ -65,7 +58,7 @@ namespace RexVM {
         void lock();
         void unlock();
 
-        void wait(VMThread &currentThread, size_t timeout);
+        void wait(const VMThread &currentThread, size_t timeout);
         void notify_one();
         void notify_all();
 

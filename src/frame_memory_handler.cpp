@@ -1,10 +1,9 @@
 #include "frame_memory_handler.hpp"
-#include "basic_type.hpp"
 #include "frame.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
 #include "oop.hpp"
-#include "thread.hpp"
+#include "mirror_oop.hpp"
 #include "memory.hpp"
 #include "vm.hpp"
 #include "string_pool.hpp"
@@ -13,6 +12,8 @@
 #include "method_handle.hpp"
 #include "composite_ptr.hpp"
 #include "utils/descriptor_parser.hpp"
+#include "method_handle.hpp"
+#include "garbage_collect.hpp"
 
 namespace RexVM {
 
@@ -21,107 +22,179 @@ namespace RexVM {
             executeClassMemberCache.reserve(100);
     }
 
-    InstanceOop *FrameMemoryHandler::newInstance(InstanceClass * klass) {
-        return oopManager.newInstance(&vmThread, klass);
+    InstanceOop *FrameMemoryHandler::newInstance(InstanceClass * klass) const {
+        const auto oop = oopManager.newInstance(&vmThread, klass);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    MirOop *FrameMemoryHandler::newMirror(InstanceClass * klass, voidPtr mirror, MirrorObjectTypeEnum type) {
-        return oopManager.newMirror(&vmThread, klass, mirror, type);
+    MirOop *FrameMemoryHandler::newMirror(InstanceClass * klass, const voidPtr mirror, const MirrorObjectTypeEnum type) const {
+        const auto oop = oopManager.newMirror(&vmThread, klass, mirror, type);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    ObjArrayOop *FrameMemoryHandler::newObjArrayOop(ObjArrayClass * klass, size_t length) {
-        return oopManager.newObjArrayOop(&vmThread, klass, length);
+    ObjArrayOop *FrameMemoryHandler::newObjArrayOop(ObjArrayClass * klass, const size_t length) const {
+        const auto oop = oopManager.newObjArrayOop(&vmThread, klass, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    ObjArrayOop *FrameMemoryHandler::newObjectObjArrayOop(size_t length) {
-        return oopManager.newObjectObjArrayOop(&vmThread, length);
+    ObjArrayOop *FrameMemoryHandler::newObjectObjArrayOop(const size_t length) const {
+        const auto oop = oopManager.newObjectObjArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    ObjArrayOop *FrameMemoryHandler::newClassObjArrayOop(size_t length) {
-        return oopManager.newClassObjArrayOop(&vmThread, length);
+    ObjArrayOop *FrameMemoryHandler::newClassObjArrayOop(const size_t length) const {
+        const auto oop = oopManager.newClassObjArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    ObjArrayOop *FrameMemoryHandler::newStringObjArrayOop(size_t length) {
-        return oopManager.newStringObjArrayOop(&vmThread, length);
+    ObjArrayOop *FrameMemoryHandler::newStringObjArrayOop(const size_t length) const {
+        const auto oop = oopManager.newStringObjArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    TypeArrayOop *FrameMemoryHandler::newTypeArrayOop(BasicType type, size_t length) {
-        return oopManager.newTypeArrayOop(&vmThread, type, length);
+    TypeArrayOop *FrameMemoryHandler::newTypeArrayOop(const BasicType type, const size_t length) const {
+        const auto oop = oopManager.newTypeArrayOop(&vmThread, type, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(size_t length) {
-        return oopManager.newByteArrayOop(&vmThread, length);
+    ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(const size_t length) const {
+        const auto oop = oopManager.newByteArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(size_t length, const u1 *initBuffer) {
-        return oopManager.newByteArrayOop(&vmThread, length, initBuffer);
+    ByteTypeArrayOop *FrameMemoryHandler::newByteArrayOop(const size_t length, const u1 *initBuffer) const {
+        const auto oop = oopManager.newByteArrayOop(&vmThread, length, initBuffer);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    CharTypeArrayOop *FrameMemoryHandler::newCharArrayOop(size_t length) {
-        return oopManager.newCharArrayOop(&vmThread, length);
+    CharTypeArrayOop *FrameMemoryHandler::newCharArrayOop(const size_t length) const {
+        const auto oop = oopManager.newCharArrayOop(&vmThread, length);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    InstanceOop *FrameMemoryHandler::newBooleanOop(i4 value) {
-        return oopManager.newBooleanOop(&vmThread, value);
+    ref FrameMemoryHandler::newMultiArrayOop(const u2 index, i4 *dimLength, const i2 dimCount) {
+        const auto &constantPool = frame.constantPool;
+        const auto className = getConstantStringFromPoolByIndexInfo(constantPool, index);
+        const auto oop = newMultiArrayOop(dimLength, dimCount, className, 0);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    InstanceOop *FrameMemoryHandler::newByteOop(i4 value) {
-        return oopManager.newByteOop(&vmThread, value);
+    ref FrameMemoryHandler::newMultiArrayOop(i4 *dimLength, const i2 dimCount, const cview name, const i4 currentDim) {
+        const auto arrayLength = dimLength[currentDim];
+        const auto currentArrayClass = frame.mem.getArrayClass(name);
+        ArrayOop *arrayOop;
+        if (currentArrayClass->type == ClassTypeEnum::TYPE_ARRAY_CLASS) {
+            const auto typeArrayClass = CAST_TYPE_ARRAY_CLASS(currentArrayClass);
+            arrayOop = frame.mem.newTypeArrayOop(typeArrayClass->elementType, arrayLength);
+        } else {
+            const auto objArrayClass = CAST_OBJ_ARRAY_CLASS(currentArrayClass);
+            arrayOop = frame.mem.newObjArrayOop(objArrayClass, arrayLength);
+        }
+
+        if (currentDim == dimCount - 1) {
+            return arrayOop;
+        }
+
+        const auto objArrayOop = CAST_OBJ_ARRAY_OOP(arrayOop);
+        if (currentDim < dimCount - 1) {
+            const auto childName = name.substr(1);
+            for (auto i = 0; i < arrayLength; ++i) {
+                objArrayOop->data[i] = newMultiArrayOop(dimLength, dimCount, childName, currentDim + 1);
+            }
+        }
+        return objArrayOop;
     }
 
-    InstanceOop *FrameMemoryHandler::newCharOop(i4 value) {
-        return oopManager.newCharOop(&vmThread, value);
+    InstanceOop *FrameMemoryHandler::newBooleanOop(const i4 value) const {
+        const auto oop = oopManager.newBooleanOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    InstanceOop *FrameMemoryHandler::newShortOop(i4 value) {
-        return oopManager.newShortOop(&vmThread, value);
+    InstanceOop *FrameMemoryHandler::newByteOop(const i4 value) const {
+        const auto oop = oopManager.newByteOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    InstanceOop *FrameMemoryHandler::newIntegerOop(i4 value) {
-        return oopManager.newIntegerOop(&vmThread, value);
+    InstanceOop *FrameMemoryHandler::newCharOop(const i4 value) const {
+        const auto oop = oopManager.newCharOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    InstanceOop *FrameMemoryHandler::newFloatOop(f4 value) {
-        return oopManager.newFloatOop(&vmThread, value);
+    InstanceOop *FrameMemoryHandler::newShortOop(const i4 value) const {
+        const auto oop = oopManager.newShortOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    InstanceOop *FrameMemoryHandler::newLongOop(i8 value) {
-        return oopManager.newLongOop(&vmThread, value);
+    InstanceOop *FrameMemoryHandler::newIntegerOop(const i4 value) const {
+        const auto oop = oopManager.newIntegerOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    InstanceOop *FrameMemoryHandler::newDoubleOop(f8 value) {
-        return oopManager.newDoubleOop(&vmThread, value);
+    InstanceOop *FrameMemoryHandler::newFloatOop(const f4 value) const {
+        const auto oop = oopManager.newFloatOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    InstanceOop *FrameMemoryHandler::getInternString(cview str) {
-        return stringPool.getInternString(&vmThread, str);
+    InstanceOop *FrameMemoryHandler::newLongOop(const i8 value) const {
+        const auto oop = oopManager.newLongOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
     }
 
-    Class *FrameMemoryHandler::getClass(cview name) {
+    InstanceOop *FrameMemoryHandler::newDoubleOop(const f8 value) const {
+        const auto oop = oopManager.newDoubleOop(&vmThread, value);
+        frame.addCreateRef(oop);
+        return oop;
+    }
+
+    InstanceOop *FrameMemoryHandler::getInternString(const cview str) const {
+        const auto oop = stringPool.getInternString(&vmThread, str);
+        frame.addCreateRef(oop);
+        return oop;
+    }
+
+    Class *FrameMemoryHandler::getClass(const cview name) const {
         return classLoader.getClass(name);
     }
 
-    InstanceClass *FrameMemoryHandler::getInstanceClass(cview name) {
+    InstanceClass *FrameMemoryHandler::getInstanceClass(const cview name) const {
         return classLoader.getInstanceClass(name);
     }
 
-    ArrayClass *FrameMemoryHandler::getArrayClass(cview name) {
+    ArrayClass *FrameMemoryHandler::getArrayClass(const cview name) const {
         return classLoader.getArrayClass(name);
     }
 
-    TypeArrayClass *FrameMemoryHandler::getTypeArrayClass(BasicType type) {
+    TypeArrayClass *FrameMemoryHandler::getTypeArrayClass(const BasicType type) const {
         return classLoader.getTypeArrayClass(type);
     }
     
-    ObjArrayClass *FrameMemoryHandler::getObjectArrayClass(const Class &klass) {
+    ObjArrayClass *FrameMemoryHandler::getObjectArrayClass(const Class &klass) const {
         return classLoader.getObjectArrayClass(klass);
     }
 
-    InstanceClass *FrameMemoryHandler::loadInstanceClass(u1 *ptr, size_t length, bool notAnonymous) {
+    InstanceClass *FrameMemoryHandler::loadInstanceClass(const u1 *ptr, const size_t length, const bool notAnonymous) const {
         return classLoader.loadInstanceClass(ptr, length, notAnonymous);
     }
 
-    InstanceClass *FrameMemoryHandler::getBasicJavaClass(BasicJavaClassEnum classEnum) const {
+    InstanceClass *FrameMemoryHandler::getBasicJavaClass(const BasicJavaClassEnum classEnum) const {
         return classLoader.getBasicJavaClass(classEnum);
     }
 
@@ -130,23 +203,29 @@ namespace RexVM {
         if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
             return CAST_FIELD(*member);
         }
-        auto &klass = frame.klass;
+        const auto &klass = frame.klass;
         const auto fieldRef = klass.getRefField(index, isStatic);
         if (isStatic) {
             fieldRef->klass.clinit(frame);
+            if (frame.markThrow) {
+                return nullptr;
+            }
         }
         executeClassMemberCache.emplace_unique(index, fieldRef);
         return fieldRef;
     }
 
-    Method *FrameMemoryHandler::getRefMethod(u2 index, bool isStatic) {
+    Method *FrameMemoryHandler::getRefMethod(u2 index, const bool isStatic) {
         if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
             return CAST_METHOD(*member);
         }
-        auto &klass = frame.klass;
+        const auto &klass = frame.klass;
         const auto methodRef = klass.getRefMethod(index, isStatic);
         if (isStatic) {
             methodRef->klass.clinit(frame);
+            if (frame.markThrow) {
+                return nullptr;
+            }
         }
         executeClassMemberCache.emplace_unique(index, methodRef);
         return methodRef;
@@ -163,52 +242,50 @@ namespace RexVM {
         return refClass;
     }
 
-    ExecuteVirutalMethodCache *FrameMemoryHandler::resolveInvokeVirtualIndex(u2 index, bool checkMethodHandle) {
-        ExecuteVirutalMethodCache *cachePtr = nullptr;
+    ExecuteVirtualMethodCache *FrameMemoryHandler::resolveInvokeVirtualIndex(u2 index, const bool checkMethodHandle) {
         if (const auto member = executeClassMemberCache.try_get(CAST_U8(index)); member != nullptr) {
-            return static_cast<ExecuteVirutalMethodCache *>(*member);
-        } else {
-            auto cache = std::make_unique<ExecuteVirutalMethodCache>();
-            cachePtr = cache.get();
-            cacheVector.emplace_back(std::move(cache));
-            executeClassMemberCache.emplace_unique(index, cachePtr);
+            return static_cast<ExecuteVirtualMethodCache *>(*member);
         }
+        auto cache = std::make_unique<ExecuteVirtualMethodCache>();
+        auto cachePtr = cache.get();
+        cacheVector.emplace_back(std::move(cache));
+        executeClassMemberCache.emplace_unique(index, cachePtr);
 
-        auto &klass = frame.klass;
+        const auto &klass = frame.klass;
         const auto &constantPool = klass.constantPool;
         auto [className, methodName, methodDescriptor] = getConstantStringFromPoolByClassNameType(constantPool, index);
         cachePtr->methodName = methodName;
         cachePtr->methodDescriptor = methodDescriptor;
-        
-        if (checkMethodHandle) {
-            const auto mhInvoke = isMethodHandleInvoke(className, methodName);
-            if (mhInvoke) {
-                const auto invokeMethod = 
+
+        if (checkMethodHandle && isMethodHandleInvoke(className, methodName)) {
+            const auto invokeMethod =
                     getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_INVOKE_METHOD_HANDLE)
-                        ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
-                cachePtr->mhMethod = invokeMethod;
-                //1第一个参数为MethodHandle Object
-                cachePtr->mhMethodPopSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
-                //此次调用为MethodHandle调用 直接返回
-                return cachePtr;
-            }
+                    ->getMethod(methodName, METHOD_HANDLE_INVOKE_ORIGIN_DESCRIPTOR, false);
+            cachePtr->mhMethod = invokeMethod;
+            cachePtr->mhMethodPopSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
+            return cachePtr;
         }
 
         cachePtr->paramSlotSize = getMethodParamSlotSizeFromDescriptor(methodDescriptor, false);
         return cachePtr;
      }
 
-     Method *FrameMemoryHandler::linkVirtualMethod(u2 index, ExecuteVirutalMethodCache *cache, InstanceClass *instanceClass) {
-        Composite<InstanceClass *, u2> keyComposite(instanceClass, index);
+    Method *FrameMemoryHandler::linkVirtualMethod(
+        const u2 index,
+        const cview methodName,
+        const cview methodDescriptor,
+        InstanceClass *instanceClass
+    ) {
+        const Composite keyComposite(instanceClass, index);
         u8 key = keyComposite.composite;
         if (const auto member = executeClassMemberCache.try_get(key); member != nullptr) {
             return CAST_METHOD(*member);
         }
 
         if (instanceClass->isArray()) {
-            //Only clone and getClass method can be call
+            //Only clone, getClass, toString method can be call
             const auto objectClass = frame.mem.getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_OBJECT);
-            const auto realInvokeMethod = objectClass->getMethod(cache->methodName, cache->methodDescriptor, false);
+            const auto realInvokeMethod = objectClass->getMethod(methodName,methodDescriptor, false);
             if (realInvokeMethod == nullptr) {
                 panic("array invoke error");
             }
@@ -216,7 +293,7 @@ namespace RexVM {
             return realInvokeMethod;
         } else {
             for (auto k = instanceClass; k != nullptr; k = k->getSuperClass()) {
-                const auto realInvokeMethod = k->getMethod(cache->methodName, cache->methodDescriptor, false);
+                const auto realInvokeMethod = k->getMethod(methodName, methodDescriptor, false);
                 if (realInvokeMethod != nullptr && !realInvokeMethod->isAbstract()) {
                     executeClassMemberCache.emplace_unique(key, realInvokeMethod);
                     return realInvokeMethod;
@@ -226,6 +303,16 @@ namespace RexVM {
         panic("method not found");
         return nullptr;
      }
+
+    InstanceOop *FrameMemoryHandler::invokeDynamic(const u2 invokeDynamicIdx) const {
+        const auto oop = RexVM::invokeDynamic(frame, invokeDynamicIdx);
+        frame.addCreateRef(oop);
+        return oop;
+    }
+
+    void FrameMemoryHandler::safePoint() const {
+        frame.vm.garbageCollector->checkStopForCollect(frame.thread);
+    }
 
 
 }

@@ -1,5 +1,4 @@
 #include "garbage_collect.hpp"
-#include <algorithm>
 #include "vm.hpp"
 #include "thread.hpp"
 #include "frame.hpp"
@@ -17,7 +16,7 @@
 
 namespace RexVM {
 
-    GarbageCollectContext::GarbageCollectContext(VM &vm) : startTime(getCurrentTimeMillis()) {
+    GarbageCollectContext::GarbageCollectContext(const VM &vm) : startTime(getCurrentTimeMillis()) {
         const auto &oopManager = vm.oopManager;
         tempAllocatedOopCount = oopManager->allocatedOopCount;
         tempAllocatedOopMemory = oopManager->allocatedOopMemory;
@@ -31,17 +30,17 @@ namespace RexVM {
         traceOopEndTime = getCurrentTimeMillis();
     }
 
-    void GarbageCollectContext::collectFinish(VM &vm) {
+    void GarbageCollectContext::collectFinish(const VM &vm) {
         endTime = getCurrentTimeMillis();
         const auto &oopManager = vm.oopManager;
         oopManager->allocatedOopCount -= collectedOopCount;
         oopManager->allocatedOopMemory -= collectedOopMemory;
     }
 
-    void GarbageCollectContext::printLog(VM &vm) const {
+    void GarbageCollectContext::printLog(const VM &vm) const {
         const auto &oopManager = vm.oopManager;
         const auto timeCost = endTime - startTime;
-        cprintln("gc [{} cost:{}ms], crt:{}[{}KB], col:{}[{}KB], rem:{}[{}KB]",
+        cprintln("gc [{} {}ms], crt:{}[{:.2f}KB], col:{}[{:.2f}KB], rem:{}[{:.2f}KB]",
                  millisecondsToReadableTime(startTime), timeCost,
                  tempAllocatedOopCount, CAST_F4(tempAllocatedOopMemory) / 1024,
                  collectedOopCount.load(), CAST_F4(collectedOopMemory) / 1024,
@@ -49,7 +48,16 @@ namespace RexVM {
         );
     }
 
-    GarbageCollect::GarbageCollect(VM &vm) : vm(vm), finalizeRunner(vm, *this) {
+    GarbageCollect::GarbageCollect(VM &vm)
+        : vm(vm),
+          finalizeRunner(vm, *this),
+          gcRootReserveSize(vm.params.gcGCRootReserveSize),
+          collectMemoryThreshold(vm.params.gcCollectMemoryThreshold),
+          collectStopWaitTimeout(vm.params.gcCollectStopWaitTimeout),
+          collectSleepTime(vm.params.gcCollectSleepTime),
+          enableGC(vm.params.gcEnable),
+          enableLog(vm.params.gcEnableLog),
+          enableFinalize(vm.params.gcEnableFinalize) {
     }
 
     void GarbageCollect::notify() {
@@ -71,15 +79,6 @@ namespace RexVM {
         gcThread = std::thread([this]() {
             setThreadName("GC Thread");
             while (!this->vm.exit) {
-                // {
-                //     std::unique_lock<std::mutex> guard(notifyCollectMtx);
-                //     notifyCollectCv.wait(guard, [this] { return notifyCollect; });
-                // }
-                // if (!this->vm.exit) {
-                //     this->run();
-                // }
-                // notifyCollect = false;
-                //TODO GC的启动机制暂时使用定时方式 待优化
                 std::this_thread::sleep_for(std::chrono::milliseconds(collectSleepTime));
                 if (vm.oopManager->allocatedOopMemory > collectMemoryThreshold) {
                     this->run();
@@ -99,21 +98,21 @@ namespace RexVM {
             return;
         }
 
-        std::unique_lock<std::mutex> lock(checkStopMtx);
+        std::unique_lock lock(checkStopMtx);
         thread.stopForCollect = true;
         checkStopCv.wait(lock, [this] { return !checkStop; });
         thread.stopForCollect = false;
     }
 
-    bool GarbageCollect::checkTerminationCollect() {
+    bool GarbageCollect::checkTerminationCollect() const {
         if (vm.exit) {
             //VM退出
             return false;
         }
 
         //如果有线程栈中有native函数 停止gc
-        const auto threads = vm.threadManager->getThreads();
-        for (const auto &thread: threads) {
+        for (const auto threads = vm.threadManager->getThreads();
+            const auto &thread: threads) {
             if (!thread->isGCSafe()) {
                 //线程内有GC不安全的代码区块ni
                 return false;
@@ -128,7 +127,7 @@ namespace RexVM {
         finalizeRunner.cv.notify_all();
         const auto stopTime = getCurrentTimeMillis();
         while (!vm.threadManager->checkAllThreadStopForCollect() && !vm.exit) {
-            if ((getCurrentTimeMillis() - stopTime) > collectStopWaitTimeout) {
+            if ((getCurrentTimeMillis() - stopTime) > CAST_I8(collectStopWaitTimeout)) {
                 //stop wait timeout
                 //GC Thread跟UserThread可能出现互相死锁的情况 假设
                 // 1. GC Thread发起StopTheWorld
@@ -172,12 +171,8 @@ namespace RexVM {
         startTheWorld();
     }
 
-    void GarbageCollect::deleteOop(ref oop) {
+    void GarbageCollect::deleteOop(ref oop) const {
         const auto klass = oop->getClass();
-
-#ifdef DEBUG
-        collectedOopDesc.emplace(oop, klass->getClassName());
-#endif
 
         if (klass->type == ClassTypeEnum::OBJ_ARRAY_CLASS) {
             delete CAST_OBJ_ARRAY_OOP(oop);
@@ -232,15 +227,15 @@ namespace RexVM {
         panic("error");
     }
 
-    void GarbageCollect::processCollect(GarbageCollectContext &context) {
-        const auto holders = getHolders();
-        for (const auto &holder : holders) {
+    void GarbageCollect::processCollect(GarbageCollectContext &context) const {
+        for (const auto holders = getHolders();
+            const auto &holder : holders) {
             collectOopHolder(*holder, context);
         }
         context.collectFinish(vm);
     }
 
-    void GarbageCollect::collectOopHolder(OopHolder &holder, GarbageCollectContext &context) {
+    void GarbageCollect::collectOopHolder(OopHolder &holder, GarbageCollectContext &context) const {
         const auto &oops = holder.oops;
         std::vector<ref> survives;
         survives.reserve(oops.size() / 2);
@@ -305,7 +300,7 @@ namespace RexVM {
 
     std::vector<ref> GarbageCollect::getGarbageCollectRoots() const {
         std::vector<ref> gcRoots;
-        gcRoots.reserve(GC_ROOT_START_SIZE);
+        gcRoots.reserve(vm.params.gcGCRootReserveSize);
         getClassStaticRef(gcRoots);
         getThreadRef(gcRoots);
         return gcRoots;
@@ -322,7 +317,7 @@ namespace RexVM {
 
     void GarbageCollect::processTrace(GarbageCollectContext &context) {
         //trace 有以下几个阶段
-        //1. 先traceMark所有gcroot
+        //1. 先traceMark所有gcRoot
         //2. 有两类oop有可能幸存
         //  2.1 重写了finalize方法的 需要先执行finalize 所以不能回收 并且要将它traceMark 避免影响finalize的运行 
         //      但因为finalize只会执行一次 所以如果没有在finalize讲this和其他对象建立关系 则下次gc会回收
@@ -339,10 +334,12 @@ namespace RexVM {
         const auto oopHolders = getHolders();
         for (const auto &holder : oopHolders) {
             for (const auto &oop : holder->oops) {
-                if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
-                    traceMarkOop(oop);
-                    finalizeRunner.add(CAST_INSTANCE_OOP(oop));
-                    continue;
+                if (enableFinalize) {
+                    if (!oop->isFinalized() && oop->getType() == OopTypeEnum::INSTANCE_OOP) [[unlikely]] {
+                        traceMarkOop(oop);
+                        finalizeRunner.add(CAST_INSTANCE_OOP(oop));
+                        continue;
+                    }
                 }
 
                 if (oop->getClass()->getSpecialClassType() == SpecialClassEnum::THREAD_CLASS) {
@@ -354,7 +351,7 @@ namespace RexVM {
         context.endTraceOop();
     }
 
-    void GarbageCollect::traceMarkOop(ref oop) const {
+    void GarbageCollect::traceMarkOop(const ref oop) const {
         if (oop == nullptr || oop->isTraced()) {
             return;
         }
@@ -374,7 +371,7 @@ namespace RexVM {
         }
     }
 
-    void GarbageCollect::traceMarkInstanceOopChild(InstanceOop *oop) const {
+    void GarbageCollect::traceMarkInstanceOopChild(const InstanceOop *oop) const {
         const auto klass = oop->getInstanceClass();
 
         //要包含它父类的字段
@@ -391,9 +388,8 @@ namespace RexVM {
         }
     }
 
-    void GarbageCollect::traceMarkObjArrayOopChild(ObjArrayOop *oop) const {
-        const auto arrayLength = oop->getDataLength();
-        if (arrayLength > 0) {
+    void GarbageCollect::traceMarkObjArrayOopChild(const ObjArrayOop *oop) const {
+        if (const auto arrayLength = oop->getDataLength(); arrayLength > 0) {
             FOR_FROM_ZERO(arrayLength) {
                 const auto element = oop->data[i];
                 if (element != nullptr) {
@@ -462,7 +458,7 @@ namespace RexVM {
 
     void FinalizeRunner::add(InstanceOop *oop) {
         {
-            std::lock_guard<std::mutex> lock(dequeMtx);
+            std::lock_guard lock(dequeMtx);
             oopDeque.emplace_back(oop);
         }
         cv.notify_all();
@@ -482,7 +478,7 @@ namespace RexVM {
     bool FinalizeRunner::runOneOop() {
         InstanceOop *oop = nullptr;
         {
-            std::unique_lock<std::mutex> lock(dequeMtx);
+            std::unique_lock lock(dequeMtx);
             if (oopDeque.empty()) {
                 return false;
             }
@@ -503,7 +499,7 @@ namespace RexVM {
             collector.checkStopForCollect(*finalizeThread);
             
             if (!runOne) {
-                std::unique_lock<std::mutex> lock(dequeMtx);
+                std::unique_lock lock(dequeMtx);
                 cv.wait(lock, [this] { 
                     return !oopDeque.empty() 
                             || collector.checkStop
@@ -517,23 +513,26 @@ namespace RexVM {
         if (!collector.enableGC) {
             return;
         }
+        if (!collector.enableFinalize) {
+            return;
+        }
 
         const auto &vm = collector.vm;
         const auto threadClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD);
         finalizeThread = CAST_VM_THREAD_OOP(vm.oopManager->newInstance(mainThread, threadClass));
-        std::function<void()> func = std::bind(&FinalizeRunner::runnerMethod, this);
+        std::function func = [this] { runnerMethod(); };
         finalizeThread->addMethod(func);
 
         const auto threadConstructor = threadClass->getMethod("<init>" "(Ljava/lang/String;)V", false);
         const auto setDaemonMethod = threadClass->getMethod("setDaemon" "(Z)V", false);
         const auto threadNameOop = vm.stringPool->getInternString(mainThread, "Finalize Thread");
 
-        const std::vector<Slot> constructorParams = { 
+        const std::vector constructorParams = {
             Slot(finalizeThread), 
             Slot(threadNameOop) 
         };
 
-        const std::vector<Slot> setDaemonParams = { 
+        const std::vector setDaemonParams = {
             Slot(finalizeThread), 
             Slot(CAST_I4(1))
         };
@@ -544,16 +543,5 @@ namespace RexVM {
 
     }
 
-
-#ifdef DEBUG
-    emhash8::HashMap<ref, cview> collectedOopDesc;
-    cview getCollectedOopDesc(ref oop) {
-        const auto iter = collectedOopDesc.find(oop);
-        if (iter != collectedOopDesc.end()) {
-            return iter->second;
-        }
-        return "not found";
-    }
-#endif
 
 }

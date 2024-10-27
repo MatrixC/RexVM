@@ -1,7 +1,6 @@
 #ifndef TIME_HPP
 #define TIME_HPP
-#include "../config.hpp"
-#include <chrono>
+#include "../basic.hpp"
 
 namespace RexVM {
 

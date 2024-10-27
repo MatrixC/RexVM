@@ -1,6 +1,5 @@
 #include "thread.hpp"
 
-#include <utility>
 #include "vm.hpp"
 #include "frame.hpp"
 #include "class.hpp"
@@ -10,15 +9,13 @@
 #include "class_loader.hpp"
 #include "key_slot_id.hpp"
 #include "exception_helper.hpp"
-#include "os_platform.hpp"
-#include "utils/string_utils.hpp"
 
 namespace RexVM {
 
     VMThreadMethod::VMThreadMethod(Method *method, std::vector<Slot> params) : method(method), params(std::move(params)) {
     }
 
-    VMThreadMethod::VMThreadMethod(VMTheadNativeHandler nativeMethod) : nativeMethod(std::move(nativeMethod)) {}
+    VMThreadMethod::VMThreadMethod(VMThreadNativeHandler nativeMethod) : nativeMethod(std::move(nativeMethod)) {}
 
     //Normal
     VMThread::VMThread(VM &vm, InstanceClass * const klass) :
@@ -46,7 +43,7 @@ namespace RexVM {
     }
 
     VMThread *VMThread::createOriginVMThread(VM &vm) {
-        auto vmThread = new VMThread(vm);
+        const auto vmThread = new VMThread(vm);
         const auto &stringPool = vm.stringPool;
 
         const auto threadGroupClass = vm.bootstrapClassLoader->getBasicJavaClass(BasicJavaClassEnum::JAVA_LANG_THREAD_GROUP);
@@ -79,7 +76,7 @@ namespace RexVM {
 
     void VMThread::run() {
         const auto threadName = getName();
-        setThreadName(threadName.c_str());
+        setThreadName(threadName);
 
         setStatus(ThreadStatusEnum::RUNNABLE);
         for (const auto &item: runMethods) {
@@ -102,9 +99,10 @@ namespace RexVM {
         notify_all();
     }
 
-    void VMThread::start(Frame *currentFrame_, bool userThread) {
+    void VMThread::start(Frame *currentFrame_, const bool userThread) {
         if (getStatus() != ThreadStatusEnum::NEW) {
             throwIllegalThreadStateException(*currentFrame_);
+            return;
         }
 
         vm.threadManager->addThread(this, userThread);
@@ -122,11 +120,11 @@ namespace RexVM {
         runMethods.emplace_back(std::make_unique<VMThreadMethod>(method, params));
     }
 
-    void VMThread::addMethod(VMTheadNativeHandler &method) {
+    void VMThread::addMethod(VMThreadNativeHandler &method) {
         runMethods.emplace_back(std::make_unique<VMThreadMethod>(method));
     }
 
-    void VMThread::setStatus(ThreadStatusEnum status) {
+    void VMThread::setStatus(ThreadStatusEnum status) const {
         setFieldValue(threadClassThreadStatusFieldSlotId, Slot(CAST_I4(status)));
     }
 
@@ -143,7 +141,7 @@ namespace RexVM {
         return status != ThreadStatusEnum::NEW && status != ThreadStatusEnum::TERMINATED;
     }
 
-    void VMThread::setDaemon(bool on) {
+    void VMThread::setDaemon(const bool on) const {
         setFieldValue("daemon" "Z", on ? Slot(CAST_I4(1)) : ZERO_SLOT);
     }
 
@@ -169,12 +167,19 @@ namespace RexVM {
                 result.emplace_back(slot.refVal);
             }
         }
+
+        for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
+            if (!cur->nativeCreateRefs.empty()) {
+                result.insert(result.end(), cur->nativeCreateRefs.begin(), cur->nativeCreateRefs.end());
+            }
+        }
     }
 
     void VMThread::getCollectRootsBak(std::vector<ref> &result) const {
         for (auto cur = currentFrame; cur != nullptr; cur = cur->previous) {
             cur->getLocalObjects(result);
             cur->operandStackContext.getStackObjects(result);
+            result.insert(result.end(), cur->nativeCreateRefs.begin(), cur->nativeCreateRefs.end());
         }
     }
 
@@ -192,12 +197,12 @@ namespace RexVM {
 
     void ThreadManager::addThread(VMThread *thread, bool userThread) {
         if (userThread) {
-            std::lock_guard<std::mutex> lock(joinListMtx);
+            std::lock_guard lock(joinListMtx);
             joinThreads.emplace(thread);
         }
 
         {
-            std::lock_guard<std::mutex> lock(threadsMtx);
+            std::lock_guard lock(threadsMtx);
             threads.emplace_back(thread);
         }
     }
@@ -206,7 +211,7 @@ namespace RexVM {
         while (true) {
             VMThread *vmThread;
             {
-                std::lock_guard<std::mutex> lock(joinListMtx);
+                std::lock_guard lock(joinListMtx);
                 if (joinThreads.empty()) {
                     break;
                 }
@@ -218,9 +223,11 @@ namespace RexVM {
     }
 
     bool ThreadManager::checkAllThreadStopForCollect() {
-        std::lock_guard<std::mutex> lock(threadsMtx);
+        std::lock_guard lock(threadsMtx);
+
         for (const auto &item : threads) {
             if (item->getStatus() != ThreadStatusEnum::TERMINATED && !item->stopForCollect) {
+                //不是TERMINATED状态的才需要判断
                 return false;
             }
         }
@@ -228,8 +235,8 @@ namespace RexVM {
     }
 
     std::vector<VMThread *> ThreadManager::getThreads() {
-        std::lock_guard<std::mutex> lock(threadsMtx);
-        std::vector<VMThread *> copyThreads(threads);
+        std::lock_guard lock(threadsMtx);
+        std::vector copyThreads(threads);
         return copyThreads;
     }
 
@@ -240,8 +247,6 @@ namespace RexVM {
     ThreadSafeGuard::~ThreadSafeGuard() {
         thread.setGCSafe(true);
     }
-
-
 
 
 }

@@ -1,20 +1,17 @@
-#ifndef CONFIG_HPP
-#define CONFIG_HPP
+#ifndef BASIC_HPP
+#define BASIC_HPP
 
 #include <cstdint>
 #include <cstddef>
 #include <string>
 #include <string_view>
-#include <vector>
-#include <tuple>
-#include <bit>
 #include <functional>
 #include "basic_macro.hpp"
 #include "os_platform.hpp"
 
 namespace RexVM {
 
-    class Oop;
+    struct Oop;
     struct CompositeString;
 
     using u1 = std::uint8_t;
@@ -27,7 +24,7 @@ namespace RexVM {
     using i8 = std::int64_t;
     using f4 = float;
     using f8 = double;
-    using voidPtr = void *;
+    using voidPtr = void * const;
     using ref = Oop *;
     using size_t = std::size_t;
     //using cchar = char8_t;
@@ -40,8 +37,8 @@ namespace RexVM {
     using ustring = std::u16string;
 
     union Slot {
-        i4 i4Val{0};
-        i8 i8Val;
+        i4 i4Val;
+        i8 i8Val{0};
         f4 f4Val;
         f8 f8Val;
         ref refVal;
@@ -49,19 +46,19 @@ namespace RexVM {
         Slot() {
         }
 
-        explicit Slot(i4 val) : i4Val(val) {
+        explicit Slot(const i4 val) : i4Val(val) {
         }
 
-        explicit Slot(i8 val) : i8Val(val) {
+        explicit Slot(const i8 val) : i8Val(val) {
         }
 
-        explicit Slot(f4 val) : f4Val(val) {
+        explicit Slot(const f4 val) : f4Val(val) {
         }
 
-        explicit Slot(f8 val) : f8Val(val) {
+        explicit Slot(const f8 val) : f8Val(val) {
         }
 
-        explicit Slot(ref val) : refVal(val) {
+        explicit Slot(const ref val) : refVal(val) {
         }
     };
 
@@ -74,13 +71,25 @@ namespace RexVM {
         REF,
     };
 
-    const Slot ZERO_SLOT = Slot(CAST_I8(0));
+    const auto ZERO_SLOT = Slot(CAST_I8(0));
 
-    inline bool isWideSlotType(SlotTypeEnum slotType) {
+    inline bool isWideSlotType(const SlotTypeEnum slotType) {
         return slotType == SlotTypeEnum::I8 || slotType == SlotTypeEnum::F8;
     }
 
-    inline SlotTypeEnum getSlotTypeByDescriptorFirstChar(cchar first) {
+    inline u2 getSlotTypeStoreCount(const SlotTypeEnum slotType) {
+        switch (slotType) {
+            case SlotTypeEnum::NONE:
+                return 0;
+            case SlotTypeEnum::I8:
+            case SlotTypeEnum::F8:
+                return 2;
+            default:
+                return 1;
+        }
+    }
+
+    inline SlotTypeEnum getSlotTypeByDescriptorFirstChar(const cchar first) {
         switch (first) {
             case 'L':
             case '[':
@@ -108,30 +117,15 @@ namespace RexVM {
     struct Frame;
     struct VMThread;
     using MethodHandler = void (*)(Frame &frame);
+    using CompiledMethodHandler = void (*)(void *frame, void *lvt, void *lvtType, void *throwValuePtr);
     using NativeMethodHandler = MethodHandler;
-//    using VMTheadNativeHandler = void (*)(VMThread *thread);
-    using VMTheadNativeHandler = std::function<void()>;
+    using VMThreadNativeHandler = std::function<void()>;
 
     constexpr size_t STRING_POOL_SIZE = 512;
-
-    struct CViewHash {
-        size_t operator()(cview cv) const noexcept {
-            return std::hash<cview>{}(cv);
-        }
-    };
-
-    struct CViewEqual {
-        bool operator()(cview lhs, cview rhs) const noexcept {
-            return lhs == rhs;
-        }
-    };
 
 }
 
 #include "enums.hpp"
 #include "utils/format.hpp"
-//#include "composite_string.hpp"
-
-
 
 #endif

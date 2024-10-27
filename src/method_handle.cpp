@@ -7,24 +7,17 @@
 #include "mirror_oop.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
-#include "class_loader.hpp"
 #include "frame.hpp"
 #include "thread.hpp"
 #include "utils/descriptor_parser.hpp"
 #include "utils/class_utils.hpp"
+#include "utils/string_utils.hpp"
 
 namespace RexVM {
-
-    bool isMethodHandleInvoke(cview className, cview memberName) {
-        return (className == "java/lang/invoke/MethodHandle" && 
-            (memberName == "invoke"
-                || memberName == "invokeBasic"
-                || memberName == "invokeExact"
-                || memberName == "invokeWithArauments"
-                || memberName == "linkToSpecial"
-                || memberName == "linkToStatic"
-                || memberName == "linkToVirtual"
-                || memberName == "linkToInterface"));
+    bool isMethodHandleInvoke(const cview className, const cview memberName) {
+        return className == "java/lang/invoke/MethodHandle" &&
+               (startWith(memberName, "invoke")
+                   || startWith(memberName, "linkTo"));
     }
 
     bool isStaticMethodHandleType(MethodHandleEnum kind) {
@@ -34,7 +27,7 @@ namespace RexVM {
     }
 
     //代替MethodType.fromMethodDescriptorString
-    InstanceOop *createMethodType(Frame &frame, cview methodDescriptor) {
+    InstanceOop *createMethodType(Frame &frame, const cview methodDescriptor) {
         const auto [paramType, returnTypeType] = parseMethodDescriptor(methodDescriptor);
         const auto returnTypeOop = frame.mem.getClass(returnTypeType)->getMirror(&frame);
         const auto classArrayOop = frame.mem.newClassObjArrayOop(paramType.size());
@@ -59,7 +52,7 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(methodTypeSlot.refVal);
     }
 
-    InstanceOop *createMethodType(Frame &frame, ConstantMethodTypeInfo *methodTypeInfo) {
+    InstanceOop *createMethodType(Frame &frame, const ConstantMethodTypeInfo *methodTypeInfo) {
         const auto &constantPool = frame.klass.constantPool;
         const auto methodDescriptor = getConstantStringFromPool(constantPool, methodTypeInfo->descriptorIndex);
         return createMethodType(frame, methodDescriptor);
@@ -92,6 +85,9 @@ namespace RexVM {
             default:
                 type = Slot(createMethodType(frame, methodHandleMemberDescriptor));
                 break;
+        }
+        if (frame.markThrow) {
+            return nullptr;
         }
 
         const auto methodHandleClass = frame.mem.getInstanceClass(methodHandleClassName);
@@ -180,7 +176,7 @@ namespace RexVM {
             }
             argResults.emplace_back(argResult);
         }
-        
+
         const auto argObjArrayOop = frame.mem.newObjectObjArrayOop(arraySize);
         //这个oop分配必须放在这里 之前是放在for循环上面的 因为for循环中有函数调用 就被gc掉了
         FOR_FROM_ZERO(arraySize) {
@@ -193,7 +189,11 @@ namespace RexVM {
         linkCallSiteParams.emplace_back(callerClass->getMirror(&frame));
         linkCallSiteParams.emplace_back(methodHandle);
         linkCallSiteParams.emplace_back(frame.mem.getInternString(invokeName));
-        linkCallSiteParams.emplace_back(createMethodType(frame, invokeDescriptor));
+        const auto mt = createMethodType(frame, invokeDescriptor);
+        if (frame.markThrow) {
+            return nullptr;
+        }
+        linkCallSiteParams.emplace_back(mt);
         linkCallSiteParams.emplace_back(argObjArrayOop);
         linkCallSiteParams.emplace_back(appendixResultArrayOop);
         frame.runMethodManual(*linkCallSiteImplMethod, linkCallSiteParams);
@@ -234,7 +234,7 @@ namespace RexVM {
         }
 
         invokeParam.emplace_back(Slot(finalMethodHandleOop), SlotTypeEnum::REF);
-        std::reverse(invokeParam.begin(), invokeParam.end());
+        std::ranges::reverse(invokeParam);
 
         for (const auto &[val, type] : invokeParam) {
             frame.push(val, type);
@@ -247,7 +247,7 @@ namespace RexVM {
         return CAST_INSTANCE_OOP(frame.pop().refVal);
     }
 
-    void invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {   
+    InstanceOop *invokeDynamic(Frame &frame, u2 invokeDynamicIdx) {
         ThreadSafeGuard threadGuard(frame.thread);
 
         const auto &methodClass = frame.klass;
@@ -261,15 +261,16 @@ namespace RexVM {
 
         const auto bootstrapMethodHandle = createMethodHandle(frame, methodHandleInfo, callerClass);
         if (frame.markThrow) {
-            return;
+            return nullptr;
         }
 
         const auto callSiteObj = createCallSite(frame, bootstrapMethodHandle, invokeName, invokeDescriptor, callerClass, bootstrapMethodAttr->bootstrapArguments);
         if (frame.markThrow) {
-            return;
+            return nullptr;
         }
 
-        frame.pushRef(callSiteObj);
+        return callSiteObj;
+        //frame.pushRef(callSiteObj);
     }
 
     cstring methodHandleGetDescriptor(Class *clazz, InstanceOop *type, cview name) {

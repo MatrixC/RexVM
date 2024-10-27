@@ -1,12 +1,11 @@
 #ifndef CONSTANT_INFO_HPP
 #define CONSTANT_INFO_HPP
 
-#include <bit>
 #include <hash_table8.hpp>
 #include <vector>
 #include <tuple>
 #include "basic_macro.hpp"
-#include "config.hpp"
+#include "basic.hpp"
 #include "composite_string.hpp"
 #include "utils/binary.hpp"
 

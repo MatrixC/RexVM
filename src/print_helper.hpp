@@ -1,7 +1,7 @@
 #ifndef PRINT_HELPER_HPP
 #define PRINT_HELPER_HPP
 
-#include "config.hpp"
+#include "basic.hpp"
 #include <vector>
 #include <tuple>
 
@@ -10,7 +10,7 @@ namespace RexVM {
     struct ClassFile;
     struct Class;
     struct ObjArrayOop;
-    class Oop;
+    struct Oop;
     struct InstanceOop;
     struct Frame;
 

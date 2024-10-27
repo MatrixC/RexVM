@@ -1,6 +1,6 @@
 #ifndef REX_FILE_SYSTEM_HPP
 #define REX_FILE_SYSTEM_HPP
-#include "config.hpp"
+#include "basic.hpp"
 
 
 namespace RexVM {

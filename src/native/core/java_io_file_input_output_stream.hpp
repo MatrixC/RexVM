@@ -9,7 +9,7 @@
 #else
 #include <unistd.h>
 #endif
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

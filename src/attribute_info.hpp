@@ -2,9 +2,8 @@
 #define ATTRIBUTE_INFO_HPP
 
 #include <vector>
-#include <memory>
 #include <hash_table8.hpp>
-#include "config.hpp"
+#include "basic.hpp"
 #include "utils/binary.hpp"
 #include "utils/format.hpp"
 #include "exception.hpp"

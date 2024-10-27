@@ -1,8 +1,6 @@
 #include "execute.hpp"
-#include "config.hpp"
+#include "basic.hpp"
 #include "utils/format.hpp"
-#include "utils/class_utils.hpp"
-#include "utils/string_utils.hpp"
 #include "vm.hpp"
 #include "class.hpp"
 #include "class_member.hpp"
@@ -13,7 +11,7 @@
 #include "thread.hpp"
 #include "basic_java_class.hpp"
 #include "string_pool.hpp"
-#include "garbage_collect.hpp"
+#include "jit_manager.hpp"
 
 namespace RexVM {
 
@@ -28,8 +26,9 @@ namespace RexVM {
 
     //return mark current frame return(throw to previous frame)
     bool handleThrowValue(Frame &frame) {
-        //const auto throwInstance = frame.throwObject->throwValue;
-        const auto throwInstance = frame.throwObject;
+        // const auto throwInstance = CAST_INSTANCE_OOP(frame.popRef());
+        frame.mem.safePoint();
+        const auto throwInstance = frame.throwValue;
         const auto throwInstanceClass = CAST_INSTANCE_CLASS(throwInstance->getClass());
         auto &method = frame.method;
         const auto handler =
@@ -41,11 +40,11 @@ namespace RexVM {
         if (handler) {
             //clean [operand] stack and push the catched exception to stack(must)
             frame.cleanOperandStack();
-            frame.pushRef(throwInstance);
+            frame.cleanThrow();
 
+            frame.pushRef(throwInstance);
             const auto gotoOffset = *handler;
             frame.reader.gotoOffset(gotoOffset);
-            frame.cleanThrow();
         } else {
             const auto previousFrame = frame.previous;
             if (previousFrame == nullptr) {
@@ -53,16 +52,26 @@ namespace RexVM {
                 throwToTopFrame(frame, throwInstance);
                 frame.cleanThrow();
                 return true;
-            } else {
-                previousFrame->passException(frame.throwObject);
-                return true;
             }
+            previousFrame->throwException(throwInstance);
+            return true;
         }
 
         return false;
     }
 
-    void checkAndPassReturnValue(Frame &frame) {
+    void handleThrowValueJIT(Frame &frame) {
+        const auto throwInstance = frame.throwValue;
+        const auto previousFrame = frame.previous;
+        if (previousFrame == nullptr) {
+            throwToTopFrame(frame, throwInstance);
+            frame.cleanThrow();
+            return;
+        }
+        previousFrame->throwException(throwInstance);
+    }
+
+    void checkAndPassReturnValue(const Frame &frame) {
         if (!frame.existReturnValue) {
             return;
         } 
@@ -70,6 +79,7 @@ namespace RexVM {
         const auto previous = frame.previous;
         if (previous == nullptr) {
             panic("checkAndPassReturnValue error: previous is nullptr");
+            return;
         }
         const auto returnValue = frame.returnValue;
         switch (frame.returnType) {
@@ -102,14 +112,32 @@ namespace RexVM {
     void executeFrame(Frame &frame, [[maybe_unused]] cview methodName) {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
+        method.invokeCounter++;
 
+        frame.vm.jitManager->checkCompile(method);
+
+        // printExecuteLog = true;
         PRINT_EXECUTE_LOG(printExecuteLog, frame)
 
-        frame.vm.garbageCollector->checkStopForCollect(frame.thread);
-
         if (notNativeMethod) [[likely]] {
+            if (method.compiledMethodHandler != nullptr) {
+                method.compiledMethodHandler(&frame, frame.localVariableTable, frame.localVariableTableType, &frame.throwValue);
+                if (frame.markThrow) {
+                    //JIT函数的异常 可以catch的在函数里已经完成 抛出的都是无法catch的
+                    handleThrowValueJIT(frame);
+                    return;
+                }
+                if (frame.markReturn) {
+                    checkAndPassReturnValue(frame);
+                    return;
+                }
+                frame.reader.resetCurrentOffset();
+                return;
+            }
+
             const auto &byteReader = frame.reader;
             while (!byteReader.eof()) {
+                frame.pcCode = CAST_U4(byteReader.ptr - byteReader.begin);
                 frame.currentByteCode = frame.reader.readU1();
                 #ifdef DEBUG
                 ATTR_UNUSED const auto pc = frame.pc();
@@ -119,6 +147,7 @@ namespace RexVM {
                 #endif
 
                 OpCodeHandlers[frame.currentByteCode](frame);
+
                 if (frame.markThrow && handleThrowValue(frame)) {
                     return;
                 }
@@ -149,14 +178,8 @@ namespace RexVM {
         }
     }
 
-    //备份/恢复线程的currentFrame 以及 对于处理synchronized标记的方法
+    //处理synchronized标记的方法
     inline void monitorExecuteFrame(Frame &frame) {
-        auto &thread = frame.thread;
-        //backup frame ptr
-        const auto backupFrame = thread.currentFrame;
-        thread.currentFrame = &frame;
-
-        
         const auto &method = frame.method;
         EXCLUDE_EXECUTE_METHODS(method)
         auto lock = false;
@@ -168,14 +191,17 @@ namespace RexVM {
             monitorHandler->lock();
             lock = true;
         }
+
+#ifdef DEBUG
         executeFrame(frame, cformat("{}#{}", method.klass.toView(), method.toView()));
+#else
+        executeFrame(frame, "");
+#endif
+
         if (lock) {
             monitorHandler->unlock();
         }
         //monitor execute end
-
-        //recovery currentFrame
-        thread.currentFrame = backupFrame;
     }
 
     void createFrameAndRunMethod(VMThread &thread, Method &method, Frame *previous, std::vector<Slot> params) {
@@ -185,8 +211,8 @@ namespace RexVM {
         }
 
         if (!params.empty()) {
-            std::copy(method.paramSlotType.cbegin(), method.paramSlotType.cend(), nextFrame.localVariableTableType);
-            std::copy(params.cbegin(), params.cend(), nextFrame.localVariableTable);
+            std::ranges::copy(std::as_const(method.paramSlotType), nextFrame.localVariableTableType);
+            std::ranges::copy(std::as_const(params), nextFrame.localVariableTable);
         }
 
         monitorExecuteFrame(nextFrame);

@@ -1,6 +1,6 @@
 #ifndef NATIVE_CORE_JAVA_UTIL_TIME_ZONE_HPP
 #define NATIVE_CORE_JAVA_UTIL_TIME_ZONE_HPP
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"

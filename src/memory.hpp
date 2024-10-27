@@ -1,6 +1,6 @@
 #ifndef MEMORY_HPP
 #define MEMORY_HPP
-#include "config.hpp"
+#include "basic.hpp"
 #include <unordered_set>
 #include <map>
 #include <vector>

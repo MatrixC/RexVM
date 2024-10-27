@@ -1,24 +1,29 @@
 #include "byte_reader.hpp"
+#include "binary.hpp"
 
 namespace RexVM {
 
     ByteReader::ByteReader() : ptr(nullptr) {
     }
 
-
-    void ByteReader::init(u1 *in, size_t length_) {
+    void ByteReader::init(u1 *in, const size_t length_) {
         begin = in;
         ptr = in;
         length = length_;
+        codeEnd = begin + length;
     }
 
     bool ByteReader::eof() const {
-        const auto codeEnd = begin + length;
         return ptr >= codeEnd;
     }
 
     u1 ByteReader::peek() const {
         return *ptr;
+    }
+
+    void ByteReader::skip(u2 n) {
+        ptr += n;
+        cycleOffset += n;
     }
 
     u1 ByteReader::readU1() {
@@ -61,15 +66,14 @@ namespace RexVM {
     }
 
     void ByteReader::relativeOffset(i4 offset) {
-        ptr += (offset - cycleOffset);
+        const auto opCodeOffset = offset - cycleOffset;
+        ptr += opCodeOffset;
+
+        //or begin + (currentPc + offset)
     }
 
     void ByteReader::gotoOffset(i4 offset) {
         ptr = begin + offset;
-    }
-
-    u4 ByteReader::pc() const {
-        return CAST_U4(ptr - begin);
     }
 
 }

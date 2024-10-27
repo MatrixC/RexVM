@@ -1,6 +1,6 @@
 #ifndef EXCEPTION_HELPER_HPP
 #define EXCEPTION_HELPER_HPP
-#include "config.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
 

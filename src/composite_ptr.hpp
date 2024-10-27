@@ -1,6 +1,7 @@
 #ifndef COMPOSITE_PTR_HPP
 #define COMPOSITE_PTR_HPP
-#include <type_traits>
+#include <cstring>
+#include <bit>
 #include "exception.hpp"
 
 #define COMPOSITE_COMPRESS
@@ -29,8 +30,7 @@ namespace RexVM {
         T val{};
 #endif
 
-        explicit Composite() {
-        }
+        explicit Composite() = default;
 
         explicit Composite(P ptr, T data) {
             reset(ptr, data);

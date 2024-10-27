@@ -1,7 +1,7 @@
 #ifndef CLASS_HPP
 #define CLASS_HPP
 
-#include "config.hpp"
+#include "basic.hpp"
 #include "basic_type.hpp"
 #include <vector>
 #include <memory>
@@ -16,7 +16,7 @@ namespace RexVM {
     struct ClassFile;
     struct ClassLoader;
     struct ConstantInfo;
-    class Oop;
+    struct Oop;
     struct InstanceOop;
     struct MirrorOop;
     struct InstanceClass;
@@ -42,7 +42,8 @@ namespace RexVM {
         const u2 accessFlags{};
         
         ClassLoader &classLoader;
-        std::atomic<ClassInitStatusEnum> initStatus{ClassInitStatusEnum::LOADED};
+        //std::atomic<ClassInitStatusEnum> initStatus{ClassInitStatusEnum::LOADED};
+        volatile ClassInitStatusEnum initStatus{ClassInitStatusEnum::LOADED};
 
         //flags: low[accessFlags(16), type(2), anonymous(1), special(3), dimension, basicType(elementType) ]high
 
@@ -97,6 +98,7 @@ namespace RexVM {
         std::vector<std::unique_ptr<ConstantInfo>> constantPool;
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<std::unique_ptr<Method>> methods;
+        SpinLock initLock;
 
         cview sourceFile{};
         MirrorBase constantPoolMirrorBase{};

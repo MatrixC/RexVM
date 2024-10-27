@@ -3,8 +3,7 @@
 #include <memory>
 #include <vector>
 #include <tuple>
-#include "config.hpp"
-#include "basic_type.hpp"
+#include "basic.hpp"
 #include "utils/stack.hpp"
 #include "utils/byte_reader.hpp"
 #include "frame_memory_handler.hpp"
@@ -18,7 +17,7 @@ namespace RexVM {
     struct InstanceClass;
     struct ObjArrayClass;
     struct Method;
-    class Oop;
+    struct Oop;
     struct InstanceOop;
     struct FrameMemoryHandler;
     
@@ -38,6 +37,7 @@ namespace RexVM {
         Slot *localVariableTable;
         SlotTypeEnum *localVariableTableType;
         StackContext operandStackContext;
+        i4 pcCode{-1};
         u1 currentByteCode{};
         u2 level{};
 
@@ -51,14 +51,15 @@ namespace RexVM {
         std::vector<std::unique_ptr<ConstantInfo>> &constantPool;
         ClassLoader &classLoader;
 
+        std::vector<ref> nativeCreateRefs; //native函数创建的ref 用来作为gc root 避免被异常回收
+
         bool markReturn{false};
         bool existReturnValue{false};
         Slot returnValue{};
         SlotTypeEnum returnType{};
 
         bool markThrow{false};
-        //std::unique_ptr<FrameThrowable> throwObject;
-        InstanceOop *throwObject{nullptr};
+        InstanceOop *throwValue{nullptr}; //for JIT
 
         explicit Frame(VMThread &thread, Method &method, Frame *previousFrame, size_t fixMethodParamSlotSize = 0);
         ~Frame();
@@ -122,10 +123,7 @@ namespace RexVM {
         void returnF8(f8 val);
         void returnBoolean(bool val);
 
-        void throwException(InstanceOop * val, u4 pc);
         void throwException(InstanceOop * val);
-        //void passException(std::unique_ptr<FrameThrowable> lastException);
-        void passException(InstanceOop *lastException);
         void cleanThrow();
 
         [[nodiscard]] Slot getStackOffset(size_t offset) const;
@@ -133,13 +131,17 @@ namespace RexVM {
         [[nodiscard]] ref getThis() const;
         [[nodiscard]] InstanceOop *getThisInstance() const;
         void getLocalObjects(std::vector<ref> &result) const;
+        void addCreateRef(ref oop);
   
-        void printCallStack();
+        void printCallStack() const;
         void printLocalSlot();
         void printStackSlot();
         void printCollectRoots();
         void printReturn();
-        void printStr(ref oop);
+
+        [[nodiscard]] std::vector<cstring> getCallStack() const;
+
+        static void printStr(ref oop);
         void print();
 
     };

@@ -1,12 +1,11 @@
 #include "class_utils.hpp"
 #include "string_utils.hpp"
 #include "../class.hpp"
-#include "../oop.hpp"
 #include "../class_loader.hpp"
 
 namespace RexVM {
 
-    cview getClassNameByFieldDescriptor(cview descriptor) {
+    cview getClassNameByFieldDescriptor(const cview descriptor) {
         const auto first = descriptor[0];
         if (first == '[') {
             //Array
@@ -22,7 +21,7 @@ namespace RexVM {
         return getPrimitiveClassNameByDescriptor(first);
     }
 
-    cstring getJVMClassName(cview javaClassName) {
+    cstring getJVMClassName(const cview javaClassName) {
         cstring result;
         result.reserve(javaClassName.size());
         for (const auto &c : javaClassName) {
@@ -31,7 +30,7 @@ namespace RexVM {
         return result;
     }
 
-    cstring getJavaClassName(cview jvmClassName) {
+    cstring getJavaClassName(const cview jvmClassName) {
         cstring result;
         result.reserve(jvmClassName.size());
         for (const auto &c : jvmClassName) {
@@ -40,7 +39,7 @@ namespace RexVM {
         return result;
     }
 
-    bool isWideClassName(cview className) {
+    bool isWideClassName(const cview className) {
         return className == "long" || className == "double";
     }
 

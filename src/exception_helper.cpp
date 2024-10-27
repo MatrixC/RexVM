@@ -1,12 +1,8 @@
 #include "exception_helper.hpp"
 #include "frame.hpp"
-#include "class_loader.hpp"
 #include "class.hpp"
 #include "oop.hpp"
-#include "vm.hpp"
-#include "memory.hpp"
 #include "string_pool.hpp"
-#include "key_slot_id.hpp"
 #include "utils/class_utils.hpp"
 
 namespace RexVM {
@@ -14,6 +10,9 @@ namespace RexVM {
     void throwAssignException(Frame &frame, cview className, cview message) {
         const auto instanceClass = frame.mem.getInstanceClass(className);
         instanceClass->clinit(frame);
+        if (frame.markThrow) {
+            return;
+        }
         const auto throwable = frame.mem.newInstance(instanceClass);
         const auto hasMessage = !message.empty();
         const auto initMethod = 
@@ -27,6 +26,9 @@ namespace RexVM {
             initParams.emplace_back(frame.mem.getInternString(message));
         }
         frame.runMethodManual(*initMethod, initParams);
+        if (frame.markThrow) {
+            return;
+        }
         frame.throwException(throwable);
     }
 

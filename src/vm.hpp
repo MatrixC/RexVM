@@ -3,12 +3,8 @@
 
 #include <memory>
 #include <vector>
-#include <mutex>
-#include <thread>
-#include <deque>
 #include <chrono>
-#include "config.hpp"
-#include "utils/spin_lock.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
 
@@ -21,10 +17,45 @@ namespace RexVM {
     struct Method;
     struct GarbageCollect;
     struct ThreadManager;
+    struct LLVM_JIT_Engine;
+    struct JITManager;
+
+    constexpr size_t GC_STOP_WAIT_TIME_OUT = 5; //wait 5ms
+    constexpr size_t GC_ROOT_RESERVE_SIZE = 8192;
+
+    constexpr size_t JIT_COMPILE_OPTIMIZE_LEVEL = 0;
+
+#ifdef DEBUG
+    constexpr size_t GC_MEMORY_THRESHOLD = 0.5 * 1024 * 1024; //1M
+    constexpr size_t GC_SLEEP_TIME = 1; //500ms
+
+    constexpr size_t JIT_INVOKE_COUNT_THRESHOLD = 0;
+#else
+    constexpr size_t GC_MEMORY_THRESHOLD = 20 * 1024 * 1024; //20MB
+    constexpr size_t GC_SLEEP_TIME = 5000; //5000ms
+
+    constexpr size_t JIT_INVOKE_COUNT_THRESHOLD = 20;
+#endif
+
 
     struct ApplicationParameter {
         cstring userClassPath;
         std::vector<cstring> userParams;
+
+        bool gcEnable{false};
+        bool gcEnableLog{true};
+        bool gcEnableFinalize{false};
+        size_t gcGCRootReserveSize{GC_ROOT_RESERVE_SIZE};
+        size_t gcCollectMemoryThreshold{GC_MEMORY_THRESHOLD};
+        size_t gcCollectStopWaitTimeout{GC_STOP_WAIT_TIME_OUT};
+        size_t gcCollectSleepTime{GC_SLEEP_TIME};
+
+        bool jitEnable{true};
+        size_t jitCompileMethodInvokeCountThreshold{JIT_INVOKE_COUNT_THRESHOLD};
+        size_t jitCompileOptimizeLevel{JIT_COMPILE_OPTIMIZE_LEVEL};
+        bool jitLVTOptimize{true};
+        bool jitCheckStack{false};
+        bool jitSupportException{true};
     };
 
     struct VM {
@@ -36,11 +67,13 @@ namespace RexVM {
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
         std::unique_ptr<GarbageCollect> garbageCollector;
         std::unique_ptr<VMThread> mainThread;
+        std::unique_ptr<JITManager> jitManager;
+        
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
         cstring javaHome{};
         cstring javaClassPath{};
         bool exit{false};
-        
+
         explicit VM(ApplicationParameter &params);
 
         void start();
@@ -49,7 +82,7 @@ namespace RexVM {
         bool initVM();
         void runMainMethod() const;
         void joinThreads();
-        void exitVM();
+        void exitVM() const;
     };
 
     void vmMain(ApplicationParameter &param);

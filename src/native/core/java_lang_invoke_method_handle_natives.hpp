@@ -3,7 +3,7 @@
 
 #include <algorithm>
 #include <mutex>
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"
@@ -315,6 +315,9 @@ namespace RexVM::Native::Core {
             const auto newInstance = frame.mem.newInstance( &methodPtr->klass);
             const auto paramsWithType = methodHandleBuildInvokeMethodParams(frame, methodPtr, { Slot(newInstance) }, true);
             frame.runMethodManualTypes(*methodPtr, paramsWithType);
+            if (frame.markThrow) {
+                return;
+            }
             frame.returnRef(newInstance);
             return;
         }

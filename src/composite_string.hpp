@@ -23,12 +23,12 @@ namespace RexVM {
         CompositeString();
         CompositeString(const Char *str, CommonSize size);
         CompositeString(const Char16 *str, CommonSize size);
-        CompositeString(const Char *str);
-        CompositeString(const std::string &str);
+        explicit CompositeString(const Char *str);
+        explicit CompositeString(const std::string &str);
         CompositeString(const CompositeString &other);
         CompositeString(const Char *str1, CommonSize size1, const Char *str2, CommonSize size2);
         CompositeString(const std::string_view &str1, const std::string_view &str2);
-        CompositeString(CompositeString &&other);
+        CompositeString(CompositeString &&other) noexcept;
         ~CompositeString();
 
         void copy(const Char * str, CommonSize size);
@@ -38,17 +38,17 @@ namespace RexVM {
         bool eq(const Char *other, CommonSize otherSize) const;
         bool lt(const Char *other, CommonSize otherSize) const;
 
-        const Char &at(CommonSize pos) const;
-        const Char &front() const;
-        const Char &back() const;
+        [[nodiscard]] const Char &at(CommonSize pos) const;
+        [[nodiscard]] const Char &front() const;
+        [[nodiscard]] const Char &back() const;
         const Char &operator[](CommonSize pos) const;
         
         //结尾没有 '\0'
-        const Char *c_str() const;
-        Char *data() const;
-        bool empty() const;
-        CommonSize size() const;
-        CommonSize unicodeSize() const;
+        [[nodiscard]] const Char *c_str() const;
+        [[nodiscard]] Char *data() const;
+        [[nodiscard]] bool empty() const;
+        [[nodiscard]] CommonSize size() const;
+        [[nodiscard]] CommonSize unicodeSize() const;
 
         CompositeString &operator=(const CompositeString &other);
 
@@ -70,9 +70,9 @@ namespace RexVM {
         //split
         //substr
 
-        HashType hashCode() const;
-        std::string toString() const;
-        std::string_view toStringView() const;
+        [[nodiscard]] HashType hashCode() const;
+        [[nodiscard]] std::string toString() const;
+        [[nodiscard]] std::string_view toStringView() const;
     };
 
 }
@@ -86,13 +86,11 @@ namespace std {
     };
 }
 
-namespace fmt {
-    template<>
-    struct formatter<RexVM::CompositeString> : formatter<std::string_view> {
-        template <typename FormatContext>
-        auto format(const RexVM::CompositeString &myStr, FormatContext &ctx) const {
-            return formatter<std::string_view>::format(myStr.toStringView(), ctx);
-        }
-    };
-}
+template<>
+struct fmt::formatter<RexVM::CompositeString> : formatter<std::string_view> {
+    template <typename FormatContext>
+    auto format(const RexVM::CompositeString &myStr, FormatContext &ctx) const {
+        return formatter<std::string_view>::format(myStr.toStringView(), ctx);
+    }
+};
 #endif

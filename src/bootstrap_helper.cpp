@@ -29,12 +29,16 @@ namespace RexVM {
             vm.garbageCollector->finalizeRunner.initFinalizeThread(vm.mainThread.get());
         };
 
+        //0是 initializeSystemClass
+        //1是 finalize
+        //2是 main or <clinit>
+
         mainThread->addMethod(initializeSystemClassMethod, {});
         mainThread->addMethod(initFinalizeThread);
         return true;
     }
 
-    bool initVMMainMethod(VM &vm) {
+    bool initVMMainMethod(const VM &vm) {
         const auto &userParams = vm.params.userParams;
         const auto mainThread = vm.mainThread.get();
 
@@ -57,6 +61,10 @@ namespace RexVM {
             for (size_t i = 1; i < userParams.size(); ++i) {
                 stringArray->data[i - 1] = vm.stringPool->getInternString(mainThread, userParams[i]);
             }
+        }
+
+        if (const auto initMethod = runClass->getMethod("<clinit>", "()V", true); initMethod != nullptr) {
+            mainThread->addMethod(initMethod, {});
         }
 
         mainThread->addMethod(mainMethod, {Slot(stringArray)});

@@ -3,11 +3,9 @@
 
 #include <memory>
 #include <mutex>
-#include <tuple>
 #include <vector>
-#include "config.hpp"
+#include "basic.hpp"
 #include "utils/spin_lock.hpp"
-#include "utils/string_utils.hpp"
 #include "composite_string.hpp"
 
 namespace RexVM {
@@ -24,13 +22,13 @@ namespace RexVM {
     struct VMStringHelper {
         static constexpr auto tableSize = STRING_POOL_SIZE;
 
-        inline static u2 getKeyIndex(ccstr str, size_t size) {
+        static u2 getKeyIndex(const ccstr str, const size_t size) {
             const auto hashCode = std::hash<cview>{}(cview(str, size));
             return CAST_U2(hashCode % tableSize);
         }
 
-        static cstring getJavaString(InstanceOop *oop);
-        static bool equalJavaString(InstanceOop *oop, const cchar_16 *rawPtr, size_t arrayLength);
+        static cstring getJavaString(const InstanceOop *oop);
+        static bool equalJavaString(const InstanceOop *oop, const cchar_16 *rawPtr, size_t arrayLength);
         static InstanceOop *createJavaString(VMThread *thread, ccstr str, size_t size);
 
         template<typename TStr>
@@ -53,7 +51,7 @@ namespace RexVM {
         size_t tableSize;
         std::vector<Node *> table;
         
-        explicit StringTable(size_t size) : tableSize(size), table(size, nullptr) {
+        explicit StringTable(const size_t size) : tableSize(size), table(size, nullptr) {
         }
         ~StringTable();
 

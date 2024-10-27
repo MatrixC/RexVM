@@ -395,7 +395,7 @@ namespace RexVM {
 
     void InstanceClass::moveConstantPool(ClassFile &cf) {
         constantPool.reserve(cf.constantPool.size());
-        std::move(cf.constantPool.begin(), cf.constantPool.end(), std::back_inserter(constantPool));
+        std::ranges::move(cf.constantPool, std::back_inserter(constantPool));
     }
 
     void InstanceClass::calcFieldSlotId() {
@@ -439,7 +439,7 @@ namespace RexVM {
         if (staticSlotCount <= 0) {
             return;
         }
-        staticData = std::make_unique<Slot[]>(staticSlotCount);
+        // staticData = std::make_unique<Slot[]>(staticSlotCount);
         for (const auto &field: fields) {
             if (!field->isStatic()) {
                 continue;
@@ -512,10 +512,20 @@ namespace RexVM {
             return;
         }
 
+        std::lock_guard guard(initLock);
+        if (!notInitialize()) {
+            return;
+        }
+
         initStatus = ClassInitStatusEnum::INIT;
 
         if (superClass != nullptr) {
            superClass->clinit(frame);
+            if (frame.markThrow) {
+                //最深层以外在这里异常
+                initStatus = ClassInitStatusEnum::LOADED;
+                return;
+            }
         }
 
         initStaticField(frame.thread);
@@ -523,6 +533,11 @@ namespace RexVM {
         const auto clinitMethod = getMethod("<clinit>" "()V", true);
         if (clinitMethod != nullptr && &(clinitMethod->klass) == this) {
             frame.runMethodManual(*clinitMethod, {});
+            if (frame.markThrow) {
+                //最深层的clinit在此处异常
+                initStatus = ClassInitStatusEnum::LOADED;
+                return;
+            }
         }
 
         initSpecialType();

@@ -1,6 +1,6 @@
 #ifndef NATIVE_CORE_JAVA_LANG_CLASS_HPP
 #define NATIVE_CORE_JAVA_LANG_CLASS_HPP
-#include "../../config.hpp"
+#include "../../basic.hpp"
 #include "../../vm.hpp"
 #include "../../frame.hpp"
 #include "../../thread.hpp"
@@ -49,6 +49,9 @@ namespace RexVM::Native::Core {
         }
         if (initialize && klass->getType() == ClassTypeEnum::INSTANCE_CLASS) {
             CAST_INSTANCE_CLASS(klass)->clinit(frame);
+            if (frame.markThrow) {
+                return;
+            }
         }
         frame.returnRef(klass->getMirror(&frame));
     }
@@ -605,6 +608,9 @@ namespace RexVM::Native::Core {
             }
         }
         const auto [result, slotType] = frame.runMethodManual(*methodPtr, params);
+        if (frame.markThrow) {
+            return;
+        }
         const auto returnClass = frame.mem.getClass(methodPtr->returnType);
 
         ref oopResult = nullptr;

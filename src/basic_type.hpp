@@ -2,9 +2,7 @@
 #define BASIC_TYPE_HPP
 
 #include <array>
-#include "config.hpp"
-#include "exception.hpp"
-#include "composite_ptr.hpp"
+#include "basic.hpp"
 
 namespace RexVM {
     extern const std::array<BasicType, 9> PRIMITIVE_TYPE_ARRAY;

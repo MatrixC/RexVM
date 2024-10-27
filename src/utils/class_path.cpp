@@ -2,7 +2,6 @@
 #include <filesystem>
 #include <sstream>
 #include <cstdlib>
-#include <ranges>
 #include "string_utils.hpp"
 #include "../exception.hpp"
 #include "../file_system.hpp"
@@ -70,20 +69,20 @@ namespace RexVM {
             const cstring childPath{pathView};
             if (std::filesystem::is_regular_file(pathView)) {
                 if (endsWith(childPath, ".jar") || endsWith(childPath, ".JAR")) {
-                    if (processedPath.find(childPath) == processedPath.end()) {
+                    if (!processedPath.contains(childPath)) {
                         classPaths.push_back(std::make_unique<ZipClassPath>(cstring(childPath)));
                         processedPath.insert(childPath);
                     }
                 }
             } else if (std::filesystem::is_directory(childPath)) {
                 if (endsWith(childPath, fileSep)) {
-                    if (processedPath.find(childPath) == processedPath.end()) {
+                    if (!processedPath.contains(childPath)) {
                         classPaths.push_back(std::make_unique<DirClassPath>(cstring(childPath)));
                         processedPath.insert(childPath);
                     }
                 } else {
                     const cstring spath = childPath + fileSep;
-                    if (processedPath.find(spath) == processedPath.end()) {
+                    if (!processedPath.contains(spath)) {
                         classPaths.push_back(std::make_unique<DirClassPath>(spath));
                         processedPath.insert(spath);
                     }
