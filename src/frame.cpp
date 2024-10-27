@@ -72,6 +72,7 @@ namespace RexVM {
         mem(FrameMemoryHandler(*this)),
         constantPool(klass.constantPool),
         classLoader(klass.classLoader) {
+        thread.currentFrame = this;
         const auto nativeMethod = method.isNative();
         if (!nativeMethod) {
             auto codePtr = method.code.get();
@@ -108,6 +109,8 @@ namespace RexVM {
             std::fill_n(cleanStartPtr, elementSize, ZERO_SLOT);
             std::fill_n(cleanStartTypePtr, elementSize, SlotTypeEnum::NONE);
         }
+        
+        thread.currentFrame = previous;
     }
 
     ClassLoader *Frame::getCurrentClassLoader() const {

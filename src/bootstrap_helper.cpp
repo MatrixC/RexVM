@@ -63,6 +63,11 @@ namespace RexVM {
             }
         }
 
+        const auto initMethod = runClass->getMethod("<clinit>", "()V", true);
+        if (initMethod != nullptr) {
+            mainThread->addMethod(initMethod, {});
+        }
+
         mainThread->addMethod(mainMethod, {Slot(stringArray)});
         return true;
     }

@@ -19,14 +19,14 @@ namespace RexVM {
     struct ThreadManager;
     class LLVM_JITManager;
 
-    constexpr size_t GC_STOP_WAIT_TIME_OUT = 100; //wait 100ms
+    constexpr size_t GC_STOP_WAIT_TIME_OUT = 5; //wait 5ms
     constexpr size_t GC_ROOT_RESERVE_SIZE = 8192;
 
     constexpr size_t JIT_COMPILE_OPTIMIZE_LEVEL = 0;
 
 #ifdef DEBUG
     constexpr size_t GC_MEMORY_THRESHOLD = 0.5 * 1024 * 1024; //1M
-    constexpr size_t GC_SLEEP_TIME = 500; //500ms
+    constexpr size_t GC_SLEEP_TIME = 1; //500ms
 
     constexpr size_t JIT_INVOKE_COUNT_THRESHOLD = 0;
 #else
@@ -41,8 +41,8 @@ namespace RexVM {
         cstring userClassPath;
         std::vector<cstring> userParams;
 
-        bool gcEnable{true};
-        bool gcEnableLog{false};
+        bool gcEnable{false};
+        bool gcEnableLog{true};
         bool gcEnableFinalize{false};
         size_t gcGCRootReserveSize{GC_ROOT_RESERVE_SIZE};
         size_t gcCollectMemoryThreshold{GC_MEMORY_THRESHOLD};

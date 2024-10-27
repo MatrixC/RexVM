@@ -15,14 +15,14 @@ namespace RexVM {
     using namespace llvm;
     using namespace llvm::orc;
 
-    LLVM_JITManager::LLVM_JITManager(VM &vm) : JITManager(vm) {
+    LLVM_JITManager::LLVM_JITManager(VM &vm) : vm(vm) {
         InitializeNativeTarget();
         InitializeNativeTargetAsmPrinter();
         InitializeNativeTargetAsmParser();
 
         auto jitTarget = JITTargetMachineBuilder::detectHost();
-        const auto compileOptimizeLevel = static_cast<CodeGenOptLevel>(vm.params.jitCompileOptimizeLevel);
-        jitTarget->setCodeGenOptLevel(compileOptimizeLevel);
+        // const auto compileOptimizeLevel = static_cast<CodeGenOptLevel>(vm.params.jitCompileOptimizeLevel);
+        // jitTarget->setCodeGenOptLevel(compileOptimizeLevel);
 
         jit = cantFail(
             LLJITBuilder()

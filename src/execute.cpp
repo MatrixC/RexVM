@@ -195,13 +195,8 @@ namespace RexVM {
         }
     }
 
-    //备份/恢复线程的currentFrame 以及 对于处理synchronized标记的方法
+    //处理synchronized标记的方法
     inline void monitorExecuteFrame(Frame &frame) {
-        auto &thread = frame.thread;
-        //backup frame ptr
-        const auto backupFrame = thread.currentFrame;
-        thread.currentFrame = &frame;
-
         const auto &method = frame.method;
         EXCLUDE_EXECUTE_METHODS(method)
         auto lock = false;
@@ -224,9 +219,6 @@ namespace RexVM {
             monitorHandler->unlock();
         }
         //monitor execute end
-
-        //recovery currentFrame
-        thread.currentFrame = backupFrame;
     }
 
     void createFrameAndRunMethod(VMThread &thread, Method &method, Frame *previous, std::vector<Slot> params) {

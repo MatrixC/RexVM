@@ -1,6 +1,7 @@
 #ifndef COMPOSITE_PTR_HPP
 #define COMPOSITE_PTR_HPP
 #include <cstring>
+#include <bit>
 #include "exception.hpp"
 
 #define COMPOSITE_COMPRESS

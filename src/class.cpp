@@ -512,6 +512,11 @@ namespace RexVM {
             return;
         }
 
+        std::lock_guard guard(initLock);
+        if (!notInitialize()) {
+            return;
+        }
+
         initStatus = ClassInitStatusEnum::INIT;
 
         if (superClass != nullptr) {

@@ -9,22 +9,23 @@
 namespace RexVM {
 
     struct Method;
+    struct VM;
 
-    class LLVM_JITManager final : public JITManager {
-    public:
+    struct LLVM_JITManager {
+        VM &vm;
         std::atomic_uint32_t methodCnt{0};
         std::atomic_uint32_t successMethodCnt{0};
         std::atomic_uint32_t failedMethodCnt{0};
 
         explicit LLVM_JITManager(VM &vm);
-        ~LLVM_JITManager() override;
+        ~LLVM_JITManager();
 
         std::unique_ptr<llvm::orc::LLJIT> jit;
         std::unique_ptr<llvm::orc::ThreadSafeContext> threadSafeContext;
 
         void registerHelpFunction() const;
 
-        CompiledMethodHandler compileMethod(Method &method) override;
+        CompiledMethodHandler compileMethod(Method &method);
 
 
     };
