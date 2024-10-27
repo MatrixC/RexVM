@@ -127,7 +127,7 @@ namespace RexVM {
         finalizeRunner.cv.notify_all();
         const auto stopTime = getCurrentTimeMillis();
         while (!vm.threadManager->checkAllThreadStopForCollect() && !vm.exit) {
-            if ((getCurrentTimeMillis() - stopTime) > collectStopWaitTimeout) {
+            if ((getCurrentTimeMillis() - stopTime) > CAST_I8(collectStopWaitTimeout)) {
                 //stop wait timeout
                 //GC Thread跟UserThread可能出现互相死锁的情况 假设
                 // 1. GC Thread发起StopTheWorld

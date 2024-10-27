@@ -117,6 +117,7 @@ namespace RexVM {
         size_t paramSlotSize{0};
         std::vector<SlotTypeEnum> paramSlotType;
         bool canCompile{true};
+        bool markCompile{false};
 
         explicit Method(InstanceClass &klass, FMBaseInfo *info, const ClassFile &cf, u2 index = 0);
 

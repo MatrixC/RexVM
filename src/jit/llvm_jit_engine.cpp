@@ -1,4 +1,4 @@
-#include "llvm_jit_manager.hpp"
+#include "llvm_jit_engine.hpp"
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/Error.h>
 #include "llvm_compiler.hpp"
@@ -6,7 +6,6 @@
 #include "../class_member.hpp"
 #include "../class.hpp"
 #include "../vm.hpp"
-#include "../utils/string_utils.hpp"
 
 #define DEFINE_SYMBOL(hf_name) symbol_map[mangle(#hf_name)] = ExecutorSymbolDef(ExecutorAddr::fromPtr(&hf_name), JITSymbolFlags());
 
@@ -15,14 +14,14 @@ namespace RexVM {
     using namespace llvm;
     using namespace llvm::orc;
 
-    LLVM_JITManager::LLVM_JITManager(VM &vm) : vm(vm) {
+    LLVM_JIT_Engine::LLVM_JIT_Engine(VM &vm) : vm(vm) {
         InitializeNativeTarget();
         InitializeNativeTargetAsmPrinter();
         InitializeNativeTargetAsmParser();
 
         auto jitTarget = JITTargetMachineBuilder::detectHost();
-        // const auto compileOptimizeLevel = static_cast<CodeGenOptLevel>(vm.params.jitCompileOptimizeLevel);
-        // jitTarget->setCodeGenOptLevel(compileOptimizeLevel);
+        const auto compileOptimizeLevel = static_cast<CodeGenOptLevel>(vm.params.jitCompileOptimizeLevel);
+        jitTarget->setCodeGenOptLevel(compileOptimizeLevel);
 
         jit = cantFail(
             LLJITBuilder()
@@ -34,7 +33,7 @@ namespace RexVM {
         registerHelpFunction();
     }
 
-    void LLVM_JITManager::registerHelpFunction() const {
+    void LLVM_JIT_Engine::registerHelpFunction() const {
         auto &jd = jit->getMainJITDylib();
         const auto &dataLayout = jit->getDataLayout();
         auto &executionSession = jd.getExecutionSession();
@@ -54,7 +53,7 @@ namespace RexVM {
     }
 
 
-    CompiledMethodHandler LLVM_JITManager::compileMethod(Method &method) {
+    CompiledMethodHandler LLVM_JIT_Engine::compileMethod(Method &method) {
         if (!vm.params.jitSupportException && !method.exceptionCatches.empty()) {
             ++failedMethodCnt;
             method.canCompile = false;
@@ -84,7 +83,7 @@ namespace RexVM {
         return ptr;
     }
 
-    LLVM_JITManager::~LLVM_JITManager() {
+    LLVM_JIT_Engine::~LLVM_JIT_Engine() {
 #ifdef DEBUG
         cprintln("jit compile success: {}, failed: {}", successMethodCnt.load(), failedMethodCnt.load());
 #endif

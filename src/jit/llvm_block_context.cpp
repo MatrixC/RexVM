@@ -36,7 +36,7 @@ namespace RexVM {
 
         //check
         const auto passValueCount = passStack[0]->remainValue.size();
-        for (auto i = 1; i < passStack.size(); i++) {
+        for (size_t i = 1; i < passStack.size(); i++) {
             if (passStack[i]->remainValue.size() != passValueCount) {
                 panic("error stack");
             }

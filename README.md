@@ -2,6 +2,8 @@
 
 一个Java虚拟机(JVM)实现，使用C++开发。
 
+[English README](https://github.com/MatrixC/RexVM/blob/main/README_EN.md): Translated by GPT-4o.
+
 ## 支持特性
 * 异常(Exception)，包括异常的throw，catch，fillInStackTrace等
 * 反射(Reflect)，包括类、字段、方法的Class、Field、Method对象获取以及反射执行函数等

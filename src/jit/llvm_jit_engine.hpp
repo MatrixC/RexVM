@@ -1,7 +1,6 @@
-#ifndef LLVM_JIT_MANAGER_HPP
-#define LLVM_JIT_MANAGER_HPP
+#ifndef LLVM_JIT_ENGINE_HPP
+#define LLVM_JIT_ENGINE_HPP
 #include "../basic.hpp"
-#include "jit_manager.hpp"
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
 #include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <atomic>
@@ -11,14 +10,14 @@ namespace RexVM {
     struct Method;
     struct VM;
 
-    struct LLVM_JITManager {
+    struct LLVM_JIT_Engine {
         VM &vm;
         std::atomic_uint32_t methodCnt{0};
         std::atomic_uint32_t successMethodCnt{0};
         std::atomic_uint32_t failedMethodCnt{0};
 
-        explicit LLVM_JITManager(VM &vm);
-        ~LLVM_JITManager();
+        explicit LLVM_JIT_Engine(VM &vm);
+        ~LLVM_JIT_Engine();
 
         std::unique_ptr<llvm::orc::LLJIT> jit;
         std::unique_ptr<llvm::orc::ThreadSafeContext> threadSafeContext;

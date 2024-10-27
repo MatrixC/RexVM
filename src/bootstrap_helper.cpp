@@ -31,7 +31,7 @@ namespace RexVM {
 
         //0是 initializeSystemClass
         //1是 finalize
-        //2是 main
+        //2是 main or <clinit>
 
         mainThread->addMethod(initializeSystemClassMethod, {});
         mainThread->addMethod(initFinalizeThread);
@@ -63,8 +63,7 @@ namespace RexVM {
             }
         }
 
-        const auto initMethod = runClass->getMethod("<clinit>", "()V", true);
-        if (initMethod != nullptr) {
+        if (const auto initMethod = runClass->getMethod("<clinit>", "()V", true); initMethod != nullptr) {
             mainThread->addMethod(initMethod, {});
         }
 

@@ -10,12 +10,8 @@
 #include "interpreter.hpp"
 #include "thread.hpp"
 #include "basic_java_class.hpp"
-#include "cfg.hpp"
 #include "string_pool.hpp"
-#include "garbage_collect.hpp"
-#ifdef LLVM_JIT
-#include "jit/llvm_jit_manager.hpp"
-#endif
+#include "jit_manager.hpp"
 
 namespace RexVM {
 
@@ -118,20 +114,7 @@ namespace RexVM {
         const auto notNativeMethod = !method.isNative();
         method.invokeCounter++;
 
-#ifdef LLVM_JIT
-        do { //try to compile
-            if (frame.vm.params.jitEnable
-                && notNativeMethod
-                && method.canCompile
-                && method.compiledMethodHandler == nullptr
-                && method.invokeCounter >= frame.vm.params.jitCompileMethodInvokeCountThreshold
-            ) {
-                if (const auto jitManager = frame.vm.jitManager.get(); jitManager != nullptr) {
-                    jitManager->compileMethod(method);
-                }
-            }
-        } while (false);
-#endif
+        frame.vm.jitManager->checkCompile(method);
 
         // printExecuteLog = true;
         PRINT_EXECUTE_LOG(printExecuteLog, frame)

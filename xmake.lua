@@ -1,7 +1,7 @@
 add_rules("mode.debug", "mode.release", "mode.check")
 set_languages("c11", "cxx20")
 option("llvm-jit")
-    set_default(true)
+    set_default(false)
     set_showmenu(true)
     set_description("llvm-jit")
     local llvm_path = os.getenv("LLVM_PATH")
@@ -34,15 +34,17 @@ end
 
 if is_plat("windows") then
     add_cxflags("/utf-8")
-elseif is_plat("macosx") then
+else
+    add_options("llvm-jit")
+    add_cxxflags("-fno-exceptions")
+end
+
+if is_plat("macosx") then
     set_toolchains("clang")
 end
 
 target("rex")
     set_kind("binary")
-    add_options("llvm-jit")
-    set_toolchains("clang")
-    add_cxxflags("-fno-exceptions")
     add_includedirs(
         "third_party/miniz",
         "third_party/fmt/include",
@@ -56,7 +58,7 @@ target("rex")
         "src/native/misc/*.cpp",
         "src/native/sun/*.cpp",
         "src/native/rex/*.cpp",
-    
+
         "third_party/miniz/miniz.c"
     )
 

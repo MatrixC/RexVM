@@ -17,7 +17,8 @@ namespace RexVM {
     struct Method;
     struct GarbageCollect;
     struct ThreadManager;
-    class LLVM_JITManager;
+    struct LLVM_JIT_Engine;
+    struct JITManager;
 
     constexpr size_t GC_STOP_WAIT_TIME_OUT = 5; //wait 5ms
     constexpr size_t GC_ROOT_RESERVE_SIZE = 8192;
@@ -66,9 +67,8 @@ namespace RexVM {
         std::unique_ptr<ClassLoader> bootstrapClassLoader;
         std::unique_ptr<GarbageCollect> garbageCollector;
         std::unique_ptr<VMThread> mainThread;
-#ifdef LLVM_JIT
-        std::unique_ptr<LLVM_JITManager> jitManager;
-#endif
+        std::unique_ptr<JITManager> jitManager;
+        
         std::chrono::system_clock::time_point startTime{std::chrono::system_clock::now()};
         cstring javaHome{};
         cstring javaClassPath{};

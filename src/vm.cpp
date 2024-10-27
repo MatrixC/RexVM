@@ -10,10 +10,7 @@
 #include "garbage_collect.hpp"
 #include "bootstrap_helper.hpp"
 #include "class.hpp"
-#ifdef LLVM_JIT
-#include "jit/llvm_jit_manager.hpp"
-#endif
-
+#include "jit_manager.hpp"
 
 namespace RexVM {
 
@@ -51,9 +48,7 @@ namespace RexVM {
         mainThread->setThreadName("main"); //like openjdk
         garbageCollector->start();
 
-#ifdef LLVM_JIT
-        jitManager = std::make_unique<LLVM_JITManager>(*this);
-#endif
+        jitManager = std::make_unique<JITManager>(*this);
 
         if (!initVMBootstrapMethods(*this)) {
             return false;
