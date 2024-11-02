@@ -18,6 +18,8 @@ namespace RexVM {
 
     void throwIOException(Frame &frame, cview message);
 
+    void throwSocketException(Frame &frame, cview message);
+
     void throwClassNotFoundException(Frame &frame, cview className);
 
     void throwClassCastException(Frame &frame, cview className1, cview className2);

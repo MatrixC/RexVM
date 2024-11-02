@@ -18,6 +18,8 @@
 #include "java_util_concurrent_atomic.hpp"
 #include "java_util_time_zone.hpp"
 #include "java_lang_package.hpp"
+#include "java_net_plain_socket_impl.hpp"
+#include "java_net_plain_datagram_socket_impl.hpp"
 #include "unsafe.hpp"
 #include "misc.hpp"
 #include "define_class.hpp"
@@ -44,6 +46,7 @@ namespace RexVM::Native::Core {
     constexpr auto SUN_REFLECT_NATIVE_METHOD_ACCESSOR_IMPL_NAME = "sun/reflect/NativeMethodAccessorImpl";
     constexpr auto SUN_REFLECT_CONSTANT_POOL_NAME = "sun/reflect/ConstantPool";
     constexpr auto SUN_REFLECT_REFLECTION_NAME = "sun/reflect/Reflection";
+    constexpr auto JAVA_NET_PLAIN_SOCKET_IMPL = "java/net/PlainSocketImpl";
 
     void registerObjectCoreMethods(NativeManager &manager) {
         manager.regNativeMethod(JAVA_LANG_OBJECT_NAME, "getClass", "()Ljava/lang/Class;", false, Native::Core::getClass);
@@ -342,6 +345,36 @@ namespace RexVM::Native::Core {
         manager.regNativeMethod("java/lang/Shutdown", "halt0", "(I)V", false, Native::Core::halt0);
     }
 
+    void registerNetCoreMethods(NativeManager &manager) {
+        manager.regNativeMethod("java/net/InetAddress", "init", "()V", false, Native::Core::socketInitProto);
+        manager.regNativeMethod("java/net/Inet4Address", "init", "()V", false, Native::Core::socketInitProto);
+        manager.regNativeMethod("java/net/Inet4AddressImpl", "getLocalHostName", "()Ljava/lang/String;", false, Native::Core::getLocalHostName);
+        manager.regNativeMethod("java/net/Inet6Address", "init", "()V", false, Native::Core::socketInitProto);
+        manager.regNativeMethod("java/net/SocketInputStream", "init", "()V", false, Native::Core::socketInitProto);
+        manager.regNativeMethod("java/net/SocketOutputStream", "init", "()V", false, Native::Core::socketInitProto);
+        manager.regNativeMethod("java/net/DatagramPacket", "init", "()V", false, Native::Core::socketInitProto);
+
+        manager.regNativeMethod("java/net/InetAddressImplFactory", "isIPv6Supported", "()Z", false, Native::Core::inetSsIPv6Supported);
+        
+
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "initProto", "()V", false, Native::Core::socketInitProto);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketCreate", "(Z)V", false, Native::Core::socketCreate);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketConnect", "(Ljava/net/InetAddress;II)V", false, Native::Core::socketConnect);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketBind", "(Ljava/net/InetAddress;I)V", false, Native::Core::socketBind);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketListen", "(I)V", false, Native::Core::socketListen);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketAccept", "(Ljava/net/SocketImpl;)V", false, Native::Core::socketAccept);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketClose0", "(Z)V", false, Native::Core::socketClose0);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketAvailable", "()I", false, Native::Core::socketAvailable);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketShutdown", "(I)V", false, Native::Core::socketShutdown);
+
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketSetOption0", "(IZLjava/lang/Object;)V", false, Native::Core::socketSetOption0);
+        manager.regNativeMethod(JAVA_NET_PLAIN_SOCKET_IMPL, "socketGetOption", "(ILjava/lang/Object;)I", false, Native::Core::socketGetOption);
+
+
+        manager.regNativeMethod("java/net/SocketInputStream", "socketRead0", "(Ljava/io/FileDescriptor;[BIII)I", false, Native::Core::socketRead0);
+        manager.regNativeMethod("java/net/SocketOutputStream", "socketWrite0", "(Ljava/io/FileDescriptor;[BII)V", false, Native::Core::socketWrite0);
+    }
+
     void registerCoreMethods(NativeManager &manager) {
         registerObjectCoreMethods(manager);
         registerStringCoreMethods(manager);
@@ -359,6 +392,7 @@ namespace RexVM::Native::Core {
         registerAtomicCoreMethods(manager);
         registerPackageCoreMethods(manager);
         registerMiscCoreMethods(manager);
+        registerNetCoreMethods(manager);
     }
 
 }

@@ -18,7 +18,8 @@ namespace RexVM {
     bool printExecuteLog{false};
 
     //Print Exception stack on stdout
-    void throwToTopFrame(Frame &frame, InstanceOop *throwInstance) {
+    void throwToTopFrame(Frame &frame, ref rr) {
+        InstanceOop *throwInstance = CAST_INSTANCE_OOP(rr);
         const auto printStackTraceMethod = 
             throwInstance->getInstanceClass()->getMethod("printStackTrace" "()V", false);
         frame.runMethodManual(*printStackTraceMethod, {Slot(throwInstance)});
@@ -113,6 +114,18 @@ namespace RexVM {
         auto &method = frame.method;
         const auto notNativeMethod = !method.isNative();
         method.invokeCounter++;
+
+        if (method.toView() == "log") {
+            int i = 10;
+        }
+
+        if (method.toView() == "<init>" && method.klass.toView() == "fi/iki/elonen/NanoHTTPD$HTTPSession") {
+            int i = 10;
+        }
+
+        if (method.toView() == "getInetAddress") {
+            int i = 10;
+        }
 
         frame.vm.jitManager->checkCompile(method);
 

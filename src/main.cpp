@@ -34,6 +34,6 @@ int main(int argc, char *argv[]) {
     if (parseArgs(argc, argv, applicationParameter) == 0) {
         vmMain(applicationParameter);
     }
-    
+        
     return 0;
 }

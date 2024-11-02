@@ -53,4 +53,9 @@ namespace RexVM {
         return javaHome;
     }
 
+    cstring getTmpDir() {
+        cstring tmpDir{std::getenv("TMPDIR")};
+        return tmpDir;
+    }
+
 }

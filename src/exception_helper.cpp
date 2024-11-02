@@ -53,6 +53,10 @@ namespace RexVM {
         throwAssignException(frame, "java/io/IOException", message);
     }
 
+    void throwSocketException(Frame &frame, cview message) {
+        throwAssignException(frame, "java/net/SocketException", message);
+    }
+
     void throwClassNotFoundException(Frame &frame, cview className) {
         throwAssignException(frame, "java/lang/ClassNotFoundException", className);
     }

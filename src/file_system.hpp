@@ -15,6 +15,7 @@ namespace RexVM {
 
     cstring getJavaHome();
 
+    cstring getTmpDir();
 }
 
 #endif

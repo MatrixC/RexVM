@@ -154,6 +154,7 @@ namespace RexVM::Native::Core {
         const auto propsClass = CAST_INSTANCE_CLASS(props->getClass());
         const auto setPropertyMethod = propsClass->getMethod("setProperty" "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", false);
         const auto utf8ConstString = frame.mem.getInternString("UTF-8");
+        const auto tempDir = getTmpDir();
 
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("java.vm.name")), Slot(frame.mem.getInternString("RexVM")) });
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("java.specification.version")), Slot(frame.mem.getInternString("1.8")) });
@@ -175,6 +176,7 @@ namespace RexVM::Native::Core {
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("os.name")), Slot(frame.mem.getInternString(OS_NAME)) });
 
         frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("sun.reflect.noCaches")), Slot(frame.mem.getInternString("true")) });
+        frame.runMethodManual(*setPropertyMethod, { Slot(props), Slot(frame.mem.getInternString("java.io.tmpdir")), Slot(frame.mem.getInternString(tempDir)) });
 
         frame.returnRef(props);
     }
